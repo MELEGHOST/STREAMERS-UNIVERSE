@@ -1,6 +1,7 @@
 import logging
+import os
 import requests
-from telegram import Update, ReplyKeyboardMarkup, InlineKeyboardButton, InlineKeyboardMarkup
+from telegram import Update, ReplyKeyboardMarkup
 from telegram.ext import Updater, CommandHandler, MessageHandler, Filters, CallbackContext, ConversationHandler
 import sqlite3
 
@@ -114,8 +115,8 @@ def confirm_streamer(update: Update, context: CallbackContext) -> int:
     username = update.message.from_user.username
 
     # Получаем OAuth токен Twitch
-    client_id = "YOUR_TWITCH_CLIENT_ID"
-    client_secret = "YOUR_TWITCH_CLIENT_SECRET"
+    client_id = os.getenv("TWITCH_CLIENT_ID")
+    client_secret = os.getenv("TWITCH_CLIENT_SECRET")
     oauth_token = get_twitch_oauth_token(client_id, client_secret)
 
     # Проверяем количество подписчиков
@@ -232,7 +233,13 @@ def save_review(update: Update, context: CallbackContext) -> int:
 
 # Основная функция
 def main() -> None:
-    updater = Updater("YOUR_TELEGRAM_BOT_TOKEN")
+    # Получение токена Telegram-бота из переменных окружения
+    TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
+    if not TELEGRAM_BOT_TOKEN:
+        logger.error("TELEGRAM_BOT_TOKEN не найден в переменных окружения.")
+        return
+
+    updater = Updater(TELEGRAM_BOT_TOKEN)
 
     dispatcher = updater.dispatcher
 
