@@ -71,15 +71,15 @@ def check_twitch_followers(twitch_username, client_id, oauth_token):
     }
     response = requests.get(url, headers=headers)
     user_data = response.json().get("data", [])
-    
+
     if not user_data:
         return None
-    
+
     user_id = user_data[0]["id"]
     followers_url = f"https://api.twitch.tv/helix/channels/followers?broadcaster_id={user_id}"
     followers_response = requests.get(followers_url, headers=headers)
     total_followers = followers_response.json().get("total", 0)
-    
+
     return total_followers
 
 # Команда /start
