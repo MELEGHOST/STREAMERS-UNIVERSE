@@ -1,11 +1,15 @@
 import logging
 import os
 import requests
+import warnings
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, WebAppInfo
 from telegram.ext import Updater, CommandHandler, MessageHandler, Filters, CallbackContext, ConversationHandler, CallbackQueryHandler
 from flask import Flask, jsonify, request
 import sqlite3
 import threading
+
+# Игнорирование предупреждений
+warnings.filterwarnings("ignore", category=UserWarning)
 
 # Настройка логирования
 logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', level=logging.INFO)
@@ -167,94 +171,12 @@ def main_menu(update: Update, context: CallbackContext) -> int:
     )
     return REGISTERING
 
-# Поиск стримера
-def search_streamer(update: Update, context: CallbackContext) -> int:
-    update.callback_query.edit_message_text("Введите имя стримера:")
-    return VIEWING_STREAMER
-
-# Просмотр профиля стримера
-def view_streamer(update: Update, context: CallbackContext) -> int:
-    streamer_name = update.message.text
-    cursor.execute('SELECT * FROM users WHERE username = ? AND role = ?', (streamer_name, 'streamer'))
-    streamer = cursor.fetchone()
-
-    if streamer:
-        streamer_id, _, _, twitch_username, followers = streamer
-        cursor.execute('SELECT * FROM movies WHERE streamer_id = ?', (streamer_id,))
-        movies = cursor.fetchall()
-
-        movies_list = "\n".join([f"{movie[2]}" for movie in movies])
-        update.message.reply_text(
-            f"Стример: {streamer_name}\n"
-            f"Twitch: {twitch_username}\n"
-            f"Подписчики: {followers}\n"
-            f"Фильмы:\n{movies_list}"
-        )
-    else:
-        update.message.reply_text("Стример не найден.")
-
-    return main_menu(update, context)
-
-# Оценка фильма
-def rate_movie(update: Update, context: CallbackContext) -> int:
-    update.callback_query.edit_message_text("Введите название фильма:")
-    return RATING_MOVIE
-
-def process_rating(update: Update, context: CallbackContext) -> int:
-    movie_title = update.message.text
-    context.user_data['movie_title'] = movie_title
-    update.message.reply_text("Введите оценку от 1 до 10:")
-    return RATING_MOVIE
-
-def save_rating(update: Update, context: CallbackContext) -> int:
-    score = int(update.message.text)
-    movie_title = context.user_data['movie_title']
-    user_id = update.message.from_user.id
-
-    cursor.execute('SELECT movie_id FROM movies WHERE title = ?', (movie_title,))
-    movie = cursor.fetchone()
-
-    if movie:
-        movie_id = movie[0]
-        cursor.execute('INSERT INTO ratings (movie_id, user_id, score) VALUES (?, ?, ?)', (movie_id, user_id, score))
-        conn.commit()
-        update.message.reply_text(f"Вы оценили фильм '{movie_title}' на {score} из 10.")
-    else:
-        update.message.reply_text("Фильм не найден.")
-
-    return main_menu(update, context)
-
-# Написание рецензии
-def write_review(update: Update, context: CallbackContext) -> int:
-    update.callback_query.edit_message_text("Введите название фильма:")
-    return WRITING_REVIEW
-
-def process_review(update: Update, context: CallbackContext) -> int:
-    movie_title = update.message.text
-    context.user_data['movie_title'] = movie_title
-    update.message.reply_text("Напишите вашу рецензию:")
-    return WRITING_REVIEW
-
-def save_review(update: Update, context: CallbackContext) -> int:
-    review = update.message.text
-    movie_title = context.user_data['movie_title']
-    user_id = update.message.from_user.id
-
-    cursor.execute('SELECT movie_id FROM movies WHERE title = ?', (movie_title,))
-    movie = cursor.fetchone()
-
-    if movie:
-        movie_id = movie[0]
-        cursor.execute('INSERT INTO ratings (movie_id, user_id, review) VALUES (?, ?, ?)', (movie_id, user_id, review))
-        conn.commit()
-        update.message.reply_text(f"Ваша рецензия на фильм '{movie_title}' сохранена.")
-    else:
-        update.message.reply_text("Фильм не найден.")
-
-    return main_menu(update, context)
-
 # Flask-сервер для мини-приложения
 app = Flask(__name__)
+
+@app.route('/')
+def home():
+    return "Welcome to the Streamers Universe Mini App!"
 
 @app.route('/get-streamers', methods=['GET'])
 def get_streamers():
