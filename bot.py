@@ -16,9 +16,9 @@ logger = logging.getLogger(__name__)
 def kill_existing_processes():
     try:
         current_pid = os.getpid()  # Получаем PID текущего процесса
-        for line in os.popen("ps aux | grep python"):
-            if "bot.py" in line and "grep" not in line:
-                pid = int(line.split()[1])
+        for line in os.popen("pgrep -fl bot.py"):
+            if "bot.py" in line:
+                pid = int(line.split()[0])  # Первый столбец содержит PID
                 if pid != current_pid:  # Завершаем только другие процессы
                     logger.info(f"Завершение процесса с PID: {pid}")
                     os.kill(pid, signal.SIGKILL)
