@@ -193,6 +193,64 @@ def view_streamer(update: Update, context: CallbackContext) -> int:
 
     return main_menu(update, context)
 
+# Оценка фильма
+def rate_movie(update: Update, context: CallbackContext) -> int:
+    update.callback_query.edit_message_text("Введите название фильма:")
+    return RATING_MOVIE
+
+def process_rating(update: Update, context: CallbackContext) -> int:
+    movie_title = update.message.text
+    context.user_data['movie_title'] = movie_title
+    update.message.reply_text("Введите оценку от 1 до 10:")
+    return RATING_MOVIE
+
+def save_rating(update: Update, context: CallbackContext) -> int:
+    score = int(update.message.text)
+    movie_title = context.user_data['movie_title']
+    user_id = update.message.from_user.id
+
+    cursor.execute('SELECT movie_id FROM movies WHERE title = ?', (movie_title,))
+    movie = cursor.fetchone()
+
+    if movie:
+        movie_id = movie[0]
+        cursor.execute('INSERT INTO ratings (movie_id, user_id, score) VALUES (?, ?, ?)', (movie_id, user_id, score))
+        conn.commit()
+        update.message.reply_text(f"Вы оценили фильм '{movie_title}' на {score} из 10.")
+    else:
+        update.message.reply_text("Фильм не найден.")
+
+    return main_menu(update, context)
+
+# Написание рецензии
+def write_review(update: Update, context: CallbackContext) -> int:
+    update.callback_query.edit_message_text("Введите название фильма:")
+    return WRITING_REVIEW
+
+def process_review(update: Update, context: CallbackContext) -> int:
+    movie_title = update.message.text
+    context.user_data['movie_title'] = movie_title
+    update.message.reply_text("Напишите вашу рецензию:")
+    return WRITING_REVIEW
+
+def save_review(update: Update, context: CallbackContext) -> int:
+    review = update.message.text
+    movie_title = context.user_data['movie_title']
+    user_id = update.message.from_user.id
+
+    cursor.execute('SELECT movie_id FROM movies WHERE title = ?', (movie_title,))
+    movie = cursor.fetchone()
+
+    if movie:
+        movie_id = movie[0]
+        cursor.execute('INSERT INTO ratings (movie_id, user_id, review) VALUES (?, ?, ?)', (movie_id, user_id, review))
+        conn.commit()
+        update.message.reply_text(f"Ваша рецензия на фильм '{movie_title}' сохранена.")
+    else:
+        update.message.reply_text("Фильм не найден.")
+
+    return main_menu(update, context)
+
 # Основная функция
 def main() -> None:
     TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
