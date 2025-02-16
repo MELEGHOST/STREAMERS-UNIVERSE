@@ -1,172 +1,160 @@
-<!DOCTYPE html>
-<html lang="ru">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Стримеры</title>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            background-color: #f4f4f9;
-            padding: 20px;
-        }
-        h1 {
-            color: #333;
-        }
-        .section {
-            margin-bottom: 20px;
-        }
-        button {
-            background-color: #0088cc;
-            color: white;
-            border: none;
-            padding: 10px 15px;
-            border-radius: 5px;
-            cursor: pointer;
-        }
-        button:hover {
-            background-color: #005f99;
-        }
-        input, textarea {
-            display: block;
-            width: 100%;
-            margin: 10px 0;
-            padding: 10px;
-            border: 1px solid #ccc;
-            border-radius: 5px;
-        }
-    </style>
-</head>
-<body>
-    <h1>Добро пожаловать в мини-приложение!</h1>
+import logging
+import os
+from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, WebAppInfo
+from telegram.ext import Updater, CommandHandler, CallbackContext
+from flask import Flask, jsonify, request
+import sqlite3
+import threading
+from waitress import serve
 
-    <!-- Регистрация -->
-    <div class="section">
-        <h2>Регистрация</h2>
-        <select id="role">
-            <option value="viewer">Зритель</option>
-            <option value="streamer">Стример</option>
-        </select>
-        <input type="text" id="twitch-username" placeholder="Имя пользователя на Twitch (для стримеров)">
-        <button onclick="register()">Зарегистрироваться</button>
-    </div>
+# Настройка логирования
+logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', level=logging.INFO)
+logger = logging.getLogger(__name__)
 
-    <!-- Поиск стримеров -->
-    <div class="section">
-        <h2>Поиск стримеров</h2>
-        <input type="text" id="search-streamer" placeholder="Введите имя стримера">
-        <button onclick="searchStreamer()">Найти</button>
-        <div id="streamers-list"></div>
-    </div>
+# Подключение к базе данных SQLite
+conn = sqlite3.connect('streamer_app.db', check_same_thread=False)
+cursor = conn.cursor()
 
-    <!-- Оценка фильма -->
-    <div class="section">
-        <h2>Оценить фильм</h2>
-        <input type="text" id="movie-title-rating" placeholder="Название фильма">
-        <input type="number" id="movie-score" placeholder="Оценка (1-10)">
-        <button onclick="submitRating()">Отправить оценку</button>
-    </div>
+# Создание таблиц в базе данных
+def create_tables():
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS users (
+            user_id INTEGER PRIMARY KEY,
+            username TEXT,
+            role TEXT,
+            twitch_username TEXT,
+            followers INTEGER DEFAULT 0
+        )
+    ''')
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS movies (
+            movie_id INTEGER PRIMARY KEY AUTOINCREMENT,
+            streamer_id INTEGER,
+            title TEXT,
+            FOREIGN KEY(streamer_id) REFERENCES users(user_id)
+        )
+    ''')
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS ratings (
+            rating_id INTEGER PRIMARY KEY AUTOINCREMENT,
+            movie_id INTEGER,
+            user_id INTEGER,
+            score INTEGER,
+            review TEXT,
+            FOREIGN KEY(movie_id) REFERENCES movies(movie_id),
+            FOREIGN KEY(user_id) REFERENCES users(user_id)
+        )
+    ''')
+    conn.commit()
 
-    <!-- Написание рецензии -->
-    <div class="section">
-        <h2>Написать рецензию</h2>
-        <input type="text" id="movie-title-review" placeholder="Название фильма">
-        <textarea id="movie-review" placeholder="Рецензия"></textarea>
-        <button onclick="submitReview()">Отправить рецензию</button>
-    </div>
+create_tables()
 
-    <script src="https://telegram.org/js/telegram-web-app.js"></script>
-    <script>
-        const tg = window.Telegram.WebApp;
+# Команда /start
+def start(update: Update, context: CallbackContext) -> None:
+    keyboard = [
+        [InlineKeyboardButton("Открыть мини-приложение", web_app=WebAppInfo(url="https://your-replit-url.repl.co"))]
+    ]
+    reply_markup = InlineKeyboardMarkup(keyboard)
 
-        // Регистрация пользователя
-        function register() {
-            const role = document.getElementById('role').value;
-            const twitchUsername = document.getElementById('twitch-username').value || null;
-            const userId = tg.initDataUnsafe.user.id;
-            const username = tg.initDataUnsafe.user.username;
+    update.message.reply_text(
+        "<b>Добро пожаловать!</b>\n\n"
+        "Нажмите кнопку ниже, чтобы открыть мини-приложение.",
+        parse_mode="HTML",
+        reply_markup=reply_markup
+    )
 
-            fetch('/register', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    user_id: userId,
-                    username: username,
-                    role: role,
-                    twitch_username: twitchUsername,
-                    followers: role === 'streamer' ? 250 : 0
-                })
-            })
-            .then(response => response.json())
-            .then(data => {
-                alert(data.message);
-            })
-            .catch(error => console.error('Ошибка регистрации:', error));
-        }
+# Flask-сервер для мини-приложения
+app = Flask(__name__)
 
-        // Поиск стримеров
-        function searchStreamer() {
-            const query = document.getElementById('search-streamer').value;
+@app.route('/')
+def home():
+    return "Welcome to the Streamers Universe Mini App!"
 
-            fetch('/get-streamers')
-                .then(response => response.json())
-                .then(data => {
-                    const list = document.getElementById('streamers-list');
-                    list.innerHTML = '';
-                    data.forEach(streamer => {
-                        if (streamer.username.toLowerCase().includes(query.toLowerCase())) {
-                            const card = document.createElement('div');
-                            card.innerHTML = `
-                                <h3>${streamer.username}</h3>
-                                <p><strong>Twitch:</strong> ${streamer.twitch_username}</p>
-                                <p><strong>Подписчики:</strong> ${streamer.followers}</p>
-                            `;
-                            list.appendChild(card);
-                        }
-                    });
-                })
-                .catch(error => console.error('Ошибка поиска стримеров:', error));
-        }
+@app.route('/get-streamers', methods=['GET'])
+def get_streamers():
+    cursor.execute('SELECT username, twitch_username, followers FROM users WHERE role = ?', ('streamer',))
+    streamers = cursor.fetchall()
+    return jsonify([{'username': s[0], 'twitch_username': s[1], 'followers': s[2]} for s in streamers])
 
-        // Отправка оценки фильма
-        function submitRating() {
-            const movieTitle = document.getElementById('movie-title-rating').value;
-            const score = document.getElementById('movie-score').value;
-            const userId = tg.initDataUnsafe.user.id;
+@app.route('/register', methods=['POST'])
+def register():
+    data = request.json
+    user_id = data.get('user_id')
+    username = data.get('username')
+    role = data.get('role')
+    twitch_username = data.get('twitch_username')
+    followers = data.get('followers')
 
-            fetch('/rate-movie', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ movie_title: movieTitle, score: parseInt(score), user_id: userId })
-            })
-            .then(response => response.json())
-            .then(data => {
-                alert(data.message);
-            })
-            .catch(error => console.error('Ошибка отправки оценки:', error));
-        }
+    cursor.execute('INSERT OR IGNORE INTO users (user_id, username, role, twitch_username, followers) VALUES (?, ?, ?, ?, ?)',
+                   (user_id, username, role, twitch_username, followers))
+    conn.commit()
 
-        // Отправка рецензии
-        function submitReview() {
-            const movieTitle = document.getElementById('movie-title-review').value;
-            const review = document.getElementById('movie-review').value;
-            const userId = tg.initDataUnsafe.user.id;
+    return jsonify({"status": "ok", "message": f"Вы успешно зарегистрировались как {role}!"})
 
-            fetch('/write-review', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ movie_title: movieTitle, review, user_id: userId })
-            })
-            .then(response => response.json())
-            .then(data => {
-                alert(data.message);
-            })
-            .catch(error => console.error('Ошибка отправки рецензии:', error));
-        }
+@app.route('/rate-movie', methods=['POST'])
+def rate_movie():
+    data = request.json
+    movie_title = data.get('movie_title')
+    score = data.get('score')
+    user_id = data.get('user_id')
 
-        // Настройка кнопки закрытия
-        tg.MainButton.text = "Закрыть";
-        tg.MainButton.onClick(() => tg.close());
-    </script>
-</body>
-</html>
+    cursor.execute('SELECT movie_id FROM movies WHERE title = ?', (movie_title,))
+    movie = cursor.fetchone()
+
+    if movie:
+        movie_id = movie[0]
+        cursor.execute('INSERT INTO ratings (movie_id, user_id, score) VALUES (?, ?, ?)', (movie_id, user_id, score))
+        conn.commit()
+        return jsonify({"status": "ok", "message": f"Вы оценили фильм '{movie_title}' на {score} из 10."})
+    else:
+        return jsonify({"status": "error", "message": "Фильм не найден."})
+
+@app.route('/write-review', methods=['POST'])
+def write_review():
+    data = request.json
+    movie_title = data.get('movie_title')
+    review = data.get('review')
+    user_id = data.get('user_id')
+
+    cursor.execute('SELECT movie_id FROM movies WHERE title = ?', (movie_title,))
+    movie = cursor.fetchone()
+
+    if movie:
+        movie_id = movie[0]
+        cursor.execute('INSERT INTO ratings (movie_id, user_id, review) VALUES (?, ?, ?)', (movie_id, user_id, review))
+        conn.commit()
+        return jsonify({"status": "ok", "message": f"Ваша рецензия на фильм '{movie_title}' сохранена."})
+    else:
+        return jsonify({"status": "error", "message": "Фильм не найден."})
+
+# Запуск Flask-сервера через Waitress
+def run_flask():
+    serve(app, host='0.0.0.0', port=8080)
+
+# Основная функция
+def main() -> None:
+    TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
+    if not TELEGRAM_BOT_TOKEN:
+        logger.error("TELEGRAM_BOT_TOKEN не найден в переменных окружения.")
+        return
+
+    # Очистка предыдущих Webhook (если они были настроены)
+    from telegram import Bot
+    bot = Bot(token=TELEGRAM_BOT_TOKEN)
+    bot.delete_webhook()
+
+    # Запуск Flask-сервера в отдельном потоке
+    flask_thread = threading.Thread(target=run_flask)
+    flask_thread.daemon = True
+    flask_thread.start()
+
+    updater = Updater(TELEGRAM_BOT_TOKEN)
+    dispatcher = updater.dispatcher
+
+    dispatcher.add_handler(CommandHandler('start', start))
+
+    updater.start_polling()
+    updater.idle()
+
+if __name__ == '__main__':
+    main()
