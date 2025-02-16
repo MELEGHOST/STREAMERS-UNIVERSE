@@ -1,7 +1,7 @@
 import logging
 import os
 import signal
-from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, WebAppInfo
+from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, WebAppInfo, Bot
 from telegram.ext import Updater, CommandHandler, CallbackContext
 from flask import Flask, jsonify, request
 import sqlite3
@@ -15,11 +15,13 @@ logger = logging.getLogger(__name__)
 # Автоматическая остановка старых процессов
 def kill_existing_processes():
     try:
+        current_pid = os.getpid()  # Получаем PID текущего процесса
         for line in os.popen("ps aux | grep python"):
             if "bot.py" in line and "grep" not in line:
                 pid = int(line.split()[1])
-                logger.info(f"Завершение процесса с PID: {pid}")
-                os.kill(pid, signal.SIGKILL)
+                if pid != current_pid:  # Завершаем только другие процессы
+                    logger.info(f"Завершение процесса с PID: {pid}")
+                    os.kill(pid, signal.SIGKILL)
     except Exception as e:
         logger.error(f"Ошибка при завершении процессов: {e}")
 
@@ -66,7 +68,7 @@ create_tables()
 # Команда /start
 def start(update: Update, context: CallbackContext) -> None:
     keyboard = [
-        [InlineKeyboardButton("Открыть мини-приложение", web_app=WebAppInfo(url="https://your-replit-url.repl.co"))]
+        [InlineKeyboardButton("Открыть мини-приложение", web_app=WebAppInfo(url="https://streamers-universe.melegost.repl.co"))]
     ]
     reply_markup = InlineKeyboardMarkup(keyboard)
 
@@ -147,15 +149,18 @@ def run_flask():
 
 # Основная функция
 def main() -> None:
+    # Получение токена из переменных окружения
     TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
     if not TELEGRAM_BOT_TOKEN:
         logger.error("TELEGRAM_BOT_TOKEN не найден в переменных окружения.")
         return
 
-    # Очистка предыдущих Webhook (если они были настроены)
-    from telegram import Bot
+    # Настройка Webhook
+    WEBHOOK_URL = "https://streamers-universe.melegost.repl.co/"
     bot = Bot(token=TELEGRAM_BOT_TOKEN)
-    bot.delete_webhook()
+    bot.delete_webhook()  # Очистка предыдущих Webhook
+    bot.set_webhook(WEBHOOK_URL + TELEGRAM_BOT_TOKEN)
+    logger.info(f"Webhook установлен: {WEBHOOK_URL}{TELEGRAM_BOT_TOKEN}")
 
     # Запуск Flask-сервера в отдельном потоке
     flask_thread = threading.Thread(target=run_flask)
@@ -167,7 +172,8 @@ def main() -> None:
 
     dispatcher.add_handler(CommandHandler('start', start))
 
-    updater.start_polling()
+    updater.start_webhook(listen="0.0.0.0", port=8443, url_path=TELEGRAM_BOT_TOKEN)
+    updater.bot.set_webhook(WEBHOOK_URL + TELEGRAM_BOT_TOKEN)
     updater.idle()
 
 if __name__ == '__main__':
