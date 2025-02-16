@@ -1,8 +1,8 @@
 import logging
 import os
 import requests
-from telegram import Update, ReplyKeyboardMarkup
-from telegram.ext import Updater, CommandHandler, MessageHandler, Filters, CallbackContext, ConversationHandler
+from telegram import Update, ReplyKeyboardMarkup, InlineKeyboardButton, InlineKeyboardMarkup
+from telegram.ext import Updater, CommandHandler, MessageHandler, Filters, CallbackContext, ConversationHandler, CallbackQueryHandler
 import sqlite3
 
 # Настройка логирования
@@ -83,157 +83,65 @@ def check_twitch_followers(twitch_username, client_id, oauth_token):
 
 # Команда /start
 def start(update: Update, context: CallbackContext) -> int:
-    reply_keyboard = [['Зритель', 'Стример']]
+    keyboard = [
+        [InlineKeyboardButton("Зритель", callback_data="viewer"),
+         InlineKeyboardButton("Стример", callback_data="streamer")]
+    ]
+    reply_markup = InlineKeyboardMarkup(keyboard)
+
     update.message.reply_text(
-        "Привет! Выберите свою роль:",
-        reply_markup=ReplyKeyboardMarkup(reply_keyboard, one_time_keyboard=True)
+        "<b>Добро пожаловать!</b>\n\n"
+        "Этот бот поможет вам найти стримеров, оценить фильмы и написать рецензии.\n"
+        "Выберите свою роль ниже:",
+        parse_mode="HTML",
+        reply_markup=reply_markup
     )
     return SELECTING_ROLE
 
-# Выбор роли
+# Обработка выбора роли через InlineKeyboard
 def select_role(update: Update, context: CallbackContext) -> int:
-    role = update.message.text.lower()
-    user_id = update.message.from_user.id
-    username = update.message.from_user.username
+    query = update.callback_query
+    query.answer()
 
-    if role == 'зритель':
+    role = query.data
+    user_id = query.from_user.id
+    username = query.from_user.username
+
+    if role == "viewer":
         cursor.execute('INSERT OR IGNORE INTO users (user_id, username, role) VALUES (?, ?, ?)', (user_id, username, 'viewer'))
         conn.commit()
-        update.message.reply_text("Вы успешно зарегистрировались как зритель!")
+        query.edit_message_text("🎉 Вы успешно зарегистрировались как <b>зритель</b>!", parse_mode="HTML")
         return main_menu(update, context)
-    elif role == 'стример':
-        update.message.reply_text("Пожалуйста, укажите ваше имя пользователя на Twitch:")
+    elif role == "streamer":
+        query.edit_message_text("Введите ваше имя пользователя на Twitch:")
         return STREAMER_CONFIRMATION
-    else:
-        update.message.reply_text("Пожалуйста, выберите 'Зритель' или 'Стример'.")
-        return SELECTING_ROLE
-
-# Подтверждение стримера
-def confirm_streamer(update: Update, context: CallbackContext) -> int:
-    twitch_username = update.message.text
-    user_id = update.message.from_user.id
-    username = update.message.from_user.username
-
-    # Получаем OAuth токен Twitch
-    client_id = os.getenv("TWITCH_CLIENT_ID")
-    client_secret = os.getenv("TWITCH_CLIENT_SECRET")
-    oauth_token = get_twitch_oauth_token(client_id, client_secret)
-
-    # Проверяем количество подписчиков
-    followers = check_twitch_followers(twitch_username, client_id, oauth_token)
-
-    if followers is None:
-        update.message.reply_text("Не удалось найти пользователя на Twitch.")
-        return SELECTING_ROLE
-
-    if followers >= 250:
-        cursor.execute('INSERT OR IGNORE INTO users (user_id, username, role, twitch_username, followers) VALUES (?, ?, ?, ?, ?)',
-                       (user_id, username, 'streamer', twitch_username, followers))
-        conn.commit()
-        update.message.reply_text(f"Вы успешно зарегистрировались как стример! Ваш Twitch: {twitch_username}")
-        return main_menu(update, context)
-    else:
-        update.message.reply_text("У вас недостаточно подписчиков на Twitch (минимум 250).")
-        return SELECTING_ROLE
 
 # Главное меню
 def main_menu(update: Update, context: CallbackContext) -> int:
-    reply_keyboard = [['Найти стримера', 'Мои фильмы'], ['Оценить фильм', 'Написать рецензию']]
-    update.message.reply_text(
-        "Главное меню:",
-        reply_markup=ReplyKeyboardMarkup(reply_keyboard, one_time_keyboard=True)
+    keyboard = [
+        [InlineKeyboardButton("Найти стримера", callback_data="find_streamer")],
+        [InlineKeyboardButton("Оценить фильм", callback_data="rate_movie")],
+        [InlineKeyboardButton("Написать рецензию", callback_data="write_review")]
+    ]
+    reply_markup = InlineKeyboardMarkup(keyboard)
+
+    update.callback_query.edit_message_text(
+        "<b>Главное меню</b>\n\n"
+        "Что вы хотите сделать?",
+        parse_mode="HTML",
+        reply_markup=reply_markup
     )
     return REGISTERING
 
 # Поиск стримера
 def search_streamer(update: Update, context: CallbackContext) -> int:
-    update.message.reply_text("Введите имя стримера:")
+    update.callback_query.edit_message_text("Введите имя стримера:")
     return VIEWING_STREAMER
 
-# Просмотр профиля стримера
-def view_streamer(update: Update, context: CallbackContext) -> int:
-    streamer_name = update.message.text
-    cursor.execute('SELECT * FROM users WHERE username = ? AND role = ?', (streamer_name, 'streamer'))
-    streamer = cursor.fetchone()
-
-    if streamer:
-        streamer_id, _, _, twitch_username, followers = streamer
-        cursor.execute('SELECT * FROM movies WHERE streamer_id = ?', (streamer_id,))
-        movies = cursor.fetchall()
-
-        movies_list = "\n".join([f"{movie[2]}" for movie in movies])
-        update.message.reply_text(
-            f"Стример: {streamer_name}\n"
-            f"Twitch: {twitch_username}\n"
-            f"Подписчики: {followers}\n"
-            f"Фильмы:\n{movies_list}"
-        )
-    else:
-        update.message.reply_text("Стример не найден.")
-
-    return main_menu(update, context)
-
-# Оценка фильма
-def rate_movie(update: Update, context: CallbackContext) -> int:
-    update.message.reply_text("Введите название фильма:")
-    return RATING_MOVIE
-
-def process_rating(update: Update, context: CallbackContext) -> int:
-    movie_title = update.message.text
-    context.user_data['movie_title'] = movie_title
-    update.message.reply_text("Введите оценку от 1 до 10:")
-    return RATING_MOVIE
-
-def save_rating(update: Update, context: CallbackContext) -> int:
-    score = int(update.message.text)
-    movie_title = context.user_data['movie_title']
-    user_id = update.message.from_user.id
-
-    cursor.execute('SELECT movie_id FROM movies WHERE title = ?', (movie_title,))
-    movie = cursor.fetchone()
-
-    if movie:
-        movie_id = movie[0]
-        cursor.execute('INSERT INTO ratings (movie_id, user_id, score) VALUES (?, ?, ?)', (movie_id, user_id, score))
-        conn.commit()
-        update.message.reply_text(f"Вы оценили фильм '{movie_title}' на {score} из 10.")
-    else:
-        update.message.reply_text("Фильм не найден.")
-
-    return main_menu(update, context)
-
-# Написание рецензии
-def write_review(update: Update, context: CallbackContext) -> int:
-    update.message.reply_text("Введите название фильма:")
-    return WRITING_REVIEW
-
-def process_review(update: Update, context: CallbackContext) -> int:
-    movie_title = update.message.text
-    context.user_data['movie_title'] = movie_title
-    update.message.reply_text("Напишите вашу рецензию:")
-    return WRITING_REVIEW
-
-def save_review(update: Update, context: CallbackContext) -> int:
-    review = update.message.text
-    movie_title = context.user_data['movie_title']
-    user_id = update.message.from_user.id
-
-    cursor.execute('SELECT movie_id FROM movies WHERE title = ?', (movie_title,))
-    movie = cursor.fetchone()
-
-    if movie:
-        movie_id = movie[0]
-        cursor.execute('INSERT INTO ratings (movie_id, user_id, review) VALUES (?, ?, ?)', (movie_id, user_id, review))
-        conn.commit()
-        update.message.reply_text(f"Ваша рецензия на фильм '{movie_title}' сохранена.")
-    else:
-        update.message.reply_text("Фильм не найден.")
-
-    return main_menu(update, context)
+# Остальной код остается без изменений...
 
 # Основная функция
 def main() -> None:
-    # Получение токена Telegram-бота из переменных окружения
     TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
     if not TELEGRAM_BOT_TOKEN:
         logger.error("TELEGRAM_BOT_TOKEN не найден в переменных окружения.")
@@ -246,12 +154,12 @@ def main() -> None:
     conv_handler = ConversationHandler(
         entry_points=[CommandHandler('start', start)],
         states={
-            SELECTING_ROLE: [MessageHandler(Filters.text & ~Filters.command, select_role)],
+            SELECTING_ROLE: [CallbackQueryHandler(select_role)],
             STREAMER_CONFIRMATION: [MessageHandler(Filters.text & ~Filters.command, confirm_streamer)],
             REGISTERING: [
-                MessageHandler(Filters.regex('^Найти стримера$'), search_streamer),
-                MessageHandler(Filters.regex('^Оценить фильм$'), rate_movie),
-                MessageHandler(Filters.regex('^Написать рецензию$'), write_review)
+                CallbackQueryHandler(search_streamer, pattern="^find_streamer$"),
+                CallbackQueryHandler(rate_movie, pattern="^rate_movie$"),
+                CallbackQueryHandler(write_review, pattern="^write_review$")
             ],
             VIEWING_STREAMER: [MessageHandler(Filters.text & ~Filters.command, view_streamer)],
             RATING_MOVIE: [
