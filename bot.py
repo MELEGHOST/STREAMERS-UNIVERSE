@@ -1,5 +1,6 @@
 import logging
 import os
+import signal
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, WebAppInfo
 from telegram.ext import Updater, CommandHandler, CallbackContext
 from flask import Flask, jsonify, request
@@ -10,6 +11,19 @@ from waitress import serve
 # Настройка логирования
 logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', level=logging.INFO)
 logger = logging.getLogger(__name__)
+
+# Автоматическая остановка старых процессов
+def kill_existing_processes():
+    try:
+        for line in os.popen("ps aux | grep python"):
+            if "bot.py" in line and "grep" not in line:
+                pid = int(line.split()[1])
+                logger.info(f"Завершение процесса с PID: {pid}")
+                os.kill(pid, signal.SIGKILL)
+    except Exception as e:
+        logger.error(f"Ошибка при завершении процессов: {e}")
+
+kill_existing_processes()
 
 # Подключение к базе данных SQLite
 conn = sqlite3.connect('streamer_app.db', check_same_thread=False)
@@ -137,6 +151,11 @@ def main() -> None:
     if not TELEGRAM_BOT_TOKEN:
         logger.error("TELEGRAM_BOT_TOKEN не найден в переменных окружения.")
         return
+
+    # Очистка предыдущих Webhook (если они были настроены)
+    from telegram import Bot
+    bot = Bot(token=TELEGRAM_BOT_TOKEN)
+    bot.delete_webhook()
 
     # Запуск Flask-сервера в отдельном потоке
     flask_thread = threading.Thread(target=run_flask)
