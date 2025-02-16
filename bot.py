@@ -5,6 +5,7 @@ from telegram.ext import Updater, CommandHandler, CallbackContext
 from flask import Flask, jsonify, request
 import sqlite3
 import threading
+from waitress import serve  # Импортируем Waitress
 
 # Настройка логирования
 logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', level=logging.INFO)
@@ -111,9 +112,9 @@ def write_review():
     else:
         return jsonify({"status": "error", "message": "Фильм не найден."})
 
-# Запуск Flask-сервера в отдельном потоке
+# Запуск Flask-сервера через Waitress
 def run_flask():
-    app.run(host='0.0.0.0', port=8080)
+    serve(app, host='0.0.0.0', port=8080)
 
 # Основная функция
 def main() -> None:
