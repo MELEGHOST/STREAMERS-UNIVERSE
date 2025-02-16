@@ -13,20 +13,8 @@
         h1 {
             color: #333;
         }
-        .streamer-card {
-            background: #fff;
-            margin: 10px 0;
-            padding: 15px;
-            border-radius: 8px;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-        }
-        .streamer-card h2 {
-            margin: 0;
-            font-size: 1.2em;
-        }
-        .streamer-card p {
-            margin: 5px 0;
-            color: #666;
+        .section {
+            margin-bottom: 20px;
         }
         button {
             background-color: #0088cc;
@@ -39,23 +27,48 @@
         button:hover {
             background-color: #005f99;
         }
-        .rating-form, .review-form {
-            margin-top: 20px;
+        input, textarea {
+            display: block;
+            width: 100%;
+            margin: 10px 0;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
         }
     </style>
 </head>
 <body>
-    <h1>Список стримеров</h1>
-    <div id="streamers-list"></div>
+    <h1>Добро пожаловать в мини-приложение!</h1>
 
-    <div class="rating-form">
+    <!-- Регистрация -->
+    <div class="section">
+        <h2>Регистрация</h2>
+        <select id="role">
+            <option value="viewer">Зритель</option>
+            <option value="streamer">Стример</option>
+        </select>
+        <input type="text" id="twitch-username" placeholder="Имя пользователя на Twitch (для стримеров)">
+        <button onclick="register()">Зарегистрироваться</button>
+    </div>
+
+    <!-- Поиск стримеров -->
+    <div class="section">
+        <h2>Поиск стримеров</h2>
+        <input type="text" id="search-streamer" placeholder="Введите имя стримера">
+        <button onclick="searchStreamer()">Найти</button>
+        <div id="streamers-list"></div>
+    </div>
+
+    <!-- Оценка фильма -->
+    <div class="section">
         <h2>Оценить фильм</h2>
         <input type="text" id="movie-title-rating" placeholder="Название фильма">
         <input type="number" id="movie-score" placeholder="Оценка (1-10)">
         <button onclick="submitRating()">Отправить оценку</button>
     </div>
 
-    <div class="review-form">
+    <!-- Написание рецензии -->
+    <div class="section">
         <h2>Написать рецензию</h2>
         <input type="text" id="movie-title-review" placeholder="Название фильма">
         <textarea id="movie-review" placeholder="Рецензия"></textarea>
@@ -66,23 +79,54 @@
     <script>
         const tg = window.Telegram.WebApp;
 
-        // Получение данных о стримерах
-        fetch('/get-streamers')
+        // Регистрация пользователя
+        function register() {
+            const role = document.getElementById('role').value;
+            const twitchUsername = document.getElementById('twitch-username').value || null;
+            const userId = tg.initDataUnsafe.user.id;
+            const username = tg.initDataUnsafe.user.username;
+
+            fetch('/register', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    user_id: userId,
+                    username: username,
+                    role: role,
+                    twitch_username: twitchUsername,
+                    followers: role === 'streamer' ? 250 : 0
+                })
+            })
             .then(response => response.json())
             .then(data => {
-                const list = document.getElementById('streamers-list');
-                data.forEach(streamer => {
-                    const card = document.createElement('div');
-                    card.className = 'streamer-card';
-                    card.innerHTML = `
-                        <h2>${streamer.username}</h2>
-                        <p><strong>Twitch:</strong> ${streamer.twitch_username}</p>
-                        <p><strong>Подписчики:</strong> ${streamer.followers}</p>
-                    `;
-                    list.appendChild(card);
-                });
+                alert(data.message);
             })
-            .catch(error => console.error('Ошибка загрузки данных:', error));
+            .catch(error => console.error('Ошибка регистрации:', error));
+        }
+
+        // Поиск стримеров
+        function searchStreamer() {
+            const query = document.getElementById('search-streamer').value;
+
+            fetch('/get-streamers')
+                .then(response => response.json())
+                .then(data => {
+                    const list = document.getElementById('streamers-list');
+                    list.innerHTML = '';
+                    data.forEach(streamer => {
+                        if (streamer.username.toLowerCase().includes(query.toLowerCase())) {
+                            const card = document.createElement('div');
+                            card.innerHTML = `
+                                <h3>${streamer.username}</h3>
+                                <p><strong>Twitch:</strong> ${streamer.twitch_username}</p>
+                                <p><strong>Подписчики:</strong> ${streamer.followers}</p>
+                            `;
+                            list.appendChild(card);
+                        }
+                    });
+                })
+                .catch(error => console.error('Ошибка поиска стримеров:', error));
+        }
 
         // Отправка оценки фильма
         function submitRating() {
