@@ -39,18 +39,34 @@
         button:hover {
             background-color: #005f99;
         }
+        .rating-form, .review-form {
+            margin-top: 20px;
+        }
     </style>
 </head>
 <body>
     <h1>Список стримеров</h1>
     <div id="streamers-list"></div>
 
+    <div class="rating-form">
+        <h2>Оценить фильм</h2>
+        <input type="text" id="movie-title-rating" placeholder="Название фильма">
+        <input type="number" id="movie-score" placeholder="Оценка (1-10)">
+        <button onclick="submitRating()">Отправить оценку</button>
+    </div>
+
+    <div class="review-form">
+        <h2>Написать рецензию</h2>
+        <input type="text" id="movie-title-review" placeholder="Название фильма">
+        <textarea id="movie-review" placeholder="Рецензия"></textarea>
+        <button onclick="submitReview()">Отправить рецензию</button>
+    </div>
+
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <script>
-        // Инициализация Telegram WebApp
         const tg = window.Telegram.WebApp;
 
-        // Загрузка данных о стримерах
+        // Получение данных о стримерах
         fetch('/get-streamers')
             .then(response => response.json())
             .then(data => {
@@ -62,17 +78,46 @@
                         <h2>${streamer.username}</h2>
                         <p><strong>Twitch:</strong> ${streamer.twitch_username}</p>
                         <p><strong>Подписчики:</strong> ${streamer.followers}</p>
-                        <button onclick="sendStreamer('${streamer.username}')">Выбрать</button>
                     `;
                     list.appendChild(card);
                 });
             })
             .catch(error => console.error('Ошибка загрузки данных:', error));
 
-        // Отправка выбранного стримера в бота
-        function sendStreamer(username) {
-            tg.sendData(JSON.stringify({ action: 'select_streamer', username }));
-            tg.close();
+        // Отправка оценки фильма
+        function submitRating() {
+            const movieTitle = document.getElementById('movie-title-rating').value;
+            const score = document.getElementById('movie-score').value;
+            const userId = tg.initDataUnsafe.user.id;
+
+            fetch('/rate-movie', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ movie_title: movieTitle, score: parseInt(score), user_id: userId })
+            })
+            .then(response => response.json())
+            .then(data => {
+                alert(data.message);
+            })
+            .catch(error => console.error('Ошибка отправки оценки:', error));
+        }
+
+        // Отправка рецензии
+        function submitReview() {
+            const movieTitle = document.getElementById('movie-title-review').value;
+            const review = document.getElementById('movie-review').value;
+            const userId = tg.initDataUnsafe.user.id;
+
+            fetch('/write-review', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ movie_title: movieTitle, review, user_id: userId })
+            })
+            .then(response => response.json())
+            .then(data => {
+                alert(data.message);
+            })
+            .catch(error => console.error('Ошибка отправки рецензии:', error));
         }
 
         // Настройка кнопки закрытия
