@@ -5,7 +5,7 @@ from telegram.ext import Updater, CommandHandler, CallbackContext
 from flask import Flask, jsonify, request
 import sqlite3
 import threading
-from waitress import serve  # Импортируем Waitress
+from waitress import serve
 
 # Настройка логирования
 logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', level=logging.INFO)
@@ -75,6 +75,21 @@ def get_streamers():
     cursor.execute('SELECT username, twitch_username, followers FROM users WHERE role = ?', ('streamer',))
     streamers = cursor.fetchall()
     return jsonify([{'username': s[0], 'twitch_username': s[1], 'followers': s[2]} for s in streamers])
+
+@app.route('/register', methods=['POST'])
+def register():
+    data = request.json
+    user_id = data.get('user_id')
+    username = data.get('username')
+    role = data.get('role')
+    twitch_username = data.get('twitch_username')
+    followers = data.get('followers')
+
+    cursor.execute('INSERT OR IGNORE INTO users (user_id, username, role, twitch_username, followers) VALUES (?, ?, ?, ?, ?)',
+                   (user_id, username, role, twitch_username, followers))
+    conn.commit()
+
+    return jsonify({"status": "ok", "message": f"Вы успешно зарегистрировались как {role}!"})
 
 @app.route('/rate-movie', methods=['POST'])
 def rate_movie():
