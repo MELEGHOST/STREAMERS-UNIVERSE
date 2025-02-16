@@ -117,6 +117,38 @@ def select_role(update: Update, context: CallbackContext) -> int:
         query.edit_message_text("Введите ваше имя пользователя на Twitch:")
         return STREAMER_CONFIRMATION
 
+# Подтверждение стримера
+def confirm_streamer(update: Update, context: CallbackContext) -> int:
+    twitch_username = update.message.text
+    user_id = update.message.from_user.id
+    username = update.message.from_user.username
+
+    client_id = os.getenv("TWITCH_CLIENT_ID")
+    client_secret = os.getenv("TWITCH_CLIENT_SECRET")
+    oauth_token = get_twitch_oauth_token(client_id, client_secret)
+
+    followers = check_twitch_followers(twitch_username, client_id, oauth_token)
+
+    if followers is None:
+        update.message.reply_text("Не удалось найти пользователя на Twitch.")
+        return SELECTING_ROLE
+
+    if followers >= 250:
+        cursor.execute('INSERT OR IGNORE INTO users (user_id, username, role, twitch_username, followers) VALUES (?, ?, ?, ?, ?)',
+                       (user_id, username, 'streamer', twitch_username, followers))
+        conn.commit()
+        update.message.reply_text(
+            f"🎉 Вы успешно зарегистрировались как стример!\n"
+            f"Ваш никнейм: <b>{username}</b>\n"
+            f"Twitch: <b>{twitch_username}</b>\n"
+            f"Подписчиков: <b>{followers}</b>",
+            parse_mode="HTML"
+        )
+        return main_menu(update, context)
+    else:
+        update.message.reply_text("У вас недостаточно подписчиков на Twitch (минимум 250).")
+        return SELECTING_ROLE
+
 # Главное меню
 def main_menu(update: Update, context: CallbackContext) -> int:
     keyboard = [
