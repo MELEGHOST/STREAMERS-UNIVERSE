@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Стримеры</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f9;
+            padding: 20px;
+        }
+        h1 {
+            color: #333;
+        }
+        ul {
+            list-style-type: none;
+            padding: 0;
+        }
+        li {
+            background: #fff;
+            margin: 10px 0;
+            padding: 15px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+    </style>
+</head>
+<body>
+    <h1>Список стримеров</h1>
+    <ul id="streamers-list"></ul>
+
+    <script>
+        // Загрузка данных о стримерах из базы данных
+        fetch('/get-streamers')
+            .then(response => response.json())
+            .then(data => {
+                const list = document.getElementById('streamers-list');
+                data.forEach(streamer => {
+                    const li = document.createElement('li');
+                    li.innerHTML = `<strong>${streamer.username}</strong> (${streamer.twitch_username}) - Подписчиков: ${streamer.followers}`;
+                    list.appendChild(li);
+                });
+            })
+            .catch(error => console.error('Ошибка загрузки данных:', error));
+    </script>
+</body>
+</html>
