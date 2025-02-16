@@ -71,15 +71,15 @@ def check_twitch_followers(twitch_username, client_id, oauth_token):
     }
     response = requests.get(url, headers=headers)
     user_data = response.json().get("data", [])
-
+    
     if not user_data:
         return None
-
+    
     user_id = user_data[0]["id"]
     followers_url = f"https://api.twitch.tv/helix/channels/followers?broadcaster_id={user_id}"
     followers_response = requests.get(followers_url, headers=headers)
     total_followers = followers_response.json().get("total", 0)
-
+    
     return total_followers
 
 # Команда /start
@@ -99,16 +99,39 @@ def start(update: Update, context: CallbackContext) -> int:
     )
     return SELECTING_ROLE
 
-# Остальной код...
+# Обработка выбора роли
+def select_role(update: Update, context: CallbackContext) -> int:
+    query = update.callback_query
+    query.answer()
 
-# Flask-сервер для мини-приложения
-app = Flask(__name__)
+    role = query.data
+    user_id = query.from_user.id
+    username = query.from_user.username
 
-@app.route('/get-streamers', methods=['GET'])
-def get_streamers():
-    cursor.execute('SELECT username, twitch_username, followers FROM users WHERE role = ?', ('streamer',))
-    streamers = cursor.fetchall()
-    return jsonify([{'username': s[0], 'twitch_username': s[1], 'followers': s[2]} for s in streamers])
+    if role == "viewer":
+        cursor.execute('INSERT OR IGNORE INTO users (user_id, username, role) VALUES (?, ?, ?)', (user_id, username, 'viewer'))
+        conn.commit()
+        query.edit_message_text(f"🎉 Вы успешно зарегистрировались как зритель!\nВаш никнейм: <b>{username}</b>", parse_mode="HTML")
+        return main_menu(update, context)
+    elif role == "streamer":
+        query.edit_message_text("Введите ваше имя пользователя на Twitch:")
+        return STREAMER_CONFIRMATION
+
+# Главное меню
+def main_menu(update: Update, context: CallbackContext) -> int:
+    keyboard = [
+        [InlineKeyboardButton("Найти стримера", callback_data="find_streamer")],
+        [InlineKeyboardButton("Оценить фильм", callback_data="rate_movie")],
+        [InlineKeyboardButton("Написать рецензию", callback_data="write_review")]
+    ]
+    reply_markup = InlineKeyboardMarkup(keyboard)
+
+    update.callback_query.edit_message_text(
+        "<b>Главное меню</b>\n\nЧто вы хотите сделать?",
+        parse_mode="HTML",
+        reply_markup=reply_markup
+    )
+    return REGISTERING
 
 # Основная функция
 def main() -> None:
@@ -146,7 +169,7 @@ def main() -> None:
     dispatcher.add_handler(conv_handler)
 
     updater.start_polling()
-    app.run(host='0.0.0.0', port=8080)
+    updater.idle()
 
 if __name__ == '__main__':
     main()
