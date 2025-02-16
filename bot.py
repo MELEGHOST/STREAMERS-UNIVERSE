@@ -1,8 +1,9 @@
 import logging
 import os
 import requests
-from telegram import Update, ReplyKeyboardMarkup, InlineKeyboardButton, InlineKeyboardMarkup
+from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, WebAppInfo
 from telegram.ext import Updater, CommandHandler, MessageHandler, Filters, CallbackContext, ConversationHandler, CallbackQueryHandler
+from flask import Flask, jsonify
 import sqlite3
 
 # Настройка логирования
@@ -98,47 +99,16 @@ def start(update: Update, context: CallbackContext) -> int:
     )
     return SELECTING_ROLE
 
-# Обработка выбора роли через InlineKeyboard
-def select_role(update: Update, context: CallbackContext) -> int:
-    query = update.callback_query
-    query.answer()
+# Остальной код...
 
-    role = query.data
-    user_id = query.from_user.id
-    username = query.from_user.username
+# Flask-сервер для мини-приложения
+app = Flask(__name__)
 
-    if role == "viewer":
-        cursor.execute('INSERT OR IGNORE INTO users (user_id, username, role) VALUES (?, ?, ?)', (user_id, username, 'viewer'))
-        conn.commit()
-        query.edit_message_text("🎉 Вы успешно зарегистрировались как <b>зритель</b>!", parse_mode="HTML")
-        return main_menu(update, context)
-    elif role == "streamer":
-        query.edit_message_text("Введите ваше имя пользователя на Twitch:")
-        return STREAMER_CONFIRMATION
-
-# Главное меню
-def main_menu(update: Update, context: CallbackContext) -> int:
-    keyboard = [
-        [InlineKeyboardButton("Найти стримера", callback_data="find_streamer")],
-        [InlineKeyboardButton("Оценить фильм", callback_data="rate_movie")],
-        [InlineKeyboardButton("Написать рецензию", callback_data="write_review")]
-    ]
-    reply_markup = InlineKeyboardMarkup(keyboard)
-
-    update.callback_query.edit_message_text(
-        "<b>Главное меню</b>\n\n"
-        "Что вы хотите сделать?",
-        parse_mode="HTML",
-        reply_markup=reply_markup
-    )
-    return REGISTERING
-
-# Поиск стримера
-def search_streamer(update: Update, context: CallbackContext) -> int:
-    update.callback_query.edit_message_text("Введите имя стримера:")
-    return VIEWING_STREAMER
-
-# Остальной код остается без изменений...
+@app.route('/get-streamers', methods=['GET'])
+def get_streamers():
+    cursor.execute('SELECT username, twitch_username, followers FROM users WHERE role = ?', ('streamer',))
+    streamers = cursor.fetchall()
+    return jsonify([{'username': s[0], 'twitch_username': s[1], 'followers': s[2]} for s in streamers])
 
 # Основная функция
 def main() -> None:
@@ -148,7 +118,6 @@ def main() -> None:
         return
 
     updater = Updater(TELEGRAM_BOT_TOKEN)
-
     dispatcher = updater.dispatcher
 
     conv_handler = ConversationHandler(
@@ -177,7 +146,7 @@ def main() -> None:
     dispatcher.add_handler(conv_handler)
 
     updater.start_polling()
-    updater.idle()
+    app.run(host='0.0.0.0', port=8080)
 
 if __name__ == '__main__':
     main()
