@@ -3,8 +3,9 @@ import os
 import requests
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, WebAppInfo
 from telegram.ext import Updater, CommandHandler, MessageHandler, Filters, CallbackContext, ConversationHandler, CallbackQueryHandler
-from flask import Flask, jsonify
+from flask import Flask, jsonify, request
 import sqlite3
+import threading
 
 # Настройка логирования
 logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', level=logging.INFO)
@@ -141,7 +142,7 @@ def confirm_streamer(update: Update, context: CallbackContext) -> int:
             f"🎉 Вы успешно зарегистрировались как стример!\n"
             f"Ваш никнейм: <b>{username}</b>\n"
             f"Twitch: <b>{twitch_username}</b>\n"
-            f"Подписчиков: <b>{followers}</b>",
+            f"Подписчики: <b>{followers}</b>",
             parse_mode="HTML"
         )
         return main_menu(update, context)
@@ -154,7 +155,8 @@ def main_menu(update: Update, context: CallbackContext) -> int:
     keyboard = [
         [InlineKeyboardButton("Найти стримера", callback_data="find_streamer")],
         [InlineKeyboardButton("Оценить фильм", callback_data="rate_movie")],
-        [InlineKeyboardButton("Написать рецензию", callback_data="write_review")]
+        [InlineKeyboardButton("Написать рецензию", callback_data="write_review")],
+        [InlineKeyboardButton("Открыть мини-приложение", web_app=WebAppInfo(url="https://your-replit-url.repl.co"))]
     ]
     reply_markup = InlineKeyboardMarkup(keyboard)
 
@@ -251,12 +253,39 @@ def save_review(update: Update, context: CallbackContext) -> int:
 
     return main_menu(update, context)
 
+# Flask-сервер для мини-приложения
+app = Flask(__name__)
+
+@app.route('/get-streamers', methods=['GET'])
+def get_streamers():
+    cursor.execute('SELECT username, twitch_username, followers FROM users WHERE role = ?', ('streamer',))
+    streamers = cursor.fetchall()
+    return jsonify([{'username': s[0], 'twitch_username': s[1], 'followers': s[2]} for s in streamers])
+
+@app.route('/webhook', methods=['POST'])
+def webhook():
+    data = request.json
+    if data.get('action') == 'select_streamer':
+        username = data.get('username')
+        logger.info(f"Пользователь выбрал стримера: {username}")
+        # Здесь можно добавить логику для обработки выбора стримера
+    return jsonify({"status": "ok"})
+
+# Запуск Flask-сервера в отдельном потоке
+def run_flask():
+    app.run(host='0.0.0.0', port=8080)
+
 # Основная функция
 def main() -> None:
     TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
     if not TELEGRAM_BOT_TOKEN:
         logger.error("TELEGRAM_BOT_TOKEN не найден в переменных окружения.")
         return
+
+    # Запуск Flask-сервера в отдельном потоке
+    flask_thread = threading.Thread(target=run_flask)
+    flask_thread.daemon = True
+    flask_thread.start()
 
     updater = Updater(TELEGRAM_BOT_TOKEN)
     dispatcher = updater.dispatcher
