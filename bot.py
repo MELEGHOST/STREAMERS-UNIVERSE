@@ -165,6 +165,34 @@ def main_menu(update: Update, context: CallbackContext) -> int:
     )
     return REGISTERING
 
+# Поиск стримера
+def search_streamer(update: Update, context: CallbackContext) -> int:
+    update.callback_query.edit_message_text("Введите имя стримера:")
+    return VIEWING_STREAMER
+
+# Просмотр профиля стримера
+def view_streamer(update: Update, context: CallbackContext) -> int:
+    streamer_name = update.message.text
+    cursor.execute('SELECT * FROM users WHERE username = ? AND role = ?', (streamer_name, 'streamer'))
+    streamer = cursor.fetchone()
+
+    if streamer:
+        streamer_id, _, _, twitch_username, followers = streamer
+        cursor.execute('SELECT * FROM movies WHERE streamer_id = ?', (streamer_id,))
+        movies = cursor.fetchall()
+
+        movies_list = "\n".join([f"{movie[2]}" for movie in movies])
+        update.message.reply_text(
+            f"Стример: {streamer_name}\n"
+            f"Twitch: {twitch_username}\n"
+            f"Подписчики: {followers}\n"
+            f"Фильмы:\n{movies_list}"
+        )
+    else:
+        update.message.reply_text("Стример не найден.")
+
+    return main_menu(update, context)
+
 # Основная функция
 def main() -> None:
     TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
