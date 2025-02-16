@@ -1,2 +1,5 @@
 run = "python3 bot.py"
 modules = ["python-3.11"]
+
+[[ports]]
+localPort = 5555
