@@ -17,12 +17,14 @@ async function fetchSecrets() {
         const secrets = await response.json();
         return {
             TWITCH_CLIENT_ID: secrets.TWITCH_CLIENT_ID,
+            TWITCH_CLIENT_SECRET: secrets.TWITCH_CLIENT_SECRET, // Добавляем Client-Secret
             TWITCH_REDIRECT_URI: secrets.TWITCH_REDIRECT_URI
         };
     } catch (error) {
         console.error('Ошибка при получении секретов:', error);
         return {
             TWITCH_CLIENT_ID: 'YOUR_TWITCH_CLIENT_ID', // Заглушка для локального тестирования
+            TWITCH_CLIENT_SECRET: 'YOUR_TWITCH_CLIENT_SECRET', // Заглушка
             TWITCH_REDIRECT_URI: 'https://streamers-universe-mini-app.vercel.app' // Замени на свой URL
         };
     }
