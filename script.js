@@ -69,6 +69,7 @@ function initializeApp() {
         if (twitchLogin) {
             // Перенаправляем на Twitch для авторизации
             const TWITCH_AUTH_URL = `https://id.twitch.tv/oauth2/authorize?client_id=${twitchSecrets.TWITCH_CLIENT_ID}&redirect_uri=${encodeURIComponent(twitchSecrets.TWITCH_REDIRECT_URI)}&response_type=token&scope=user:read:follows`;
+            console.log('Twitch Auth URL:', TWITCH_AUTH_URL); // Для отладки
             window.location.href = TWITCH_AUTH_URL;
         }
     });
@@ -90,6 +91,7 @@ function initializeApp() {
         const accessToken = params.get('access_token');
 
         if (accessToken) {
+            console.log('Получен access_token:', accessToken); // Для отладки
             // Запрос данных пользователя через Twitch API
             fetch('https://api.twitch.tv/helix/users', {
                 headers: {
@@ -97,7 +99,10 @@ function initializeApp() {
                     'Authorization': `Bearer ${accessToken}`
                 }
             })
-            .then(response => response.json())
+            .then(response => {
+                console.log('Twitch API Response:', response); // Для отладки
+                return response.json();
+            })
             .then(data => {
                 if (data.data && data.data.length > 0) {
                     const twitchUser = data.data[0];
@@ -130,16 +135,25 @@ function initializeApp() {
                     })
                     .catch(error => {
                         alert('Ошибка при проверке подписчиков: ' + error.message);
+                        console.error('Ошибка при проверке подписчиков:', error); // Для отладки
                         user.role = null;
                         user.twitchId = null;
                         user.followers = 0;
                         localStorage.setItem('user', JSON.stringify(user));
                         showRegistration();
                     });
+                } else {
+                    alert('Не удалось найти пользователя Twitch.');
+                    user.role = null;
+                    user.twitchId = null;
+                    user.followers = 0;
+                    localStorage.setItem('user', JSON.stringify(user));
+                    showRegistration();
                 }
             })
             .catch(error => {
                 alert('Ошибка авторизации Twitch: ' + error.message);
+                console.error('Ошибка авторизации Twitch:', error); // Для отладки
                 user.role = null;
                 user.twitchId = null;
                 user.followers = 0;
