@@ -18,10 +18,11 @@ const TWITCH_REDIRECT_URI = process.env.TWITCH_REDIRECT_URI || '';
 // Проверка наличия секретов перед инициализацией
 if (!TWITCH_CLIENT_ID || !TWITCH_REDIRECT_URI) {
     console.error('Ошибка: TWITCH_CLIENT_ID и TWITCH_REDIRECT_URI должны быть настроены в секретах Vercel.');
-    alert('Ошибка: отсутствуют необходимые настройки. Обратитесь к разработчику.');
+    alert('Ошибка: отсутствуют необходимые настройки. Вы можете зарегистрироваться как подписчик.');
     // Показываем форму регистрации даже без секретов, чтобы пользователь мог войти как подписчик
     showRegistrationWithoutAuth();
-    return;
+} else {
+    initializeApp();
 }
 
 function initializeApp() {
@@ -36,6 +37,13 @@ function showRegistrationWithoutAuth() {
     userProfile.classList.remove('active');
     document.getElementById('registerStreamerBtn').disabled = true; // Отключаем регистрацию стримера без секретов
     console.log('Показана форма регистрации без авторизации Twitch.');
+    // Включаем кнопки вручную, если они скрыты
+    const buttons = document.querySelectorAll('button');
+    buttons.forEach(btn => {
+        btn.style.display = 'inline-block';
+        btn.style.opacity = '1';
+        btn.style.visibility = 'visible';
+    });
 }
 
 // Показать форму регистрации, если пользователь не зарегистрирован
@@ -49,6 +57,13 @@ function showRegistration() {
         registrationForm.classList.add('active');
         userProfile.classList.remove('active');
         console.log('Пользователь не зарегистрирован, показана форма.');
+        // Убедимся, что кнопки видны
+        const buttons = document.querySelectorAll('button');
+        buttons.forEach(btn => {
+            btn.style.display = 'inline-block';
+            btn.style.opacity = '1';
+            btn.style.visibility = 'visible';
+        });
     } else {
         registrationForm.classList.remove('active');
         userProfile.classList.add('active');
@@ -79,6 +94,13 @@ function showProfile() {
         profileInfo.textContent = `Привет, ${tg.initDataUnsafe.user.first_name || 'Подписчик'}! Вы можете поддержать стримеров.`;
         console.log('Показан профиль подписчика.');
     }
+    // Убедимся, что кнопки видны в профиле
+    const buttons = document.querySelectorAll('button');
+    buttons.forEach(btn => {
+        btn.style.display = 'inline-block';
+        btn.style.opacity = '1';
+        btn.style.visibility = 'visible';
+    });
 }
 
 // Регистрация стримера
