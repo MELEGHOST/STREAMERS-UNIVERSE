@@ -1,24 +1,46 @@
 body {
     font-family: 'Arial', sans-serif;
-    background: linear-gradient(135deg, #1a1a3c, #2d2d6e, #4a4a9d);
+    background: #0a0a2a; /* Глубоко тёмный фон космоса */
     margin: 0;
     padding: 20px;
     color: #fff;
+    overflow-x: hidden; /* Предотвращаем горизонтальный скролл */
+    position: relative;
 }
 
 .container {
     max-width: 600px;
     margin: 0 auto;
-    background: rgba(255, 255, 255, 0.1);
+    background: rgba(255, 255, 255, 0.05);
     backdrop-filter: blur(10px);
     padding: 20px;
     border-radius: 15px;
-    box-shadow: 0 0 20px rgba(0, 0, 0, 0.3);
+    box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
+    position: relative; /* Для звёзд */
+}
+
+/* Анимация звёзд */
+body::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI1MDAiIGhlaWdodD0iNTAwIj48ZmlsdGVyIGlkPSJmdXp6eSIgeD0iMCIgeT0iMCIgd2lkdGg9IjEwMCUiIGhlaWdodD0iMTAwJSI+PGZlR2F1c3NpYW5CbHVyIHN0ZERldmlhdGlvbj0iMSI+PC9mZUdhdXNzaWFuQmx1cj48L2ZpbHRlcj48ZyBmaWx0ZXI9InVybCgjZnV6enkpIj48Y2lyY2xlIGN4PSIyNSIgY3k9IjI1IiByPSIyIiBmaWxsPSJ3aGl0ZSIgb3BhY2l0eT0iMC4zIi8+PGNpcmNsZSBjeD0iNzUiIGN5PSI3NSIgcj0iMSIuNSIgZmlsbD0id2hpdGUiIG9wYWNpdHk9IjAuNSIvPjxjaXJjbGUgY3g9IjEyNSIgY3k9IjUwIiByPSIyLjUiIGZpbGw9IndoaXRlIiBvcGFjaXR5PSIwLjQiLz48Y2lyY2xlIGN4PSIxNzUiIGN5PSIyNSIgcj0iMSIgZmlsbD0id2hpdGUiIG9wYWNpdHk9IjAuNiIvPjxjaXJjbGUgY3g9IjIyNSIgY3k9Ijc1IiByPSIyIiBmaWxsPSJ3aGl0ZSIgb3BhY2l0eT0iMC4zIi8+PGNpcmNsZSBjeD0iMjc1IiBjeT0iNTAiIHI9IjEuNSIgZmlsbD0id2hpdGUiIG9wYWNpdHk9IjAuNSIvPjxjaXJjbGUgY3g9IjMyNSIgY3k9IjI1IiByPSIyLjUiIGZpbGw9IndoaXRlIiBvcGFjaXR5PSIwLjQiLz48Y2lyY2xlIGN4PSIzNzUiIGN5PSI3NSIgcj0iMSIgZmlsbD0id2hpdGUiIG9wYWNpdHk9IjAuNiIvPjxjaXJjbGUgY3g9IjQyNSIgY3k9IjUwIiByPSIyIiBmaWxsPSJ3aGl0ZSIgb3BhY2l0eT0iMC4zIi8+PC9nPjwvc3ZnPg==') repeat;
+    background-size: 200px 200px;
+    animation: twinkle 5s infinite;
+    z-index: -1;
+}
+
+@keyframes twinkle {
+    0%, 100% { opacity: 0.3; }
+    50% { opacity: 0.7; }
 }
 
 h1, h2, h3 {
     color: #e0e0ff;
-    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
 }
 
 h1 {
@@ -40,7 +62,7 @@ button {
     cursor: pointer;
     font-size: 1em;
     transition: transform 0.3s, background 0.3s;
-    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
     display: inline-block; /* Убедимся, что кнопки отображаются */
 }
 
@@ -71,7 +93,7 @@ button:hover {
     margin: 5px 0;
     border-radius: 10px;
     border-left: 5px solid #8a8aff;
-    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
 }
 
 #streamerSection .item {
@@ -87,7 +109,7 @@ button:hover {
     padding: 15px;
     border-radius: 10px;
     margin-bottom: 20px;
-    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
 }
 
 #switchProfileBtn, #logoutBtn {
