@@ -8,24 +8,37 @@ body {
     position: relative;
 }
 
-/* Звёзды через CSS (упрощённый подход, вместо SVG) */
-body::before {
+/* Звёзды через CSS (многослойный эффект) */
+body::before, body::after {
     content: '';
     position: absolute;
     top: 0;
     left: 0;
     width: 100%;
     height: 100%;
-    background: url('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAUAAAAFCAYAAACNbyblAAAAJElEQVQIHWNgoB9YGBgYGBgZGBgYGBgYGBgYGBgYGBgYGBgYGBgYGBgYGBgYGBgYGBgYGBgYGBgYGBgYGBgYAAH8AwQBL7e8AAAAASUVORK5CYII=') repeat;
-    background-size: 50px 50px;
-    animation: twinkle 5s infinite;
     z-index: -1;
-    opacity: 0.5;
+    pointer-events: none; /* Убеждаемся, что звёзды не мешают кликам */
+}
+
+body::before {
+    background: radial-gradient(circle at 10% 20%, rgba(255, 255, 255, 0.1) 1px, transparent 2px),
+                radial-gradient(circle at 90% 80%, rgba(255, 255, 255, 0.2) 1px, transparent 2px),
+                radial-gradient(circle at 30% 70%, rgba(255, 255, 255, 0.15) 1.5px, transparent 2.5px);
+    background-size: 150px 150px, 200px 200px, 100px 100px;
+    animation: twinkle 5s infinite ease-in-out;
+}
+
+body::after {
+    background: radial-gradient(circle at 50% 50%, rgba(255, 255, 255, 0.05) 0.5px, transparent 1px),
+                radial-gradient(circle at 80% 20%, rgba(255, 255, 255, 0.1) 1px, transparent 1.5px),
+                radial-gradient(circle at 20% 90%, rgba(255, 255, 255, 0.08) 1.2px, transparent 2px);
+    background-size: 120px 120px, 180px 180px, 90px 90px;
+    animation: twinkle 7s infinite ease-in-out reverse;
 }
 
 @keyframes twinkle {
     0%, 100% { opacity: 0.3; }
-    50% { opacity: 0.7; }
+    50% { opacity: 0.8; }
 }
 
 .container {
@@ -66,6 +79,8 @@ button {
     box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
     display: inline-block; /* Убедимся, что кнопки отображаются */
     width: auto; /* Уберем фиксированную ширину, чтобы кнопки не сжимались */
+    opacity: 1; /* Убедимся, что кнопки видны */
+    visibility: visible; /* Убедимся, что кнопки не скрыты */
 }
 
 button:hover {
@@ -121,9 +136,4 @@ button:hover {
 
 #switchProfileBtn:hover, #logoutBtn:hover {
     background: linear-gradient(45deg, #ff4444, #ff6666);
-}
-
-/* Убедимся, что кнопки видны даже при ошибках */
-button:disabled {
-    display: none; /* Скрываем отключенные кнопки, если они есть */
 }
