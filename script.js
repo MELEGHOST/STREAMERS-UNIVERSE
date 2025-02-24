@@ -11,13 +11,13 @@ let reviews = JSON.parse(localStorage.getItem('reviews')) || [];
 let schedule = JSON.parse(localStorage.getItem('schedule')) || [];
 
 // Глобальные переменные для секретов (Vercel автоматически подтянет их из Environment Variables)
-const TWITCH_CLIENT_ID = process.env.TWITCH_CLIENT_ID || '';
-const TWITCH_CLIENT_SECRET = process.env.TWITCH_CLIENT_SECRET || '';
-const TWITCH_REDIRECT_URI = process.env.TWITCH_REDIRECT_URI || '';
+const TWITCH_CLIENT_ID = process.env.TWITCH_CLIENT_ID;
+const TWITCH_CLIENT_SECRET = process.env.TWITCH_CLIENT_SECRET;
+const TWITCH_REDIRECT_URI = process.env.TWITCH_REDIRECT_URI;
 
-// Убедимся, что секреты есть перед инициализацией
+// Проверка наличия секретов перед инициализацией
 if (!TWITCH_CLIENT_ID || !TWITCH_REDIRECT_URI) {
-    console.error('Необходимо настроить TWITCH_CLIENT_ID и TWITCH_REDIRECT_URI в секретах Vercel.');
+    console.error('Ошибка: TWITCH_CLIENT_ID и TWITCH_REDIRECT_URI должны быть настроены в секретах Vercel.');
     alert('Ошибка: отсутствуют необходимые настройки. Обратитесь к разработчику.');
     return;
 }
