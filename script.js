@@ -10,36 +10,17 @@ let socials = JSON.parse(localStorage.getItem('socials')) || [];
 let reviews = JSON.parse(localStorage.getItem('reviews')) || [];
 let schedule = JSON.parse(localStorage.getItem('schedule')) || [];
 
-// Получение секретов через Vercel API (упрощённый подход для браузера)
-async function fetchSecrets() {
-    try {
-        const response = await fetch('/api/secrets'); // Это заглушка, реальный эндпоинт нужно настроить
-        const secrets = await response.json();
-        return {
-            TWITCH_CLIENT_ID: secrets.TWITCH_CLIENT_ID,
-            TWITCH_CLIENT_SECRET: secrets.TWITCH_CLIENT_SECRET,
-            TWITCH_REDIRECT_URI: secrets.TWITCH_REDIRECT_URI
-        };
-    } catch (error) {
-        console.error('Ошибка при получении секретов:', error);
-        return {
-            TWITCH_CLIENT_ID: 'YOUR_TWITCH_CLIENT_ID', // Заглушка для локального тестирования
-            TWITCH_CLIENT_SECRET: 'YOUR_TWITCH_CLIENT_SECRET', // Заглушка
-            TWITCH_REDIRECT_URI: 'https://streamers-universe-mini-app.vercel.app' // Замени на свой URL
-        };
-    }
+// Глобальные переменные для секретов (Vercel автоматически подтянет их из Environment Variables)
+const TWITCH_CLIENT_ID = process.env.TWITCH_CLIENT_ID || '';
+const TWITCH_CLIENT_SECRET = process.env.TWITCH_CLIENT_SECRET || '';
+const TWITCH_REDIRECT_URI = process.env.TWITCH_REDIRECT_URI || '';
+
+// Убедимся, что секреты есть перед инициализацией
+if (!TWITCH_CLIENT_ID || !TWITCH_REDIRECT_URI) {
+    console.error('Необходимо настроить TWITCH_CLIENT_ID и TWITCH_REDIRECT_URI в секретах Vercel.');
+    alert('Ошибка: отсутствуют необходимые настройки. Обратитесь к разработчику.');
+    return;
 }
-
-// Глобальные переменные для секретов
-let twitchSecrets = {};
-
-fetchSecrets().then(secrets => {
-    twitchSecrets = secrets;
-    initializeApp();
-}).catch(error => {
-    console.error('Ошибка инициализации:', error);
-    initializeApp(); // Запуск с заглушками для тестирования
-});
 
 function initializeApp() {
     // Показать форму регистрации, если пользователь не зарегистрирован
@@ -82,7 +63,7 @@ function initializeApp() {
         const twitchLogin = prompt('Введите ваш Twitch логин (без @):');
         if (twitchLogin) {
             // Перенаправляем на Twitch для авторизации
-            const TWITCH_AUTH_URL = `https://id.twitch.tv/oauth2/authorize?client_id=${twitchSecrets.TWITCH_CLIENT_ID}&redirect_uri=${encodeURIComponent(twitchSecrets.TWITCH_REDIRECT_URI)}&response_type=token&scope=user:read:follows`;
+            const TWITCH_AUTH_URL = `https://id.twitch.tv/oauth2/authorize?client_id=${TWITCH_CLIENT_ID}&redirect_uri=${encodeURIComponent(TWITCH_REDIRECT_URI)}&response_type=token&scope=user:read:follows`;
             console.log('Twitch Auth URL:', TWITCH_AUTH_URL); // Для отладки
             window.location.href = TWITCH_AUTH_URL;
         }
@@ -109,7 +90,7 @@ function initializeApp() {
             // Запрос данных пользователя через Twitch API
             fetch('https://api.twitch.tv/helix/users', {
                 headers: {
-                    'Client-ID': twitchSecrets.TWITCH_CLIENT_ID,
+                    'Client-ID': TWITCH_CLIENT_ID,
                     'Authorization': `Bearer ${accessToken}`
                 }
             })
@@ -126,7 +107,7 @@ function initializeApp() {
                     // Получаем количество подписчиков
                     fetch(`https://api.twitch.tv/helix/users/follows?to_id=${twitchUser.id}`, {
                         headers: {
-                            'Client-ID': twitchSecrets.TWITCH_CLIENT_ID,
+                            'Client-ID': TWITCH_CLIENT_ID,
                             'Authorization': `Bearer ${accessToken}`
                         }
                     })
