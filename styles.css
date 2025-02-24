@@ -1,57 +1,209 @@
-body {
-    font-family: Arial, sans-serif;
-    background-color: #f0f0f0;
-    margin: 0;
-    padding: 20px;
+// Инициализация Telegram Web App
+const tg = window.Telegram.WebApp;
+tg.ready();
+
+// Данные пользователя (хранятся в localStorage)
+let user = JSON.parse(localStorage.getItem('user')) || { role: null, twitchId: null, followers: 0 };
+let movies = JSON.parse(localStorage.getItem('movies')) || [];
+let games = JSON.parse(localStorage.getItem('games')) || [];
+let socials = JSON.parse(localStorage.getItem('socials')) || [];
+let reviews = JSON.parse(localStorage.getItem('reviews')) || [];
+let schedule = JSON.parse(localStorage.getItem('schedule')) || [];
+
+// Twitch API настройки
+const TWITCH_CLIENT_ID = 'YOUR_TWITCH_CLIENT_ID'; // Замени на свой Client ID от Twitch
+const TWITCH_REDIRECT_URI = 'https://streamers-universe-mini-app.vercel.app'; // Замени на URL твоего Mini App
+const TWITCH_AUTH_URL = `https://id.twitch.tv/oauth2/authorize?client_id=${TWITCH_CLIENT_ID}&redirect_uri=${encodeURIComponent(TWITCH_REDIRECT_URI)}&response_type=token&scope=user:read:follows`;
+
+// Показать форму регистрации, если пользователь не зарегистрирован
+function showRegistration() {
+    const registrationForm = document.getElementById('registrationForm');
+    const streamerProfile = document.getElementById('streamerProfile');
+    const viewerProfile = document.getElementById('viewerProfile');
+
+    if (!user.role) {
+        registrationForm.classList.add('active');
+        streamerProfile.classList.remove('active');
+        viewerProfile.classList.remove('active');
+    } else if (user.role === 'streamer') {
+        registrationForm.classList.remove('active');
+        streamerProfile.classList.add('active');
+        viewerProfile.classList.remove('active');
+        loadStreamerProfile();
+    } else {
+        registrationForm.classList.remove('active');
+        streamerProfile.classList.remove('active');
+        viewerProfile.classList.add('active');
+        loadViewerProfile();
+    }
 }
 
-.container {
-    max-width: 600px;
-    margin: 0 auto;
-    background: white;
-    padding: 20px;
-    border-radius: 10px;
-    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+// Регистрация стримера
+document.getElementById('registerStreamerBtn').addEventListener('click', () => {
+    const twitchLogin = prompt('Введите ваш Twitch логин (без @):');
+    if (twitchLogin) {
+        // Перенаправляем на Twitch для авторизации
+        window.location.href = TWITCH_AUTH_URL;
+    }
+});
+
+// Регистрация подписчика
+document.getElementById('registerViewerBtn').addEventListener('click', () => {
+    user.role = 'viewer';
+    user.twitchId = null;
+    user.followers = 0;
+    localStorage.setItem('user', JSON.stringify(user));
+    document.getElementById('viewerName').textContent = tg.initDataUnsafe.user.first_name || 'Подписчик';
+    showRegistration();
+});
+
+// Обработка токена Twitch после авторизации
+function handleTwitchAuth() {
+    const hash = window.location.hash.substring(1);
+    const params = new URLSearchParams(hash);
+    const accessToken = params.get('access_token');
+
+    if (accessToken) {
+        // Запрос данных пользователя через Twitch API
+        fetch('https://api.twitch.tv/helix/users', {
+            headers: {
+                'Client-ID': TWITCH_CLIENT_ID,
+                'Authorization': `Bearer ${accessToken}`
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.data && data.data.length > 0) {
+                const twitchUser = data.data[0];
+                user.twitchId = twitchUser.login;
+                user.role = 'streamer';
+
+                // Получаем количество подписчиков
+                fetch(`https://api.twitch.tv/helix/users/follows?to_id=${twitchUser.id}`, {
+                    headers: {
+                        'Client-ID': TWITCH_CLIENT_ID,
+                        'Authorization': `Bearer ${accessToken}`
+                    }
+                })
+                .then(response => response.json())
+                .then(followsData => {
+                    user.followers = followsData.total || 0;
+                    if (user.followers >= 265) {
+                        localStorage.setItem('user', JSON.stringify(user));
+                        document.getElementById('streamerName').textContent = twitchUser.display_name || 'Стример';
+                        document.getElementById('followerCount').textContent = user.followers;
+                        showRegistration();
+                    } else {
+                        alert('У вас недостаточно подписчиков (нужно минимум 265).');
+                        user.role = null;
+                        user.twitchId = null;
+                        user.followers = 0;
+                        localStorage.setItem('user', JSON.stringify(user));
+                        showRegistration();
+                    }
+                })
+                .catch(error => {
+                    alert('Ошибка при проверке подписчиков: ' + error.message);
+                    user.role = null;
+                    user.twitchId = null;
+                    user.followers = 0;
+                    localStorage.setItem('user', JSON.stringify(user));
+                    showRegistration();
+                });
+            }
+        })
+        .catch(error => {
+            alert('Ошибка авторизации Twitch: ' + error.message);
+            user.role = null;
+            user.twitchId = null;
+            user.followers = 0;
+            localStorage.setItem('user', JSON.stringify(user));
+            showRegistration();
+        });
+    }
 }
 
-h1, h2, h3 {
-    color: #333;
+// Загрузка профиля стримера
+function loadStreamerProfile() {
+    document.getElementById('streamerName').textContent = tg.initDataUnsafe.user.first_name || 'Стример';
+    document.getElementById('followerCount').textContent = user.followers;
+    updateSchedule();
+    updateMovies();
+    updateGames();
+    updateSocials();
+    updateReviews();
 }
 
-button {
-    background-color: #0088cc;
-    color: white;
-    border: none;
-    padding: 10px 20px;
-    margin: 5px 0;
-    border-radius: 5px;
-    cursor: pointer;
-    transition: background-color 0.3s;
+// Загрузка профиля подписчика
+function loadViewerProfile() {
+    document.getElementById('viewerName').textContent = tg.initDataUnsafe.user.first_name || 'Подписчик';
+    updateSchedule();
+    updateMovies();
+    updateGames();
+    updateSocials();
 }
 
-button:hover {
-    background-color: #006699;
+// Добавление расписания (только для стримера)
+document.getElementById('addSchedule').addEventListener('click', () => {
+    if (user.role !== 'streamer') return alert('Только стримеры могут добавлять расписание.');
+    let time = prompt('Введите дату и время стрима (например, 25.02.2025 18:00):');
+    let desc = prompt('Описание стрима:');
+    schedule.push({ time, desc, votes: 0 });
+    localStorage.setItem('schedule', JSON.stringify(schedule));
+    updateSchedule();
+});
+
+// Обновление расписания
+function updateSchedule() {
+    let list = document.getElementById('scheduleList');
+    list.innerHTML = '';
+    schedule.forEach((item, index) => {
+        list.innerHTML += `<div class="item">${item.time} - ${item.desc} (Голосов: ${item.votes}) 
+            <button onclick="voteSchedule(${index})">Голосовать</button></div>`;
+    });
 }
 
-.form-section, .profile-section {
-    display: none;
+// Голосование за расписание (только для подписчика)
+function voteSchedule(index) {
+    if (user.role !== 'viewer') return alert('Только подписчики могут голосовать.');
+    schedule[index].votes++;
+    localStorage.setItem('schedule', JSON.stringify(schedule));
+    updateSchedule();
 }
 
-.form-section.active, .profile-section.active {
-    display: block;
+// Остальные функции (добавление фильмов, игр, соцсетей, отзывов) остаются похожими, но только для стримера
+// Здесь я повторю только добавление фильма как пример
+document.getElementById('addMovie').addEventListener('click', () => {
+    if (user.role !== 'streamer') return alert('Только стримеры могут добавлять фильмы.');
+    let title = prompt('Название фильма:');
+    let streamerRating = parseInt(prompt('Ваша оценка (1-10):'));
+    let viewersRating = parseInt(prompt('Оценка зрителей (1-10):'));
+    let totalRating = (streamerRating * 0.6) + (viewersRating * 0.4);
+    movies.push({ title, streamerRating, viewersRating, totalRating });
+    localStorage.setItem('movies', JSON.stringify(movies));
+    updateMovies();
+});
+
+function updateMovies() {
+    let list = document.getElementById('movieList');
+    list.innerHTML = '';
+    movies.forEach(movie => {
+        list.innerHTML += `<div class="item">${movie.title} - Общая: ${movie.totalRating.toFixed(1)} 
+            (Стример: ${movie.streamerRating}, Зрители: ${movie.viewersRating})</div>`;
+    });
 }
 
-.item {
-    padding: 10px;
-    border-bottom: 1px solid #ddd;
-}
+// Аналогично для игр, соцсетей, отзывов (добавь в код аналогичные функции, как в предыдущем варианте)
 
-#streamerProfile {
-    border-left: 5px solid #0088cc;
-    padding-left: 15px;
-}
+// Инициализация при загрузке
+document.addEventListener('DOMContentLoaded', () => {
+    showRegistration();
+    // Проверка, вернулся ли пользователь с Twitch
+    if (window.location.hash) {
+        handleTwitchAuth();
+    }
+});
 
-#viewerProfile {
-    border-left: 5px solid #4CAF50;
-    padding-left: 15px;
-}
+// Заглушки для других функций (Twitch трекер, топ стримеров)
+document.getElementById('twitchTracker').innerHTML = 'Twitch трекер в разработке...';
+document.getElementById('topStreamers').innerHTML = 'Топ стримеров обновляется...';
