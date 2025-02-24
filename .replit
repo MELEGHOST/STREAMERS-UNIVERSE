@@ -1,9 +1,0 @@
-run = "python3 bot.py"
-modules = ["python-3.11"]
-
-[[ports]]
-localPort = 5555
-
-[[ports]]
-localPort = 8080
-externalPort = 4200
