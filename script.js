@@ -17,7 +17,7 @@ async function fetchSecrets() {
         const secrets = await response.json();
         return {
             TWITCH_CLIENT_ID: secrets.TWITCH_CLIENT_ID,
-            TWITCH_CLIENT_SECRET: secrets.TWITCH_CLIENT_SECRET, // Добавляем Client-Secret
+            TWITCH_CLIENT_SECRET: secrets.TWITCH_CLIENT_SECRET,
             TWITCH_REDIRECT_URI: secrets.TWITCH_REDIRECT_URI
         };
     } catch (error) {
@@ -45,23 +45,35 @@ function initializeApp() {
     // Показать форму регистрации, если пользователь не зарегистрирован
     function showRegistration() {
         const registrationForm = document.getElementById('registrationForm');
-        const streamerProfile = document.getElementById('streamerProfile');
-        const viewerProfile = document.getElementById('viewerProfile');
+        const userProfile = document.getElementById('userProfile');
 
         if (!user.role) {
             registrationForm.classList.add('active');
-            streamerProfile.classList.remove('active');
-            viewerProfile.classList.remove('active');
-        } else if (user.role === 'streamer') {
-            registrationForm.classList.remove('active');
-            streamerProfile.classList.add('active');
-            viewerProfile.classList.remove('active');
-            loadStreamerProfile();
+            userProfile.classList.remove('active');
         } else {
             registrationForm.classList.remove('active');
-            streamerProfile.classList.remove('active');
-            viewerProfile.classList.add('active');
-            loadViewerProfile();
+            userProfile.classList.add('active');
+            showProfile();
+        }
+    }
+
+    // Показать текущий профиль
+    function showProfile() {
+        const streamerSection = document.getElementById('streamerSection');
+        const viewerSection = document.getElementById('viewerSection');
+        const profileTitle = document.getElementById('profileTitle');
+        const profileInfo = document.getElementById('profileInfo');
+
+        if (user.role === 'streamer') {
+            streamerSection.classList.add('active');
+            viewerSection.classList.remove('active');
+            profileTitle.textContent = 'Профиль стримера';
+            profileInfo.textContent = `Привет, ${tg.initDataUnsafe.user.first_name || 'Стример'}! У вас ${user.followers} подписчиков.`;
+        } else {
+            streamerSection.classList.remove('active');
+            viewerSection.classList.add('active');
+            profileTitle.textContent = 'Профиль подписчика';
+            profileInfo.textContent = `Привет, ${tg.initDataUnsafe.user.first_name || 'Подписчик'}! Вы можете поддержать стримеров.`;
         }
     }
 
@@ -82,7 +94,7 @@ function initializeApp() {
         user.twitchId = null;
         user.followers = 0;
         localStorage.setItem('user', JSON.stringify(user));
-        document.getElementById('viewerName').textContent = tg.initDataUnsafe.user.first_name || 'Подписчик';
+        showProfile();
         showRegistration();
     });
 
@@ -123,8 +135,7 @@ function initializeApp() {
                         user.followers = followsData.total || 0;
                         if (user.followers >= 265) {
                             localStorage.setItem('user', JSON.stringify(user));
-                            document.getElementById('streamerName').textContent = twitchUser.display_name || 'Стример';
-                            document.getElementById('followerCount').textContent = user.followers;
+                            showProfile();
                             showRegistration();
                         } else {
                             alert('У вас недостаточно подписчиков (нужно минимум 265).');
@@ -165,25 +176,33 @@ function initializeApp() {
         }
     }
 
-    // Загрузка профиля стримера
-    function loadStreamerProfile() {
-        document.getElementById('streamerName').textContent = tg.initDataUnsafe.user.first_name || 'Стример';
-        document.getElementById('followerCount').textContent = user.followers;
-        updateSchedule();
-        updateMovies();
-        updateGames();
-        updateSocials();
-        updateReviews();
-    }
+    // Смена профиля
+    document.getElementById('switchProfileBtn').addEventListener('click', () => {
+        user.role = null;
+        user.twitchId = null;
+        user.followers = 0;
+        localStorage.setItem('user', JSON.stringify(user));
+        showRegistration();
+    });
 
-    // Загрузка профиля подписчика
-    function loadViewerProfile() {
-        document.getElementById('viewerName').textContent = tg.initDataUnsafe.user.first_name || 'Подписчик';
-        updateSchedule();
-        updateMovies();
-        updateGames();
-        updateSocials();
-    }
+    // Выход из профиля
+    document.getElementById('logoutBtn').addEventListener('click', () => {
+        user.role = null;
+        user.twitchId = null;
+        user.followers = 0;
+        localStorage.setItem('user', JSON.stringify(user));
+        localStorage.removeItem('movies');
+        localStorage.removeItem('games');
+        localStorage.removeItem('socials');
+        localStorage.removeItem('reviews');
+        localStorage.removeItem('schedule');
+        movies = [];
+        games = [];
+        socials = [];
+        reviews = [];
+        schedule = [];
+        showRegistration();
+    });
 
     // Добавление расписания (только для стримера)
     document.getElementById('addSchedule').addEventListener('click', () => {
