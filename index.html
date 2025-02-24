@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Streamer Mini App</title>
+    <link rel="stylesheet" href="styles.css">
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+</head>
+<body>
+    <div class="container">
+        <h1>Streamer Mini App</h1>
+        <button id="registerStreamer">Зарегистрироваться как стример</button>
+        <h2>Расписание стримов</h2>
+        <div id="scheduleList"></div>
+        <button id="addSchedule">Добавить стрим</button>
+        <h2>Просмотренные фильмы</h2>
+        <div id="movieList"></div>
+        <button id="addMovie">Добавить фильм</button>
+        <h2>Игры</h2>
+        <div id="gameList"></div>
+        <button id="addGame">Добавить игру</button>
+        <h2>Соцсети</h2>
+        <div id="socialLinks"></div>
+        <button id="addSocial">Добавить соцсеть</button>
+        <h2>Отзывы и тир-листы</h2>
+        <div id="reviewList"></div>
+        <button id="addReview">Добавить отзыв</button>
+        <h2>Поддержать стримера</h2>
+        <button id="donate">Донат</button>
+        <h2>Задать вопрос или запросить коллаб</h2>
+        <button id="askQuestion">Задать вопрос</button>
+        <button id="requestCollab">Запросить коллаб</button>
+        <h2>Топ стримеров</h2>
+        <div id="topStreamers"></div>
+        <h2>Twitch трекер</h2>
+        <div id="twitchTracker"></div>
+    </div>
+    <script src="script.js"></script>
+</body>
+</html>
