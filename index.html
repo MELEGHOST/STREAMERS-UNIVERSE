@@ -10,32 +10,68 @@
 <body>
     <div class="container">
         <h1>Streamer Mini App</h1>
-        <button id="registerStreamer">Зарегистрироваться как стример</button>
-        <h2>Расписание стримов</h2>
-        <div id="scheduleList"></div>
-        <button id="addSchedule">Добавить стрим</button>
-        <h2>Просмотренные фильмы</h2>
-        <div id="movieList"></div>
-        <button id="addMovie">Добавить фильм</button>
-        <h2>Игры</h2>
-        <div id="gameList"></div>
-        <button id="addGame">Добавить игру</button>
-        <h2>Соцсети</h2>
-        <div id="socialLinks"></div>
-        <button id="addSocial">Добавить соцсеть</button>
-        <h2>Отзывы и тир-листы</h2>
-        <div id="reviewList"></div>
-        <button id="addReview">Добавить отзыв</button>
-        <h2>Поддержать стримера</h2>
-        <button id="donate">Донат</button>
-        <h2>Задать вопрос или запросить коллаб</h2>
-        <button id="askQuestion">Задать вопрос</button>
-        <button id="requestCollab">Запросить коллаб</button>
-        <h2>Топ стримеров</h2>
-        <div id="topStreamers"></div>
+        
+        <!-- Форма регистрации (показывается, если пользователь не зарегистрирован) -->
+        <div id="registrationForm" class="form-section">
+            <h2>Регистрация</h2>
+            <p>Вы стример или подписчик?</p>
+            <button id="registerStreamerBtn">Я стример</button>
+            <button id="registerViewerBtn">Я подписчик</button>
+        </div>
+
+        <!-- Профиль стримера -->
+        <div id="streamerProfile" class="profile-section hidden">
+            <h2>Профиль стримера</h2>
+            <p>Привет, <span id="streamerName"></span>! У вас <span id="followerCount"></span> подписчиков.</p>
+            <button id="addSchedule">Добавить стрим</button>
+            <button id="addMovie">Добавить фильм</button>
+            <button id="addGame">Добавить игру</button>
+            <button id="addSocial">Добавить соцсеть</button>
+            <button id="addReview">Добавить отзыв</button>
+            <button id="donateBtn">Настроить донат</button>
+            <button id="requestCollabBtn">Настроить запросы коллабов</button>
+
+            <!-- Расписание стримов -->
+            <h3>Расписание стримов</h3>
+            <div id="scheduleList"></div>
+
+            <!-- Фильмы -->
+            <h3>Просмотренные фильмы</h3>
+            <div id="movieList"></div>
+
+            <!-- Игры -->
+            <h3>Игры</h3>
+            <div id="gameList"></div>
+
+            <!-- Соцсети -->
+            <h3>Соцсети</h3>
+            <div id="socialLinks"></div>
+
+            <!-- Отзывы -->
+            <h3>Отзывы и тир-листы</h3>
+            <div id="reviewList"></div>
+        </div>
+
+        <!-- Профиль подписчика -->
+        <div id="viewerProfile" class="profile-section hidden">
+            <h2>Профиль подписчика</h2>
+            <p>Привет, <span id="viewerName"></span>! Вы можете поддержать стримера.</p>
+            <button id="viewSchedule">Посмотреть расписание</button>
+            <button id="viewMovies">Посмотреть фильмы</button>
+            <button id="viewGames">Посмотреть игры</button>
+            <button id="viewSocials">Посмотреть соцсети</button>
+            <button id="askQuestionBtn">Задать вопрос</button>
+            <button id="voteScheduleBtn">Проголосовать за стрим</button>
+            <button id="donate">Поддержать стримера</button>
+        </div>
+
+        <!-- Twitch трекер и топ -->
         <h2>Twitch трекер</h2>
         <div id="twitchTracker"></div>
+        <h2>Топ стримеров</h2>
+        <div id="topStreamers"></div>
     </div>
+    
     <script src="script.js"></script>
 </body>
 </html>
