@@ -1,5 +1,0 @@
-python-telegram-bot==13.14
-requests==2.31.0
-telegram
-flask
-waitress==2.1.2
