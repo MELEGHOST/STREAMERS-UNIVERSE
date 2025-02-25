@@ -114,12 +114,15 @@ document.getElementById('logoutBtn').addEventListener('click', () => {
 });
 
 // Авторизация через Twitch
-document.getElementById('authBtn').addEventListener('click', () => {
-    const twitchLogin = document.getElementById('twitchLogin').value.trim();
-    if (!twitchLogin) {
-        showError('Введите Twitch никнейм');
-        return;
+document.getElementById("authorize-btn").addEventListener("click", function() {
+    const username = document.getElementById("twitch-username").value;
+    if (username) {
+        // Перенаправление на Twitch для аутентификации
+        window.location.href = `https://id.twitch.tv/oauth2/authorize?client_id=YOUR_CLIENT_ID&redirect_uri=YOUR_REDIRECT_URI&response_type=code&scope=user:read:email&state=${username}`;
+    } else {
+        alert("Пожалуйста, введите ваш Twitch никнейм!");
     }
+});
     const TWITCH_AUTH_URL = `https://id.twitch.tv/oauth2/authorize?client_id=${TWITCH_CLIENT_ID}&redirect_uri=${encodeURIComponent(TWITCH_REDIRECT_URI)}&response_type=token&scope=user:read:follows`;
     console.log('Перенаправление на Twitch:', TWITCH_AUTH_URL);
     window.location.href = TWITCH_AUTH_URL;
