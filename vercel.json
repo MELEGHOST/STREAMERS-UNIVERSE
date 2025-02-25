@@ -6,18 +6,25 @@
       "config": {
         "distDir": "."
       }
+    },
+    {
+      "src": "config.js",
+      "use": "@vercel/static"
     }
   ],
   "routes": [
     {
       "src": "/(.*)",
       "dest": "/index.html"
+    },
+    {
+      "src": "/config.js",
+      "dest": "/config.js"
     }
   ],
-  "functions": {
-    "config.js": {
-      "runtime": "edge"
-    }
+  "env": {
+    "TWITCH_CLIENT_ID": "@twitch-client-id",
+    "TWITCH_REDIRECT_URI": "@twitch-redirect-uri"
   },
   "headers": [
     {
