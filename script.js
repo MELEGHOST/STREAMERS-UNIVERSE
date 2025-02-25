@@ -36,14 +36,16 @@ async function loadConfig() {
             console.error('Конфигурация Twitch API отсутствует');
             alert('Внимание: настройки Twitch не найдены. Авторизация через Twitch невозможна. Обратитесь к администратору.');
             showFallbackUI();
+            return false;
         } else {
             console.log('Конфигурация Twitch API загружена успешно');
-            initializeApp();
+            return true;
         }
     } catch (error) {
         console.error('Ошибка загрузки конфигурации:', error);
         alert('Ошибка: не удалось загрузить настройки Twitch. Обратитесь к администратору.');
         showFallbackUI();
+        return false;
     }
 }
 
@@ -70,12 +72,12 @@ function initializeApp() {
 function showFrame(frameId) {
     const frames = document.querySelectorAll('.frame');
     frames.forEach(frame => {
-        frame.classList.remove('active', 'hidden');
+        frame.classList.remove('active');
+        frame.classList.add('hidden');
     });
     const activeFrame = document.getElementById(frameId);
     if (activeFrame) {
         activeFrame.classList.add('active');
-        frames.forEach(frame => frame.classList.add('hidden')); // Скрываем все, кроме активного
         activeFrame.classList.remove('hidden'); // Показываем активный
         console.log(`Показан фрейм: ${frameId}`);
     } else {
@@ -146,11 +148,16 @@ function setupEventListeners() {
     }
 
     if (authorizeBtn) {
-        authorizeBtn.addEventListener('click', () => {
+        authorizeBtn.addEventListener('click', async () => {
+            // Убедимся, что конфигурация загружена
             if (!TWITCH_CLIENT_ID || !TWITCH_REDIRECT_URI) {
-                showError('Настройки Twitch отсутствуют. Обратитесь к администратору.');
-                return;
+                const configLoaded = await loadConfig();
+                if (!configLoaded) {
+                    showError('Настройки Twitch отсутствуют. Обратитесь к администратору.');
+                    return;
+                }
             }
+            
             const twitchLogin = document.getElementById('twitchLogin')?.value.trim() || '';
             if (!twitchLogin) {
                 showError('Введите ваш Twitch никнейм');
@@ -250,13 +257,17 @@ function showProfile() {
 
     if (streamerSection && viewerSection && profileTitle && profileInfo) {
         if (user.role === 'streamer') {
+            streamerSection.classList.remove('hidden');
             streamerSection.classList.add('active');
+            viewerSection.classList.add('hidden');
             viewerSection.classList.remove('active');
             profileTitle.textContent = `Профиль стримера: ${user.name}`;
             profileInfo.textContent = `У вас ${user.followers} подписчиков.`;
             console.log('Показан профиль стримера');
         } else {
+            streamerSection.classList.add('hidden');
             streamerSection.classList.remove('active');
+            viewerSection.classList.remove('hidden');
             viewerSection.classList.add('active');
             profileTitle.textContent = `Профиль подписчика: ${user.name}`;
             profileInfo.textContent = 'Вы можете поддержать стримеров.';
@@ -272,75 +283,120 @@ function showError(message) {
     const error = document.getElementById('authError');
     if (error) {
         error.textContent = message;
+        error.classList.remove('hidden');
         error.classList.add('active');
-        setTimeout(() => error.classList.remove('active'), 3000); // Скрываем через 3 секунды
+        setTimeout(() => {
+            error.classList.remove('active');
+            error.classList.add('hidden');
+        }, 3000); // Скрываем через 3 секунды
         console.log('Показана ошибка:', message);
     } else {
         console.error('Элемент "authError" не найден');
+        alert(message); // Запасной вариант, если элемент ошибки не найден
     }
 }
 
-function handleTwitchAuth() {
+async function handleTwitchAuth() {
+    // Проверяем, загружена ли конфигурация
+    if (!TWITCH_CLIENT_ID || !TWITCH_REDIRECT_URI) {
+        const configLoaded = await loadConfig();
+        if (!configLoaded) {
+            console.error('Не удалось загрузить конфигурацию для обработки авторизации');
+            showError('Не удалось загрузить настройки Twitch');
+            return;
+        }
+    }
+
     const hash = window.location.hash.substring(1);
+    if (!hash) {
+        console.log('Нет данных авторизации в URL');
+        return;
+    }
+
     const params = new URLSearchParams(hash);
     const accessToken = params.get('access_token');
     const state = params.get('state'); // Получаем состояние (никнейм и роль)
 
-    if (accessToken && state) {
-        const [twitchLogin, role] = state.split('|'); // Разделяем никнейм и роль
-        console.log('Получен токен и состояние:', { accessToken, twitchLogin, role });
-
-        fetch('https://api.twitch.tv/helix/users', {
-            headers: { 'Client-ID': TWITCH_CLIENT_ID, 'Authorization': `Bearer ${accessToken}` }
-        })
-        .then(response => {
-            if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-            return response.json();
-        })
-        .then(data => {
-            if (data.data && data.data.length > 0) {
-                const twitchUser = data.data[0];
-                user.twitchId = twitchUser.login;
-                user.name = twitchUser.display_name || twitchUser.login; // Сохраняем имя пользователя
-
-                fetch(`https://api.twitch.tv/helix/users/follows?to_id=${twitchUser.id}`, {
-                    headers: { 'Client-ID': TWITCH_CLIENT_ID, 'Authorization': `Bearer ${accessToken}` }
-                })
-                .then(response => {
-                    if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-                    return response.json();
-                })
-                .then(followsData => {
-                    user.followers = followsData.total || 0;
-                    // Устанавливаем роль на основе выбора пользователя или фолловеров
-                    if (role === 'subscriber' || (role === 'streamer' && user.followers < 265)) {
-                        user.role = 'subscriber'; // Стример может войти как подписчик
-                        showError('У вас меньше 265 подписчиков. Вы зарегистрированы как подписчик.');
-                    } else if (role === 'streamer' && user.followers >= 265) {
-                        user.role = 'streamer'; // Стример с достаточным количеством фолловеров
-                    } else {
-                        user.role = 'subscriber'; // По умолчанию подписчик, если выбор некорректен
-                    }
-                    localStorage.setItem('user', JSON.stringify(user));
-                    showMenu(true); // Показываем меню после авторизации
-                    showProfile(); // Показываем профиль
-                    console.log(`${user.role === 'streamer' ? 'Стример' : 'Подписчик'} зарегистрирован:`, user.name, user.followers, 'подписчиков');
-                })
-                .catch(error => {
-                    showError('Ошибка проверки подписчиков: ' + error.message);
-                    console.error('Ошибка проверки подписчиков:', error);
-                });
-            } else {
-                showError('Пользователь Twitch не найден');
-                console.error('Пользователь Twitch не найден');
-            }
-            ensureButtonsVisible(); // Убеждаемся, что кнопки видны
-        })
-        .catch(error => {
-            showError('Ошибка авторизации Twitch: ' + error.message);
-            console.error('Ошибка авторизации Twitch:', error);
-        });
+    if (!accessToken || !state) {
+        console.error('Отсутствует токен доступа или состояние в URL');
+        showError('Ошибка авторизации: отсутствуют необходимые данные');
+        return;
     }
+
+    console.log('Получен токен и состояние:', { accessToken, state });
+
+    try {
+        const [twitchLogin, role] = state.split('|'); // Разделяем никнейм и роль
+        if (!twitchLogin || !role) {
+            throw new Error('Неверный формат состояния');
+        }
+
+        // Запрос информации о пользователе
+        const userResponse = await fetch('https://api.twitch.tv/helix/users', {
+            headers: { 
+                'Client-ID': TWITCH_CLIENT_ID, 
+                'Authorization': `Bearer ${accessToken}`
+            }
+        });
+
+        if (!userResponse.ok) {
+            throw new Error(`HTTP error! status: ${userResponse.status}`);
+        }
+
+        const userData = await userResponse.json();
+        if (!userData.data || userData.data.length === 0) {
+            throw new Error('Пользователь Twitch не найден');
+        }
+
+        const twitchUser = userData.data[0];
+        user.twitchId = twitchUser.login;
+        user.name = twitchUser.display_name || twitchUser.login;
+
+        // Запрос информации о подписчиках
+        const followsResponse = await fetch(`https://api.twitch.tv/helix/users/follows?to_id=${twitchUser.id}`, {
+            headers: { 
+                'Client-ID': TWITCH_CLIENT_ID, 
+                'Authorization': `Bearer ${accessToken}`
+            }
+        });
+
+        if (!followsResponse.ok) {
+            throw new Error(`HTTP error! status: ${followsResponse.status}`);
+        }
+
+        const followsData = await followsResponse.json();
+        user.followers = followsData.total || 0;
+
+        // Устанавливаем роль
+        if (role === 'subscriber' || (role === 'streamer' && user.followers < 265)) {
+            user.role = 'subscriber';
+            if (role === 'streamer' && user.followers < 265) {
+                showError('У вас меньше 265 подписчиков. Вы зарегистрированы как подписчик.');
+            }
+        } else if (role === 'streamer' && user.followers >= 265) {
+            user.role = 'streamer';
+        } else {
+            user.role = 'subscriber';
+        }
+
+        // Сохраняем данные пользователя
+        localStorage.setItem('user', JSON.stringify(user));
+        
+        // Обновляем интерфейс
+        showMenu(true);
+        showProfile();
+        
+        console.log(`${user.role === 'streamer' ? 'Стример' : 'Подписчик'} зарегистрирован:`, user.name, user.followers, 'подписчиков');
+        
+        // Очищаем хэш из URL для предотвращения повторной авторизации при обновлении
+        history.replaceState(null, null, ' ');
+    } catch (error) {
+        console.error('Ошибка обработки авторизации:', error);
+        showError(`Ошибка авторизации: ${error.message}`);
+        showFrame('roleSelectionFrame');
+    }
+
+    ensureButtonsVisible();
 }
 
 function updateSchedule() {
@@ -396,18 +452,20 @@ function addRandomStars() {
 }
 
 // Инициализация
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
     console.log('Страница загружена');
-    if (window.location.hash) {
+    
+    // Сначала всегда загружаем конфигурацию
+    const configLoaded = await loadConfig();
+    
+    if (window.location.hash && configLoaded) {
         // Если есть хэш в URL, значит произошло перенаправление после авторизации
-        // Сначала загружаем конфигурацию, потом обрабатываем авторизацию
-        loadConfig().then(() => {
-            handleTwitchAuth();
-        });
+        await handleTwitchAuth();
     } else {
-        // Просто загружаем конфигурацию
-        loadConfig();
+        // Инициализируем приложение
+        initializeApp();
     }
+    
     ensureButtonsVisible(); // Убеждаемся, что кнопки видны при загрузке
 });
 
