@@ -14,8 +14,10 @@
       "dest": "/index.html"
     }
   ],
-  "env": {
-    "TWITCH_CLIENT_ID": "@twitch-client-id",
-    "TWITCH_REDIRECT_URI": "@twitch-redirect-uri"
+  "functions": {
+    "config.js": {
+      "runtime": "edge",
+      "handler": "generateConfig.js"
+    }
   }
 }
