@@ -9,7 +9,7 @@ body {
     position: relative;
 }
 
-/* Звёзды через JavaScript, CSS оставляем пустым для них */
+/* Стили для динамических звёзд, создаваемых через JavaScript */
 .star {
     position: absolute;
     background: white;
