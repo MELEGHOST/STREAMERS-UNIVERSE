@@ -6,9 +6,6 @@
     <title>Streamers Universe</title>
     <link rel="stylesheet" href="styles.css">
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
-    <!-- Мета-теги для секретов (Vercel заполнит их на этапе сборки) -->
-    <meta name="twitch-client-id" content="${TWITCH_CLIENT_ID}">
-    <meta name="twitch-redirect-uri" content="${TWITCH_REDIRECT_URI}">
 </head>
 <body>
     <div class="container">
@@ -96,6 +93,14 @@
         </div>
     </div>
     
+    <!-- Скрытый скрипт для секретов, который Vercel заполнит на этапе сборки -->
+    <script id="secrets" type="application/json" style="display: none;">
+        {
+            "twitchClientId": "",
+            "twitchRedirectUri": ""
+        }
+    </script>
+
     <script src="script.js"></script>
 </body>
 </html>
