@@ -11,14 +11,14 @@
     <div class="container">
         <h1>Streamers Universe</h1>
         
-        <!-- Форма регистрации (показывается, если пользователь не зарегистрирован) -->
+        <!-- Форма регистрации -->
         <div id="registrationForm" class="form-section">
             <h2>Кто вы?</h2>
             <button id="registerStreamerBtn">Я стример</button>
             <button id="registerViewerBtn">Я подписчик</button>
         </div>
 
-        <!-- Единый профиль (будет переключаться между стримером и подписчиком) -->
+        <!-- Профиль пользователя -->
         <div id="userProfile" class="profile-section hidden">
             <div id="profileHeader">
                 <h2 id="profileTitle"></h2>
@@ -27,7 +27,7 @@
                 <button id="logoutBtn">Выйти</button>
             </div>
             
-            <!-- Секция для стримера -->
+            <!-- Секция стримера -->
             <div id="streamerSection" class="profile-content hidden">
                 <button id="addSchedule">Добавить стрим</button>
                 <button id="addMovie">Добавить фильм</button>
@@ -53,7 +53,7 @@
                 <div id="reviewList"></div>
             </div>
 
-            <!-- Секция для подписчика -->
+            <!-- Секция подписчика -->
             <div id="viewerSection" class="profile-content hidden">
                 <button id="viewSchedule">Посмотреть расписание</button>
                 <button id="viewMovies">Посмотреть фильмы</button>
@@ -67,9 +67,9 @@
 
         <!-- Twitch трекер и топ -->
         <h2>Twitch трекер</h2>
-        <div id="twitchTracker"></div>
+        <div id="twitchTracker">Twitch трекер в разработке...</div>
         <h2>Топ стримеров</h2>
-        <div id="topStreamers"></div>
+        <div id="topStreamers">Топ стримеров обновляется...</div>
     </div>
     
     <script src="script.js"></script>
