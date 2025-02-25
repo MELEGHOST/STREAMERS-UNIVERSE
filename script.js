@@ -76,8 +76,9 @@ function ensureButtonsVisible() {
         btn.style.display = 'inline-block';
         btn.style.opacity = '1';
         btn.style.visibility = 'visible';
+        btn.disabled = false; // Убеждаемся, что кнопки кликабельны
     });
-    console.log('Кнопки сделаны видимыми');
+    console.log('Кнопки сделаны видимыми и кликабельными');
 }
 
 function showRegistration() {
@@ -125,6 +126,7 @@ document.getElementById('registerStreamerBtn').addEventListener('click', () => {
         console.log('Перенаправление на Twitch:', TWITCH_AUTH_URL);
         window.location.href = TWITCH_AUTH_URL;
     }
+    ensureButtonsVisible(); // Убеждаемся, что кнопки видны после нажатия
 });
 
 // Регистрация подписчика
@@ -134,6 +136,7 @@ document.getElementById('registerViewerBtn').addEventListener('click', () => {
     user.followers = 0;
     localStorage.setItem('user', JSON.stringify(user));
     showProfile();
+    ensureButtonsVisible(); // Убеждаемся, что кнопки видны
     console.log('Зарегистрирован как подписчик');
 });
 
@@ -182,6 +185,7 @@ function handleTwitchAuth() {
                 localStorage.setItem('user', JSON.stringify(user));
                 showRegistration();
             }
+            ensureButtonsVisible(); // Убеждаемся, что кнопки видны
         })
         .catch(error => console.error('Ошибка авторизации Twitch:', error));
     }
@@ -194,6 +198,7 @@ document.getElementById('switchProfileBtn').addEventListener('click', () => {
     user.followers = 0;
     localStorage.setItem('user', JSON.stringify(user));
     showRegistration();
+    ensureButtonsVisible(); // Убеждаемся, что кнопки видны
     console.log('Смена профиля');
 });
 
@@ -205,6 +210,7 @@ document.getElementById('logoutBtn').addEventListener('click', () => {
     localStorage.clear(); // Полная очистка
     movies = []; games = []; socials = []; reviews = []; schedule = [];
     showRegistration();
+    ensureButtonsVisible(); // Убеждаемся, что кнопки видны
     console.log('Выход выполнен');
 });
 
@@ -216,6 +222,7 @@ document.getElementById('addSchedule').addEventListener('click', () => {
     schedule.push({ time, desc, votes: 0 });
     localStorage.setItem('schedule', JSON.stringify(schedule));
     updateSchedule();
+    ensureButtonsVisible(); // Убеждаемся, что кнопки видны
 });
 
 function updateSchedule() {
@@ -225,6 +232,7 @@ function updateSchedule() {
         list.innerHTML += `<div class="item">${item.time} - ${item.desc} (Голосов: ${item.votes}) 
             <button onclick="voteSchedule(${index})">Голосовать</button></div>`;
     });
+    ensureButtonsVisible(); // Убеждаемся, что кнопки видны
 }
 
 function voteSchedule(index) {
@@ -232,6 +240,7 @@ function voteSchedule(index) {
     schedule[index].votes++;
     localStorage.setItem('schedule', JSON.stringify(schedule));
     updateSchedule();
+    ensureButtonsVisible(); // Убеждаемся, что кнопки видны
 }
 
 // Добавление фильма
@@ -244,6 +253,7 @@ document.getElementById('addMovie').addEventListener('click', () => {
     movies.push({ title, streamerRating, viewersRating, totalRating });
     localStorage.setItem('movies', JSON.stringify(movies));
     updateMovies();
+    ensureButtonsVisible(); // Убеждаемся, что кнопки видны
 });
 
 function updateMovies() {
@@ -253,6 +263,7 @@ function updateMovies() {
         list.innerHTML += `<div class="item">${movie.title} - Общая: ${movie.totalRating.toFixed(1)} 
             (Стример: ${movie.streamerRating}, Зрители: ${movie.viewersRating})</div>`;
     });
+    ensureButtonsVisible(); // Убеждаемся, что кнопки видны
 }
 
 // Инициализация
@@ -263,21 +274,5 @@ document.addEventListener('DOMContentLoaded', () => {
     } else {
         initializeApp();
     }
-    // Добавляем звёзды динамически для Telegram
-    addStars();
+    ensureButtonsVisible(); // Убеждаемся, что кнопки видны при загрузке
 });
-
-function addStars() {
-    const body = document.body;
-    for (let i = 1; i <= 20; i++) { // Увеличиваем количество звёзд для равномерного покрытия
-        const star = document.createElement('div');
-        star.className = 'star';
-        star.style.width = `${Math.random() * 2 + 1}px`; // Размер от 1 до 3px
-        star.style.height = star.style.width;
-        star.style.top = `${Math.random() * 100}%`; // Рандомное положение по высоте
-        star.style.left = `${Math.random() * 100}%`; // Рандомное положение по ширине
-        star.style.animationDelay = `${Math.random() * 2}s`; // Рандомная задержка анимации
-        body.appendChild(star);
-    }
-    console.log('Звёзды добавлены динамически');
-}
