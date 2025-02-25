@@ -11,11 +11,18 @@
     <div class="container">
         <h1 class="title">Streamers Universe</h1>
 
-        <!-- Экран авторизации (для обоих ролей) -->
-        <div class="frame auth active" id="authFrame">
+        <!-- Экран выбора роли -->
+        <div class="frame role-selection active" id="roleSelectionFrame">
+            <h2>Кто вы?</h2>
+            <button id="streamerBtn">Я стример</button>
+            <button id="subscriberBtn">Я подписчик</button>
+        </div>
+
+        <!-- Экран авторизации через Twitch -->
+        <div class="frame auth hidden" id="authFrame">
             <h2>Войдите через Twitch</h2>
             <input type="text" id="twitchLogin" placeholder="Введите ваш Twitch никнейм (без @)" class="input-field" />
-            <button id="authBtn">Авторизоваться</button>
+            <button id="authorizeBtn">Авторизоваться</button>
             <p id="authError" class="error hidden"></p>
         </div>
 
