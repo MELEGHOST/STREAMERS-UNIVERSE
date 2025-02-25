@@ -11,9 +11,9 @@ let socials = JSON.parse(localStorage.getItem('socials')) || [];
 let reviews = JSON.parse(localStorage.getItem('reviews')) || [];
 let schedule = JSON.parse(localStorage.getItem('schedule')) || [];
 
-// Секреты из Vercel
-const TWITCH_CLIENT_ID = process.env.TWITCH_CLIENT_ID || 'YOUR_TWITCH_CLIENT_ID'; // Замени на реальный перед деплоем
-const TWITCH_REDIRECT_URI = process.env.TWITCH_REDIRECT_URI || 'https://streamers-universe-mini-app.vercel.app'; // Замени на реальный URL
+// Использование секретов из Vercel
+const TWITCH_CLIENT_ID = process.env.TWITCH_CLIENT_ID || '';
+const TWITCH_REDIRECT_URI = process.env.TWITCH_REDIRECT_URI || '';
 
 // Проверка наличия секретов перед инициализацией
 if (!TWITCH_CLIENT_ID || !TWITCH_REDIRECT_URI) {
@@ -46,10 +46,14 @@ function showFrame(frameId) {
     const frames = document.querySelectorAll('.frame');
     frames.forEach(frame => frame.classList.remove('active', 'hidden'));
     const activeFrame = document.getElementById(frameId);
-    activeFrame.classList.add('active');
-    frames.forEach(frame => frame.classList.add('hidden')); // Скрываем все, кроме активного
-    activeFrame.classList.remove('hidden'); // Показываем активный
-    console.log(`Показан фрейм: ${frameId}`);
+    if (activeFrame) {
+        activeFrame.classList.add('active');
+        frames.forEach(frame => frame.classList.add('hidden')); // Скрываем все, кроме активного
+        activeFrame.classList.remove('hidden'); // Показываем активный
+        console.log(`Показан фрейм: ${frameId}`);
+    } else {
+        console.error(`Экран с id "${frameId}" не найден`);
+    }
 }
 
 function showMenu(show) {
@@ -241,7 +245,7 @@ function updateSchedule() {
 }
 
 function voteSchedule(index) {
-    if (user.role !== 'viewer' && user.role !== 'subscriber') return alert('Только подписчики могут голосовать'); // Поддержка обеих ролей подписчиков
+    if (user.role !== 'subscriber') return alert('Только подписчики могут голосовать');
     schedule[index].votes++;
     localStorage.setItem('schedule', JSON.stringify(schedule));
     updateSchedule();
