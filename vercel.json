@@ -8,18 +8,15 @@
       }
     },
     {
-      "src": "api/**/*.js",
-      "use": "@vercel/node"
+      "src": "config.js",
+      "use": "@vercel/static"
     }
   ],
-  "routes": [
+  "redirects": [
     {
-      "src": "/api/(.*)",
-      "dest": "/api/$1"
-    },
-    {
-      "src": "/(.*)",
-      "dest": "/$1"
+      "source": "/config",
+      "destination": "/config.js",
+      "permanent": false
     }
   ],
   "env": {
@@ -32,7 +29,7 @@
       "headers": [
         {
           "key": "Content-Security-Policy",
-          "value": "script-src 'self' 'unsafe-eval' 'unsafe-inline' https://telegram.org; connect-src 'self' https://id.twitch.tv https://api.twitch.tv https://api.telegram.org;"
+          "value": "script-src 'self' 'unsafe-eval' 'unsafe-inline'; connect-src 'self' https://id.twitch.tv https://api.twitch.tv;"
         }
       ]
     }
