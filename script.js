@@ -20,27 +20,21 @@ let TWITCH_CLIENT_ID = '';
 let TWITCH_REDIRECT_URI = '';
 let selectedRole = null;
 
-// Загрузка конфигурации с сервера
-async function loadConfig() {
+// Загрузка конфигурации из config.js, сгенерированного Vercel
+function loadConfig() {
     try {
-        const response = await fetch('/api/config');
-        if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
-        }
-        const config = await response.json();
-        
-        TWITCH_CLIENT_ID = config.TWITCH_CLIENT_ID || '';
-        TWITCH_REDIRECT_URI = config.TWITCH_REDIRECT_URI || '';
-        
-        if (!TWITCH_CLIENT_ID || !TWITCH_REDIRECT_URI) {
+        // Проверяем, доступен ли config (Vercel должен создать его)
+        if (typeof window.config === 'object' && window.config) {
+            TWITCH_CLIENT_ID = window.config.TWITCH_CLIENT_ID || '';
+            TWITCH_REDIRECT_URI = window.config.TWITCH_REDIRECT_URI || '';
+        } else {
             console.error('Конфигурация Twitch API отсутствует');
             alert('Внимание: настройки Twitch не найдены. Авторизация через Twitch невозможна. Обратитесь к администратору.');
             showFallbackUI();
             return false;
-        } else {
-            console.log('Конфигурация Twitch API загружена успешно');
-            return true;
         }
+        console.log('Конфигурация Twitch API загружена успешно');
+        return true;
     } catch (error) {
         console.error('Ошибка загрузки конфигурации:', error);
         alert('Ошибка: не удалось загрузить настройки Twitch. Обратитесь к администратору.');
@@ -151,7 +145,7 @@ function setupEventListeners() {
         authorizeBtn.addEventListener('click', async () => {
             // Убедимся, что конфигурация загружена
             if (!TWITCH_CLIENT_ID || !TWITCH_REDIRECT_URI) {
-                const configLoaded = await loadConfig();
+                const configLoaded = loadConfig();
                 if (!configLoaded) {
                     showError('Настройки Twitch отсутствуют. Обратитесь к администратору.');
                     return;
@@ -299,7 +293,7 @@ function showError(message) {
 async function handleTwitchAuth() {
     // Проверяем, загружена ли конфигурация
     if (!TWITCH_CLIENT_ID || !TWITCH_REDIRECT_URI) {
-        const configLoaded = await loadConfig();
+        const configLoaded = loadConfig();
         if (!configLoaded) {
             console.error('Не удалось загрузить конфигурацию для обработки авторизации');
             showError('Не удалось загрузить настройки Twitch');
@@ -456,7 +450,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     console.log('Страница загружена');
     
     // Сначала всегда загружаем конфигурацию
-    const configLoaded = await loadConfig();
+    const configLoaded = loadConfig();
     
     if (window.location.hash && configLoaded) {
         // Если есть хэш в URL, значит произошло перенаправление после авторизации
