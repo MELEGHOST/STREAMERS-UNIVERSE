@@ -1,48 +1,36 @@
 body {
     font-family: 'Arial', sans-serif;
-    background: #0a0a2a; /* Тёмный космический фон */
+    background: #0a0a2a; /* Глубоко тёмный космический фон */
     margin: 0;
     padding: 20px;
     color: #fff;
-    min-height: 100vh; /* Убедимся, что фон покрывает всю высоту */
-    position: relative;
+    min-height: 100vh; /* Полное покрытие высоты экрана */
     overflow-x: hidden;
+    position: relative;
 }
 
-/* Слой для звёзд */
-.stars-layer1, .stars-layer2 {
+/* Звёзды через CSS (равномерное распределение) */
+.star {
     position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%; /* Полное покрытие экрана */
-    z-index: -1;
-    pointer-events: none; /* Не блокируем клики */
-    background: transparent;
+    background: white;
+    border-radius: 50%;
+    animation: twinkle 3s infinite alternate;
+    pointer-events: none; /* Не мешает кликам */
 }
 
-/* Первый слой звёзд (мелкие) */
-.stars-layer1 {
-    background: radial-gradient(circle at 10% 20%, rgba(255, 255, 255, 0.2) 1px, transparent 1px),
-                radial-gradient(circle at 90% 80%, rgba(255, 255, 255, 0.15) 0.8px, transparent 0.8px),
-                radial-gradient(circle at 30% 70%, rgba(255, 255, 255, 0.25) 1.2px, transparent 1.2px),
-                radial-gradient(circle at 50% 50%, rgba(255, 255, 255, 0.1) 0.5px, transparent 0.5px);
-    background-size: 100px 100px; /* Равномерное распределение */
-    animation: twinkle 4s infinite ease-in-out;
-}
-
-/* Второй слой звёзд (крупнее) */
-.stars-layer2 {
-    background: radial-gradient(circle at 80% 20%, rgba(255, 255, 255, 0.3) 1.5px, transparent 1.5px),
-                radial-gradient(circle at 20% 90%, rgba(255, 255, 255, 0.2) 1px, transparent 1px),
-                radial-gradient(circle at 60% 40%, rgba(255, 255, 255, 0.15) 0.8px, transparent 0.8px);
-    background-size: 150px 150px;
-    animation: twinkle 6s infinite ease-in-out reverse;
-}
+.star:nth-child(1) { width: 1px; height: 1px; top: 10%; left: 20%; animation-delay: 0s; }
+.star:nth-child(2) { width: 1.5px; height: 1.5px; top: 30%; left: 40%; animation-delay: 1s; }
+.star:nth-child(3) { width: 2px; height: 2px; top: 50%; left: 60%; animation-delay: 0.5s; }
+.star:nth-child(4) { width: 1px; height: 1px; top: 70%; left: 80%; animation-delay: 1.5s; }
+.star:nth-child(5) { width: 1.5px; height: 1.5px; top: 20%; left: 70%; animation-delay: 0.8s; }
+.star:nth-child(6) { width: 2px; height: 2px; top: 80%; left: 30%; animation-delay: 1.2s; }
+.star:nth-child(7) { width: 1px; height: 1px; top: 40%; left: 90%; animation-delay: 0.3s; }
+.star:nth-child(8) { width: 1.5px; height: 1.5px; top: 60%; left: 10%; animation-delay: 1.7s; }
 
 @keyframes twinkle {
-    0%, 100% { opacity: 0.4; }
-    50% { opacity: 0.9; }
+    0% { opacity: 0.3; }
+    50% { opacity: 0.8; }
+    100% { opacity: 0.3; }
 }
 
 .container {
@@ -54,21 +42,30 @@ body {
     border-radius: 15px;
     box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
     position: relative;
-    min-height: 80vh; /* Убедимся, что контент растягивается */
+    z-index: 1; /* Над звёздами */
 }
 
-h1, h2, h3 {
-    color: #e0e0ff;
-    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
-}
-
-h1 {
+.title {
     font-size: 2.5em;
     text-align: center;
     background: linear-gradient(45deg, #4a4a9d, #8a8aff);
     -webkit-background-clip: text;
     background-clip: text;
     color: transparent;
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
+    margin-bottom: 20px;
+}
+
+.menu, .frame {
+    display: none;
+}
+
+.menu.active, .frame.active {
+    display: block;
+}
+
+.frame {
+    padding: 20px 0;
 }
 
 button {
@@ -85,19 +82,12 @@ button {
     display: inline-block;
     opacity: 1;
     visibility: visible;
+    width: auto;
 }
 
 button:hover {
     transform: scale(1.05);
     background: linear-gradient(45deg, #6b6bd7, #a6a6ff);
-}
-
-.form-section, .profile-section {
-    display: none;
-}
-
-.form-section.active, .profile-section.active {
-    display: block;
 }
 
 .profile-content {
@@ -125,7 +115,7 @@ button:hover {
     border-left-color: #4CAF50;
 }
 
-#profileHeader {
+#profileHeader, .menu {
     background: rgba(255, 255, 255, 0.1);
     padding: 15px;
     border-radius: 10px;
@@ -135,6 +125,7 @@ button:hover {
 
 #switchProfileBtn, #logoutBtn {
     background: linear-gradient(45deg, #ff6b6b, #ff8a8a);
+    margin: 5px;
 }
 
 #switchProfileBtn:hover, #logoutBtn:hover {
