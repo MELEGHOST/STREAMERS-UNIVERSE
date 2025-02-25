@@ -1,7 +1,11 @@
 // Инициализация Telegram Web App
 const tg = window.Telegram.WebApp;
-tg.ready();
-console.log('Telegram Web App инициализирован:', tg.initDataUnsafe);
+if (tg) {
+    tg.ready();
+    console.log('Telegram Web App инициализирован:', tg.initDataUnsafe);
+} else {
+    console.error('Telegram Web App не инициализирован');
+}
 
 // Данные пользователя
 let user = JSON.parse(localStorage.getItem('user')) || { role: null, twitchId: null, followers: 0, name: null };
@@ -11,18 +15,17 @@ let socials = JSON.parse(localStorage.getItem('socials')) || [];
 let reviews = JSON.parse(localStorage.getItem('reviews')) || [];
 let schedule = JSON.parse(localStorage.getItem('schedule')) || [];
 
-// Использование секретов из Vercel
-const TWITCH_CLIENT_ID = process.env.TWITCH_CLIENT_ID || '';
-const TWITCH_REDIRECT_URI = process.env.TWITCH_REDIRECT_URI || '';
+// Использование секретов из Vercel с запасным планом для теста
+const TWITCH_CLIENT_ID = process.env.TWITCH_CLIENT_ID || 'YOUR_TWITCH_CLIENT_ID'; // Временная заглушка для теста
+const TWITCH_REDIRECT_URI = process.env.TWITCH_REDIRECT_URI || 'https://streamers-universe-mini-app.vercel.app'; // Временная заглушка для теста
 
 // Проверка наличия секретов перед инициализацией
 if (!TWITCH_CLIENT_ID || !TWITCH_REDIRECT_URI) {
-    console.error('Ошибка: отсутствуют TWITCH_CLIENT_ID или TWITCH_REDIRECT_URI в Vercel secrets');
-    alert('Ошибка: настройки Twitch не найдены. Регистрация недоступна.');
-    showFallbackUI(); // Показываем базовый интерфейс
-} else {
-    initializeApp(); // Полная инициализация
-}
+    console.error('Ошибка: отсутствуют TWITCH_CLIENT_ID или TWITCH_REDIRECT_URI в Vercel secrets. Используются временные заглушки.');
+    alert('Внимание: настройки Twitch не найдены в Vercel. Используются временные значения для теста. Регистрация может не работать.');
+    // Если секреты отсутствуют, можно временно использовать заглушки для теста, но это небезопасно
+} 
+initializeApp(); // Полная инициализация
 
 function showFallbackUI() {
     console.log('Показ базового интерфейса без Twitch...');
@@ -40,12 +43,14 @@ function initializeApp() {
         showProfile(); // Показываем профиль
     }
     ensureButtonsVisible(); // Убеждаемся, что кнопки видны
-    setupEventListeners(); // Убеждаемся, что обработчики событий добавлены
+    setupEventListeners(); // Устанавливаем обработчики событий
 }
 
 function showFrame(frameId) {
     const frames = document.querySelectorAll('.frame');
-    frames.forEach(frame => frame.classList.remove('active', 'hidden'));
+    frames.forEach(frame => {
+        frame.classList.remove('active', 'hidden');
+    });
     const activeFrame = document.getElementById(frameId);
     if (activeFrame) {
         activeFrame.classList.add('active');
@@ -265,7 +270,10 @@ function handleTwitchAuth() {
         fetch('https://api.twitch.tv/helix/users', {
             headers: { 'Client-ID': TWITCH_CLIENT_ID, 'Authorization': `Bearer ${accessToken}` }
         })
-        .then(response => response.json())
+        .then(response => {
+            if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+            return response.json();
+        })
         .then(data => {
             if (data.data && data.data.length > 0) {
                 const twitchUser = data.data[0];
@@ -275,7 +283,10 @@ function handleTwitchAuth() {
                 fetch(`https://api.twitch.tv/helix/users/follows?to_id=${twitchUser.id}`, {
                     headers: { 'Client-ID': TWITCH_CLIENT_ID, 'Authorization': `Bearer ${accessToken}` }
                 })
-                .then(response => response.json())
+                .then(response => {
+                    if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+                    return response.json();
+                })
                 .then(followsData => {
                     user.followers = followsData.total || 0;
                     // Устанавливаем роль на основе выбора пользователя или фолловеров
