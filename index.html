@@ -9,17 +9,25 @@
 </head>
 <body>
     <div class="container">
-        <h1>Streamers Universe</h1>
-        
-        <!-- Форма регистрации -->
-        <div id="registrationForm" class="form-section">
+        <h1 class="title">Streamers Universe</h1>
+
+        <!-- Меню навигации (всегда сверху) -->
+        <nav class="menu hidden" id="mainMenu">
+            <button id="goToRegister">Регистрация</button>
+            <button id="goToProfile">Мой профиль</button>
+            <button id="goToTwitch">Twitch Трекер</button>
+            <button id="goToTop">Топ Стримеров</button>
+        </nav>
+
+        <!-- Экран регистрации -->
+        <div class="frame registration active" id="registrationFrame">
             <h2>Кто вы?</h2>
             <button id="registerStreamerBtn">Я стример</button>
             <button id="registerViewerBtn">Я подписчик</button>
         </div>
 
-        <!-- Профиль пользователя -->
-        <div id="userProfile" class="profile-section hidden">
+        <!-- Экран профиля -->
+        <div class="frame profile hidden" id="profileFrame">
             <div id="profileHeader">
                 <h2 id="profileTitle"></h2>
                 <p id="profileInfo"></p>
@@ -65,11 +73,17 @@
             </div>
         </div>
 
-        <!-- Twitch трекер и топ -->
-        <h2>Twitch трекер</h2>
-        <div id="twitchTracker">Twitch трекер в разработке...</div>
-        <h2>Топ стримеров</h2>
-        <div id="topStreamers">Топ стримеров обновляется...</div>
+        <!-- Экран Twitch трекера -->
+        <div class="frame twitch hidden" id="twitchFrame">
+            <h2>Twitch Трекер</h2>
+            <p>Twitch трекер в разработке...</p>
+        </div>
+
+        <!-- Экран топа стримеров -->
+        <div class="frame top hidden" id="topFrame">
+            <h2>Топ Стримеров</h2>
+            <p>Топ стримеров обновляется...</p>
+        </div>
     </div>
     
     <script src="script.js"></script>
