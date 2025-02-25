@@ -20,8 +20,8 @@
     }
   ],
   "env": {
-    "TWITCH_CLIENT_ID": "@twitch-client-id",
-    "TWITCH_REDIRECT_URI": "@twitch-redirect-uri"
+    "TWITCH_CLIENT_ID": "@TWITCH_CLIENT_ID",
+    "TWITCH_REDIRECT_URI": "@TWITCH_REDIRECT_URI"
   },
   "headers": [
     {
