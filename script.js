@@ -25,51 +25,75 @@ if (!TWITCH_CLIENT_ID || !TWITCH_REDIRECT_URI) {
 
 function showFallbackUI() {
     console.log('Показ базового интерфейса без Twitch...');
-    const registrationForm = document.getElementById('registrationForm');
-    const userProfile = document.getElementById('userProfile');
-    registrationForm.classList.add('active');
-    userProfile.classList.remove('active');
+    showFrame('registrationFrame');
     document.getElementById('registerStreamerBtn').style.display = 'none'; // Скрываем кнопку стримера
     document.getElementById('registerViewerBtn').style.display = 'inline-block'; // Показываем кнопку подписчика
+    showMenu(false); // Скрываем меню
+    ensureButtonsVisible(); // Убеждаемся, что кнопки видны
 }
 
 function initializeApp() {
     console.log('Инициализация приложения...');
-    showRegistration();
+    showInitialScreen();
 }
 
-function showRegistration() {
-    const registrationForm = document.getElementById('registrationForm');
-    const userProfile = document.getElementById('userProfile');
-    console.log('Текущий пользователь:', user);
-
+function showInitialScreen() {
     if (!user.role) {
-        registrationForm.classList.add('active');
-        userProfile.classList.remove('active');
-        console.log('Показана форма регистрации');
+        showFrame('registrationFrame');
+        showMenu(false); // Скрываем меню на регистрации
     } else {
-        registrationForm.classList.remove('active');
-        userProfile.classList.add('active');
-        showProfile();
-        console.log('Показан профиль пользователя');
+        showFrame('profileFrame');
+        showMenu(true); // Показываем меню в профиле
     }
+    ensureButtonsVisible(); // Убеждаемся, что кнопки видны
+}
 
-    // Убеждаемся, что кнопки видны
+function showFrame(frameId) {
+    const frames = document.querySelectorAll('.frame');
+    frames.forEach(frame => frame.classList.remove('active', 'hidden'));
+    const activeFrame = document.getElementById(frameId);
+    activeFrame.classList.add('active');
+    frames.forEach(frame => frame.classList.add('hidden')); // Скрываем все, кроме активного
+    activeFrame.classList.remove('hidden'); // Показываем активный
+    console.log(`Показан фрейм: ${frameId}`);
+}
+
+function showMenu(show) {
+    const menu = document.getElementById('mainMenu');
+    if (show) {
+        menu.classList.add('active');
+        menu.classList.remove('hidden');
+    } else {
+        menu.classList.remove('active');
+        menu.classList.add('hidden');
+    }
+    console.log(`Меню ${show ? 'показано' : 'скрыто'}`);
+}
+
+function ensureButtonsVisible() {
     const buttons = document.querySelectorAll('button');
     buttons.forEach(btn => {
         btn.style.display = 'inline-block';
         btn.style.opacity = '1';
         btn.style.visibility = 'visible';
     });
+    console.log('Кнопки сделаны видимыми');
+}
+
+function showRegistration() {
+    showFrame('registrationFrame');
+    showMenu(false);
+    ensureButtonsVisible();
+    console.log('Показана регистрация');
 }
 
 function showProfile() {
+    showFrame('profileFrame');
+    showMenu(true);
     const streamerSection = document.getElementById('streamerSection');
     const viewerSection = document.getElementById('viewerSection');
     const profileTitle = document.getElementById('profileTitle');
     const profileInfo = document.getElementById('profileInfo');
-
-    console.log('Роль пользователя:', user.role);
 
     if (user.role === 'streamer') {
         streamerSection.classList.add('active');
@@ -84,15 +108,14 @@ function showProfile() {
         profileInfo.textContent = `Привет, ${tg.initDataUnsafe.user?.first_name || 'Подписчик'}! Вы можете поддержать стримеров.`;
         console.log('Показан профиль подписчика');
     }
-
-    // Убеждаемся, что кнопки видны
-    const buttons = document.querySelectorAll('button');
-    buttons.forEach(btn => {
-        btn.style.display = 'inline-block';
-        btn.style.opacity = '1';
-        btn.style.visibility = 'visible';
-    });
+    ensureButtonsVisible(); // Убеждаемся, что кнопки видны
 }
+
+// Навигация через меню
+document.getElementById('goToRegister').addEventListener('click', () => showRegistration());
+document.getElementById('goToProfile').addEventListener('click', () => showProfile());
+document.getElementById('goToTwitch').addEventListener('click', () => showFrame('twitchFrame'));
+document.getElementById('goToTop').addEventListener('click', () => showFrame('topFrame'));
 
 // Регистрация стримера
 document.getElementById('registerStreamerBtn').addEventListener('click', () => {
@@ -111,7 +134,6 @@ document.getElementById('registerViewerBtn').addEventListener('click', () => {
     user.followers = 0;
     localStorage.setItem('user', JSON.stringify(user));
     showProfile();
-    showRegistration();
     console.log('Зарегистрирован как подписчик');
 });
 
@@ -124,10 +146,7 @@ function handleTwitchAuth() {
     if (accessToken) {
         console.log('Получен токен:', accessToken);
         fetch('https://api.twitch.tv/helix/users', {
-            headers: {
-                'Client-ID': TWITCH_CLIENT_ID,
-                'Authorization': `Bearer ${accessToken}`
-            }
+            headers: { 'Client-ID': TWITCH_CLIENT_ID, 'Authorization': `Bearer ${accessToken}` }
         })
         .then(response => response.json())
         .then(data => {
@@ -135,12 +154,8 @@ function handleTwitchAuth() {
                 const twitchUser = data.data[0];
                 user.twitchId = twitchUser.login;
                 user.role = 'streamer';
-
                 fetch(`https://api.twitch.tv/helix/users/follows?to_id=${twitchUser.id}`, {
-                    headers: {
-                        'Client-ID': TWITCH_CLIENT_ID,
-                        'Authorization': `Bearer ${accessToken}`
-                    }
+                    headers: { 'Client-ID': TWITCH_CLIENT_ID, 'Authorization': `Bearer ${accessToken}` }
                 })
                 .then(response => response.json())
                 .then(followsData => {
@@ -148,7 +163,6 @@ function handleTwitchAuth() {
                     if (user.followers >= 265) {
                         localStorage.setItem('user', JSON.stringify(user));
                         showProfile();
-                        showRegistration();
                         console.log('Стример зарегистрирован:', user.followers, 'подписчиков');
                     } else {
                         alert('У вас меньше 265 подписчиков');
@@ -188,7 +202,6 @@ document.getElementById('logoutBtn').addEventListener('click', () => {
     user.role = null;
     user.twitchId = null;
     user.followers = 0;
-    localStorage.setItem('user', JSON.stringify(user));
     localStorage.clear(); // Полная очистка
     movies = []; games = []; socials = []; reviews = []; schedule = [];
     showRegistration();
@@ -250,4 +263,21 @@ document.addEventListener('DOMContentLoaded', () => {
     } else {
         initializeApp();
     }
+    // Добавляем звёзды динамически для Telegram
+    addStars();
 });
+
+function addStars() {
+    const body = document.body;
+    for (let i = 1; i <= 20; i++) { // Увеличиваем количество звёзд для равномерного покрытия
+        const star = document.createElement('div');
+        star.className = 'star';
+        star.style.width = `${Math.random() * 2 + 1}px`; // Размер от 1 до 3px
+        star.style.height = star.style.width;
+        star.style.top = `${Math.random() * 100}%`; // Рандомное положение по высоте
+        star.style.left = `${Math.random() * 100}%`; // Рандомное положение по ширине
+        star.style.animationDelay = `${Math.random() * 2}s`; // Рандомная задержка анимации
+        body.appendChild(star);
+    }
+    console.log('Звёзды добавлены динамически');
+}
