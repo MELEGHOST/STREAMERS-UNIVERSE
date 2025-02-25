@@ -11,20 +11,21 @@
     <div class="container">
         <h1 class="title">Streamers Universe</h1>
 
-        <!-- Меню навигации (всегда сверху) -->
+        <!-- Экран авторизации (для обоих ролей) -->
+        <div class="frame auth active" id="authFrame">
+            <h2>Войдите через Twitch</h2>
+            <input type="text" id="twitchLogin" placeholder="Введите ваш Twitch никнейм (без @)" class="input-field" />
+            <button id="authBtn">Авторизоваться</button>
+            <p id="authError" class="error hidden"></p>
+        </div>
+
+        <!-- Главное меню (показывается после авторизации) -->
         <nav class="menu hidden" id="mainMenu">
-            <button id="goToRegister">Регистрация</button>
             <button id="goToProfile">Мой профиль</button>
             <button id="goToTwitch">Twitch Трекер</button>
             <button id="goToTop">Топ Стримеров</button>
+            <button id="logoutBtn">Выйти</button>
         </nav>
-
-        <!-- Экран регистрации -->
-        <div class="frame registration active" id="registrationFrame">
-            <h2>Кто вы?</h2>
-            <button id="registerStreamerBtn">Я стример</button>
-            <button id="registerViewerBtn">Я подписчик</button>
-        </div>
 
         <!-- Экран профиля -->
         <div class="frame profile hidden" id="profileFrame">
@@ -32,7 +33,6 @@
                 <h2 id="profileTitle"></h2>
                 <p id="profileInfo"></p>
                 <button id="switchProfileBtn">Сменить профиль</button>
-                <button id="logoutBtn">Выйти</button>
             </div>
             
             <!-- Секция стримера -->
