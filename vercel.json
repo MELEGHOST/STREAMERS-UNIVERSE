@@ -8,15 +8,18 @@
       }
     },
     {
-      "src": "config.js",
-      "use": "@vercel/static"
+      "src": "api/**/*.js",
+      "use": "@vercel/node"
     }
   ],
-  "redirects": [
+  "routes": [
     {
-      "source": "/config",
-      "destination": "/config.js",
-      "permanent": false
+      "src": "/api/(.*)",
+      "dest": "/api/$1"
+    },
+    {
+      "src": "/(.*)",
+      "dest": "/index.html"
     }
   ],
   "env": {
