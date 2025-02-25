@@ -15,14 +15,25 @@ let socials = JSON.parse(localStorage.getItem('socials')) || [];
 let reviews = JSON.parse(localStorage.getItem('reviews')) || [];
 let schedule = JSON.parse(localStorage.getItem('schedule')) || [];
 
-// Использование мета-тегов для секретов
-const TWITCH_CLIENT_ID = document.querySelector('meta[name="twitch-client-id"]').content || 'YOUR_TWITCH_CLIENT_ID'; // Временная заглушка
-const TWITCH_REDIRECT_URI = document.querySelector('meta[name="twitch-redirect-uri"]').content || 'https://streamers-universe-mini-app.vercel.app'; // Временная заглушка
+// Подгрузка секретов из скрытого <script> тега
+const secretsScript = document.getElementById('secrets');
+let TWITCH_CLIENT_ID = '';
+let TWITCH_REDIRECT_URI = '';
+
+if (secretsScript) {
+    try {
+        const secrets = JSON.parse(secretsScript.textContent);
+        TWITCH_CLIENT_ID = secrets.twitchClientId || '';
+        TWITCH_REDIRECT_URI = secrets.twitchRedirectUri || '';
+    } catch (error) {
+        console.error('Ошибка парсинга секретов из <script>:', error);
+    }
+}
 
 // Проверка наличия секретов перед инициализацией
 if (!TWITCH_CLIENT_ID || !TWITCH_REDIRECT_URI) {
-    console.error('Ошибка: отсутствуют TWITCH_CLIENT_ID или TWITCH_REDIRECT_URI в мета-тегах. Используются временные заглушки.');
-    alert('Внимание: настройки Twitch не найдены. Используются временные значения для теста. Регистрация может не работать.');
+    console.error('Ошибка: отсутствуют TWITCH_CLIENT_ID или TWITCH_REDIRECT_URI в секретах. Авторизация через Twitch невозможна.');
+    alert('Внимание: настройки Twitch не найдены. Авторизация через Twitch невозможна. Обратитесь к администратору для настройки секретов в Vercel.');
 }
 initializeApp(); // Полная инициализация
 
@@ -126,13 +137,17 @@ function setupEventListeners() {
 
     if (authorizeBtn) {
         authorizeBtn.addEventListener('click', () => {
+            if (!TWITCH_CLIENT_ID || !TWITCH_REDIRECT_URI) {
+                showError('Настройки Twitch отсутствуют. Обратитесь к администратору.');
+                return;
+            }
             const twitchLogin = document.getElementById('twitchLogin')?.value.trim() || '';
             if (!twitchLogin) {
                 showError('Введите ваш Twitch никнейм');
                 return;
             }
             const TWITCH_AUTH_URL = `https://id.twitch.tv/oauth2/authorize?client_id=${TWITCH_CLIENT_ID}&redirect_uri=${encodeURIComponent(TWITCH_REDIRECT_URI)}&response_type=token&scope=user:read:follows&state=${twitchLogin}|${selectedRole}`;
-            console.log('Перенаправление на Twitch:', TWITCH_AUTH_URL);
+            console.log('Перенаправление на Twitch. Client ID:', TWITCH_CLIENT_ID, 'Redirect URI:', TWITCH_REDIRECT_URI);
             window.location.href = TWITCH_AUTH_URL;
             ensureButtonsVisible(); // Убеждаемся, что кнопки видны
         });
