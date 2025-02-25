@@ -9,41 +9,13 @@ body {
     position: relative;
 }
 
-/* Звёзды через CSS (равномерное распределение) */
-body::before, body::after {
-    content: '';
+/* Убираем звёзды из CSS, теперь они будут создаваться через JavaScript */
+.star {
     position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%; /* Полное покрытие высоты */
-    z-index: -1;
+    background: white;
+    border-radius: 50%;
+    animation: twinkle 3s infinite alternate;
     pointer-events: none; /* Не мешает кликам */
-    background: transparent;
-}
-
-body::before {
-    background: radial-gradient(circle at 10% 20%, rgba(255, 255, 255, 0.2) 1px, transparent 1px),
-                radial-gradient(circle at 90% 80%, rgba(255, 255, 255, 0.15) 0.8px, transparent 0.8px),
-                radial-gradient(circle at 30% 70%, rgba(255, 255, 255, 0.25) 1.2px, transparent 1.2px),
-                radial-gradient(circle at 50% 50%, rgba(255, 255, 255, 0.1) 0.5px, transparent 0.5px);
-    background-size: 100px 100px; /* Равномерное распределение */
-    animation: twinkle 4s infinite ease-in-out;
-    opacity: 0.5; /* Лёгкая прозрачность для эффекта космоса */
-}
-
-body::after {
-    background: radial-gradient(circle at 80% 20%, rgba(255, 255, 255, 0.3) 1.5px, transparent 1.5px),
-                radial-gradient(circle at 20% 90%, rgba(255, 255, 255, 0.2) 1px, transparent 1px),
-                radial-gradient(circle at 60% 40%, rgba(255, 255, 255, 0.15) 0.8px, transparent 0.8px);
-    background-size: 150px 150px;
-    animation: twinkle 6s infinite ease-in-out reverse;
-    opacity: 0.4; /* Лёгкая прозрачность для эффекта слоёв */
-}
-
-@keyframes twinkle {
-    0%, 100% { opacity: 0.4; }
-    50% { opacity: 0.9; }
 }
 
 .container {
@@ -176,4 +148,10 @@ button:disabled {
 
 #switchProfileBtn:hover, #logoutBtn:hover {
     background: linear-gradient(45deg, #ff4444, #ff6666);
+}
+
+@keyframes twinkle {
+    0% { opacity: 0.3; }
+    50% { opacity: 0.8; }
+    100% { opacity: 0.3; }
 }
