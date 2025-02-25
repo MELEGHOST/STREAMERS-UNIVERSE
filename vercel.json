@@ -12,20 +12,6 @@
       "use": "@vercel/static"
     }
   ],
-  "routes": [
-    {
-      "src": "/(.*)",
-      "dest": "/index.html"
-    },
-    {
-      "src": "/config.js",
-      "dest": "/config.js"
-    }
-  ],
-  "env": {
-    "TWITCH_CLIENT_ID": "@twitch-client-id",
-    "TWITCH_REDIRECT_URI": "@twitch-redirect-uri"
-  },
   "redirects": [
     {
       "source": "/config",
@@ -33,6 +19,10 @@
       "permanent": false
     }
   ],
+  "env": {
+    "TWITCH_CLIENT_ID": "@twitch-client-id",
+    "TWITCH_REDIRECT_URI": "@twitch-redirect-uri"
+  },
   "headers": [
     {
       "source": "/(.*)",
