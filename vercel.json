@@ -1,15 +1,4 @@
 {
-  "headers": [
-  {
-    "source": "/(.*)",
-    "headers": [
-      {
-        "key": "Content-Security-Policy",
-        "value": "script-src 'self' 'unsafe-eval' 'unsafe-inline'; connect-src 'self' https://id.twitch.tv https://api.twitch.tv;"
-      }
-    ]
-  }
-]
   "builds": [
     {
       "src": "index.html",
@@ -30,5 +19,16 @@
       "runtime": "edge",
       "handler": "generateConfig.js"
     }
-  }
+  },
+  "headers": [
+    {
+      "source": "/(.*)",
+      "headers": [
+        {
+          "key": "Content-Security-Policy",
+          "value": "script-src 'self' 'unsafe-eval' 'unsafe-inline'; connect-src 'self' https://id.twitch.tv https://api.twitch.tv;"
+        }
+      ]
+    }
+  ]
 }
