@@ -15,29 +15,32 @@ let socials = JSON.parse(localStorage.getItem('socials')) || [];
 let reviews = JSON.parse(localStorage.getItem('reviews')) || [];
 let schedule = JSON.parse(localStorage.getItem('schedule')) || [];
 
-// Переменные для Twitch API
+// Переменные для Twitch API (будут загружены через API)
 let TWITCH_CLIENT_ID = '';
 let TWITCH_REDIRECT_URI = '';
 let selectedRole = null;
 
-// Загрузка конфигурации из config.js, сгенерированного Vercel
-function loadConfig() {
+// Загрузка конфигурации через API
+async function loadConfig() {
     try {
-        // Проверяем, доступен ли config (Vercel должен создать его)
-        if (typeof window.config === 'object' && window.config) {
-            TWITCH_CLIENT_ID = window.config.TWITCH_CLIENT_ID || '';
-            TWITCH_REDIRECT_URI = window.config.TWITCH_REDIRECT_URI || '';
-        } else {
+        const response = await fetch('/api/config');
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        const config = await response.json();
+        TWITCH_CLIENT_ID = config.TWITCH_CLIENT_ID || '';
+        TWITCH_REDIRECT_URI = config.TWITCH_REDIRECT_URI || '';
+        if (!TWITCH_CLIENT_ID || !TWITCH_REDIRECT_URI) {
             console.error('Конфигурация Twitch API отсутствует');
-            alert('Внимание: настройки Twitch не найдены. Авторизация через Twitch невозможна. Обратитесь к администратору.');
+            alert('Внимание: настройки Twitch не найдены. Проверь переменные окружения в Vercel.');
             showFallbackUI();
             return false;
         }
-        console.log('Конфигурация Twitch API загружена успешно');
+        console.log('Конфигурация Twitch API загружена успешно через API');
         return true;
     } catch (error) {
         console.error('Ошибка загрузки конфигурации:', error);
-        alert('Ошибка: не удалось загрузить настройки Twitch. Обратитесь к администратору.');
+        alert('Ошибка: не удалось загрузить настройки Twitch через API. Проверь настройки Vercel.');
         showFallbackUI();
         return false;
     }
@@ -145,9 +148,9 @@ function setupEventListeners() {
         authorizeBtn.addEventListener('click', async () => {
             // Убедимся, что конфигурация загружена
             if (!TWITCH_CLIENT_ID || !TWITCH_REDIRECT_URI) {
-                const configLoaded = loadConfig();
+                const configLoaded = await loadConfig();
                 if (!configLoaded) {
-                    showError('Настройки Twitch отсутствуют. Обратитесь к администратору.');
+                    showError('Настройки Twitch отсутствуют. Проверь переменные окружения в Vercel.');
                     return;
                 }
             }
@@ -285,7 +288,7 @@ function showError(message) {
         }, 3000); // Скрываем через 3 секунды
         console.log('Показана ошибка:', message);
     } else {
-        console.error('Элемент "authError" не найден');
+        console.error('Элемент "authError" не найдена');
         alert(message); // Запасной вариант, если элемент ошибки не найден
     }
 }
@@ -293,10 +296,10 @@ function showError(message) {
 async function handleTwitchAuth() {
     // Проверяем, загружена ли конфигурация
     if (!TWITCH_CLIENT_ID || !TWITCH_REDIRECT_URI) {
-        const configLoaded = loadConfig();
+        const configLoaded = await loadConfig();
         if (!configLoaded) {
             console.error('Не удалось загрузить конфигурацию для обработки авторизации');
-            showError('Не удалось загрузить настройки Twitch');
+            showError('Не удалось загрузить настройки Twitch через API. Проверь настройки Vercel.');
             return;
         }
     }
@@ -449,8 +452,8 @@ function addRandomStars() {
 document.addEventListener('DOMContentLoaded', async () => {
     console.log('Страница загружена');
     
-    // Сначала всегда загружаем конфигурацию
-    const configLoaded = loadConfig();
+    // Сначала всегда загружаем конфигурацию через API
+    const configLoaded = await loadConfig();
     
     if (window.location.hash && configLoaded) {
         // Если есть хэш в URL, значит произошло перенаправление после авторизации
