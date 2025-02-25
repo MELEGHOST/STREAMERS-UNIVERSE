@@ -15,16 +15,15 @@ let socials = JSON.parse(localStorage.getItem('socials')) || [];
 let reviews = JSON.parse(localStorage.getItem('reviews')) || [];
 let schedule = JSON.parse(localStorage.getItem('schedule')) || [];
 
-// Использование секретов из Vercel с запасным планом для теста
-const TWITCH_CLIENT_ID = process.env.TWITCH_CLIENT_ID || 'YOUR_TWITCH_CLIENT_ID'; // Временная заглушка для теста
-const TWITCH_REDIRECT_URI = process.env.TWITCH_REDIRECT_URI || 'https://streamers-universe-mini-app.vercel.app'; // Временная заглушка для теста
+// Временные заглушки для секретов (замени на реальные или настрой через Vercel)
+const TWITCH_CLIENT_ID = 'YOUR_TWITCH_CLIENT_ID'; // Замени на реальный Client ID или настрой в Vercel
+const TWITCH_REDIRECT_URI = 'https://streamers-universe-mini-app.vercel.app'; // Замени на реальный URL или настрой в Vercel
 
 // Проверка наличия секретов перед инициализацией
 if (!TWITCH_CLIENT_ID || !TWITCH_REDIRECT_URI) {
-    console.error('Ошибка: отсутствуют TWITCH_CLIENT_ID или TWITCH_REDIRECT_URI в Vercel secrets. Используются временные заглушки.');
-    alert('Внимание: настройки Twitch не найдены в Vercel. Используются временные значения для теста. Регистрация может не работать.');
-    // Если секреты отсутствуют, можно временно использовать заглушки для теста, но это небезопасно
-} 
+    console.error('Ошибка: отсутствуют TWITCH_CLIENT_ID или TWITCH_REDIRECT_URI. Используются временные заглушки.');
+    alert('Внимание: настройки Twitch не найдены. Используются временные значения для теста. Регистрация может не работать.');
+}
 initializeApp(); // Полная инициализация
 
 function showFallbackUI() {
@@ -44,6 +43,7 @@ function initializeApp() {
     }
     ensureButtonsVisible(); // Убеждаемся, что кнопки видны
     setupEventListeners(); // Устанавливаем обработчики событий
+    addRandomStars(); // Добавляем случайные звёзды
 }
 
 function showFrame(frameId) {
@@ -354,6 +354,22 @@ function updateMovies() {
     } else {
         console.error('Элемент "movieList" не найден');
     }
+}
+
+// Создание случайных звёзд
+function addRandomStars() {
+    const body = document.body;
+    for (let i = 0; i < 50; i++) { // Увеличиваем количество звёзд для большего разнообразия
+        const star = document.createElement('div');
+        star.className = 'star';
+        star.style.width = `${Math.random() * 3 + 1}px`; // Размер от 1 до 4px
+        star.style.height = star.style.width;
+        star.style.top = `${Math.random() * 100}%`; // Случайное положение по высоте
+        star.style.left = `${Math.random() * 100}%`; // Случайное положение по ширине
+        star.style.animationDelay = `${Math.random() * 5}s`; // Случайная задержка анимации
+        body.appendChild(star);
+    }
+    console.log('Случайные звёзды добавлены');
 }
 
 // Инициализация
