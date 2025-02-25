@@ -16,8 +16,7 @@
   ],
   "functions": {
     "config.js": {
-      "runtime": "edge",
-      "handler": "generateConfig.js"
+      "runtime": "edge"
     }
   },
   "headers": [
