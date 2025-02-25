@@ -18,6 +18,35 @@ body {
     pointer-events: none; /* Не мешает кликам */
 }
 
+/* Стили для контейнера лого */
+.logo-container {
+    text-align: center;
+    margin-bottom: 20px;
+}
+
+/* Стили и анимация для лого */
+.logo {
+    max-width: 200px; /* Регулируй размер лого по необходимости */
+    height: auto;
+    animation: rotateAndFade 4s infinite ease-in-out; /* Анимация вращения и появления */
+}
+
+/* Анимация вращения и мерцания лого */
+@keyframes rotateAndFade {
+    0% {
+        transform: rotate(0deg);
+        opacity: 0.7;
+    }
+    50% {
+        transform: rotate(10deg);
+        opacity: 1;
+    }
+    100% {
+        transform: rotate(0deg);
+        opacity: 0.7;
+    }
+}
+
 .container {
     max-width: 600px;
     margin: 0 auto;
