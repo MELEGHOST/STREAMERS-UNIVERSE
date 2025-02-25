@@ -1,0 +1,21 @@
+{
+  "builds": [
+    {
+      "src": "index.html",
+      "use": "@vercel/static",
+      "config": {
+        "distDir": "."
+      }
+    }
+  ],
+  "routes": [
+    {
+      "src": "/(.*)",
+      "dest": "/index.html"
+    }
+  ],
+  "env": {
+    "TWITCH_CLIENT_ID": "@twitch-client-id",
+    "TWITCH_REDIRECT_URI": "@twitch-redirect-uri"
+  }
+}
