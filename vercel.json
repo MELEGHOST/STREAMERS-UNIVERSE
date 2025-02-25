@@ -26,6 +26,13 @@
     "TWITCH_CLIENT_ID": "@twitch-client-id",
     "TWITCH_REDIRECT_URI": "@twitch-redirect-uri"
   },
+  "redirects": [
+    {
+      "source": "/config",
+      "destination": "/config.js",
+      "permanent": false
+    }
+  ],
   "headers": [
     {
       "source": "/(.*)",
