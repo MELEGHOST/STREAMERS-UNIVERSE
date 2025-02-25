@@ -76,7 +76,7 @@ const TwitchAuth = () => {
       localStorage.setItem('twitch_auth_state', state);
       
       // Redirect to Twitch auth page
-      const clientId = process.env.REACT_APP_TWITCH_CLIENT_ID;
+      const clientId = process.env.TWITCH_CLIENT_ID;
       const redirectUri = encodeURIComponent(`${window.location.origin}/auth/callback`);
       const scope = encodeURIComponent('user:read:email channel:read:subscriptions');
       
