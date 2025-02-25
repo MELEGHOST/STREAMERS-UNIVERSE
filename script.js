@@ -15,27 +15,32 @@ let socials = JSON.parse(localStorage.getItem('socials')) || [];
 let reviews = JSON.parse(localStorage.getItem('reviews')) || [];
 let schedule = JSON.parse(localStorage.getItem('schedule')) || [];
 
-// Подгрузка секретов из скрытого <script> тега
-const secretsScript = document.getElementById('secrets');
+// Подгрузка секретов из config.js, сгенерированного Vercel
 let TWITCH_CLIENT_ID = '';
 let TWITCH_REDIRECT_URI = '';
 
-if (secretsScript) {
-    try {
-        const secrets = JSON.parse(secretsScript.textContent);
-        TWITCH_CLIENT_ID = secrets.twitchClientId || '';
-        TWITCH_REDIRECT_URI = secrets.twitchRedirectUri || '';
-    } catch (error) {
-        console.error('Ошибка парсинга секретов из <script>:', error);
+try {
+    // Проверяем, доступен ли config (Vercel должен создать его)
+    if (typeof window.config === 'object' && window.config) {
+        TWITCH_CLIENT_ID = window.config.TWITCH_CLIENT_ID || '';
+        TWITCH_REDIRECT_URI = window.config.TWITCH_REDIRECT_URI || '';
+    } else {
+        console.error('Конфигурация секретов не найдена. Проверь настройки Vercel.');
+        alert('Внимание: настройки Twitch не найдены. Авторизация через Twitch невозможна. Обратитесь к администратору для настройки секретов в Vercel.');
     }
+} catch (error) {
+    console.error('Ошибка загрузки конфигурации секретов:', error);
+    alert('Ошибка: не удалось загрузить настройки Twitch. Обратитесь к администратору.');
 }
 
 // Проверка наличия секретов перед инициализацией
 if (!TWITCH_CLIENT_ID || !TWITCH_REDIRECT_URI) {
-    console.error('Ошибка: отсутствуют TWITCH_CLIENT_ID или TWITCH_REDIRECT_URI в секретах. Авторизация через Twitch невозможна.');
-    alert('Внимание: настройки Twitch не найдены. Авторизация через Twitch невозможна. Обратитесь к администратору для настройки секретов в Vercel.');
+    console.error('Ошибка: отсутствуют TWITCH_CLIENT_ID или TWITCH_REDIRECT_URI в конфигурации. Авторизация через Twitch невозможна.');
+    alert('Внимание: настройки Twitch отсутствуют. Авторизация через Twitch невозможна. Обратитесь к администратору для настройки секретов в Vercel.');
+    showFallbackUI(); // Показываем базовый интерфейс без Twitch
+} else {
+    initializeApp(); // Полная инициализация
 }
-initializeApp(); // Полная инициализация
 
 function showFallbackUI() {
     console.log('Показ базового интерфейса без Twitch...');
