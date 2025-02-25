@@ -15,31 +15,36 @@ let socials = JSON.parse(localStorage.getItem('socials')) || [];
 let reviews = JSON.parse(localStorage.getItem('reviews')) || [];
 let schedule = JSON.parse(localStorage.getItem('schedule')) || [];
 
-// Подгрузка секретов из config.js, сгенерированного Vercel
+// Переменные для Twitch API
 let TWITCH_CLIENT_ID = '';
 let TWITCH_REDIRECT_URI = '';
+let selectedRole = null;
 
-try {
-    // Проверяем, доступен ли config (Vercel должен создать его)
-    if (typeof window.config === 'object' && window.config) {
-        TWITCH_CLIENT_ID = window.config.TWITCH_CLIENT_ID || '';
-        TWITCH_REDIRECT_URI = window.config.TWITCH_REDIRECT_URI || '';
-    } else {
-        console.error('Конфигурация секретов не найдена. Проверь настройки Vercel.');
-        alert('Внимание: настройки Twitch не найдены. Авторизация через Twitch невозможна. Обратитесь к администратору для настройки секретов в Vercel.');
+// Загрузка конфигурации с сервера
+async function loadConfig() {
+    try {
+        const response = await fetch('/api/config');
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        const config = await response.json();
+        
+        TWITCH_CLIENT_ID = config.TWITCH_CLIENT_ID || '';
+        TWITCH_REDIRECT_URI = config.TWITCH_REDIRECT_URI || '';
+        
+        if (!TWITCH_CLIENT_ID || !TWITCH_REDIRECT_URI) {
+            console.error('Конфигурация Twitch API отсутствует');
+            alert('Внимание: настройки Twitch не найдены. Авторизация через Twitch невозможна. Обратитесь к администратору.');
+            showFallbackUI();
+        } else {
+            console.log('Конфигурация Twitch API загружена успешно');
+            initializeApp();
+        }
+    } catch (error) {
+        console.error('Ошибка загрузки конфигурации:', error);
+        alert('Ошибка: не удалось загрузить настройки Twitch. Обратитесь к администратору.');
+        showFallbackUI();
     }
-} catch (error) {
-    console.error('Ошибка загрузки конфигурации секретов:', error);
-    alert('Ошибка: не удалось загрузить настройки Twitch. Обратитесь к администратору.');
-}
-
-// Проверка наличия секретов перед инициализацией
-if (!TWITCH_CLIENT_ID || !TWITCH_REDIRECT_URI) {
-    console.error('Ошибка: отсутствуют TWITCH_CLIENT_ID или TWITCH_REDIRECT_URI в конфигурации. Авторизация через Twitch невозможна.');
-    alert('Внимание: настройки Twitch отсутствуют. Авторизация через Twitch невозможна. Обратитесь к администратору для настройки секретов в Vercel.');
-    showFallbackUI(); // Показываем базовый интерфейс без Twitch
-} else {
-    initializeApp(); // Полная инициализация
 }
 
 function showFallbackUI() {
@@ -236,8 +241,6 @@ function setupEventListeners() {
     }
 }
 
-let selectedRole = null;
-
 function showProfile() {
     showFrame('profileFrame');
     const streamerSection = document.getElementById('streamerSection');
@@ -396,10 +399,17 @@ function addRandomStars() {
 document.addEventListener('DOMContentLoaded', () => {
     console.log('Страница загружена');
     if (window.location.hash) {
-        handleTwitchAuth();
+        // Если есть хэш в URL, значит произошло перенаправление после авторизации
+        // Сначала загружаем конфигурацию, потом обрабатываем авторизацию
+        loadConfig().then(() => {
+            handleTwitchAuth();
+        });
     } else {
-        initializeApp();
+        // Просто загружаем конфигурацию
+        loadConfig();
     }
     ensureButtonsVisible(); // Убеждаемся, что кнопки видны при загрузке
-    setupEventListeners(); // Устанавливаем обработчики событий
 });
+
+// Делаем функцию voteSchedule глобальной, чтобы она была доступна из HTML
+window.voteSchedule = voteSchedule;
