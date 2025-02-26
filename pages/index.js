@@ -14,8 +14,7 @@ const Home = () => {
 
   useEffect(() => {
     setIsMounted(true);
-    console.log('isAuthenticated:', isAuthenticated); // Сохраняем отладку в консоли для будущих проверок
-  }, [isAuthenticated]);
+  }, []);
 
   if (!isMounted) return null; // Предотвращаем рендеринг до загрузки клиента
 
