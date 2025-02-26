@@ -14,7 +14,8 @@ const Home = () => {
 
   useEffect(() => {
     setIsMounted(true);
-  }, []);
+    console.log('isAuthenticated:', isAuthenticated); // Отладка
+  }, [isAuthenticated]);
 
   if (!isMounted) return null; // Предотвращаем рендеринг до загрузки клиента
 
@@ -29,6 +30,7 @@ const Home = () => {
         <h2>Кто вы?</h2>
         <button id="streamerBtn" onClick={() => window.location.href = '/auth?role=streamer'}>Я стример</button>
         <button id="subscriberBtn" onClick={() => window.location.href = '/auth?role=subscriber'}>Я подписчик</button>
+        <p style={{ color: 'white' }}>Debug: isAuthenticated is {isAuthenticated ? 'true' : 'false or undefined'}</p>
       </div>
     </Layout>
   );
