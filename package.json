@@ -13,11 +13,11 @@
     "react": "19.0.0",
     "react-dom": "19.0.0",
     "@cloudflare/next-on-pages": "1.13.8",
+    "uuid": "11.1.0",
+    "glob": "11.0.1",
+    "@jridgewell/sourcemap-codec": "1.5.0",
     "@rollup/plugin-inject": "^5.0.5",
-    "@jridgewell/sourcemap-codec": "^1.4.15",
-    "lru-cache": "^10.2.2",
-    "glob": "^10.3.10",
-    "uuid": "^9.0.1"
+    "lru-cache": "^10.2.2"
   },
   "devDependencies": {
     "typescript": "^5.4.5"
