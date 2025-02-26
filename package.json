@@ -20,6 +20,8 @@
     "lru-cache": "^10.2.2"
   },
   "devDependencies": {
-    "typescript": "5.7.3"
+    "typescript": "5.7.3",
+    "@types/react": "^18.2.0",
+    "@types/node": "^20.5.0"
   }
 }
