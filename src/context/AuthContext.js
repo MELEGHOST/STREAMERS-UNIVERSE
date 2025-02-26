@@ -1,3 +1,4 @@
+// Контекст для управления авторизацией
 'use client';
 
 import React, { createContext, useState, useContext, useEffect } from 'react';
@@ -6,6 +7,7 @@ import { useRouter } from 'next/router';
 const AuthContext = createContext();
 
 export const AuthProvider = ({ children }) => {
+  // Состояния для хранения данных пользователя
   const [currentUser, setCurrentUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -13,12 +15,13 @@ export const AuthProvider = ({ children }) => {
   const router = useRouter();
 
   useEffect(() => {
-    // Only run on client
+    // Выполняется только на стороне клиента
     if (typeof window === 'undefined') return;
 
-    // Check auth status on mount
+    // Проверка статуса авторизации при загрузке
     const checkLoggedIn = async () => {
       try {
+        // Сначала проверяем localStorage
         const storedUser = localStorage.getItem('user');
         const storedToken = localStorage.getItem('token');
         
@@ -34,6 +37,7 @@ export const AuthProvider = ({ children }) => {
         }
 
         try {
+          // Проверка авторизации на сервере
           const response = await fetch('/api/auth/me', {
             headers: {
               Authorization: `Bearer ${storedToken || ''}`,
@@ -57,7 +61,7 @@ export const AuthProvider = ({ children }) => {
             localStorage.removeItem('token');
           }
         } catch (serverError) {
-          console.error('Server verification error:', serverError);
+          console.error('Ошибка проверки на сервере:', serverError);
           if (!storedUser || !storedToken) {
             setCurrentUser(null);
             setIsAuthenticated(false);
@@ -67,7 +71,7 @@ export const AuthProvider = ({ children }) => {
           }
         }
       } catch (error) {
-        console.error('Auth check error:', error);
+        console.error('Ошибка проверки авторизации:', error);
         setCurrentUser(null);
         setIsAuthenticated(false);
         setIsStreamer(false);
@@ -82,6 +86,7 @@ export const AuthProvider = ({ children }) => {
   }, []);
 
   const login = async (data) => {
+    // Выполняется только на стороне клиента
     if (typeof window === 'undefined') return;
     
     try {
@@ -95,6 +100,7 @@ export const AuthProvider = ({ children }) => {
       }
       
       if (data.code) {
+        // Обмен кода на токен через сервер
         const response = await fetch('/api/auth/twitch/callback', {
           method: 'POST',
           headers: {
@@ -119,6 +125,8 @@ export const AuthProvider = ({ children }) => {
           if (subscriptionsResponse.ok) {
             const subscriptionsData = await subscriptionsResponse.json();
             userData.subscriptions = subscriptionsData.data.map(sub => sub.broadcaster_name) || [];
+          } else {
+            userData.subscriptions = []; // Устанавливаем пустой массив при ошибке
           }
         }
 
@@ -129,15 +137,17 @@ export const AuthProvider = ({ children }) => {
         localStorage.setItem('user', JSON.stringify(userData));
       }
     } catch (error) {
-      console.error('Login error:', error);
+      console.error('Ошибка входа:', error);
       throw error;
     }
   };
 
   const logout = async () => {
+    // Выполняется только на стороне клиента
     if (typeof window === 'undefined') return;
     
     try {
+      // Вызов API для выхода
       await fetch('/api/auth/logout', {
         method: 'POST',
         headers: {
@@ -145,8 +155,9 @@ export const AuthProvider = ({ children }) => {
         },
       });
     } catch (error) {
-      console.error('Logout error:', error);
+      console.error('Ошибка выхода:', error);
     } finally {
+      // Очистка данных независимо от ответа сервера
       setCurrentUser(null);
       setIsAuthenticated(false);
       setIsStreamer(false);
