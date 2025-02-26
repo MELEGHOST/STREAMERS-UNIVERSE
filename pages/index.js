@@ -18,11 +18,10 @@ const HomeComponent = () => {
 
   if (!isMounted) return null; // Предотвращаем рендеринг до загрузки клиента
 
-  // Временно убираем перенаправление, чтобы увидеть кнопки
-  // if (isAuthenticated) {
-  //   router.push('/profile');
-  //   return null;
-  // }
+  if (isAuthenticated === true) { // Проверяем строгое значение true
+    router.push('/profile');
+    return null;
+  }
 
   return (
     <div className="frame role-selection">
