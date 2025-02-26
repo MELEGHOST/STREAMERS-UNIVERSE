@@ -1,27 +1,20 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import dynamic from 'next/dynamic';
+import React from 'react';
+import Layout from '../src/components/Layout';
 import TwitchAuth from '../src/components/TwitchAuth';
-import Stars from '../src/components/Stars';
 
+// Динамически импортируем компонент Auth для клиентского рендеринга
 const Auth = () => {
-  const [isMounted, setIsMounted] = useState(false);
-
-  useEffect(() => {
-    setIsMounted(true);
-  }, []);
-
-  if (!isMounted) return null; // Предотвращаем рендеринг до загрузки клиента
-
   return (
-    <div className="container">
-      <div className="logo-container">
-        <img src="/logo.png" alt="Streamers Universe Logo" className="logo" />
-      </div>
+    <Layout>
       <TwitchAuth />
-      <Stars />
-    </div>
+    </Layout>
   );
 };
 
-export default Auth;
+// Экспортируем динамически загружаемый компонент
+export default dynamic(() => Promise.resolve(Auth), {
+  ssr: false, // Отключаем серверный рендеринг (SSG/SSR)
+});
