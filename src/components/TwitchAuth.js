@@ -25,7 +25,15 @@ const TwitchAuth = () => {
     const role = urlParams.get('role');
     const switchProfile = urlParams.get('switch');
 
-    console.log('Callback params on /auth:', { code, state, storedState, role, switchProfile, pathname: window.location.pathname }); // Отладка
+    console.log('Callback params on /auth:', { 
+      code, 
+      state, 
+      storedState, 
+      role, 
+      switchProfile, 
+      pathname: window.location.pathname, 
+      fullURL: window.location.href 
+    }); // Отладка
 
     if (window.location.pathname === '/auth' && code && state && storedState && state === storedState) {
       handleTwitchCallback(code, role);
@@ -50,10 +58,17 @@ const TwitchAuth = () => {
         body: JSON.stringify({ code }),
       });
 
-      console.log('Twitch callback response:', response); // Отладка
+      console.log('Twitch callback response:', { 
+        status: response.status, 
+        statusText: response.statusText, 
+        ok: response.ok 
+      }); // Отладка
 
       // Проверяем, успешен ли ответ
-      if (!response.ok) throw new Error('Ошибка авторизации через Twitch');
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`Ошибка авторизации через Twitch: ${response.status} - ${errorText}`);
+      }
 
       const authData = await response.json();
       let userData = authData.user;
@@ -81,7 +96,10 @@ const TwitchAuth = () => {
           userData.subscriptions = subscriptionsData.data.map(sub => sub.broadcaster_name) || [];
         } else {
           userData.subscriptions = []; // Устанавливаем пустой массив, если ошибка
-          console.log('Subscriptions error:', subscriptionsResponse.status, subscriptionsResponse.statusText); // Отладка
+          console.log('Subscriptions error:', { 
+            status: subscriptionsResponse.status, 
+            statusText: subscriptionsResponse.statusText 
+          }); // Отладка
         }
       } else if (role === 'streamer') {
         // Проверяем количество подписчиков для стримера
