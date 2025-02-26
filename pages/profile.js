@@ -1,18 +1,20 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import dynamic from 'next/dynamic';
+import React from 'react';
+import Layout from '../src/components/Layout';
 import Profile from '../src/components/Profile';
 
+// Динамически импортируем компонент ProfilePage для клиентского рендеринга
 const ProfilePage = () => {
-  const [isMounted, setIsMounted] = useState(false);
-
-  useEffect(() => {
-    setIsMounted(true);
-  }, []);
-
-  if (!isMounted) return null; // Предотвращаем рендеринг до загрузки клиента
-
-  return <Profile />;
+  return (
+    <Layout>
+      <Profile />
+    </Layout>
+  );
 };
 
-export default ProfilePage;
+// Экспортируем динамически загружаемый компонент
+export default dynamic(() => Promise.resolve(ProfilePage), {
+  ssr: false, // Отключаем серверный рендеринг (SSG/SSR)
+});
