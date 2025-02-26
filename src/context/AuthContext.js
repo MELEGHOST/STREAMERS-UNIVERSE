@@ -12,6 +12,7 @@ export const AuthProvider = ({ children }) => {
   const [loading, setLoading] = useState(true);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isStreamer, setIsStreamer] = useState(false);
+  const [profiles, setProfiles] = useState([]); // Список всех авторизованных профилей
   const router = useRouter();
 
   useEffect(() => {
@@ -24,7 +25,10 @@ export const AuthProvider = ({ children }) => {
         // Сначала проверяем localStorage
         const storedUser = localStorage.getItem('user');
         const storedToken = localStorage.getItem('token');
+        const storedProfiles = JSON.parse(localStorage.getItem('profiles') || '[]');
         
+        setProfiles(storedProfiles);
+
         if (storedUser && storedToken) {
           const userData = JSON.parse(storedUser);
           setCurrentUser(userData);
@@ -52,6 +56,14 @@ export const AuthProvider = ({ children }) => {
             if (data.user) {
               localStorage.setItem('user', JSON.stringify(data.user));
               localStorage.setItem('token', storedToken || '');
+              // Обновляем список профилей, если их ещё нет
+              const newProfiles = [...new Set([...storedProfiles, { 
+                id: data.user.id, 
+                name: data.user.name, 
+                isStreamer: data.user.isStreamer 
+              }])];
+              setProfiles(newProfiles);
+              localStorage.setItem('profiles', JSON.stringify(newProfiles));
             }
           } else {
             setCurrentUser(null);
@@ -96,6 +108,14 @@ export const AuthProvider = ({ children }) => {
         setIsStreamer(data.user.isStreamer || false);
         localStorage.setItem('token', data.token || '');
         localStorage.setItem('user', JSON.stringify(data.user));
+        // Обновляем список профилей
+        const newProfiles = [...new Set([...profiles, { 
+          id: data.user.id, 
+          name: data.user.name, 
+          isStreamer: data.user.isStreamer 
+        }])];
+        setProfiles(newProfiles);
+        localStorage.setItem('profiles', JSON.stringify(newProfiles));
         console.log('Login successful, redirecting to /profile:', data.user); // Отладка
         router.push('/profile'); // Перенаправляем на профиль после успешного входа
         return;
@@ -164,6 +184,14 @@ export const AuthProvider = ({ children }) => {
         setIsStreamer(userData.isStreamer || false);
         localStorage.setItem('token', authData.token || '');
         localStorage.setItem('user', JSON.stringify(userData));
+        // Обновляем список профилей
+        const newProfiles = [...new Set([...profiles, { 
+          id: userData.id, 
+          name: userData.name, 
+          isStreamer: userData.isStreamer 
+        }])];
+        setProfiles(newProfiles);
+        localStorage.setItem('profiles', JSON.stringify(newProfiles));
         console.log('Login successful with user data, redirecting to /profile:', userData); // Отладка
         router.push('/profile'); // Перенаправляем на профиль после успешного входа
       }
@@ -193,8 +221,24 @@ export const AuthProvider = ({ children }) => {
       setIsAuthenticated(false);
       setIsStreamer(false);
       localStorage.clear(); // Полная очистка localStorage для сброса всех данных
-      console.log('Logged out, localStorage cleared, redirecting to /auth'); // Отладка
-      router.push('/auth');
+      console.log('Logged out, localStorage cleared, redirecting to /'); // Отладка
+      router.push('/'); // Перенаправляем на главную страницу
+    }
+  };
+
+  const switchProfile = (profileId) => {
+    // Функция для смены профиля на основе ID
+    const profile = profiles.find(p => p.id === profileId);
+    if (profile) {
+      setCurrentUser(profile);
+      setIsAuthenticated(true);
+      setIsStreamer(profile.isStreamer || false);
+      localStorage.setItem('user', JSON.stringify(profile));
+      // Здесь можно добавить запрос к серверу для проверки токена, если нужно
+      console.log('Switched to profile:', profile); // Отладка
+      router.push('/profile');
+    } else {
+      console.error('Profile not found:', profileId); // Отладка
     }
   };
 
@@ -202,9 +246,11 @@ export const AuthProvider = ({ children }) => {
     currentUser,
     isAuthenticated,
     isStreamer,
+    profiles,
     loading,
     login,
     logout,
+    switchProfile, // Добавляем функцию для смены профиля
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
