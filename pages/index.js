@@ -25,6 +25,9 @@ const HomeComponent = () => {
 
   return (
     <div className="frame role-selection">
+      <div className="logo-container">
+        <img src="/logo.png" alt="Streamers Universe Logo" className="logo" />
+      </div>
       <h2>Кто вы?</h2>
       <button id="streamerBtn" onClick={() => router.push('/auth?role=streamer')}>Я стример</button>
       <button id="subscriberBtn" onClick={() => router.push('/auth?role=subscriber')}>Я подписчик</button>
