@@ -21,10 +21,11 @@ jobs:
         run: |
           # Получаем текущую версию из package.json
           CURRENT_VERSION=$(node -p "require('./package.json').version")
-          MAJOR=$(echo $CURRENT_VERSION | cut -d'.' -f1)
-          MINOR=$(echo $CURRENT_VERSION | cut -d'.' -f2)
-          PATCH=$(echo $CURRENT_VERSION | cut -d'.' -f3)
           VERSION_PREFIX="PRE-ALFA"
+          VERSION_NUM=$(echo $CURRENT_VERSION | sed "s/$VERSION_PREFIX //")
+          MAJOR=$(echo $VERSION_NUM | cut -d'.' -f1)
+          MINOR=$(echo $VERSION_NUM | cut -d'.' -f2)
+          PATCH=$(echo $VERSION_NUM | cut -d'.' -f3)
           LAST_VERSION="$VERSION_PREFIX $MAJOR.$MINOR.$((PATCH - 1))"
           
           # Находим последний коммит, связанный с изменением версии
@@ -65,19 +66,20 @@ jobs:
         if: steps.commit-count.outputs.commit_count >= 5 && steps.deploy-status.outputs.deploy_status == 'success'
         run: |
           CURRENT_VERSION=$(node -p "require('./package.json').version")
-          MAJOR=$(echo $CURRENT_VERSION | cut -d'.' -f1)
-          MINOR=$(echo $CURRENT_VERSION | cut -d'.' -f2)
-          PATCH=$(echo $CURRENT_VERSION | cut -d'.' -f3)
-          NEW_PATCH=$((PATCH + 1))
-          NEW_VERSION="${MAJOR}.${MINOR}.${NEW_PATCH}"
           VERSION_PREFIX="PRE-ALFA"
+          VERSION_NUM=$(echo $CURRENT_VERSION | sed "s/$VERSION_PREFIX //")
+          MAJOR=$(echo $VERSION_NUM | cut -d'.' -f1)
+          MINOR=$(echo $VERSION_NUM | cut -d'.' -f2)
+          PATCH=$(echo $VERSION_NUM | cut -d'.' -f3)
+          NEW_PATCH=$((PATCH + 1))
+          NEW_VERSION="$VERSION_PREFIX $MAJOR.$MINOR.$NEW_PATCH"
           
-          echo "New version: $VERSION_PREFIX $NEW_VERSION"
-          sed -i "s/\"version\": \"$CURRENT_VERSION\"/\"version\": \"$VERSION_PREFIX $NEW_VERSION\"/g" package.json
+          echo "New version: $NEW_VERSION"
+          sed -i "s/\"version\": \"$CURRENT_VERSION\"/\"version\": \"$NEW_VERSION\"/g" package.json
           
           COMMIT_MESSAGE=$(git log -1 --pretty=%B)
           DATE=$(date +'%Y-%m-%d')
-          NEW_ENTRY="## Версия $VERSION_PREFIX $NEW_VERSION\n- Дата: $DATE\n- $COMMIT_MESSAGE\n"
+          NEW_ENTRY="## Версия $NEW_VERSION\n- Дата: $DATE\n- $COMMIT_MESSAGE\n"
           
           if [ -f DEVLOG.md ]; then
             echo -e "$NEW_ENTRY\n$(cat DEVLOG.md)" > DEVLOG.md
@@ -90,5 +92,5 @@ jobs:
           git config user.name "GitHub Actions"
           git config user.email "actions@github.com"
           git add package.json DEVLOG.md
-          git commit -m "Автоматическое обновление версии до $VERSION_PREFIX $NEW_VERSION и devlog"
+          git commit -m "Автоматическое обновление версии до $NEW_VERSION и devlog"
           git push
