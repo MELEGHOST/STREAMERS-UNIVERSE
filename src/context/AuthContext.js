@@ -192,9 +192,8 @@ export const AuthProvider = ({ children }) => {
       setCurrentUser(null);
       setIsAuthenticated(false);
       setIsStreamer(false);
-      localStorage.removeItem('user');
-      localStorage.removeItem('token');
-      localStorage.removeItem('twitch_auth_state'); // Удаляем состояние авторизации Twitch
+      localStorage.clear(); // Полная очистка localStorage для сброса всех данных
+      console.log('Logged out, localStorage cleared, redirecting to /auth'); // Отладка
       router.push('/auth');
     }
   };
