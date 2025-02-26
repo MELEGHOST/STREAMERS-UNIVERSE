@@ -9,10 +9,10 @@ const TwitchAuth = () => {
   const { login, isAuthenticated } = useAuth();
 
   useEffect(() => {
-    // Выполняем на клиенте
+    // Only run on client
     if (typeof window === 'undefined') return;
     
-    // Проверяем, обрабатываем ли мы callback от Twitch
+    // Check if we're handling a callback from Twitch
     const urlParams = new URLSearchParams(window.location.search);
     const code = urlParams.get('code');
     const state = urlParams.get('state');
@@ -21,46 +21,41 @@ const TwitchAuth = () => {
     if (code && state) {
       handleTwitchCallback(code, state, storedState);
     }
-  }, []);
-
-  useEffect(() => {
-    // Перенаправляем, если уже аутентифицированы
-    if (typeof window === 'undefined') return;
     
+    // Redirect if already authenticated
     if (isAuthenticated) {
       router.push('/profile');
     }
   }, [isAuthenticated, router]);
 
   const handleTwitchCallback = async (code, state, storedState) => {
-    // Валидируем state для предотвращения CSRF-атак
+    // Validate state to prevent CSRF attacks
     if (state !== storedState) {
-      setError('Ошибка аутентификации: неверный параметр state');
+      setError('Authentication error: invalid state parameter');
       return;
     }
 
     setLoading(true);
     try {
-      // Для демонстрации мы просто симулируем успешную авторизацию
-      // В реальном приложении здесь был бы запрос к API
+      // For demo purposes, we're simulating successful authentication
       await login({
         user: {
           id: '123456789',
-          name: 'ТестовыйСтример',
+          name: 'TestStreamer',
           followers: 300,
           isStreamer: true
         },
         token: 'demo_token_' + Math.random().toString(36).substring(2, 15)
       });
 
-      // Очищаем состояние из localStorage
+      // Clear state from localStorage
       localStorage.removeItem('twitch_auth_state');
       
-      // Перенаправляем на страницу профиля
+      // Redirect to profile page
       router.push('/profile');
     } catch (err) {
-      console.error('Ошибка аутентификации:', err);
-      setError(err.message || 'Не удалось аутентифицироваться через Twitch');
+      console.error('Authentication error:', err);
+      setError(err.message || 'Failed to authenticate with Twitch');
     } finally {
       setLoading(false);
     }
@@ -72,19 +67,19 @@ const TwitchAuth = () => {
     setLoading(true);
     
     try {
-      // Генерируем случайный state для защиты от CSRF
+      // Generate random state for CSRF protection
       const state = Math.random().toString(36).substring(2, 15);
       localStorage.setItem('twitch_auth_state', state);
       
-      // Для демонстрации мы имитируем успешную авторизацию сразу
-      // В реальном приложении здесь был бы редирект на Twitch
+      // For demo, simulate successful auth immediately
+      // In a real app, this would redirect to Twitch
       
-      // Симулируем задержку и автоматический вход
+      // Simulate delay and auto-login
       setTimeout(() => {
         login({
           user: {
             id: '123456789',
-            name: 'ТестовыйСтример',
+            name: 'TestStreamer',
             followers: 300,
             isStreamer: true
           },
@@ -94,24 +89,24 @@ const TwitchAuth = () => {
         setLoading(false);
       }, 1500);
     } catch (err) {
-      setError('Не удалось инициировать процесс входа');
+      setError('Failed to initiate login process');
       setLoading(false);
     }
   };
 
   return (
     <div className="twitch-auth-container">
-      <h2>Войти через Twitch</h2>
+      <h2>Login with Twitch</h2>
       {error && <div className="error-message">{error}</div>}
       <button 
         className="twitch-auth-button"
         onClick={initiateLogin}
         disabled={loading}
       >
-        {loading ? 'Загрузка...' : 'Войти через Twitch'}
+        {loading ? 'Loading...' : 'Login with Twitch'}
       </button>
       <p className="auth-note">
-        Для регистрации как стример необходимо иметь минимум 265 подписчиков
+        To register as a streamer, you need at least 265 followers
       </p>
     </div>
   );
