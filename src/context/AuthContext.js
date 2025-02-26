@@ -1,3 +1,5 @@
+'use client';
+
 import React, { createContext, useState, useContext, useEffect } from 'react';
 import { useRouter } from 'next/router';
 
@@ -129,4 +131,22 @@ export const AuthProvider = ({ children }) => {
       setIsStreamer(false);
       localStorage.removeItem('user');
       localStorage.removeItem('token');
+      router.push('/auth');
     }
+  };
+
+  const value = {
+    currentUser,
+    isAuthenticated,
+    isStreamer,
+    loading,
+    login,
+    logout,
+  };
+
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+};
+
+export const useAuth = () => {
+  return useContext(AuthContext);
+};
