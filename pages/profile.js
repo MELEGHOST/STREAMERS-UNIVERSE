@@ -8,6 +8,7 @@ import Profile from '../src/components/Profile';
 
 // Динамически импортируем компонент ProfilePage для клиентского рендеринга
 const ProfilePage = () => {
+  console.log('Rendering ProfilePage'); // Отладка
   // Возвращаем layout с компонентом профиля
   return (
     <Layout>
