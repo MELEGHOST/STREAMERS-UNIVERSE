@@ -1,11 +1,13 @@
 'use client';
 
+import dynamic from 'next/dynamic';
 import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/router';
 import { useAuth } from '../src/context/AuthContext';
 import Stars from '../src/components/Stars';
 
-const Home = () => {
+// Динамически импортируем компонент Home для клиентского рендеринга
+const HomeComponent = () => {
   const router = useRouter();
   const { isAuthenticated } = useAuth();
   const [isMounted, setIsMounted] = useState(false);
@@ -31,4 +33,7 @@ const Home = () => {
   );
 };
 
-export default Home;
+// Экспортируем динамически загружаемый компонент
+export default dynamic(() => Promise.resolve(HomeComponent), {
+  ssr: false, // Отключаем серверный рендеринг (SSG/SSR)
+});
