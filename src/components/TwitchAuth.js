@@ -1,12 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { useAuth } from './AuthContext';
+import { useRouter } from 'next/router';
+import { useAuth } from '../context/AuthContext';
 
 const TwitchAuth = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
-  const navigate = useNavigate();
-  const { login, isAuthenticated } = useAuth();
+  const router = useRouter();
+  const { login } = useAuth();
 
   useEffect(() => {
     // Check if we're handling a callback from Twitch
@@ -22,10 +22,10 @@ const TwitchAuth = () => {
 
   useEffect(() => {
     // Redirect if already authenticated
-    if (isAuthenticated) {
-      navigate('/');
+    if (localStorage.getItem('user')) {
+      router.push('/');
     }
-  }, [isAuthenticated, navigate]);
+  }, [router]);
 
   const handleTwitchCallback = async (code, state, storedState) => {
     // Validate state to prevent CSRF attacks
@@ -58,7 +58,7 @@ const TwitchAuth = () => {
       localStorage.removeItem('twitch_auth_state');
       
       // Redirect to home page
-      navigate('/');
+      router.push('/');
     } catch (err) {
       console.error('Authentication error:', err);
       setError(err.message || 'Failed to authenticate with Twitch');
@@ -77,7 +77,7 @@ const TwitchAuth = () => {
       
       // Redirect to Twitch auth page
       const clientId = process.env.TWITCH_CLIENT_ID;
-      const redirectUri = encodeURIComponent(`${window.location.origin}/auth/callback`);
+      const redirectUri = encodeURIComponent(`${window.location.origin}/auth`);
       const scope = encodeURIComponent('user:read:email channel:read:subscriptions');
       
       const authUrl = `https://id.twitch.tv/oauth2/authorize?client_id=${clientId}&redirect_uri=${redirectUri}&response_type=code&scope=${scope}&state=${state}`;
