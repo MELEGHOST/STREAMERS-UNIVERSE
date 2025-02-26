@@ -1,7 +1,6 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
-  swcMinify: true,
   output: "standalone",
   env: {
     TWITCH_CLIENT_ID: process.env.TWITCH_CLIENT_ID,
@@ -11,6 +10,14 @@ const nextConfig = {
   images: {
     domains: ["id.twitch.tv", "api.twitch.tv"],
     unoptimized: true
+  },
+  webpack: (config) => {
+    config.resolve.fallback = { ...config.resolve.fallback, fs: false, net: false, tls: false };
+    return config;
+  },
+  experimental: {
+    turbo: true,
+    optimizePackageImports: ["react", "react-dom"]
   }
 };
 
