@@ -73,16 +73,14 @@ const TwitchAuth = () => {
       const authData = await response.json();
       let userData = authData.user;
 
-      // Обработка роли "подписчик": запрашиваем только никнейм и подписки
+      // Обработка роли "подписчик": запрашиваем только никнейм из ввода или реальный никнейм из Twitch
       if (role === 'subscriber') {
-        if (!nickname) {
-          throw new Error('Пожалуйста, введите ваш никнейм Twitch');
-        }
         userData = {
-          id: authData.user.id,
-          name: nickname, // Используем введённый никнейм
+          id: userData.id,
+          name: nickname || userData.name, // Используем введённый никнейм или реальный из Twitch
           isStreamer: false,
           followers: 0,
+          subscriptions: [], // Инициализируем пустой массив подписок
         };
         // Получаем данные о подписках через Twitch API
         const subscriptionsResponse = await fetch(`https://api.twitch.tv/helix/subscriptions/user?broadcaster_id=${userData.id}`, {
@@ -102,11 +100,11 @@ const TwitchAuth = () => {
           }); // Отладка
         }
       } else if (role === 'streamer') {
-        // Проверяем количество подписчиков для стримера
+        // Используем реальный никнейм и данные из Twitch
+        userData.isStreamer = true;
         if (userData.followers < 265) {
           throw new Error('Недостаточно подписчиков для регистрации как стример (требуется минимум 265)');
         }
-        userData.isStreamer = true;
       }
 
       console.log('User data after auth:', userData); // Отладка
