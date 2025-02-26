@@ -19,11 +19,9 @@ export const AuthProvider = ({ children }) => {
     // Check auth status on mount
     const checkLoggedIn = async () => {
       try {
-        // First check localStorage
         const storedUser = localStorage.getItem('user');
         const storedToken = localStorage.getItem('token');
         
-        // Устанавливаем значения по умолчанию, если localStorage пуст
         if (storedUser && storedToken) {
           const userData = JSON.parse(storedUser);
           setCurrentUser(userData);
@@ -31,11 +29,10 @@ export const AuthProvider = ({ children }) => {
           setIsStreamer(userData.isStreamer || false);
         } else {
           setCurrentUser(null);
-          setIsAuthenticated(false); // Явно устанавливаем false
+          setIsAuthenticated(false);
           setIsStreamer(false);
         }
 
-        // Verify with server using /api/auth/me
         try {
           const response = await fetch('/api/auth/me', {
             headers: {
@@ -46,26 +43,24 @@ export const AuthProvider = ({ children }) => {
           if (response.ok) {
             const data = await response.json();
             setCurrentUser(data.user || null);
-            setIsAuthenticated(data.isAuthenticated === true); // Явно проверяем true
+            setIsAuthenticated(data.isAuthenticated || false);
             setIsStreamer(data.isStreamer || false);
             if (data.user) {
               localStorage.setItem('user', JSON.stringify(data.user));
               localStorage.setItem('token', storedToken || '');
             }
           } else {
-            // Если сервер не отвечает или возвращает ошибку, используем значения по умолчанию
             setCurrentUser(null);
-            setIsAuthenticated(false); // Явно устанавливаем false
+            setIsAuthenticated(false);
             setIsStreamer(false);
             localStorage.removeItem('user');
             localStorage.removeItem('token');
           }
         } catch (serverError) {
           console.error('Server verification error:', serverError);
-          // Если сервер недоступен, используем значения из localStorage или по умолчанию
           if (!storedUser || !storedToken) {
             setCurrentUser(null);
-            setIsAuthenticated(false); // Явно устанавливаем false
+            setIsAuthenticated(false);
             setIsStreamer(false);
             localStorage.removeItem('user');
             localStorage.removeItem('token');
@@ -74,7 +69,7 @@ export const AuthProvider = ({ children }) => {
       } catch (error) {
         console.error('Auth check error:', error);
         setCurrentUser(null);
-        setIsAuthenticated(false); // Явно устанавливаем false
+        setIsAuthenticated(false);
         setIsStreamer(false);
         localStorage.removeItem('user');
         localStorage.removeItem('token');
@@ -90,19 +85,15 @@ export const AuthProvider = ({ children }) => {
     if (typeof window === 'undefined') return;
     
     try {
-      // If we're given user data directly
       if (data.user) {
         setCurrentUser(data.user);
         setIsAuthenticated(true);
         setIsStreamer(data.user.isStreamer || false);
-        
-        // Save auth data
         localStorage.setItem('token', data.token || '');
         localStorage.setItem('user', JSON.stringify(data.user));
         return;
       }
       
-      // If we're given a code, exchange it for a token
       if (data.code) {
         const response = await fetch('/api/auth/twitch/callback', {
           method: 'POST',
@@ -112,15 +103,12 @@ export const AuthProvider = ({ children }) => {
           body: JSON.stringify({ code: data.code }),
         });
         
-        if (!response.ok) {
-          throw new Error('Failed to authenticate with Twitch');
-        }
+        if (!response.ok) throw new Error('Не удалось авторизоваться через Twitch');
         
         const authData = await response.json();
         setCurrentUser(authData.user);
         setIsAuthenticated(true);
         setIsStreamer(authData.user.isStreamer || false);
-        
         localStorage.setItem('token', authData.token || '');
         localStorage.setItem('user', JSON.stringify(authData.user));
       }
@@ -134,7 +122,6 @@ export const AuthProvider = ({ children }) => {
     if (typeof window === 'undefined') return;
     
     try {
-      // Call logout API
       await fetch('/api/auth/logout', {
         method: 'POST',
         headers: {
@@ -144,9 +131,8 @@ export const AuthProvider = ({ children }) => {
     } catch (error) {
       console.error('Logout error:', error);
     } finally {
-      // Clear local data regardless of server response
       setCurrentUser(null);
-      setIsAuthenticated(false); // Явно устанавливаем false
+      setIsAuthenticated(false);
       setIsStreamer(false);
       localStorage.removeItem('user');
       localStorage.removeItem('token');
