@@ -11,7 +11,7 @@ const TwitchAuth = () => {
   const [error, setError] = useState(null);
   const [nickname, setNickname] = useState('');
   const router = useRouter();
-  const { login } = useAuth();
+  const { login, profiles, switchProfile } = useAuth();
 
   useEffect(() => {
     // Выполняется только на стороне клиента
@@ -23,14 +23,14 @@ const TwitchAuth = () => {
     const state = urlParams.get('state');
     const storedState = localStorage.getItem('twitch_auth_state');
     const role = urlParams.get('role');
-    const switchProfile = urlParams.get('switch');
+    const switchProfileParam = urlParams.get('switch');
 
     console.log('Callback params on /auth:', { 
       code, 
       state, 
       storedState, 
       role, 
-      switchProfile, 
+      switchProfile: switchProfileParam, 
       pathname: window.location.pathname, 
       fullURL: window.location.href, 
       localStorageState: localStorage.getItem('twitch_auth_state') 
@@ -38,18 +38,21 @@ const TwitchAuth = () => {
 
     if (window.location.pathname === '/auth' && code && state && storedState && state === storedState) {
       handleTwitchCallback(code, role);
-    } else if (!code && switchProfile === 'true' && !localStorage.getItem('user')) {
-      console.log('Switch profile detected, showing role selection'); // Отладка
+    } else if (!code && switchProfileParam === 'true' && profiles.length > 0) {
+      console.log('Switch profile detected with existing profiles:', profiles); // Отладка
+      setLoading(false); // Убедимся, что загрузка завершена
+    } else if (!code && (!switchProfileParam || switchProfileParam === 'true') && profiles.length === 0) {
+      console.log('No profiles, showing role selection'); // Отладка
       setLoading(false); // Убедимся, что загрузка завершена
     }
 
     // Обрабатываем смену профиля или выбор роли
-    if (switchProfile === 'true' || !localStorage.getItem('user')) {
+    if (switchProfileParam === 'true' || !localStorage.getItem('user')) {
       if (role === 'subscriber') {
         setNickname('');
       }
     }
-  }, []);
+  }, [profiles]); // Добавили profiles как зависимость для обновления при смене профиля
 
   const handleTwitchCallback = async (code, role) => {
     // Начинаем загрузку
@@ -166,11 +169,33 @@ const TwitchAuth = () => {
   };
 
   const role = new URLSearchParams(window.location.search).get('role') || new URLSearchParams(window.location.search).get('switch');
+  const switchProfileParam = new URLSearchParams(window.location.search).get('switch');
 
   return (
     <div className="twitch-auth-container">
       <h2>Войти через Twitch</h2>
       {error && <div className="error-message">{error}</div>}
+      {(!role || switchProfileParam === 'true') && profiles.length === 0 && (
+        <div className="role-selection">
+          <h3>Выберите роль</h3>
+          <button onClick={() => router.push('/auth?role=streamer')}>Я стример</button>
+          <button onClick={() => router.push('/auth?role=subscriber')}>Я подписчик</button>
+        </div>
+      )}
+      {switchProfileParam === 'true' && profiles.length > 0 && (
+        <div className="profile-selection">
+          <h3>Выберите профиль</h3>
+          {profiles.map((profile) => (
+            <button 
+              key={profile.id} 
+              onClick={() => switchProfile(profile.id)}
+              className="profile-switch-btn"
+            >
+              {profile.isStreamer ? `Стример: ${profile.name}` : `Подписчик: ${profile.name}`}
+            </button>
+          ))}
+        </div>
+      )}
       {role === 'subscriber' && !localStorage.getItem('user') && (
         <input
           type="text"
@@ -181,13 +206,15 @@ const TwitchAuth = () => {
           disabled={loading}
         />
       )}
-      <button 
-        className="twitch-auth-button"
-        onClick={initiateLogin}
-        disabled={loading || (role === 'subscriber' && !nickname)}
-      >
-        {loading ? 'Загрузка...' : 'Войти через Twitch'}
-      </button>
+      {(role === 'streamer' || role === 'subscriber') && !localStorage.getItem('user') && (
+        <button 
+          className="twitch-auth-button"
+          onClick={initiateLogin}
+          disabled={loading || (role === 'subscriber' && !nickname)}
+        >
+          {loading ? 'Загрузка...' : 'Войти через Twitch'}
+        </button>
+      )}
       {role === 'streamer' && <p className="auth-note">Для регистрации как стример необходимо иметь минимум 265 подписчиков</p>}
     </div>
   );
