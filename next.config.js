@@ -16,7 +16,7 @@ const nextConfig = {
     return config;
   },
   experimental: {
-    turbo: true,
+    turbo: {}, // Заменяем true/false на объект
     optimizePackageImports: ["react", "react-dom"]
   }
 };
