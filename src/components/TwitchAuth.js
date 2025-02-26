@@ -32,11 +32,15 @@ const TwitchAuth = () => {
       role, 
       switchProfile, 
       pathname: window.location.pathname, 
-      fullURL: window.location.href 
+      fullURL: window.location.href, 
+      localStorageState: localStorage.getItem('twitch_auth_state') 
     }); // Отладка
 
     if (window.location.pathname === '/auth' && code && state && storedState && state === storedState) {
       handleTwitchCallback(code, role);
+    } else if (!code && switchProfile === 'true' && !localStorage.getItem('user')) {
+      console.log('Switch profile detected, showing role selection'); // Отладка
+      setLoading(false); // Убедимся, что загрузка завершена
     }
 
     // Обрабатываем смену профиля или выбор роли
@@ -73,8 +77,11 @@ const TwitchAuth = () => {
       const authData = await response.json();
       let userData = authData.user;
 
-      // Обработка роли "подписчик": запрашиваем только никнейм из ввода или реальный никнейм из Twitch
+      // Обработка роли "подписчик": запрашиваем только никнейм и подписки
       if (role === 'subscriber') {
+        if (!nickname) {
+          throw new Error('Пожалуйста, введите ваш никнейм Twitch');
+        }
         userData = {
           id: userData.id,
           name: nickname || userData.name, // Используем введённый никнейм или реальный из Twitch
@@ -100,11 +107,11 @@ const TwitchAuth = () => {
           }); // Отладка
         }
       } else if (role === 'streamer') {
-        // Используем реальный никнейм и данные из Twitch
-        userData.isStreamer = true;
+        // Проверяем количество подписчиков для стримера
         if (userData.followers < 265) {
           throw new Error('Недостаточно подписчиков для регистрации как стример (требуется минимум 265)');
         }
+        userData.isStreamer = true;
       }
 
       console.log('User data after auth:', userData); // Отладка
