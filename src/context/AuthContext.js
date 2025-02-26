@@ -11,37 +11,44 @@ export const AuthProvider = ({ children }) => {
   const router = useRouter();
 
   useEffect(() => {
-    // Check if user is already logged in on mount
+    // Выполняем эффект только на клиенте
+    if (typeof window === 'undefined') return;
+
+    // Проверяем статус авторизации при монтировании
     const checkLoggedIn = async () => {
       try {
-        // First try to get from localStorage as fallback
+        // Сначала проверяем localStorage
         const storedUser = localStorage.getItem('user');
+        const storedToken = localStorage.getItem('token');
         
-        if (storedUser) {
+        if (storedUser && storedToken) {
           const userData = JSON.parse(storedUser);
           setCurrentUser(userData);
           setIsAuthenticated(true);
           setIsStreamer(userData.isStreamer || false);
         }
 
-        // Verify with server using /api/auth/me
+        // Проверяем с сервером
         const response = await fetch('/api/auth/me', {
           headers: {
-            Authorization: `Bearer ${localStorage.getItem('token') || ''}`,
+            Authorization: `Bearer ${storedToken || ''}`,
           },
         });
         
         const data = await response.json();
-        if (response.ok) {
-          setCurrentUser(data.user || null);
-          setIsAuthenticated(data.isAuthenticated || false);
+        if (response.ok && data.user) {
+          setCurrentUser(data.user);
+          setIsAuthenticated(true);
           setIsStreamer(data.isStreamer || false);
-          if (data.user) {
-            localStorage.setItem('user', JSON.stringify(data.user));
-            localStorage.setItem('token', localStorage.getItem('token') || ''); // Сохраняем токен, если есть
+          localStorage.setItem('user', JSON.stringify(data.user));
+          // Сохраняем текущий токен если нет нового
+          if (!data.token && storedToken) {
+            localStorage.setItem('token', storedToken);
+          } else if (data.token) {
+            localStorage.setItem('token', data.token);
           }
         } else {
-          // If server check fails or user is not authenticated, clear local data
+          // Если проверка не прошла, очищаем данные
           setCurrentUser(null);
           setIsAuthenticated(false);
           setIsStreamer(false);
@@ -64,17 +71,54 @@ export const AuthProvider = ({ children }) => {
   }, []);
 
   const login = async (data) => {
-    setCurrentUser(data.user);
-    setIsAuthenticated(true);
-    setIsStreamer(data.user.isStreamer || false);
+    if (typeof window === 'undefined') return;
     
-    // Store auth data
-    localStorage.setItem('token', data.token);
-    localStorage.setItem('user', JSON.stringify(data.user));
-    router.push('/');
+    // Если нам переданы данные пользователя, используем их
+    if (data.user) {
+      setCurrentUser(data.user);
+      setIsAuthenticated(true);
+      setIsStreamer(data.user.isStreamer || false);
+      
+      // Сохраняем данные авторизации
+      localStorage.setItem('token', data.token || '');
+      localStorage.setItem('user', JSON.stringify(data.user));
+      router.push('/profile');
+      return;
+    }
+    
+    // Если нам передан только код, обмениваем его на токен
+    if (data.code) {
+      try {
+        const response = await fetch('/api/auth/twitch/callback', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ code: data.code }),
+        });
+        
+        if (!response.ok) {
+          throw new Error('Failed to authenticate with Twitch');
+        }
+        
+        const authData = await response.json();
+        setCurrentUser(authData.user);
+        setIsAuthenticated(true);
+        setIsStreamer(authData.user.isStreamer || false);
+        
+        localStorage.setItem('token', authData.token || '');
+        localStorage.setItem('user', JSON.stringify(authData.user));
+        router.push('/profile');
+      } catch (error) {
+        console.error('Login error:', error);
+        throw error;
+      }
+    }
   };
 
   const logout = async () => {
+    if (typeof window === 'undefined') return;
+    
     try {
       const response = await fetch('/api/auth/logout', {
         method: 'POST',
@@ -90,22 +134,22 @@ export const AuthProvider = ({ children }) => {
     } catch (error) {
       console.error('Logout error:', error);
     } finally {
-      // Clear local data regardless of server response
+      // Очищаем локальные данные независимо от ответа сервера
       setCurrentUser(null);
       setIsAuthenticated(false);
       setIsStreamer(false);
       localStorage.removeItem('user');
       localStorage.removeItem('token');
-      router.push('/auth');
+      router.push('/');
     }
   };
 
-  // Function to check if user has the required follower count to be a streamer
+  // Функция для проверки права стать стримером
   const checkStreamerEligibility = async () => {
+    if (typeof window === 'undefined' || !currentUser) return false;
+    
     try {
-      if (!currentUser) return false;
-      
-      // Здесь можно добавить логику проверки подписчиков через Twitch API, если нужно
+      // Проверяем количество подписчиков
       return currentUser.followers >= 265;
     } catch (error) {
       console.error('Eligibility check error:', error);
@@ -113,11 +157,11 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  // Function to become a streamer if eligible
+  // Функция для становления стримером
   const becomeStreamer = async () => {
+    if (typeof window === 'undefined' || !currentUser) return false;
+    
     try {
-      if (!currentUser) return false;
-      
       const isEligible = await checkStreamerEligibility();
       if (isEligible) {
         const updatedUser = { ...currentUser, isStreamer: true };
@@ -144,7 +188,7 @@ export const AuthProvider = ({ children }) => {
     becomeStreamer
   };
 
-  return <AuthContext.Provider value={{ ...value, loading }}>{children}</AuthContext.Provider>;
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };
 
 export const useAuth = () => {
