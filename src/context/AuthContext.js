@@ -96,6 +96,7 @@ export const AuthProvider = ({ children }) => {
         setIsStreamer(data.user.isStreamer || false);
         localStorage.setItem('token', data.token || '');
         localStorage.setItem('user', JSON.stringify(data.user));
+        console.log('Login successful, redirecting to /profile:', data.user); // Отладка
         router.push('/profile'); // Перенаправляем на профиль после успешного входа
         return;
       }
@@ -110,9 +111,16 @@ export const AuthProvider = ({ children }) => {
           body: JSON.stringify({ code: data.code }),
         });
         
-        console.log('Twitch callback response in AuthContext:', response); // Отладка
+        console.log('Twitch callback response in AuthContext:', { 
+          status: response.status, 
+          statusText: response.statusText, 
+          ok: response.ok 
+        }); // Отладка
 
-        if (!response.ok) throw new Error('Не удалось авторизоваться через Twitch');
+        if (!response.ok) {
+          const errorText = await response.text();
+          throw new Error(`Не удалось авторизоваться через Twitch: ${response.status} - ${errorText}`);
+        }
         
         const authData = await response.json();
         let userData = authData.user;
@@ -130,7 +138,10 @@ export const AuthProvider = ({ children }) => {
             userData.subscriptions = subscriptionsData.data.map(sub => sub.broadcaster_name) || [];
           } else {
             userData.subscriptions = []; // Устанавливаем пустой массив при ошибке
-            console.log('Subscriptions error in AuthContext:', subscriptionsResponse.status, subscriptionsResponse.statusText); // Отладка
+            console.log('Subscriptions error in AuthContext:', { 
+              status: subscriptionsResponse.status, 
+              statusText: subscriptionsResponse.statusText 
+            }); // Отладка
           }
         }
 
@@ -139,6 +150,7 @@ export const AuthProvider = ({ children }) => {
         setIsStreamer(userData.isStreamer || false);
         localStorage.setItem('token', authData.token || '');
         localStorage.setItem('user', JSON.stringify(userData));
+        console.log('Login successful with user data, redirecting to /profile:', userData); // Отладка
         router.push('/profile'); // Перенаправляем на профиль после успешного входа
       }
     } catch (error) {
