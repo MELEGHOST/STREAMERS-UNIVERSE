@@ -15,6 +15,9 @@ const Auth = () => {
 
   return (
     <div className="container">
+      <div className="logo-container">
+        <img src="/logo.png" alt="Streamers Universe Logo" className="logo" />
+      </div>
       <TwitchAuth />
       <Stars />
     </div>
