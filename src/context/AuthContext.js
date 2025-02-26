@@ -31,7 +31,7 @@ export const AuthProvider = ({ children }) => {
           setIsStreamer(userData.isStreamer || false);
         } else {
           setCurrentUser(null);
-          setIsAuthenticated(false);
+          setIsAuthenticated(false); // Явно устанавливаем false
           setIsStreamer(false);
         }
 
@@ -46,16 +46,16 @@ export const AuthProvider = ({ children }) => {
           if (response.ok) {
             const data = await response.json();
             setCurrentUser(data.user || null);
-            setIsAuthenticated(data.isAuthenticated || false);
+            setIsAuthenticated(data.isAuthenticated === true); // Явно проверяем true
             setIsStreamer(data.isStreamer || false);
             if (data.user) {
               localStorage.setItem('user', JSON.stringify(data.user));
-              localStorage.setItem('token', localStorage.getItem('token') || '');
+              localStorage.setItem('token', storedToken || '');
             }
           } else {
             // Если сервер не отвечает или возвращает ошибку, используем значения по умолчанию
             setCurrentUser(null);
-            setIsAuthenticated(false);
+            setIsAuthenticated(false); // Явно устанавливаем false
             setIsStreamer(false);
             localStorage.removeItem('user');
             localStorage.removeItem('token');
@@ -65,7 +65,7 @@ export const AuthProvider = ({ children }) => {
           // Если сервер недоступен, используем значения из localStorage или по умолчанию
           if (!storedUser || !storedToken) {
             setCurrentUser(null);
-            setIsAuthenticated(false);
+            setIsAuthenticated(false); // Явно устанавливаем false
             setIsStreamer(false);
             localStorage.removeItem('user');
             localStorage.removeItem('token');
@@ -74,7 +74,7 @@ export const AuthProvider = ({ children }) => {
       } catch (error) {
         console.error('Auth check error:', error);
         setCurrentUser(null);
-        setIsAuthenticated(false);
+        setIsAuthenticated(false); // Явно устанавливаем false
         setIsStreamer(false);
         localStorage.removeItem('user');
         localStorage.removeItem('token');
@@ -146,7 +146,7 @@ export const AuthProvider = ({ children }) => {
     } finally {
       // Clear local data regardless of server response
       setCurrentUser(null);
-      setIsAuthenticated(false);
+      setIsAuthenticated(false); // Явно устанавливаем false
       setIsStreamer(false);
       localStorage.removeItem('user');
       localStorage.removeItem('token');
