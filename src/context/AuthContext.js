@@ -14,24 +14,20 @@ export const AuthProvider = ({ children }) => {
     // Check if user is already logged in on mount
     const checkLoggedIn = async () => {
       try {
-        // First try to get from localStorage
+        // First try to get from localStorage as fallback
         const storedUser = localStorage.getItem('user');
         
         if (storedUser) {
           const userData = JSON.parse(storedUser);
           setCurrentUser(userData);
-          setIsAuthenticated(true); // Убедимся, что устанавливаем isAuthenticated в true
-          setIsStreamer(userData.isStreamer);
-        } else {
-          setIsAuthenticated(false); // Устанавливаем false, если пользователя нет
-          setCurrentUser(null);
-          setIsStreamer(false);
+          setIsAuthenticated(true);
+          setIsStreamer(userData.isStreamer || false);
         }
-        
-        // Verify with server (можно убрать, если работаем только с localStorage и Twitch)
+
+        // Verify with server using /api/auth/me
         const response = await fetch('/api/auth/me', {
           headers: {
-            Authorization: `Bearer ${localStorage.getItem('token')}`,
+            Authorization: `Bearer ${localStorage.getItem('token') || ''}`,
           },
         });
         
@@ -39,7 +35,7 @@ export const AuthProvider = ({ children }) => {
           const userData = await response.json();
           setCurrentUser(userData);
           setIsAuthenticated(true);
-          setIsStreamer(userData.isStreamer);
+          setIsStreamer(userData.isStreamer || false);
           localStorage.setItem('user', JSON.stringify(userData));
         } else {
           // If server check fails, clear local data
@@ -51,9 +47,11 @@ export const AuthProvider = ({ children }) => {
         }
       } catch (error) {
         console.error('Auth check error:', error);
-        setIsAuthenticated(false); // Устанавливаем false в случае ошибки
+        setIsAuthenticated(false);
         setCurrentUser(null);
         setIsStreamer(false);
+        localStorage.removeItem('user');
+        localStorage.removeItem('token');
       } finally {
         setLoading(false);
       }
@@ -65,7 +63,7 @@ export const AuthProvider = ({ children }) => {
   const login = async (data) => {
     setCurrentUser(data.user);
     setIsAuthenticated(true);
-    setIsStreamer(data.user.isStreamer);
+    setIsStreamer(data.user.isStreamer || false);
     
     // Store auth data
     localStorage.setItem('token', data.token);
@@ -78,7 +76,7 @@ export const AuthProvider = ({ children }) => {
       await fetch('/api/auth/logout', {
         method: 'POST',
         headers: {
-          Authorization: `Bearer ${localStorage.getItem('token')}`,
+          Authorization: `Bearer ${localStorage.getItem('token') || ''}`,
         },
       });
     } catch (error) {
@@ -97,17 +95,10 @@ export const AuthProvider = ({ children }) => {
   // Function to check if user has the required follower count to be a streamer
   const checkStreamerEligibility = async () => {
     try {
-      const response = await fetch('/api/auth/check-streamer-eligibility', {
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem('token')}`,
-        },
-      });
+      if (!currentUser) return false;
       
-      if (response.ok) {
-        const data = await response.json();
-        return data.eligible;
-      }
-      return false;
+      // Здесь можно добавить логику проверки подписчиков через Twitch API, если нужно
+      return currentUser.followers >= 265;
     } catch (error) {
       console.error('Eligibility check error:', error);
       return false;
@@ -117,19 +108,14 @@ export const AuthProvider = ({ children }) => {
   // Function to become a streamer if eligible
   const becomeStreamer = async () => {
     try {
-      const response = await fetch('/api/auth/become-streamer', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${localStorage.getItem('token')}`,
-        },
-      });
+      if (!currentUser) return false;
       
-      if (response.ok) {
-        const userData = await response.json();
-        setCurrentUser(userData);
+      const isEligible = await checkStreamerEligibility();
+      if (isEligible) {
+        const updatedUser = { ...currentUser, isStreamer: true };
+        setCurrentUser(updatedUser);
         setIsStreamer(true);
-        localStorage.setItem('user', JSON.stringify(userData));
+        localStorage.setItem('user', JSON.stringify(updatedUser));
         return true;
       }
       return false;
