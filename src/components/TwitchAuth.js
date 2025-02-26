@@ -25,6 +25,8 @@ const TwitchAuth = () => {
     const role = urlParams.get('role');
     const switchProfile = urlParams.get('switch');
 
+    console.log('Callback params:', { code, state, storedState, role, switchProfile }); // Отладка
+
     if (code && state && storedState && state === storedState) {
       handleTwitchCallback(code, role);
     }
@@ -47,6 +49,8 @@ const TwitchAuth = () => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ code }),
       });
+
+      console.log('Twitch callback response:', response); // Отладка
 
       // Проверяем, успешен ли ответ
       if (!response.ok) throw new Error('Ошибка авторизации через Twitch');
@@ -77,6 +81,7 @@ const TwitchAuth = () => {
           userData.subscriptions = subscriptionsData.data.map(sub => sub.broadcaster_name) || [];
         } else {
           userData.subscriptions = []; // Устанавливаем пустой массив, если ошибка
+          console.log('Subscriptions error:', subscriptionsResponse.status, subscriptionsResponse.statusText); // Отладка
         }
       } else if (role === 'streamer') {
         // Проверяем количество подписчиков для стримера
@@ -86,12 +91,15 @@ const TwitchAuth = () => {
         userData.isStreamer = true;
       }
 
+      console.log('User data after auth:', userData); // Отладка
+
       // Выполняем вход и перенаправляем на профиль
       await login({ user: userData, token: authData.token });
       localStorage.removeItem('twitch_auth_state');
       router.push('/profile'); // Перенаправляем на профиль после авторизации
     } catch (err) {
       setError(err.message);
+      console.error('Auth error:', err); // Отладка
     } finally {
       setLoading(false);
     }
@@ -110,6 +118,8 @@ const TwitchAuth = () => {
       const role = new URLSearchParams(window.location.search).get('role');
       const scope = encodeURIComponent('user:read:email channel:read:subscriptions');
 
+      console.log('Initiating login with:', { role, clientId, redirectUri }); // Отладка
+
       if (role === 'subscriber') {
         if (!nickname) {
           setError('Пожалуйста, введите ваш никнейм Twitch');
@@ -122,6 +132,7 @@ const TwitchAuth = () => {
       }
     } catch (err) {
       setError('Не удалось начать процесс авторизации');
+      console.error('Login initiation error:', err); // Отладка
       setLoading(false);
     }
   };
