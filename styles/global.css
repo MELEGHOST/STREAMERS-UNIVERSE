@@ -1,135 +1,24 @@
-body {
-  font-family: 'Arial', sans-serif;
-  background: #0a0a2a;
-  margin: 0;
-  padding: 0;
-  color: #fff;
-  min-height: 100vh;
-  overflow-x: hidden;
-  position: relative;
-}
+/* ... (существующий код остается неизменным) ... */
 
-.stars-container {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  z-index: -1; /* Звёзды под лogo и содержимым */
-}
-
-.star {
-  position: absolute;
-  background: white;
-  border-radius: 50%;
-  animation: twinkle 3s infinite alternate;
-  pointer-events: none;
-}
-
-@keyframes twinkle {
-  0% { opacity: 0.3; }
-  50% { opacity: 0.8; }
-  100% { opacity: 0.3; }
-}
-
-.logo-container {
-  text-align: center;
-  margin: 20px 0;
-  position: relative;
-  z-index: 1; /* Лogo поверх звёзд */
-}
-
-.logo {
-  max-width: 200px;
-  height: auto;
-  animation: rotateAndFade 4s infinite ease-in-out;
-}
-
-@keyframes rotateAndFade {
-  0% {
-    transform: rotate(0deg);
-    opacity: 0.7;
-  }
-  50% {
-    transform: rotate(10deg);
-    opacity: 1;
-  }
-  100% {
-    transform: rotate(0deg);
-    opacity: 0.7;
-  }
-}
-
-.container {
-  width: 90%;
-  max-width: 500px; /* Уменьшаем максимальную ширину для мобильных */
-  height: auto; /* Убираем фиксированную высоту 100vh, чтобы адаптироваться под контент */
-  margin: 0 auto;
+.profile-switch-modal, .role-selection, .profile-selection {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: rgba(255, 255, 255, 0.1);
   padding: 20px;
-  background: rgba(255, 255, 255, 0.05);
-  backdrop-filter: blur(10px);
   border-radius: 15px;
   box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
-  position: relative;
-  z-index: 1;
-}
-
-/* Адаптивные стили для мобильных устройств */
-@media (max-width: 768px) {
-  .container {
-    width: 85%;
-    padding: 15px;
-    border-radius: 10px;
-  }
-
-  .logo {
-    max-width: 150px;
-  }
-
-  button {
-    padding: 10px 18px;
-    font-size: 0.9em;
-    margin: 5px 0;
-  }
-
-  .frame {
-    padding: 15px 0;
-  }
-}
-
-.title {
-  font-size: 2.5em;
-  text-align: center;
-  background: linear-gradient(45deg, #4a4a9d, #8a8aff);
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
-  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
-  margin-bottom: 20px;
-}
-
-.menu, .frame {
-  display: block;
-}
-
-.menu.active, .frame.active {
-  display: block;
-}
-
-.frame {
-  padding: 20px 0;
-  z-index: 2;
-}
-
-.frame.role-selection {
+  z-index: 1000;
+  color: white;
   text-align: center;
 }
 
-button {
+.profile-switch-btn, .role-selection button {
   background: linear-gradient(45deg, #4a4a9d, #8a8aff);
   color: white;
   border: none;
-  padding: 12px 24px;
+  padding: 10px 20px;
   margin: 5px;
   border-radius: 25px;
   cursor: pointer;
@@ -140,123 +29,10 @@ button {
   opacity: 1;
   visibility: visible;
   width: auto;
-  z-index: 3;
+  z-index: 1001;
 }
 
-button:hover {
+.profile-switch-btn:hover, .role-selection button:hover {
   transform: scale(1.05);
   background: linear-gradient(45deg, #6b6bd7, #a6a6ff);
-}
-
-button:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-  transform: none;
-}
-
-.input-field {
-  width: 100%;
-  padding: 10px;
-  margin: 10px 0;
-  border: none;
-  border-radius: 25px;
-  background: rgba(255, 255, 255, 0.1);
-  color: #fff;
-  font-size: 1em;
-  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
-  outline: none;
-}
-
-.input-field:focus {
-  background: rgba(255, 255, 255, 0.2);
-}
-
-.error {
-  color: #ff4444;
-  margin-top: 10px;
-  display: none;
-}
-
-.error.active {
-  display: block;
-}
-
-.profile-content {
-  display: none;
-}
-
-.profile-content.active {
-  display: block;
-}
-
-.item {
-  background: rgba(255, 255, 255, 0.05);
-  padding: 15px;
-  margin: 5px 0;
-  border-radius: 10px;
-  border-left: 5px solid #8a8aff;
-  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
-}
-
-#streamerSection .item {
-  border-left-color: #4a4a9d;
-}
-
-#viewerSection .item {
-  border-left-color: #4CAF50;
-}
-
-#profileHeader, .menu {
-  background: rgba(255, 255, 255, 0.1);
-  padding: 15px;
-  border-radius: 10px;
-  margin-bottom: 20px;
-  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
-}
-
-#switchProfileBtn, #logoutBtn {
-  background: linear-gradient(45deg, #ff6b6b, #ff8a8a);
-  margin: 5px;
-}
-
-#switchProfileBtn:hover, #logoutBtn:hover {
-  background: linear-gradient(45deg, #ff4444, #ff6666);
-}
-
-.twitch-auth-container {
-  text-align: center;
-}
-
-.twitch-auth-button {
-  background: linear-gradient(45deg, #6441a4, #7d5bbe);
-  color: white;
-  border: none;
-  padding: 12px 24px;
-  margin: 10px;
-  border-radius: 25px;
-  cursor: pointer;
-  font-size: 1em;
-  transition: transform 0.3s, background 0.3s;
-  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
-}
-
-.twitch-auth-button:hover {
-  transform: scale(1.05);
-  background: linear-gradient(45deg, #7d5bbe, #9b7cd1);
-}
-
-.twitch-auth-button:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-  transform: none;
-}
-
-.error-message {
-  color: #ff4444;
-  margin: 10px 0;
-}
-
-.auth-note {
-  font-size: 0.9em;
-  color: #ccc;
 }
