@@ -1,3 +1,4 @@
+// Компонент для авторизации через Twitch
 'use client';
 
 import React, { useState, useEffect } from 'react';
@@ -5,6 +6,7 @@ import { useRouter } from 'next/router';
 import { useAuth } from '../context/AuthContext';
 
 const TwitchAuth = () => {
+  // Состояния для управления загрузкой, ошибками и никнеймом
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [nickname, setNickname] = useState('');
@@ -12,10 +14,10 @@ const TwitchAuth = () => {
   const { login } = useAuth();
 
   useEffect(() => {
-    // Only run on client
+    // Выполняется только на стороне клиента
     if (typeof window === 'undefined') return;
     
-    // Check if we're handling a callback from Twitch
+    // Проверяем, обрабатываем ли мы callback от Twitch
     const urlParams = new URLSearchParams(window.location.search);
     const code = urlParams.get('code');
     const state = urlParams.get('state');
@@ -27,7 +29,7 @@ const TwitchAuth = () => {
       handleTwitchCallback(code, role);
     }
 
-    // Handle switch profile or initial role selection
+    // Обрабатываем смену профиля или выбор роли
     if (switchProfile === 'true' || !localStorage.getItem('user')) {
       if (role === 'subscriber') {
         setNickname('');
@@ -36,26 +38,32 @@ const TwitchAuth = () => {
   }, []);
 
   const handleTwitchCallback = async (code, role) => {
+    // Начинаем загрузку
     setLoading(true);
     try {
+      // Запрос к серверному маршруту для обмена кода на токен
       const response = await fetch('/api/auth/twitch/callback', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ code }),
       });
 
+      // Проверяем, успешен ли ответ
       if (!response.ok) throw new Error('Ошибка авторизации через Twitch');
 
       const authData = await response.json();
       let userData = authData.user;
 
-      // Если роль "подписчик", запросим только никнейм и данные подписок
+      // Обработка роли "подписчик": запрашиваем только никнейм и подписки
       if (role === 'subscriber') {
+        if (!nickname) {
+          throw new Error('Пожалуйста, введите ваш никнейм Twitch');
+        }
         userData = {
           id: authData.user.id,
-          name: nickname || authData.user.name, // Используем введённый никнейм или имя из Twitch
+          name: nickname, // Используем введённый никнейм
           isStreamer: false,
-          followers: 0, // Для подписчика не нужно количество подписчиков
+          followers: 0,
         };
         // Получаем данные о подписках через Twitch API
         const subscriptionsResponse = await fetch(`https://api.twitch.tv/helix/subscriptions/user?broadcaster_id=${userData.id}`, {
@@ -67,6 +75,8 @@ const TwitchAuth = () => {
         if (subscriptionsResponse.ok) {
           const subscriptionsData = await subscriptionsResponse.json();
           userData.subscriptions = subscriptionsData.data.map(sub => sub.broadcaster_name) || [];
+        } else {
+          userData.subscriptions = []; // Устанавливаем пустой массив, если ошибка
         }
       } else if (role === 'streamer') {
         // Проверяем количество подписчиков для стримера
@@ -76,9 +86,10 @@ const TwitchAuth = () => {
         userData.isStreamer = true;
       }
 
+      // Выполняем вход и перенаправляем на профиль
       await login({ user: userData, token: authData.token });
       localStorage.removeItem('twitch_auth_state');
-      router.push('/profile');
+      router.push('/profile'); // Перенаправляем на профиль после авторизации
     } catch (err) {
       setError(err.message);
     } finally {
@@ -100,7 +111,6 @@ const TwitchAuth = () => {
       const scope = encodeURIComponent('user:read:email channel:read:subscriptions');
 
       if (role === 'subscriber') {
-        // Для подписчика запрашиваем никнейм
         if (!nickname) {
           setError('Пожалуйста, введите ваш никнейм Twitch');
           setLoading(false);
