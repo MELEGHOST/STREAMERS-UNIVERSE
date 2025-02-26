@@ -1,3 +1,4 @@
+// Лейаут для основной структуры страницы
 'use client';
 
 import React from 'react';
@@ -7,7 +8,7 @@ const Layout = ({ children }) => {
   return (
     <div className="container">
       <div className="logo-container">
-        <img src="/logo.png" alt="Streamers Universe Logo" className="logo" />
+        <img src="/logo.png" alt="Лого Streamers Universe" className="logo" />
       </div>
       {children}
       <Stars />
