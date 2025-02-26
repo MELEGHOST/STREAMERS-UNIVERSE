@@ -20,8 +20,12 @@ export const AuthProvider = ({ children }) => {
         if (storedUser) {
           const userData = JSON.parse(storedUser);
           setCurrentUser(userData);
-          setIsAuthenticated(true);
+          setIsAuthenticated(true); // Убедимся, что устанавливаем isAuthenticated в true
           setIsStreamer(userData.isStreamer);
+        } else {
+          setIsAuthenticated(false); // Устанавливаем false, если пользователя нет
+          setCurrentUser(null);
+          setIsStreamer(false);
         }
         
         // Verify with server (можно убрать, если работаем только с localStorage и Twitch)
@@ -47,6 +51,9 @@ export const AuthProvider = ({ children }) => {
         }
       } catch (error) {
         console.error('Auth check error:', error);
+        setIsAuthenticated(false); // Устанавливаем false в случае ошибки
+        setCurrentUser(null);
+        setIsStreamer(false);
       } finally {
         setLoading(false);
       }
@@ -143,7 +150,7 @@ export const AuthProvider = ({ children }) => {
     becomeStreamer
   };
 
-  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+  return <AuthContext.Provider value={{ ...value, loading }}>{children}</AuthContext.Provider>;
 };
 
 export const useAuth = () => {
