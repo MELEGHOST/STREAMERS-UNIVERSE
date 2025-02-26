@@ -1,21 +1,22 @@
 // Профиль пользователя
 'use client';
 
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useRouter } from 'next/router';
 import Layout from './Layout';
 
 const Profile = () => {
-  // Получаем данные пользователя и функции авторизации
-  const { currentUser, isStreamer, logout } = useAuth();
+  // Получаем данные пользователя, профили и функции авторизации
+  const { currentUser, isStreamer, profiles, logout, switchProfile } = useAuth();
   const router = useRouter();
+  const [showProfileSwitch, setShowProfileSwitch] = useState(false); // Состояние для показа выбора профилей
 
   useEffect(() => {
     // Если пользователь не авторизован, перенаправляем на страницу авторизации
     if (typeof window !== 'undefined' && !currentUser) {
-      router.push('/auth');
-      console.log('Redirecting to /auth due to no currentUser'); // Отладка
+      router.push('/');
+      console.log('Redirecting to / due to no currentUser'); // Отладка
     }
   }, [currentUser, router]);
 
@@ -25,13 +26,17 @@ const Profile = () => {
     </Layout>
   );
 
-  // Функция для смены профиля
-  const handleSwitchProfile = async () => {
-    console.log('Switching profile...'); // Отладка
-    await logout(); // Сбрасываем текущую авторизацию
-    localStorage.clear(); // Полная очистка localStorage для сброса всех данных
-    console.log('localStorage cleared, redirecting to /auth'); // Отладка
-    router.push('/auth?switch=true'); // Перенаправляем на страницу авторизации с параметром для выбора роли
+  // Функция для открытия модального окна выбора профиля
+  const handleSwitchProfile = () => {
+    console.log('Opening profile switch menu, profiles:', profiles); // Отладка
+    setShowProfileSwitch(true);
+  };
+
+  // Функция для выбора профиля
+  const handleSelectProfile = (profileId) => {
+    switchProfile(profileId);
+    setShowProfileSwitch(false);
+    console.log('Selected profile with ID:', profileId); // Отладка
   };
 
   return (
@@ -82,6 +87,21 @@ const Profile = () => {
                 <p>Вы не подписаны на стримеров</p>
               )}
             </div>
+          </div>
+        )}
+        {showProfileSwitch && (
+          <div className="profile-switch-modal">
+            <h3>Выберите профиль</h3>
+            {profiles.map((profile) => (
+              <button 
+                key={profile.id} 
+                onClick={() => handleSelectProfile(profile.id)}
+                className="profile-switch-btn"
+              >
+                {profile.isStreamer ? `Стример: ${profile.name}` : `Подписчик: ${profile.name}`}
+              </button>
+            ))}
+            <button onClick={() => setShowProfileSwitch(false)}>Отмена</button>
           </div>
         )}
       </div>
