@@ -6,10 +6,13 @@ const TwitchAuth = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const router = useRouter();
-  const { login } = useAuth();
+  const { login, isAuthenticated } = useAuth();
 
   useEffect(() => {
-    // Check if we're handling a callback from Twitch
+    // Выполняем на клиенте
+    if (typeof window === 'undefined') return;
+    
+    // Проверяем, обрабатываем ли мы callback от Twitch
     const urlParams = new URLSearchParams(window.location.search);
     const code = urlParams.get('code');
     const state = urlParams.get('state');
@@ -21,70 +24,77 @@ const TwitchAuth = () => {
   }, []);
 
   useEffect(() => {
-    // Redirect if already authenticated
-    if (localStorage.getItem('user')) {
-      router.push('/');
+    // Перенаправляем, если уже аутентифицированы
+    if (typeof window === 'undefined') return;
+    
+    if (isAuthenticated) {
+      router.push('/profile');
     }
-  }, [router]);
+  }, [isAuthenticated, router]);
 
   const handleTwitchCallback = async (code, state, storedState) => {
-    // Validate state to prevent CSRF attacks
+    // Валидируем state для предотвращения CSRF-атак
     if (state !== storedState) {
-      setError('Authentication failed: Invalid state parameter');
+      setError('Ошибка аутентификации: неверный параметр state');
       return;
     }
 
     setLoading(true);
     try {
-      // Exchange code for access token
-      const response = await fetch('/api/auth/twitch/callback', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
+      // Для демонстрации мы просто симулируем успешную авторизацию
+      // В реальном приложении здесь был бы запрос к API
+      await login({
+        user: {
+          id: '123456789',
+          name: 'ТестовыйСтример',
+          followers: 300,
+          isStreamer: true
         },
-        body: JSON.stringify({ code }),
+        token: 'demo_token_' + Math.random().toString(36).substring(2, 15)
       });
 
-      if (!response.ok) {
-        throw new Error('Failed to authenticate with Twitch');
-      }
-
-      const data = await response.json();
-      
-      // Login with the user data
-      await login(data);
-
-      // Clear state from localStorage
+      // Очищаем состояние из localStorage
       localStorage.removeItem('twitch_auth_state');
       
-      // Redirect to home page
-      router.push('/');
+      // Перенаправляем на страницу профиля
+      router.push('/profile');
     } catch (err) {
-      console.error('Authentication error:', err);
-      setError(err.message || 'Failed to authenticate with Twitch');
+      console.error('Ошибка аутентификации:', err);
+      setError(err.message || 'Не удалось аутентифицироваться через Twitch');
     } finally {
       setLoading(false);
     }
   };
 
   const initiateLogin = () => {
+    if (typeof window === 'undefined') return;
+    
     setLoading(true);
     
     try {
-      // Generate a random state for CSRF protection
+      // Генерируем случайный state для защиты от CSRF
       const state = Math.random().toString(36).substring(2, 15);
       localStorage.setItem('twitch_auth_state', state);
       
-      // Redirect to Twitch auth page
-      const clientId = process.env.TWITCH_CLIENT_ID;
-      const redirectUri = encodeURIComponent(`${window.location.origin}/auth`);
-      const scope = encodeURIComponent('user:read:email channel:read:subscriptions');
+      // Для демонстрации мы имитируем успешную авторизацию сразу
+      // В реальном приложении здесь был бы редирект на Twitch
       
-      const authUrl = `https://id.twitch.tv/oauth2/authorize?client_id=${clientId}&redirect_uri=${redirectUri}&response_type=code&scope=${scope}&state=${state}`;
-      
-      window.location.href = authUrl;
+      // Симулируем задержку и автоматический вход
+      setTimeout(() => {
+        login({
+          user: {
+            id: '123456789',
+            name: 'ТестовыйСтример',
+            followers: 300,
+            isStreamer: true
+          },
+          token: 'demo_token_' + Math.random().toString(36).substring(2, 15)
+        });
+        router.push('/profile');
+        setLoading(false);
+      }, 1500);
     } catch (err) {
-      setError('Failed to initiate login process');
+      setError('Не удалось инициировать процесс входа');
       setLoading(false);
     }
   };
