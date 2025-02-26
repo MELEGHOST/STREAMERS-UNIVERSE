@@ -1,24 +1,32 @@
-import React, { useEffect } from 'react';
+import React from 'react';
 
 const Stars = () => {
-  useEffect(() => {
-    const addRandomStars = () => {
-      const body = document.body;
-      for (let i = 0; i < 50; i++) {
-        const star = document.createElement('div');
-        star.className = 'star';
-        star.style.width = `${Math.random() * 3 + 1}px`;
-        star.style.height = star.style.width;
-        star.style.top = `${Math.random() * 100}%`;
-        star.style.left = `${Math.random() * 100}%`;
-        star.style.animationDelay = `${Math.random() * 5}s`;
-        body.appendChild(star);
-      }
-    };
-    addRandomStars();
-  }, []);
+  // Создаём массив случайных звёзд
+  const stars = Array.from({ length: 50 }, (_, index) => ({
+    key: index,
+    size: Math.random() * 3 + 1,
+    top: Math.random() * 100,
+    left: Math.random() * 100,
+    delay: Math.random() * 5,
+  }));
 
-  return null; // Компонент ничего не рендерит, только добавляет звёзды через JS
+  return (
+    <div>
+      {stars.map((star) => (
+        <div
+          key={star.key}
+          className="star"
+          style={{
+            width: `${star.size}px`,
+            height: `${star.size}px`,
+            top: `${star.top}%`,
+            left: `${star.left}%`,
+            animationDelay: `${star.delay}s`,
+          }}
+        />
+      ))}
+    </div>
+  );
 };
 
 export default Stars;
