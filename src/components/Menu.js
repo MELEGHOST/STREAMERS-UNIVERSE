@@ -6,16 +6,17 @@ const Menu = () => {
   const { logout } = useAuth();
   const router = useRouter();
 
-  const handleLogout = () => {
-    logout();
+  const handleLogout = async () => {
+    await logout();
+    router.push('/');
   };
 
   return (
     <nav className="menu active">
-      <button onClick={() => router.push('/profile')}>Мой профиль</button>
-      <button onClick={() => router.push('/twitch')}>Twitch Трекер</button>
-      <button onClick={() => router.push('/top')}>Топ Стримеров</button>
-      <button onClick={handleLogout}>Выйти</button>
+      <button onClick={() => router.push('/profile')}>My Profile</button>
+      <button onClick={() => router.push('/twitch')}>Twitch Tracker</button>
+      <button onClick={() => router.push('/top')}>Top Streamers</button>
+      <button onClick={handleLogout}>Logout</button>
     </nav>
   );
 };
