@@ -56,7 +56,8 @@ const nextConfig = {
   // Оптимизация под серверные функции Cloudflare Pages и новые возможности Next.js 15
   experimental: {
     serverComponentsExternalPackages: ['@cloudflare/next-on-pages'], // Исключаем адаптер из серверных компонентов
-    turbo: true, // Включаем Turbopack для ускорения сборки (доступно в Next.js 15)
+    turbo: true, // Включаем Turbopack для ускорения сборки
+    optimizePackageImports: ['react', 'react-dom'], // Оптимизация импорта React для производительности
   },
 };
 
