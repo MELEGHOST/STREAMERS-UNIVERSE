@@ -127,6 +127,14 @@ export const AuthProvider = ({ children }) => {
 
         if (!userData.isStreamer) {
           // Для подписчика получаем данные о подписках
+          userData = {
+            id: userData.id,
+            name: userData.name, // Используем реальный никнейм из Twitch
+            isStreamer: false,
+            followers: 0,
+            subscriptions: [], // Инициализируем пустой массив подписок
+          };
+          // Получаем данные о подписках через Twitch API
           const subscriptionsResponse = await fetch(`https://api.twitch.tv/helix/subscriptions/user?broadcaster_id=${userData.id}`, {
             headers: {
               'Client-ID': process.env.TWITCH_CLIENT_ID,
@@ -143,6 +151,12 @@ export const AuthProvider = ({ children }) => {
               statusText: subscriptionsResponse.statusText 
             }); // Отладка
           }
+        } else {
+          // Для стримера используем реальные данные из Twitch
+          if (userData.followers < 265) {
+            throw new Error('Недостаточно подписчиков для регистрации как стример (требуется минимум 265)');
+          }
+          userData.isStreamer = true;
         }
 
         setCurrentUser(userData);
@@ -180,6 +194,7 @@ export const AuthProvider = ({ children }) => {
       setIsStreamer(false);
       localStorage.removeItem('user');
       localStorage.removeItem('token');
+      localStorage.removeItem('twitch_auth_state'); // Удаляем состояние авторизации Twitch
       router.push('/auth');
     }
   };
