@@ -1,5 +1,5 @@
 import React from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate } from 'next/router';
 import { useAuth } from '../context/AuthContext';
 
 const Menu = () => {
