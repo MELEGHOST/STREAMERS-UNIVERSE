@@ -1,10 +1,10 @@
 import React from 'react';
 import { useAuth } from '../context/AuthContext';
-import { useNavigate } from 'react-router-dom';
+import { useRouter } from 'next/router';
 
 const Profile = () => {
   const { currentUser, isStreamer, logout } = useAuth();
-  const navigate = useNavigate();
+  const router = useRouter();
 
   if (!currentUser) return <div>Пожалуйста, авторизуйтесь</div>;
 
@@ -13,7 +13,7 @@ const Profile = () => {
       <div id="profileHeader">
         <h2 id="profileTitle">{isStreamer ? `Профиль стримера: ${currentUser.name}` : `Профиль подписчика: ${currentUser.name}`}</h2>
         <p id="profileInfo">{isStreamer ? `У вас ${currentUser.followers} подписчиков.` : 'Вы можете поддержать стримеров.'}</p>
-        <button id="switchProfileBtn" onClick={() => navigate('/auth')}>Сменить профиль</button>
+        <button id="switchProfileBtn" onClick={() => router.push('/auth')}>Сменить профиль</button>
       </div>
       {isStreamer ? (
         <div id="streamerSection" className="profile-content">
