@@ -106,11 +106,27 @@ export const AuthProvider = ({ children }) => {
         if (!response.ok) throw new Error('Не удалось авторизоваться через Twitch');
         
         const authData = await response.json();
-        setCurrentUser(authData.user);
+        let userData = authData.user;
+
+        if (!userData.isStreamer) {
+          // Для подписчика получаем данные о подписках
+          const subscriptionsResponse = await fetch(`https://api.twitch.tv/helix/subscriptions/user?broadcaster_id=${userData.id}`, {
+            headers: {
+              'Client-ID': process.env.TWITCH_CLIENT_ID,
+              'Authorization': `Bearer ${authData.token}`,
+            },
+          });
+          if (subscriptionsResponse.ok) {
+            const subscriptionsData = await subscriptionsResponse.json();
+            userData.subscriptions = subscriptionsData.data.map(sub => sub.broadcaster_name) || [];
+          }
+        }
+
+        setCurrentUser(userData);
         setIsAuthenticated(true);
-        setIsStreamer(authData.user.isStreamer || false);
+        setIsStreamer(userData.isStreamer || false);
         localStorage.setItem('token', authData.token || '');
-        localStorage.setItem('user', JSON.stringify(authData.user));
+        localStorage.setItem('user', JSON.stringify(userData));
       }
     } catch (error) {
       console.error('Login error:', error);
