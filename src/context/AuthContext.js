@@ -31,14 +31,17 @@ export const AuthProvider = ({ children }) => {
           },
         });
         
+        const data = await response.json();
         if (response.ok) {
-          const userData = await response.json();
-          setCurrentUser(userData);
-          setIsAuthenticated(true);
-          setIsStreamer(userData.isStreamer || false);
-          localStorage.setItem('user', JSON.stringify(userData));
+          setCurrentUser(data.user || null);
+          setIsAuthenticated(data.isAuthenticated || false);
+          setIsStreamer(data.isStreamer || false);
+          if (data.user) {
+            localStorage.setItem('user', JSON.stringify(data.user));
+            localStorage.setItem('token', localStorage.getItem('token') || ''); // Сохраняем токен, если есть
+          }
         } else {
-          // If server check fails, clear local data
+          // If server check fails or user is not authenticated, clear local data
           setCurrentUser(null);
           setIsAuthenticated(false);
           setIsStreamer(false);
@@ -47,8 +50,8 @@ export const AuthProvider = ({ children }) => {
         }
       } catch (error) {
         console.error('Auth check error:', error);
-        setIsAuthenticated(false);
         setCurrentUser(null);
+        setIsAuthenticated(false);
         setIsStreamer(false);
         localStorage.removeItem('user');
         localStorage.removeItem('token');
@@ -73,12 +76,17 @@ export const AuthProvider = ({ children }) => {
 
   const logout = async () => {
     try {
-      await fetch('/api/auth/logout', {
+      const response = await fetch('/api/auth/logout', {
         method: 'POST',
         headers: {
           Authorization: `Bearer ${localStorage.getItem('token') || ''}`,
         },
       });
+      
+      if (response.ok) {
+        const result = await response.json();
+        console.log('Logout successful:', result.message);
+      }
     } catch (error) {
       console.error('Logout error:', error);
     } finally {
