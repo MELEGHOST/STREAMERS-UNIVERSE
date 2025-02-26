@@ -96,6 +96,7 @@ export const AuthProvider = ({ children }) => {
         setIsStreamer(data.user.isStreamer || false);
         localStorage.setItem('token', data.token || '');
         localStorage.setItem('user', JSON.stringify(data.user));
+        router.push('/profile'); // Перенаправляем на профиль после успешного входа
         return;
       }
       
@@ -109,6 +110,8 @@ export const AuthProvider = ({ children }) => {
           body: JSON.stringify({ code: data.code }),
         });
         
+        console.log('Twitch callback response in AuthContext:', response); // Отладка
+
         if (!response.ok) throw new Error('Не удалось авторизоваться через Twitch');
         
         const authData = await response.json();
@@ -127,6 +130,7 @@ export const AuthProvider = ({ children }) => {
             userData.subscriptions = subscriptionsData.data.map(sub => sub.broadcaster_name) || [];
           } else {
             userData.subscriptions = []; // Устанавливаем пустой массив при ошибке
+            console.log('Subscriptions error in AuthContext:', subscriptionsResponse.status, subscriptionsResponse.statusText); // Отладка
           }
         }
 
@@ -135,6 +139,7 @@ export const AuthProvider = ({ children }) => {
         setIsStreamer(userData.isStreamer || false);
         localStorage.setItem('token', authData.token || '');
         localStorage.setItem('user', JSON.stringify(userData));
+        router.push('/profile'); // Перенаправляем на профиль после успешного входа
       }
     } catch (error) {
       console.error('Ошибка входа:', error);
