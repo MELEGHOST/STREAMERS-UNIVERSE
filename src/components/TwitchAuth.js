@@ -7,6 +7,7 @@ import { useAuth } from '../context/AuthContext';
 const TwitchAuth = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [nickname, setNickname] = useState('');
   const router = useRouter();
   const { login } = useAuth();
 
@@ -19,13 +20,22 @@ const TwitchAuth = () => {
     const code = urlParams.get('code');
     const state = urlParams.get('state');
     const storedState = localStorage.getItem('twitch_auth_state');
+    const role = urlParams.get('role');
+    const switchProfile = urlParams.get('switch');
 
     if (code && state && storedState && state === storedState) {
-      handleTwitchCallback(code);
+      handleTwitchCallback(code, role);
+    }
+
+    // Handle switch profile or initial role selection
+    if (switchProfile === 'true' || !localStorage.getItem('user')) {
+      if (role === 'subscriber') {
+        setNickname('');
+      }
     }
   }, []);
 
-  const handleTwitchCallback = async (code) => {
+  const handleTwitchCallback = async (code, role) => {
     setLoading(true);
     try {
       const response = await fetch('/api/auth/twitch/callback', {
@@ -36,12 +46,41 @@ const TwitchAuth = () => {
 
       if (!response.ok) throw new Error('Ошибка авторизации через Twitch');
 
-      const data = await response.json();
-      await login(data);
+      const authData = await response.json();
+      let userData = authData.user;
+
+      // Если роль "подписчик", запросим только никнейм и данные подписок
+      if (role === 'subscriber') {
+        userData = {
+          id: authData.user.id,
+          name: nickname || authData.user.name, // Используем введённый никнейм или имя из Twitch
+          isStreamer: false,
+          followers: 0, // Для подписчика не нужно количество подписчиков
+        };
+        // Получаем данные о подписках через Twitch API
+        const subscriptionsResponse = await fetch(`https://api.twitch.tv/helix/subscriptions/user?broadcaster_id=${userData.id}`, {
+          headers: {
+            'Client-ID': process.env.TWITCH_CLIENT_ID,
+            'Authorization': `Bearer ${authData.token}`,
+          },
+        });
+        if (subscriptionsResponse.ok) {
+          const subscriptionsData = await subscriptionsResponse.json();
+          userData.subscriptions = subscriptionsData.data.map(sub => sub.broadcaster_name) || [];
+        }
+      } else if (role === 'streamer') {
+        // Проверяем количество подписчиков для стримера
+        if (userData.followers < 265) {
+          throw new Error('Недостаточно подписчиков для регистрации как стример (требуется минимум 265)');
+        }
+        userData.isStreamer = true;
+      }
+
+      await login({ user: userData, token: authData.token });
       localStorage.removeItem('twitch_auth_state');
-      router.push('/');
+      router.push('/profile');
     } catch (err) {
-      setError(err.message || 'Не удалось авторизоваться через Twitch');
+      setError(err.message);
     } finally {
       setLoading(false);
     }
@@ -57,29 +96,55 @@ const TwitchAuth = () => {
 
       const clientId = process.env.TWITCH_CLIENT_ID;
       const redirectUri = encodeURIComponent(process.env.TWITCH_REDIRECT_URI || `${window.location.origin}/auth`);
+      const role = new URLSearchParams(window.location.search).get('role');
       const scope = encodeURIComponent('user:read:email channel:read:subscriptions');
 
-      window.location.href = `https://id.twitch.tv/oauth2/authorize?client_id=${clientId}&redirect_uri=${redirectUri}&response_type=code&scope=${scope}&state=${state}`;
+      if (role === 'subscriber') {
+        // Для подписчика запрашиваем никнейм
+        if (!nickname) {
+          setError('Пожалуйста, введите ваш никнейм Twitch');
+          setLoading(false);
+          return;
+        }
+        window.location.href = `https://id.twitch.tv/oauth2/authorize?client_id=${clientId}&redirect_uri=${redirectUri}&response_type=code&scope=${scope}&state=${state}`;
+      } else if (role === 'streamer') {
+        window.location.href = `https://id.twitch.tv/oauth2/authorize?client_id=${clientId}&redirect_uri=${redirectUri}&response_type=code&scope=${scope}&state=${state}`;
+      }
     } catch (err) {
       setError('Не удалось начать процесс авторизации');
       setLoading(false);
     }
   };
 
+  const handleNicknameChange = (e) => {
+    setNickname(e.target.value);
+    setError(null);
+  };
+
+  const role = new URLSearchParams(window.location.search).get('role') || new URLSearchParams(window.location.search).get('switch');
+
   return (
     <div className="twitch-auth-container">
       <h2>Войти через Twitch</h2>
       {error && <div className="error-message">{error}</div>}
+      {role === 'subscriber' && !localStorage.getItem('user') && (
+        <input
+          type="text"
+          className="input-field"
+          placeholder="Ваш никнейм Twitch"
+          value={nickname}
+          onChange={handleNicknameChange}
+          disabled={loading}
+        />
+      )}
       <button 
         className="twitch-auth-button"
         onClick={initiateLogin}
-        disabled={loading}
+        disabled={loading || (role === 'subscriber' && !nickname)}
       >
         {loading ? 'Загрузка...' : 'Войти через Twitch'}
       </button>
-      <p className="auth-note">
-        Для регистрации как стример необходимо иметь минимум 265 подписчиков
-      </p>
+      {role === 'streamer' && <p className="auth-note">Для регистрации как стример необходимо иметь минимум 265 подписчиков</p>}
     </div>
   );
 };
