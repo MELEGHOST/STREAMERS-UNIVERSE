@@ -8,15 +8,22 @@ export default function handler(req, res) {
     const authHeader = req.headers.authorization;
     if (authHeader && authHeader.startsWith('Bearer ')) {
       const token = authHeader.split(' ')[1]; // Извлекаем токен
-      // Здесь можно добавить проверку токена через Twitch API или другую логику
-      // Пока возвращаем тестовые данные, если токен есть
-      const storedUser = localStorage.getItem('user'); // Это работает только на клиенте, поэтому имитируем
-      if (storedUser) {
-        const userData = JSON.parse(storedUser);
+      
+      // Предположим, что мы проверили токен (в реальном приложении здесь будет проверка)
+      // Поскольку localStorage недоступен на сервере, мы будем использовать моковые данные для демонстрации
+      if (token) {
+        // Для демонстрационных целей возвращаем тестовые данные пользователя
         return res.status(200).json({
-          user: userData,
-          isStreamer: userData.isStreamer || false,
-          followers: userData.followers || 0,
+          user: {
+            id: '12345',
+            name: 'ТестовыйСтример',
+            email: 'test@example.com',
+            followers: 300,
+            isStreamer: true
+          },
+          isAuthenticated: true,
+          isStreamer: true,
+          followers: 300
         });
       }
     }
