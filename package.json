@@ -2,6 +2,7 @@
   "name": "streamers-universe",
   "version": "PRE-ALPHA 0.0.0.5",
   "private": true,
+  "type": "module", // Явно указываем модульную поддержку
   "scripts": {
     "dev": "next dev",
     "build": "npx next build",
@@ -20,7 +21,7 @@
     "lru-cache": "^10.2.2"
   },
   "devDependencies": {
-    "typescript": "^5.7.3"
+    "typescript": "5.7.3"
   },
   "resolutions": {
     "@cloudflare/next-on-pages": "1.13.8"
