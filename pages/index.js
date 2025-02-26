@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/router';
 import { useAuth } from '../src/context/AuthContext';
 import Stars from '../src/components/Stars';
@@ -8,6 +8,13 @@ import Stars from '../src/components/Stars';
 const Home = () => {
   const router = useRouter();
   const { isAuthenticated } = useAuth();
+  const [isMounted, setIsMounted] = useState(false);
+
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
+
+  if (!isMounted) return null; // Предотвращаем рендеринг до загрузки клиента
 
   if (isAuthenticated) {
     router.push('/profile');
