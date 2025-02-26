@@ -4,4 +4,17 @@ module.exports = {
     TWITCH_REDIRECT_URI: process.env.TWITCH_REDIRECT_URI,
   },
   reactStrictMode: true,
+  async headers() {
+    return [
+      {
+        source: '/(.*)',
+        headers: [
+          {
+            key: 'Content-Security-Policy',
+            value: "script-src 'self' 'unsafe-eval' 'unsafe-inline'; connect-src 'self' https://id.twitch.tv https://api.twitch.tv;",
+          },
+        ],
+      },
+    ];
+  },
 };
