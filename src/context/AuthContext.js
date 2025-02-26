@@ -23,37 +23,56 @@ export const AuthProvider = ({ children }) => {
         const storedUser = localStorage.getItem('user');
         const storedToken = localStorage.getItem('token');
         
+        // Устанавливаем значения по умолчанию, если localStorage пуст
         if (storedUser && storedToken) {
           const userData = JSON.parse(storedUser);
           setCurrentUser(userData);
           setIsAuthenticated(true);
           setIsStreamer(userData.isStreamer || false);
+        } else {
+          setCurrentUser(null);
+          setIsAuthenticated(false);
+          setIsStreamer(false);
+        }
+
+        // Verify with server using /api/auth/me
+        try {
+          const response = await fetch('/api/auth/me', {
+            headers: {
+              Authorization: `Bearer ${storedToken || ''}`,
+            },
+          });
           
-          // Verify with server
-          try {
-            const response = await fetch('/api/auth/me', {
-              headers: {
-                Authorization: `Bearer ${storedToken}`,
-              },
-            });
-            
-            if (response.ok) {
-              const data = await response.json();
-              if (data.user) {
-                setCurrentUser(data.user);
-                setIsAuthenticated(true);
-                setIsStreamer(data.isStreamer || false);
-                localStorage.setItem('user', JSON.stringify(data.user));
-              }
+          if (response.ok) {
+            const data = await response.json();
+            setCurrentUser(data.user || null);
+            setIsAuthenticated(data.isAuthenticated || false);
+            setIsStreamer(data.isStreamer || false);
+            if (data.user) {
+              localStorage.setItem('user', JSON.stringify(data.user));
+              localStorage.setItem('token', localStorage.getItem('token') || '');
             }
-          } catch (serverError) {
-            console.error('Server verification error:', serverError);
-            // Continue with stored data if server check fails
+          } else {
+            // Если сервер не отвечает или возвращает ошибку, используем значения по умолчанию
+            setCurrentUser(null);
+            setIsAuthenticated(false);
+            setIsStreamer(false);
+            localStorage.removeItem('user');
+            localStorage.removeItem('token');
+          }
+        } catch (serverError) {
+          console.error('Server verification error:', serverError);
+          // Если сервер недоступен, используем значения из localStorage или по умолчанию
+          if (!storedUser || !storedToken) {
+            setCurrentUser(null);
+            setIsAuthenticated(false);
+            setIsStreamer(false);
+            localStorage.removeItem('user');
+            localStorage.removeItem('token');
           }
         }
       } catch (error) {
         console.error('Auth check error:', error);
-        // Clear data on error
         setCurrentUser(null);
         setIsAuthenticated(false);
         setIsStreamer(false);
