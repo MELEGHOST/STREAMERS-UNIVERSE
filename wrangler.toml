@@ -1,8 +1,4 @@
 name = "streamers-universe"
 compatibility_date = "2025-02-26"
 compatibility_flags = ["nodejs_compat"]
-
-[build]
-command = "npm run build"
-watch_dir = "."
-upload_dir = ".next"
+pages_build_output_dir = ".next"
