@@ -1,32 +1,29 @@
-// Импортируем адаптер Cloudflare для Next.js
-import { withCloudflare } from '@cloudflare/next-on-pages';
-
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
   swcMinify: true,
-  output: 'standalone',
+  output: "standalone",
 
   env: {
     TWITCH_CLIENT_ID: process.env.TWITCH_CLIENT_ID,
-    TWITCH_REDIRECT_URI: process.env.TWITCH_REDIRECT_URI || 'https://streamers-universe.pages.dev/auth',
-    TWITCH_CLIENT_SECRET: process.env.TWITCH_CLIENT_SECRET,
+    TWITCH_REDIRECT_URI: process.env.TWITCH_REDIRECT_URI || "https://streamers-universe.pages.dev/auth",
+    TWITCH_CLIENT_SECRET: process.env.TWITCH_CLIENT_SECRET
   },
 
   headers: async () => [
     {
-      source: '/(.*)',
+      source: "/(.*)",
       headers: [
-        { key: 'Content-Security-Policy', value: "script-src 'self' 'unsafe-eval' 'unsafe-inline'; connect-src 'self' https://id.twitch.tv https://api.twitch.tv;" },
-        { key: 'X-Content-Type-Options', value: 'nosniff' },
-        { key: 'X-Frame-Options', value: 'DENY' },
-      ],
-    },
+        { key: "Content-Security-Policy", value: "script-src 'self' 'unsafe-eval' 'unsafe-inline'; connect-src 'self' https://id.twitch.tv https://api.twitch.tv;" },
+        { key: "X-Content-Type-Options", value: "nosniff" },
+        { key: "X-Frame-Options", value: "DENY" }
+      ]
+    }
   ],
 
   images: {
-    domains: ['id.twitch.tv', 'api.twitch.tv'],
-    unoptimized: true,
+    domains: ["id.twitch.tv", "api.twitch.tv"],
+    unoptimized: true
   },
 
   webpack: (config) => {
@@ -35,10 +32,9 @@ const nextConfig = {
   },
 
   experimental: {
-    serverComponentsExternalPackages: ['@cloudflare/next-on-pages'],
     turbo: true,
-    optimizePackageImports: ['react', 'react-dom'],
-  },
+    optimizePackageImports: ["react", "react-dom"]
+  }
 };
 
-export default withCloudflare(nextConfig);
+module.exports = nextConfig;
