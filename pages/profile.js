@@ -1,92 +1,24 @@
-// Профиль пользователя
+// Страница профиля пользователя
 'use client';
 
-import React, { useEffect } from 'react';
-import { useAuth } from '../context/AuthContext';
-import { useRouter } from 'next/router';
-import Layout from './Layout';
+import dynamic from 'next/dynamic';
+import React from 'react';
+import Layout from '../src/components/Layout'; // Исправленный путь к Layout
+import Profile from '../src/components/Profile'; // Убедимся, что Profile также импортируется корректно
 
-const Profile = () => {
-  // Получаем данные пользователя и функции авторизации
-  const { currentUser, isStreamer, logout } = useAuth();
-  const router = useRouter();
-
-  useEffect(() => {
-    // Если пользователь не авторизован, перенаправляем на страницу авторизации
-    if (typeof window !== 'undefined' && !currentUser) {
-      router.push('/auth');
-    }
-  }, [currentUser, router]);
-
-  if (!currentUser) return (
-    <Layout>
-      <div>Пожалуйста, войдите, чтобы продолжить</div>
-    </Layout>
-  );
-
-  // Функция для смены профиля
-  const handleSwitchProfile = async () => {
-    await logout(); // Сбрасываем текущую авторизацию
-    localStorage.removeItem('user'); // Удаляем данные пользователя
-    localStorage.removeItem('token'); // Удаляем токен
-    localStorage.removeItem('twitch_auth_state'); // Удаляем состояние авторизации Twitch
-    console.log('Switching profile, redirecting to /auth'); // Отладка
-    router.push('/auth?switch=true'); // Перенаправляем на страницу авторизации с параметром для выбора роли
-  };
-
+// Динамически импортируем компонент ProfilePage для клиентского рендеринга
+const ProfilePage = () => {
+  console.log('Rendering ProfilePage'); // Отладка
+  // Возвращаем layout с компонентом профиля
   return (
     <Layout>
-      <div className="frame profile active">
-        <div id="profileHeader">
-          <h2 id="profileTitle">{isStreamer ? `Профиль стримера: ${currentUser.name}` : `Профиль подписчика: ${currentUser.name}`}</h2>
-          <p id="profileInfo">{isStreamer ? `У вас ${currentUser.followers || 0} подписчиков.` : 'Вы подписчик и не имеете подписчиков.'}</p>
-          <button id="switchProfileBtn" onClick={handleSwitchProfile}>Сменить профиль</button>
-          <button id="logoutBtn" onClick={logout}>Выйти</button>
-        </div>
-        {isStreamer ? (
-          <div id="streamerSection" className="profile-content active">
-            <button id="addSchedule">Добавить стрим</button>
-            <button id="addMovie">Добавить фильм</button>
-            <button id="addGame">Добавить игру</button>
-            <button id="addSocial">Добавить соцсеть</button>
-            <button id="addReview">Добавить отзыв</button>
-            <button id="donateBtn">Настроить донат</button>
-            <button id="requestCollabBtn">Настроить запросы коллабов</button>
-            <h3>Расписание стримов</h3>
-            <div id="scheduleList"></div>
-            <h3>Просмотренные фильмы</h3>
-            <div id="movieList"></div>
-            <h3>Игры</h3>
-            <div id="gameList"></div>
-            <h3>Соцсети</h3>
-            <div id="socialLinks"></div>
-            <h3>Отзывы и тир-листы</h3>
-            <div id="reviewList"></div>
-          </div>
-        ) : (
-          <div id="viewerSection" className="profile-content active">
-            <button id="viewSchedule">Посмотреть расписание</button>
-            <button id="viewMovies">Посмотреть фильмы</button>
-            <button id="viewGames">Посмотреть игры</button>
-            <button id="viewSocials">Посмотреть соцсети</button>
-            <button id="askQuestionBtn">Задать вопрос</button>
-            <button id="voteScheduleBtn">Проголосовать за стрим</button>
-            <button id="donate">Поддержать стримера</button>
-            <h3>Ваши подписки</h3>
-            <div id="subscriptionsList">
-              {currentUser.subscriptions && currentUser.subscriptions.length > 0 ? (
-                currentUser.subscriptions.map((streamer, index) => (
-                  <div key={index} className="item">{streamer}</div>
-                ))
-              ) : (
-                <p>Вы не подписаны на стримеров</p>
-              )}
-            </div>
-          </div>
-        )}
-      </div>
+      <Profile />
     </Layout>
   );
 };
 
-export default Profile;
+// Экспортируем динамически загружаемый компонент с правильной конфигурацией
+export default dynamic(() => Promise.resolve(ProfilePage), {
+  ssr: false, // Отключаем серверный рендеринг (SSG/SSR)
+  loading: () => <div>Загрузка профиля...</div>, // Добавляем индикатор загрузки
+});
