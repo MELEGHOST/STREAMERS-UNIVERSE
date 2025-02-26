@@ -4,9 +4,12 @@ export default function handler(req, res) {
   }
 
   try {
-    // Очищаем данные авторизации
-    localStorage.removeItem('user'); // Это работает только на клиенте, поэтому имитируем
-    localStorage.removeItem('token');
+    // API маршруты выполняются на сервере, поэтому не можем использовать localStorage
+    // Вместо этого просто очищаем куки на клиенте через ответ
+    res.setHeader('Set-Cookie', [
+      'token=; Path=/; Max-Age=0',
+      'user=; Path=/; Max-Age=0'
+    ]);
 
     return res.status(200).json({ message: 'Logged out successfully' });
   } catch (error) {
