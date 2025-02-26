@@ -1,3 +1,4 @@
+// Профиль пользователя
 'use client';
 
 import React, { useEffect } from 'react';
@@ -6,13 +7,15 @@ import { useRouter } from 'next/router';
 import Layout from './Layout';
 
 const Profile = () => {
+  // Получаем данные пользователя и функции авторизации
   const { currentUser, isStreamer, logout } = useAuth();
   const router = useRouter();
 
   useEffect(() => {
-    // If user is not authenticated, redirect to auth page
+    // Если пользователь не авторизован, перенаправляем на страницу авторизации
     if (typeof window !== 'undefined' && !currentUser) {
       router.push('/auth');
+      console.log('Redirecting to /auth due to no currentUser'); // Отладка
     }
   }, [currentUser, router]);
 
@@ -22,10 +25,12 @@ const Profile = () => {
     </Layout>
   );
 
+  // Функция для смены профиля
   const handleSwitchProfile = async () => {
+    console.log('Switching profile...'); // Отладка
     await logout(); // Сбрасываем текущую авторизацию
-    localStorage.removeItem('user'); // Удаляем данные пользователя
-    localStorage.removeItem('token'); // Удаляем токен
+    localStorage.clear(); // Полная очистка localStorage для сброса всех данных
+    console.log('localStorage cleared, redirecting to /auth'); // Отладка
     router.push('/auth?switch=true'); // Перенаправляем на страницу авторизации с параметром для выбора роли
   };
 
@@ -34,7 +39,7 @@ const Profile = () => {
       <div className="frame profile active">
         <div id="profileHeader">
           <h2 id="profileTitle">{isStreamer ? `Профиль стримера: ${currentUser.name}` : `Профиль подписчика: ${currentUser.name}`}</h2>
-          <p id="profileInfo">{isStreamer ? `У вас ${currentUser.followers || 0} подписчиков.` : 'Вы можете поддержать стримеров.'}</p>
+          <p id="profileInfo">{isStreamer ? `У вас ${currentUser.followers || 0} подписчиков.` : 'Вы подписчик и не имеете подписчиков.'}</p>
           <button id="switchProfileBtn" onClick={handleSwitchProfile}>Сменить профиль</button>
           <button id="logoutBtn" onClick={logout}>Выйти</button>
         </div>
@@ -67,6 +72,16 @@ const Profile = () => {
             <button id="askQuestionBtn">Задать вопрос</button>
             <button id="voteScheduleBtn">Проголосовать за стрим</button>
             <button id="donate">Поддержать стримера</button>
+            <h3>Ваши подписки</h3>
+            <div id="subscriptionsList">
+              {currentUser.subscriptions && currentUser.subscriptions.length > 0 ? (
+                currentUser.subscriptions.map((streamer, index) => (
+                  <div key={index} className="item">{streamer}</div>
+                ))
+              ) : (
+                <p>Вы не подписаны на стримеров</p>
+              )}
+            </div>
           </div>
         )}
       </div>
