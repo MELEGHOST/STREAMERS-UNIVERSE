@@ -1,21 +1,20 @@
 import React from 'react';
-import { useNavigate } from 'next/router';
+import { useRouter } from 'next/router';
 import { useAuth } from '../context/AuthContext';
 
 const Menu = () => {
   const { logout } = useAuth();
-  const navigate = useNavigate();
+  const router = useRouter();
 
   const handleLogout = () => {
     logout();
-    navigate('/auth');
   };
 
   return (
-    <nav className="menu">
-      <button onClick={() => navigate('/profile')}>Мой профиль</button>
-      <button onClick={() => navigate('/twitch')}>Twitch Трекер</button>
-      <button onClick={() => navigate('/top')}>Топ Стримеров</button>
+    <nav className="menu active">
+      <button onClick={() => router.push('/profile')}>Мой профиль</button>
+      <button onClick={() => router.push('/twitch')}>Twitch Трекер</button>
+      <button onClick={() => router.push('/top')}>Топ Стримеров</button>
       <button onClick={handleLogout}>Выйти</button>
     </nav>
   );
