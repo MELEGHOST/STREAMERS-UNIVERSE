@@ -3,7 +3,7 @@ const { withCloudflare } = require('@cloudflare/next-on-pages');
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  // Отключаем серверный рендеринг для некоторых страниц, если нужно, чтобы минимизировать нагрузку
+  // Включаем строгий режим для React 19
   reactStrictMode: true,
   swcMinify: true, // Оптимизация сборки
   output: 'standalone', // Оптимизация для статического экспорта, совместимого с Cloudflare Pages
@@ -42,7 +42,7 @@ const nextConfig = {
     unoptimized: true, // Отключаем оптимизацию изображений для Cloudflare Pages (можно включить позже)
   },
 
-  // Настройки для совместимости с Cloudflare Pages
+  // Настройки для совместимости с Cloudflare Pages и Next.js 15
   webpack: (config) => {
     config.resolve.fallback = {
       ...config.resolve.fallback,
@@ -53,9 +53,10 @@ const nextConfig = {
     return config;
   },
 
-  // Оптимизация под серверные функции Cloudflare Pages
+  // Оптимизация под серверные функции Cloudflare Pages и новые возможности Next.js 15
   experimental: {
     serverComponentsExternalPackages: ['@cloudflare/next-on-pages'], // Исключаем адаптер из серверных компонентов
+    turbo: true, // Включаем Turbopack для ускорения сборки (доступно в Next.js 15)
   },
 };
 
