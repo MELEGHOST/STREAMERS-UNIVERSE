@@ -9,7 +9,7 @@ import Stars from '../src/components/Stars';
 // Динамически импортируем компонент Home для клиентского рендеринга
 const HomeComponent = () => {
   const router = useRouter();
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated } = useAuth() || {}; // Добавляем || {} для безопасности
   const [isMounted, setIsMounted] = useState(false);
 
   useEffect(() => {
@@ -18,10 +18,11 @@ const HomeComponent = () => {
 
   if (!isMounted) return null; // Предотвращаем рендеринг до загрузки клиента
 
-  if (isAuthenticated) {
-    router.push('/profile');
-    return null;
-  }
+  // Временно убираем перенаправление, чтобы увидеть кнопки
+  // if (isAuthenticated) {
+  //   router.push('/profile');
+  //   return null;
+  // }
 
   return (
     <div className="frame role-selection">
