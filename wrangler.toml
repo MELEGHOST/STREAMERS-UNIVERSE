@@ -1,0 +1,16 @@
+name = "streamers-universe"
+compatibility_date = "2025-02-26"
+compatibility_flags = ["nodejs_compat"]
+
+[vars]
+TWITCH_CLIENT_ID = "${TWITCH_CLIENT_ID}"
+TWITCH_REDIRECT_URI = "${TWITCH_REDIRECT_URI}"
+TWITCH_CLIENT_SECRET = "${TWITCH_CLIENT_SECRET}"
+
+[build]
+command = "npm run build"
+watch_dir = "."
+upload_dir = ".next"
+
+[[pages]]
+site = "."
