@@ -1,3 +1,4 @@
+// Страница авторизации через Twitch
 'use client';
 
 import dynamic from 'next/dynamic';
@@ -7,6 +8,7 @@ import TwitchAuth from '../src/components/TwitchAuth';
 
 // Динамически импортируем компонент Auth для клиентского рендеринга
 const Auth = () => {
+  // Возвращаем layout с компонентом авторизации
   return (
     <Layout>
       <TwitchAuth />
