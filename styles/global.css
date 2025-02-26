@@ -85,7 +85,7 @@ body {
 }
 
 .menu, .frame {
-  display: none;
+  display: block; /* Изменяем с display: none на display: block для видимости */
 }
 
 .menu.active, .frame.active {
@@ -94,6 +94,11 @@ body {
 
 .frame {
   padding: 20px 0;
+  z-index: 2; /* Убедимся, что frame выше звёзд */
+}
+
+.frame.role-selection {
+  text-align: center; /* Центрируем кнопки */
 }
 
 button {
@@ -111,6 +116,7 @@ button {
   opacity: 1;
   visibility: visible;
   width: auto;
+  z-index: 3; /* Кнопки выше frame и звёзд */
 }
 
 button:hover {
