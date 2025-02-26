@@ -17,7 +17,7 @@ const TwitchAuth = () => {
     // Выполняется только на стороне клиента
     if (typeof window === 'undefined') return;
     
-    // Проверяем, обрабатываем ли мы callback от Twitch
+    // Проверяем, обрабатываем ли мы callback от Twitch на /auth
     const urlParams = new URLSearchParams(window.location.search);
     const code = urlParams.get('code');
     const state = urlParams.get('state');
@@ -25,9 +25,9 @@ const TwitchAuth = () => {
     const role = urlParams.get('role');
     const switchProfile = urlParams.get('switch');
 
-    console.log('Callback params:', { code, state, storedState, role, switchProfile }); // Отладка
+    console.log('Callback params on /auth:', { code, state, storedState, role, switchProfile, pathname: window.location.pathname }); // Отладка
 
-    if (code && state && storedState && state === storedState) {
+    if (window.location.pathname === '/auth' && code && state && storedState && state === storedState) {
       handleTwitchCallback(code, role);
     }
 
