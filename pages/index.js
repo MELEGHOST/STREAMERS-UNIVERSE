@@ -1,3 +1,4 @@
+// Главная страница для выбора роли
 'use client';
 
 import dynamic from 'next/dynamic';
@@ -8,16 +9,22 @@ import Layout from '../src/components/Layout';
 
 // Динамически импортируем компонент Home для клиентского рендеринга
 const Home = () => {
+  // Роутер для навигации
   const router = useRouter();
+  // Получаем состояние авторизации
   const { isAuthenticated } = useAuth() || {};
+  // Состояние для проверки монтирования компонента
   const [isMounted, setIsMounted] = useState(false);
 
   useEffect(() => {
+    // Устанавливаем флаг монтирования
     setIsMounted(true);
   }, []);
 
-  if (!isMounted) return null; // Предотвращаем рендеринг до загрузки клиента
+  // Предотвращаем рендеринг до загрузки клиента
+  if (!isMounted) return null;
 
+  // Если пользователь авторизован, перенаправляем в профиль
   if (isAuthenticated === true) {
     router.push('/profile');
     return null;
