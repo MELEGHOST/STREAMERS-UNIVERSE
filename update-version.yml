@@ -1,0 +1,44 @@
+name: Update Version and Devlog
+on:
+  push:
+    branches:
+      - main
+jobs:
+  update-version:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+      - uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+      - name: Install dependencies
+        run: npm install
+      - name: Increment Version
+        run: |
+          VERSION=$(node -p "require('./package.json').version")
+          MAJOR=$(echo $VERSION | cut -d'.' -f1)
+          MINOR=$(echo $VERSION | cut -d'.' -f2)
+          PATCH=$(echo $VERSION | cut -d'.' -f3)
+          NEW_PATCH=$((PATCH + 1))
+          NEW_VERSION="${MAJOR}.${MINOR}.${NEW_PATCH}"
+          echo "New version: $NEW_VERSION"
+          sed -i "s/\"version\": \"$VERSION\"/\"version\": \"PRE-ALFA $NEW_VERSION\"/g" package.json
+      - name: Update Devlog
+        run: |
+          COMMIT_MESSAGE=$(git log -1 --pretty=%B)
+          DATE=$(date +'%Y-%m-%d')
+          NEW_ENTRY="## Версия PRE-ALFA $NEW_VERSION\n- Дата: $DATE\n- $COMMIT_MESSAGE\n"
+          if [ -f DEVLOG.md ]; then
+            echo -e "$NEW_ENTRY\n$(cat DEVLOG.md)" > DEVLOG.md
+          else
+            echo -e "# Журнал разработчика (Devlog) — Streamers Universe\n\n$NEW_ENTRY" > DEVLOG.md
+          fi
+      - name: Commit Changes
+        run: |
+          git config user.name "GitHub Actions"
+          git config user.email "actions@github.com"
+          git add package.json DEVLOG.md
+          git commit -m "Автоматическое обновление версии до PRE-ALFA $NEW_VERSION и devlog"
+          git push
