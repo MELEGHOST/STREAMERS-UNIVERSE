@@ -11,16 +11,21 @@ const Stars = () => {
   }));
 
   return (
-    <div>
+    <div className="stars-container">
       {stars.map((star) => (
         <div
           key={star.key}
           className="star"
           style={{
+            position: 'absolute',
             width: `${star.size}px`,
             height: `${star.size}px`,
             top: `${star.top}%`,
             left: `${star.left}%`,
+            background: 'white',
+            borderRadius: '50%',
+            animation: 'twinkle 3s infinite alternate',
+            pointerEvents: 'none',
             animationDelay: `${star.delay}s`,
           }}
         />
