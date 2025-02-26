@@ -1,42 +1,52 @@
-export default function handler(req, res) {
+// Обработчик для получения данных текущего пользователя и списка профилей
+export default async function handler(req, res) {
   if (req.method !== 'GET') {
-    return res.status(405).json({ error: 'Method not allowed' });
+    return res.status(405).json({ error: 'Метод не поддерживается' });
   }
 
   try {
-    // Проверяем токен из заголовка Authorization
-    const authHeader = req.headers.authorization;
-    if (authHeader && authHeader.startsWith('Bearer ')) {
-      const token = authHeader.split(' ')[1]; // Извлекаем токен
-      
-      // Предположим, что мы проверили токен (в реальном приложении здесь будет проверка)
-      // Поскольку localStorage недоступен на сервере, мы будем использовать моковые данные для демонстрации
-      if (token) {
-        // Для демонстрационных целей возвращаем тестовые данные пользователя
-        return res.status(200).json({
-          user: {
-            id: '12345',
-            name: 'ТестовыйСтример',
-            email: 'test@example.com',
-            followers: 300,
-            isStreamer: true
-          },
-          isAuthenticated: true,
-          isStreamer: true,
-          followers: 300
-        });
-      }
+    const token = req.headers.authorization?.split(' ')[1]; // Извлекаем токен из заголовка
+
+    if (!token) {
+      return res.status(401).json({ error: 'Токен авторизации отсутствует' });
     }
 
-    // Если токена нет, возвращаем данные по умолчанию (неавторизованный пользователь)
-    return res.status(200).json({
-      user: null,
-      isAuthenticated: false,
-      isStreamer: false,
-      followers: 0,
+    // Получаем данные текущего пользователя через Twitch API
+    const userResponse = await fetch('https://api.twitch.tv/helix/users', {
+      headers: {
+        'Client-ID': process.env.TWITCH_CLIENT_ID,
+        'Authorization': `Bearer ${token}`,
+      },
+    });
+
+    if (!userResponse.ok) throw new Error('Не удалось получить данные пользователя');
+
+    const userData = await userResponse.json();
+    const user = userData.data[0];
+    const followersResponse = await fetch(`https://api.twitch.tv/helix/users/follows?to_id=${user.id}`, {
+      headers: {
+        'Client-ID': process.env.TWITCH_CLIENT_ID,
+        'Authorization': `Bearer ${token}`,
+      },
+    });
+
+    if (!followersResponse.ok) throw new Error('Не удалось получить данные о подписчиках');
+
+    const followersData = await followersResponse.json();
+    const followers = followersData.total || 0;
+
+    // Возвращаем данные текущего пользователя
+    res.status(200).json({
+      user: {
+        id: user.id,
+        name: user.display_name,
+        followers: followers,
+        isStreamer: followers >= 265,
+      },
+      isAuthenticated: true,
     });
   } catch (error) {
-    console.error('Error in /api/auth/me:', error);
-    return res.status(500).json({ error: 'Internal server error' });
+    console.error('Ошибка в /api/auth/me:', error);
+    res.status(500).json({ error: error.message });
   }
 }
