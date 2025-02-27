@@ -1,22 +1,22 @@
-// Контекст для управления авторизацией
-'use client';
+// src/context/AuthContext.js
+"use client";
 
-import React, { createContext, useState, useContext, useEffect } from 'react';
-import { useRouter } from 'next/router';
+const React = require('react');
+const { useRouter } = require('next/router');
 
-const AuthContext = createContext();
+// Типы для данных пользователя и профилей (оставляем как комментарии для совместимости с TypeScript, если используется)
+const AuthContext = React.createContext();
 
-export const AuthProvider = ({ children }) => {
+function AuthProvider({ children }) {
   // Состояния для хранения данных пользователя
-  const [currentUser, setCurrentUser] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [isStreamer, setIsStreamer] = useState(false);
-  const [profiles, setProfiles] = useState([]); // Список всех авторизованных профилей
+  const [currentUser, setCurrentUser] = React.useState(null);
+  const [loading, setLoading] = React.useState(true);
+  const [isAuthenticated, setIsAuthenticated] = React.useState(false);
+  const [isStreamer, setIsStreamer] = React.useState(false);
+  const [profiles, setProfiles] = React.useState([]); // Список всех авторизованных профилей
   const router = useRouter();
 
-  useEffect(() => {
-    // Выполняется только на стороне клиента
+  React.useEffect(() => {
     if (typeof window === 'undefined') return;
 
     // Проверка статуса авторизации при загрузке
@@ -98,7 +98,6 @@ export const AuthProvider = ({ children }) => {
   }, []);
 
   const login = async (data) => {
-    // Выполняется только на стороне клиента
     if (typeof window === 'undefined') return;
     
     try {
@@ -202,7 +201,6 @@ export const AuthProvider = ({ children }) => {
   };
 
   const logout = async () => {
-    // Выполняется только на стороне клиента
     if (typeof window === 'undefined') return;
     
     try {
@@ -253,9 +251,16 @@ export const AuthProvider = ({ children }) => {
     switchProfile, // Добавляем функцию для смены профиля
   };
 
-  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+  return React.createElement(AuthContext.Provider, { value }, children);
 };
 
-export const useAuth = () => {
-  return useContext(AuthContext);
+module.exports = {
+  AuthProvider,
+  useAuth: () => {
+    const context = React.useContext(AuthContext);
+    if (!context) {
+      throw new Error('useAuth must be used within an AuthProvider');
+    }
+    return context;
+  }
 };
