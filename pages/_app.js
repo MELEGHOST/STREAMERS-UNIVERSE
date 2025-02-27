@@ -1,10 +1,7 @@
-import React from 'react';
-import { AuthProvider } from '../src/context/AuthContext';
+const React = require('react');
 
-export default function App({ Component, pageProps }) {
-  return (
-    <AuthProvider>
-      <Component {...pageProps} />
-    </AuthProvider>
-  );
+function MyApp({ Component, pageProps }) {
+  return React.createElement(Component, pageProps);
 }
+
+module.exports = MyApp;
