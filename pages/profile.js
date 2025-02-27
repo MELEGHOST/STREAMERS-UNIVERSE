@@ -1,10 +1,7 @@
-// Страница профиля пользователя
-import { jsx as _jsx } from "react/jsx-runtime";
-import dynamic from 'next/dynamic';
-import React from 'react';
+const React = require('react');
 
-function ProfilePage() {
-  return _jsx("div", { children: "Профиль пользователя" });
+function Profile() {
+  return React.createElement('div', null, 'Профиль пользователя');
 }
 
-export default ProfilePage;
+module.exports = Profile;
