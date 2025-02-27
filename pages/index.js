@@ -7,7 +7,6 @@ function HomePage() {
   const [role, setRole] = useState(null);
 
   useEffect(() => {
-    // Логика выбора роли
     console.log('Role selection logic');
   }, []);
 
