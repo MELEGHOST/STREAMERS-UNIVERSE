@@ -9,5 +9,8 @@ module.exports = {
   images: {
     domains: ["id.twitch.tv", "api.twitch.tv"],
     unoptimized: true
+  },
+  experimental: {
+    optimizePackageImports: ["react", "react-dom"]
   }
 };
