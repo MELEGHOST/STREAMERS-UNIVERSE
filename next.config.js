@@ -1,3 +1,6 @@
+// next.config.js
+import { withCloudflare } from '@cloudflare/next-on-pages';
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
@@ -16,9 +19,9 @@ const nextConfig = {
     return config;
   },
   experimental: {
-    turbo: {}, // Исправлено на объект
+    turbo: {},
     optimizePackageImports: ["react", "react-dom"]
   }
 };
 
-module.exports = nextConfig;
+export default withCloudflare(nextConfig);
