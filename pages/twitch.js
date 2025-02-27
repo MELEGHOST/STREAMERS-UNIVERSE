@@ -1,9 +1,7 @@
-import { jsx as _jsx, jsxs as _jsxs } from "react/jsx-runtime";
-import dynamic from 'next/dynamic';
-import React from 'react';
+const React = require('react');
 
-function TwitchPage() {
-  return _jsxs("div", { children: [_jsx("h1", { children: "Twitch" }), _jsx("p", { children: "Страница Twitch интеграции" })] });
+function Twitch() {
+  return React.createElement('div', null, React.createElement('h1', null, 'Twitch'));
 }
 
-export default TwitchPage;
+module.exports = Twitch;
