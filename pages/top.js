@@ -1,22 +1,9 @@
-'use client';
-
+import { jsx as _jsx, jsxs as _jsxs } from "react/jsx-runtime";
 import dynamic from 'next/dynamic';
 import React from 'react';
-import Layout from '../src/components/Layout';
 
-// Динамически импортируем компонент Top для клиентского рендеринга
-const Top = () => {
-  return (
-    <Layout>
-      <div className="frame top">
-        <h2>Топ Стримеров</h2>
-        <p>Топ стримеров обновляется...</p>
-      </div>
-    </Layout>
-  );
-};
+function TopPage() {
+  return _jsxs("div", { children: [_jsx("h1", { children: "Топ" }), _jsx("p", { children: "Список топовых стримеров" })] });
+}
 
-// Экспортируем динамически загружаемый компонент
-export default dynamic(() => Promise.resolve(Top), {
-  ssr: false, // Отключаем серверный рендеринг (SSG/SSR)
-});
+export default TopPage;
