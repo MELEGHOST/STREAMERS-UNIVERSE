@@ -1,6 +1,3 @@
-// next.config.js
-import { withCloudflare } from '@cloudflare/next-on-pages';
-
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
@@ -24,4 +21,4 @@ const nextConfig = {
   }
 };
 
-export default withCloudflare(nextConfig);
+module.exports = nextConfig;
