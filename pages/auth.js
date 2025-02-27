@@ -1,23 +1,8 @@
-// Страница авторизации через Twitch
-'use client';
+const React = require('react');
+const dynamic = require('next/dynamic');
 
-import dynamic from 'next/dynamic';
-import React from 'react';
-import Layout from '../src/components/Layout';
-import TwitchAuth from '../src/components/TwitchAuth';
+function AuthPage() {
+  return <div>Страница авторизации через Twitch</div>;
+}
 
-// Динамически импортируем компонент Auth для клиентского рендеринга
-const Auth = () => {
-  // Возвращаем layout с компонентом авторизации
-  return (
-    <Layout>
-      <TwitchAuth />
-    </Layout>
-  );
-};
-
-// Экспортируем динамически загружаемый компонент с правильной конфигурацией
-export default dynamic(() => Promise.resolve(Auth), {
-  ssr: false, // Отключаем серверный рендеринг (SSG/SSR)
-  loading: () => <div>Загрузка авторизации...</div>, // Добавляем индикатор загрузки
-});
+module.exports = AuthPage;
