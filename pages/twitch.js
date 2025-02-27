@@ -1,22 +1,9 @@
-'use client';
-
+import { jsx as _jsx, jsxs as _jsxs } from "react/jsx-runtime";
 import dynamic from 'next/dynamic';
 import React from 'react';
-import Layout from '../src/components/Layout';
 
-// Динамически импортируем компонент Twitch для клиентского рендеринга
-const Twitch = () => {
-  return (
-    <Layout>
-      <div className="frame twitch">
-        <h2>Twitch Трекер</h2>
-        <p>Twitch трекер в разработке...</p>
-      </div>
-    </Layout>
-  );
-};
+function TwitchPage() {
+  return _jsxs("div", { children: [_jsx("h1", { children: "Twitch" }), _jsx("p", { children: "Страница Twitch интеграции" })] });
+}
 
-// Экспортируем динамически загружаемый компонент
-export default dynamic(() => Promise.resolve(Twitch), {
-  ssr: false, // Отключаем серверный рендеринг (SSG/SSR)
-});
+export default TwitchPage;
