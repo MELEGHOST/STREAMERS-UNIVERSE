@@ -2,7 +2,7 @@
   "name": "streamers-universe",
   "version": "PRE-ALPHA 0.0.0.5",
   "private": true,
-  "type": "module",
+  "type": "commonjs",
   "scripts": {
     "dev": "next dev",
     "build": "npx next build",
