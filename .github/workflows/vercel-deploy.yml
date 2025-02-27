@@ -1,0 +1,42 @@
+name: Vercel Deployment
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Получаем всю историю для подсчёта коммитов
+
+      - name: Count commits since last deploy
+        id: commit_count
+        run: |
+          # Подсчитываем количество коммитов в текущей ветке с последнего деплоя
+          COMMITS=$(git log --oneline --since="1 day ago" | wc -l)
+          echo "Commits since last deploy: $COMMITS"
+          echo "COMMIT_COUNT=$COMMITS" >> $GITHUB_ENV
+
+      - name: Deploy to Vercel
+        if: env.COMMIT_COUNT >= 3  # Запускаем, если 2 или больше коммитов
+        uses: amondnet/vercel-action@v25
+        with:
+          vercel-token: ${{ secrets.VERCEL_TOKEN }}
+          vercel-org-id: ${{ secrets.VERCEL_ORG_ID}}
+          vercel-project-id: ${{ secrets.VERCEL_PROJECT_ID}}
+          working-directory: ./
+
+      - name: Notify if skipped
+        if: env.COMMIT_COUNT < 2
+        run: |
+          echo "Skipping deploy: less than 2 commits since last deploy (current count: ${{ env.COMMIT_COUNT }})"
+
+# Убедитесь, что вы добавили секреты в GitHub:
+# - VERCEL_TOKEN: токен Vercel (создайте его в Vercel Dashboard → Settings → Tokens)
+# - VERCEL_ORG_ID: ID вашей организации Vercel (в Settings → General)
+# - VERCEL_PROJECT_ID: ID проекта (в Settings → General вашего проекта)
