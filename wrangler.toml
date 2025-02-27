@@ -1,4 +1,4 @@
 name = "streamers-universe"
-compatibility_date = "2025-02-26"
+compatibility_date = "2025-02-27"
 compatibility_flags = ["nodejs_compat"]
 pages_build_output_dir = ".next"
