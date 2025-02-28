@@ -1,5 +1,6 @@
 // pages/index.js
 const React = require('react');
+const { useAuth } = require('../src/context/AuthContext');
 const styled = require('styled-components').default;
 
 const Container = styled.div`
@@ -46,6 +47,9 @@ const Button = styled.a`
 `;
 
 function Home() {
+  const { isAuthenticated } = useAuth();
+  console.log('Debug: isAuthenticated:', isAuthenticated);
+
   return React.createElement(
     Container,
     null,
