@@ -1,19 +1,19 @@
 "use client";
 
-const React = require('react');
-const { useSession, signOut } = require('next-auth/react');
-const { useRouter } = require('next/router');
+import React, { createContext, useContext, useState, useEffect } from 'react';
+import { useSession, signOut } from 'next-auth/react';
+import { useRouter } from 'next/router';
 
-const AuthContext = React.createContext();
+const AuthContext = createContext();
 
-function AuthProvider({ children }) {
+export function AuthProvider({ children }) {
   const { data: session, status } = useSession();
   const router = useRouter();
-  const [isAuthenticated, setIsAuthenticated] = React.useState(false);
-  const [user, setUser] = React.useState(null);
-  const [loading, setLoading] = React.useState(true);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [user, setUser] = useState(null);
+  const [loading, setLoading] = useState(true);
 
-  React.useEffect(() => {
+  useEffect(() => {
     if (status === 'loading') return;
     if (session) {
       setUser(session.user);
@@ -48,15 +48,12 @@ function AuthProvider({ children }) {
     logout,
   };
 
-  return React.createElement(AuthContext.Provider, { value }, children);
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
 
-module.exports = {
-  AuthProvider,
-  useAuth: () => {
-    const context = React.useContext(AuthContext);
-    if (!context) throw new Error('useAuth must be used within an AuthProvider');
-    console.log('useAuth: Context value - isAuthenticated:', context.isAuthenticated);
-    return context;
-  }
+export const useAuth = () => {
+  const context = useContext(AuthContext);
+  if (!context) throw new Error('useAuth must be used within an AuthProvider');
+  console.log('useAuth: Context value - isAuthenticated:', context.isAuthenticated);
+  return context;
 };
