@@ -13,7 +13,8 @@
     "react-dom": "19.0.0",
     "uuid": "11.1.0",
     "axios": "^1.7.7", 
-    "moment-timezone": "^0.5.45" 
+    "moment-timezone": "^0.5.45", 
+    "styled-components": "^6.1.13"
   },
   "devDependencies": {
     "typescript": "5.7.3",
