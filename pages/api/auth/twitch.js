@@ -1,3 +1,4 @@
+// pages/api/auth/twitch.js
 const React = require('react');
 
 async function handler(req, res) {
