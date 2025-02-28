@@ -4,7 +4,7 @@ const { useRouter } = require('next/router');
 const styled = require('styled-components').default;
 
 const Container = styled.div`
-  background: #1a1a4a; /* Глубокий тёмно-синий фон без градиента для простоты */
+  background: linear-gradient(to bottom, #0a0a2a, #1a1a4a); /* Базовый тёмный градиент */
   min-height: 100vh;
   display: flex;
   flex-direction: column;
@@ -14,38 +14,230 @@ const Container = styled.div`
   font-family: 'Arial', sans-serif;
   overflow: hidden;
   position: relative;
+  animation: pulse 8s infinite ease-in-out; /* Более плавная пульсация */
 `;
 
 const Logo = styled.img`
   max-width: 250px;
   margin-bottom: 60px; /* Лого выше кнопки */
+  animation: pulseLogo 4s infinite ease-in-out, rotateLogo 8s infinite linear; /* Анимация пульсации и вращения */
 `;
 
-const AuthButton = styled.button`
-  background: #9147ff; /* Фиолетовый цвет Twitch, как на фото */
-  color: white;
-  font-size: 1.5rem;
-  font-weight: 600;
-  border: none;
-  padding: 12px 24px;
-  border-radius: 25px; /* Круглая форма, как на фото */
-  cursor: pointer;
-  transition: background 0.3s ease, transform 0.2s ease, box-shadow 0.3s ease;
-  
-  &:hover {
-    background: #7a39cc; /* Темнее при наведении */
-    transform: scale(1.05); /* Лёгкое увеличение */
-    box-shadow: 0 0 15px rgba(145, 71, 255, 0.5); /* Мягкое свечение */
+const GalaxyButton = styled.div`
+  .space-button {
+    --cut: 0.1em;
+    --active: 0;
+    --bg: radial-gradient(
+      120% 120% at 126% 126%,
+      hsl(0 calc(var(--active) * 97%) 98% / calc(var(--active) * 0.9)) 40%,
+      transparent 50%
+    ) calc(100px - (var(--active) * 100px)) 0 / 100% 100% no-repeat,
+    radial-gradient(
+      120% 120% at 120% 120%,
+      hsl(0 calc(var(--active) * 97%) 70% / calc(var(--active) * 1)) 30%,
+      transparent 70%
+    ) calc(100px - (var(--active) * 100px)) 0 / 100% 100% no-repeat,
+    hsl(0 calc(var(--active) * 100%) calc(12% - (var(--active) * 8%))); /* Тёмно-красный цвет */
+    background: var(--bg);
+    font-size: 1.4rem;
+    font-weight: 500;
+    border: 0;
+    cursor: pointer;
+    padding: 0.9em 1.3em;
+    display: flex;
+    align-items: center;
+    gap: 0.25em;
+    white-space: nowrap;
+    border-radius: 2rem; /* Овальная форма */
+    position: relative;
+    box-shadow: 0 0 calc(var(--active) * 6em) calc(var(--active) * 3em) hsla(12, 97%, 61%, 0.3),
+      0 0.05em 0 0 hsl(0, calc(var(--active) * 97%), calc((var(--active) * 50%) + 30%)) inset,
+      0 -0.05em 0 0 hsl(0, calc(var(--active) * 97%), calc(var(--active) * 10%)) inset;
+    transition: box-shadow 0.25s ease-out, scale 0.25s, background 0.25s;
+    scale: calc(1 + (var(--active) * 0.1));
+    transform-style: preserve-3d;
+    perspective: 100vmin;
+    overflow: hidden;
   }
-  
-  &:focus {
-    outline: none;
-    box-shadow: 0 0 15px rgba(145, 71, 255, 0.8); /* Сильное свечение при фокусе */
+
+  .space-button:active {
+    scale: 1;
+    --bg: radial-gradient(
+      120% 120% at 126% 126%,
+      hsl(245 calc(var(--active) * 97%) 98% / calc(var(--active) * 0.9)) 40%,
+      transparent 50%
+    ) calc(100px - (var(--active) * 100px)) 0 / 100% 100% no-repeat,
+    radial-gradient(
+      120% 120% at 120% 120%,
+      hsl(245 calc(var(--active) * 97%) 70% / calc(var(--active) * 1)) 30%,
+      transparent 70%
+    ) calc(100px - (var(--active) * 100px)) 0 / 100% 100% no-repeat,
+    hsl(245 calc(var(--active) * 100%) calc(12% - (var(--active) * 8%)));
+    box-shadow: 0 0 calc(var(--active) * 6em) calc(var(--active) * 3em) hsl(245 97% 61% / 0.5),
+      0 0.05em 0 0 hsl(245 calc(var(--active) * 97%) calc((var(--active) * 50%) + 30%)) inset,
+      0 -0.05em 0 0 hsl(245 calc(var(--active) * 97%) calc(var(--active) * 10%)) inset;
+    background: var(--bg);
   }
-  
-  &:active {
-    transform: scale(0.98); /* Сжатие при клике */
-    box-shadow: none;
+
+  .space-button:active .text {
+    font-weight: 300;
+    animation: wobble 0.6s ease-in-out infinite, blurMove 1.5s ease-in-out infinite;
+    text-shadow: 5px 5px 20px rgba(255, 255, 255, 0.8), 10px 10px 30px rgba(255, 0, 255, 0.6);
+  }
+
+  @keyframes wobble {
+    0%, 100% { transform: translate(0, 0); }
+    25% { transform: translate(-2px, -10px); }
+    50% { transform: translate(2px, 3px); }
+    75% { transform: translate(-1px, 5px); }
+  }
+
+  @keyframes blurMove {
+    0%, 100% { text-shadow: 5px 5px 20px rgba(255, 255, 255, 0.8), 10px 10px 30px rgba(255, 0, 255, 0.6); }
+    50% { filter: blur(1px); text-shadow: 10px 10px 25px rgba(255, 255, 255, 0.8), 15px 15px 35px rgba(255, 0, 255, 0.6); }
+  }
+
+  .galaxy::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 2px;
+    height: 2px;
+    border-radius: 50%;
+    opacity: 0.8;
+    box-shadow: 
+      50px 30px #fff, 150px 70px #fff, 200px 120px #fff, 300px 90px #fff, 400px 150px #fff, 
+      450px 200px #fff, 100px 250px #fff, 250px 300px #fff, 350px 350px #fff, 500px 50px #fff, 
+      600px 180px #fff, 700px 220px #fff, 800px 100px #fff, 900px 300px #fff, 1000px 150px #fff;
+    z-index: -1;
+    transition: all 1.5s ease-in-out;
+    animation: 1s glowing-stars linear alternate infinite;
+    animation-delay: 0.4s;
+  }
+
+  .galaxy::after {
+    content: "";
+    position: absolute;
+    top: -150px;
+    left: -65px;
+    width: 2px;
+    height: 2px;
+    border-radius: 50%;
+    opacity: 0.8;
+    box-shadow: 
+      80px 60px #fff, 180px 110px #fff, 230px 160px #fff, 330px 130px #fff, 430px 190px #fff, 
+      480px 240px #fff, 130px 280px #fff, 280px 330px #fff, 380px 380px #fff, 530px 90px #fff, 
+      630px 210px #fff, 730px 250px #fff, 830px 120px #fff, 930px 320px #fff, 1030px 170px #fff;
+    z-index: -1;
+    transition: all 2s ease-in-out;
+    animation: 1s glowing-stars linear alternate infinite;
+    animation-delay: 0.8s;
+  }
+
+  .space-button {
+    position: relative;
+  }
+
+  .galaxy {
+    position: absolute;
+    width: 100%;
+    aspect-ratio: 1;
+    top: 50%;
+    left: 50%;
+    translate: -50% -50%;
+    overflow: hidden;
+    opacity: var(--active);
+    transition: opacity 0.25s;
+  }
+
+  .backdrop {
+    position: absolute;
+    inset: var(--cut);
+    background: var(--bg);
+    border-radius: 2rem;
+    transition: background 0.25s;
+  }
+
+  @keyframes shootingStar {
+    0% { transform: translateX(0) translateY(0); opacity: 1; }
+    50% { transform: translateX(-55em) translateY(0); opacity: 1; }
+    70% { transform: translateX(-70em) translateY(0); opacity: 0; }
+    100% { transform: translateX(0) translateY(0); opacity: 0; }
+  }
+
+  @keyframes glowing-stars {
+    0% { opacity: 0; }
+    50% { opacity: 0.8; }
+    100% { opacity: 0; }
+  }
+
+  .text {
+    translate: 2% -6%;
+    letter-spacing: 0.01ch;
+    color: white; /* Белый текст, как на фото */
+    z-index: 999;
+    padding: 0 34px;
+    font-weight: 600;
+  }
+
+  .text::before {
+    content: "";
+    position: absolute;
+    top: -290%;
+    left: 90%;
+    rotate: -45deg;
+    width: 5em;
+    height: 1px;
+    background: linear-gradient(90deg, #ffffff, transparent);
+    animation: 4s shootingStar ease-in-out infinite;
+    transition: 1s ease;
+    z-index: -1;
+    animation-delay: 1s;
+    display: none;
+  }
+
+  .text::after {
+    content: "";
+    display: none;
+    position: absolute;
+    top: -290%;
+    left: 10%;
+    rotate: -45deg;
+    width: 5em;
+    height: 1px;
+    background: linear-gradient(90deg, #ffffff, transparent);
+    animation: 7s shootingStar ease-in-out infinite;
+    animation-delay: 3s;
+  }
+
+  .space-button:hover .text::before,
+  .space-button:hover .text::after {
+    display: block;
+  }
+
+  @supports (selector(:has(:is(+ *)))) {
+    body:has(button:is(:hover, :focus-visible)) {
+      --active: 1;
+      --play-state: running;
+    }
+    .bodydrop {
+      display: none;
+    }
+  }
+
+  .space-button:is(:hover, :focus-visible) ~ :is(.bodydrop, .particle-pen) {
+    --active: 1;
+    --play-state: running;
+  }
+
+  .space-button:is(:hover, :focus-visible) {
+    --active: 1;
+    --play-state: running;
+  }
+
+  .galaxy-button {
+    position: relative;
   }
 `;
 
@@ -67,8 +259,10 @@ const Stars = styled.div`
     box-shadow: 
       50px 30px #fff, 150px 70px #fff, 200px 120px #fff, 300px 90px #fff, 
       400px 150px #fff, 450px 200px #fff, 100px 250px #fff, 250px 300px #fff, 
-      350px 350px #fff, 500px 50px #fff, 600px 180px #fff, 700px 220px #fff;
-    animation: twinkle 3s infinite alternate; /* Замедлили анимацию */
+      350px 350px #fff, 500px 50px #fff, 600px 180px #fff, 700px 220px #fff, 
+      800px 100px #fff, 900px 300px #fff, 1000px 150px #fff, 1100px 200px #fff, 
+      1200px 250px #fff, 1300px 100px #fff, 1400px 350px #fff, 1500px 180px #fff;
+    animation: twinkle 3s infinite alternate;
   }
 
   &::after {
@@ -80,8 +274,10 @@ const Stars = styled.div`
     box-shadow: 
       80px 60px #fff, 180px 110px #fff, 230px 160px #fff, 330px 130px #fff, 
       430px 190px #fff, 480px 240px #fff, 130px 280px #fff, 280px 330px #fff, 
-      380px 380px #fff, 530px 90px #fff, 630px 210px #fff, 730px 250px #fff;
-    animation: twinkle 3s infinite alternate 1.5s; /* Замедлили и сдвинули анимацию */
+      380px 380px #fff, 530px 90px #fff, 630px 210px #fff, 730px 250px #fff, 
+      830px 120px #fff, 930px 320px #fff, 1030px 170px #fff, 1130px 230px #fff, 
+      1230px 270px #fff, 1330px 140px #fff, 1430px 360px #fff, 1530px 190px #fff;
+    animation: twinkle 3s infinite alternate 1.5s;
   }
 
   & .meteor {
@@ -91,7 +287,8 @@ const Stars = styled.div`
     border-radius: 50%;
     background: #fff;
     box-shadow: 0 0 10px #fff;
-    animation: meteor 8s linear infinite; /* Замедлили анимацию метеоров */
+    animation: meteor 9.6s linear infinite; /* Замедлили на 20% (с 8 до 9.6 секунд) */
+    transform-origin: 50% 50%; /* Центр для случайного вращения */
   }
 
   @keyframes twinkle {
@@ -100,9 +297,18 @@ const Stars = styled.div`
   }
 
   @keyframes meteor {
-    0% { transform: translateX(100vw) translateY(-100px); opacity: 0; }
-    50% { transform: translateX(-50vw) translateY(50vh); opacity: 1; }
-    100% { transform: translateX(-100vw) translateY(100vh); opacity: 0; }
+    0% {
+      transform: translateX(${Math.random() * 100}vw) translateY(${Math.random() * -100}px) rotate(${Math.random() * 360}deg);
+      opacity: 0;
+    }
+    50% {
+      transform: translateX(${Math.random() * -100}vw) translateY(${Math.random() * 100}vh) rotate(${Math.random() * -360}deg);
+      opacity: 1;
+    }
+    100% {
+      transform: translateX(${Math.random() * -200}vw) translateY(${Math.random() * 200}vh) rotate(${Math.random() * 360}deg);
+      opacity: 0;
+    }
   }
 `;
 
@@ -128,12 +334,16 @@ function Auth() {
   };
 
   React.useEffect(() => {
-    // Генерируем несколько метеоров для анимации
+    // Генерируем несколько метеоров с случайными стартовыми позициями
     const stars = document.querySelector('.stars');
-    for (let i = 0; i < 10; i++) { // Увеличил количество метеоров до 10
+    for (let i = 0; i < 15; i++) { // Увеличил до 15 метеоров
       const meteor = document.createElement('div');
       meteor.className = 'meteor';
-      meteor.style.setProperty('--i', `${i * 0.8}s`); // Разные задержки для метеоров
+      const startX = Math.random() * 100; // Случайный X от 0 до 100vw
+      const startY = Math.random() * -100; // Случайный Y от -100px до 0
+      const angle = Math.random() * 360; // Случайный угол вращения
+      meteor.style.transform = `translateX(${startX}vw) translateY(${startY}px) rotate(${angle}deg)`;
+      meteor.style.setProperty('--i', `${i * 0.6}s`); // Разные задержки для метеоров
       stars.appendChild(meteor);
     }
   }, []);
@@ -144,7 +354,22 @@ function Auth() {
     [
       React.createElement(Stars, { className: 'stars' }),
       React.createElement(Logo, { src: '/logo.png', alt: 'Streamers Universe Logo' }),
-      React.createElement(AuthButton, { onClick: handleLogin }, 'Войти через Twitch')
+      React.createElement(
+        GalaxyButton,
+        { className: 'galaxy-button' },
+        React.createElement(
+          'button',
+          {
+            className: 'space-button',
+            onClick: handleLogin,
+          },
+          [
+            React.createElement('span', { className: 'backdrop' }),
+            React.createElement('span', { className: 'galaxy' }),
+            React.createElement('label', { className: 'text' }, 'Войти через Twitch')
+          ]
+        )
+      )
     ]
   );
 }
