@@ -4,17 +4,18 @@ const { useRouter } = require('next/router');
 const styled = require('styled-components').default;
 
 const Container = styled.div`
-  background: linear-gradient(to bottom, #0a0a2a, #1a1a4a); /* Базовый тёмный градиент */
+  background: #1a1a4a; /* Глубокий тёмно-синий фон */
   min-height: 100vh;
+  height: 100vh; /* Фиксированная высота для предотвращения прокрутки */
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   padding: 20px;
   font-family: 'Arial', sans-serif;
-  overflow: hidden;
+  overflow: hidden; /* Убираем прокрутку на мобильных устройствах */
   position: relative;
-  animation: pulse 8s infinite ease-in-out; /* Более плавная пульсация */
+  -webkit-overflow-scrolling: touch; /* Отключаем нативную прокрутку iOS */
 `;
 
 const Logo = styled.img`
@@ -28,16 +29,18 @@ const GalaxyButton = styled.div`
     --cut: 0.1em;
     --active: 0;
     --bg: radial-gradient(
-      120% 120% at 126% 126%,
-      hsl(0 calc(var(--active) * 97%) 98% / calc(var(--active) * 0.9)) 40%,
-      transparent 50%
-    ) calc(100px - (var(--active) * 100px)) 0 / 100% 100% no-repeat,
-    radial-gradient(
-      120% 120% at 120% 120%,
-      hsl(0 calc(var(--active) * 97%) 70% / calc(var(--active) * 1)) 30%,
-      transparent 70%
-    ) calc(100px - (var(--active) * 100px)) 0 / 100% 100% no-repeat,
-    hsl(0 calc(var(--active) * 100%) calc(12% - (var(--active) * 8%))); /* Тёмно-красный цвет */
+          120% 120% at 126% 126%,
+          hsl(0 calc(var(--active) * 97%) 98% / calc(var(--active) * 0.9)) 40%,
+          /* Changed hue to 0 for red */ transparent 50%
+        )
+        calc(100px - (var(--active) * 100px)) 0 / 100% 100% no-repeat,
+      radial-gradient(
+          120% 120% at 120% 120%,
+          hsl(0 calc(var(--active) * 97%) 70% / calc(var(--active) * 1)) 30%,
+          /* Changed hue to 0 for red */ transparent 70%
+        )
+        calc(100px - (var(--active) * 100px)) 0 / 100% 100% no-repeat,
+      hsl(0 calc(var(--active) * 100%) calc(12% - (var(--active) * 8%))); /* Changed hue to 0 for red */
     background: var(--bg);
     font-size: 1.4rem;
     font-weight: 500;
@@ -48,41 +51,65 @@ const GalaxyButton = styled.div`
     align-items: center;
     gap: 0.25em;
     white-space: nowrap;
-    border-radius: 2rem; /* Овальная форма */
+    border-radius: 2rem;
     position: relative;
-    box-shadow: 0 0 calc(var(--active) * 6em) calc(var(--active) * 3em) hsla(12, 97%, 61%, 0.3),
-      0 0.05em 0 0 hsl(0, calc(var(--active) * 97%), calc((var(--active) * 50%) + 30%)) inset,
+    box-shadow:
+      0 0 calc(var(--active) * 6em) calc(var(--active) * 3em)
+        hsla(12, 97%, 61%, 0.3),
+      0 0.05em 0 0
+        hsl(0, calc(var(--active) * 97%), calc((var(--active) * 50%) + 30%)) inset,
       0 -0.05em 0 0 hsl(0, calc(var(--active) * 97%), calc(var(--active) * 10%)) inset;
-    transition: box-shadow 0.25s ease-out, scale 0.25s, background 0.25s;
+    transition:
+      box-shadow 0.25s ease-out,
+      scale 0.25s,
+      background 0.25s;
     scale: calc(1 + (var(--active) * 0.1));
     transform-style: preserve-3d;
     perspective: 100vmin;
     overflow: hidden;
+    user-select: none; /* Убираем возможность выделения текста */
   }
 
   .space-button:active {
     scale: 1;
     --bg: radial-gradient(
-      120% 120% at 126% 126%,
-      hsl(245 calc(var(--active) * 97%) 98% / calc(var(--active) * 0.9)) 40%,
-      transparent 50%
-    ) calc(100px - (var(--active) * 100px)) 0 / 100% 100% no-repeat,
-    radial-gradient(
-      120% 120% at 120% 120%,
-      hsl(245 calc(var(--active) * 97%) 70% / calc(var(--active) * 1)) 30%,
-      transparent 70%
-    ) calc(100px - (var(--active) * 100px)) 0 / 100% 100% no-repeat,
-    hsl(245 calc(var(--active) * 100%) calc(12% - (var(--active) * 8%)));
-    box-shadow: 0 0 calc(var(--active) * 6em) calc(var(--active) * 3em) hsl(245 97% 61% / 0.5),
-      0 0.05em 0 0 hsl(245 calc(var(--active) * 97%) calc((var(--active) * 50%) + 30%)) inset,
+          120% 120% at 126% 126%,
+          hsl(245 calc(var(--active) * 97%) 98% / calc(var(--active) * 0.9)) 40%,
+          transparent 50%
+        )
+        calc(100px - (var(--active) * 100px)) 0 / 100% 100% no-repeat,
+      radial-gradient(
+          120% 120% at 120% 120%,
+          hsl(245 calc(var(--active) * 97%) 70% / calc(var(--active) * 1)) 30%,
+          transparent 70%
+        )
+        calc(100px - (var(--active) * 100px)) 0 / 100% 100% no-repeat,
+      hsl(245 calc(var(--active) * 100%) calc(12% - (var(--active) * 8%)));
+    box-shadow:
+      0 0 calc(var(--active) * 6em) calc(var(--active) * 3em)
+        hsl(245 97% 61% / 0.5),
+      0 0.05em 0 0
+        hsl(245 calc(var(--active) * 97%) calc((var(--active) * 50%) + 30%)) inset,
       0 -0.05em 0 0 hsl(245 calc(var(--active) * 97%) calc(var(--active) * 10%)) inset;
     background: var(--bg);
   }
 
+  /* Отключаем нативное контекстное меню и выделение на кнопке */
+  .space-button {
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
+  }
+
   .space-button:active .text {
     font-weight: 300;
-    animation: wobble 0.6s ease-in-out infinite, blurMove 1.5s ease-in-out infinite;
-    text-shadow: 5px 5px 20px rgba(255, 255, 255, 0.8), 10px 10px 30px rgba(255, 0, 255, 0.6);
+    animation:
+      wobble 0.6s ease-in-out infinite,
+      blurMove 1.5s ease-in-out infinite;
+    text-shadow:
+      5px 5px 20px rgba(255, 255, 255, 0.8),
+      10px 10px 30px rgba(255, 0, 255, 0.6);
   }
 
   @keyframes wobble {
@@ -105,11 +132,28 @@ const GalaxyButton = styled.div`
     width: 2px;
     height: 2px;
     border-radius: 50%;
-    opacity: 0.8;
-    box-shadow: 
-      50px 30px #fff, 150px 70px #fff, 200px 120px #fff, 300px 90px #fff, 400px 150px #fff, 
-      450px 200px #fff, 100px 250px #fff, 250px 300px #fff, 350px 350px #fff, 500px 50px #fff, 
-      600px 180px #fff, 700px 220px #fff, 800px 100px #fff, 900px 300px #fff, 1000px 150px #fff;
+    opacity: 1;
+    box-shadow:
+      10vw 5vh #fff, /* Используем vw и vh для адаптивности */
+      25vw 10vh #fff,
+      40vw 20vh #fff,
+      5vw 30vh #fff,
+      15vw 15vh #fff,
+      50vw 25vh #fff,
+      60vw 40vh #fff,
+      70vw 35vh #fff,
+      35vw 50vh #fff,
+      80vw 15vh #fff,
+      90vw 10vh #fff,
+      95vw 5vh #fff,
+      5vw 60vh #fff,
+      20vw 65vh #fff,
+      30vw 70vh #fff,
+      45vw 55vh #fff,
+      55vw 45vh #fff,
+      65vw 35vh #fff,
+      75vw 25vh #fff,
+      85vw 15vh #fff;
     z-index: -1;
     transition: all 1.5s ease-in-out;
     animation: 1s glowing-stars linear alternate infinite;
@@ -119,16 +163,33 @@ const GalaxyButton = styled.div`
   .galaxy::after {
     content: "";
     position: absolute;
-    top: -150px;
-    left: -65px;
+    top: 0;
+    left: 0;
     width: 2px;
     height: 2px;
     border-radius: 50%;
-    opacity: 0.8;
-    box-shadow: 
-      80px 60px #fff, 180px 110px #fff, 230px 160px #fff, 330px 130px #fff, 430px 190px #fff, 
-      480px 240px #fff, 130px 280px #fff, 280px 330px #fff, 380px 380px #fff, 530px 90px #fff, 
-      630px 210px #fff, 730px 250px #fff, 830px 120px #fff, 930px 320px #fff, 1030px 170px #fff;
+    opacity: 1;
+    box-shadow:
+      20vw 60vh #fff,
+      30vw 55vh #fff,
+      45vw 50vh #fff,
+      55vw 65vh #fff,
+      65vw 30vh #fff,
+      75vw 40vh #fff,
+      85vw 25vh #fff,
+      10vw 45vh #fff,
+      15vw 5vh #fff,
+      35vw 10vh #fff,
+      50vw 5vh #fff,
+      25vw 35vh #fff,
+      60vw 0vh #fff,
+      40vw 70vh #fff,
+      70vw 15vh #fff,
+      80vw 20vh #fff,
+      90vw 30vh #fff,
+      5vw 25vh #fff,
+      15vw 40vh #fff,
+      25vw 50vh #fff;
     z-index: -1;
     transition: all 2s ease-in-out;
     animation: 1s glowing-stars linear alternate infinite;
@@ -141,11 +202,11 @@ const GalaxyButton = styled.div`
 
   .galaxy {
     position: absolute;
-    width: 100%;
-    aspect-ratio: 1;
-    top: 50%;
-    left: 50%;
-    translate: -50% -50%;
+    width: 100vw; /* Полная ширина окна просмотра */
+    height: 100vh; /* Полная высота окна просмотра */
+    top: 0;
+    left: 0;
+    translate: none;
     overflow: hidden;
     opacity: var(--active);
     transition: opacity 0.25s;
@@ -168,17 +229,21 @@ const GalaxyButton = styled.div`
 
   @keyframes glowing-stars {
     0% { opacity: 0; }
-    50% { opacity: 0.8; }
+    50% { opacity: 1; }
     100% { opacity: 0; }
   }
 
   .text {
     translate: 2% -6%;
     letter-spacing: 0.01ch;
-    color: white; /* Белый текст, как на фото */
+    color: hsl(0 0% calc(60% + (var(--active) * 26%)));
     z-index: 999;
     padding: 0 34px;
     font-weight: 600;
+    -webkit-user-select: none; /* Отключаем выделение текста в WebKit */
+    -moz-user-select: none; /* Отключаем выделение текста в Firefox */
+    -ms-user-select: none; /* Отключаем выделение текста в IE/Edge */
+    user-select: none; /* Отключаем выделение текста в других браузерах */
   }
 
   .text::before {
@@ -245,8 +310,8 @@ const Stars = styled.div`
   position: absolute;
   top: 0;
   left: 0;
-  width: 100%;
-  height: 100%;
+  width: 100vw; /* Полная ширина окна просмотра */
+  height: 100vh; /* Полная высота окна просмотра */
   pointer-events: none;
   background: transparent;
 
@@ -257,11 +322,10 @@ const Stars = styled.div`
     height: 2px;
     border-radius: 50%;
     box-shadow: 
-      50px 30px #fff, 150px 70px #fff, 200px 120px #fff, 300px 90px #fff, 
-      400px 150px #fff, 450px 200px #fff, 100px 250px #fff, 250px 300px #fff, 
-      350px 350px #fff, 500px 50px #fff, 600px 180px #fff, 700px 220px #fff, 
-      800px 100px #fff, 900px 300px #fff, 1000px 150px #fff, 1100px 200px #fff, 
-      1200px 250px #fff, 1300px 100px #fff, 1400px 350px #fff, 1500px 180px #fff;
+      5vw 5vh #fff, 15vw 10vh #fff, 25vw 15vh #fff, 35vw 20vh #fff, 45vw 25vh #fff, 
+      55vw 30vh #fff, 65vw 35vh #fff, 75vw 40vh #fff, 85vw 45vh #fff, 95vw 50vh #fff, 
+      10vw 60vh #fff, 20vw 65vh #fff, 30vw 70vh #fff, 40vw 55vh #fff, 50vw 45vh #fff, 
+      60vw 35vh #fff, 70vw 25vh #fff, 80vw 15vh #fff, 90vw 20vh #fff, 5vw 30vh #fff;
     animation: twinkle 3s infinite alternate;
   }
 
@@ -272,11 +336,10 @@ const Stars = styled.div`
     height: 2px;
     border-radius: 50%;
     box-shadow: 
-      80px 60px #fff, 180px 110px #fff, 230px 160px #fff, 330px 130px #fff, 
-      430px 190px #fff, 480px 240px #fff, 130px 280px #fff, 280px 330px #fff, 
-      380px 380px #fff, 530px 90px #fff, 630px 210px #fff, 730px 250px #fff, 
-      830px 120px #fff, 930px 320px #fff, 1030px 170px #fff, 1130px 230px #fff, 
-      1230px 270px #fff, 1330px 140px #fff, 1430px 360px #fff, 1530px 190px #fff;
+      15vw 55vh #fff, 25vw 50vh #fff, 35vw 45vh #fff, 45vw 60vh #fff, 55vw 35vh #fff, 
+      65vw 40vh #fff, 75vw 30vh #fff, 85vw 25vh #fff, 95vw 20vh #fff, 5vw 15vh #fff, 
+      10vw 25vh #fff, 20vw 35vh #fff, 30vw 40vh #fff, 40vw 50vh #fff, 50vw 60vh #fff, 
+      60vw 70vh #fff, 70vw 65vh #fff, 80vw 55vh #fff, 90vw 45vh #fff, 15vw 10vh #fff;
     animation: twinkle 3s infinite alternate 1.5s;
   }
 
@@ -298,7 +361,7 @@ const Stars = styled.div`
 
   @keyframes meteor {
     0% {
-      transform: translateX(${Math.random() * 100}vw) translateY(${Math.random() * -100}px) rotate(${Math.random() * 360}deg);
+      transform: translateX(${Math.random() * 100}vw) translateY(${Math.random() * -100}vh) rotate(${Math.random() * 360}deg);
       opacity: 0;
     }
     50% {
@@ -309,6 +372,50 @@ const Stars = styled.div`
       transform: translateX(${Math.random() * -200}vw) translateY(${Math.random() * 200}vh) rotate(${Math.random() * 360}deg);
       opacity: 0;
     }
+  }
+`;
+
+const Animations = styled.style`
+  @keyframes pulseLogo {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.05); }
+    100% { transform: scale(1); }
+  }
+
+  @keyframes rotateLogo {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+  }
+
+  @keyframes pulse {
+    0% { background: linear-gradient(to bottom, #0a0a2a, #1a1a4a); }
+    50% { background: linear-gradient(to bottom, #0f0f35, #1b1b4b); } /* Более мягкий контраст */
+    100% { background: linear-gradient(to bottom, #0a0a2a, #1a1a4a); }
+  }
+
+  @keyframes shootingStar {
+    0% { transform: translateX(0) translateY(0); opacity: 1; }
+    50% { transform: translateX(-55em) translateY(0); opacity: 1; }
+    70% { transform: translateX(-70em) translateY(0); opacity: 0; }
+    100% { transform: translateX(0) translateY(0); opacity: 0; }
+  }
+
+  @keyframes glowing-stars {
+    0% { opacity: 0; }
+    50% { opacity: 1; }
+    100% { opacity: 0; }
+  }
+
+  @keyframes wobble {
+    0%, 100% { transform: translate(0, 0); }
+    25% { transform: translate(-2px, -10px); }
+    50% { transform: translate(2px, 3px); }
+    75% { transform: translate(-1px, 5px); }
+  }
+
+  @keyframes blurMove {
+    0%, 100% { text-shadow: 5px 5px 20px rgba(255, 255, 255, 0.8), 10px 10px 30px rgba(255, 0, 255, 0.6); }
+    50% { filter: blur(1px); text-shadow: 10px 10px 25px rgba(255, 255, 255, 0.8), 15px 15px 35px rgba(255, 0, 255, 0.6); }
   }
 `;
 
@@ -340,9 +447,9 @@ function Auth() {
       const meteor = document.createElement('div');
       meteor.className = 'meteor';
       const startX = Math.random() * 100; // Случайный X от 0 до 100vw
-      const startY = Math.random() * -100; // Случайный Y от -100px до 0
+      const startY = Math.random() * -100; // Случайный Y от -100vh до 0
       const angle = Math.random() * 360; // Случайный угол вращения
-      meteor.style.transform = `translateX(${startX}vw) translateY(${startY}px) rotate(${angle}deg)`;
+      meteor.style.transform = `translateX(${startX}vw) translateY(${startY}vh) rotate(${angle}deg)`;
       meteor.style.setProperty('--i', `${i * 0.6}s`); // Разные задержки для метеоров
       stars.appendChild(meteor);
     }
@@ -369,7 +476,8 @@ function Auth() {
             React.createElement('label', { className: 'text' }, 'Войти через Twitch')
           ]
         )
-      )
+      ),
+      React.createElement(Animations, null)
     ]
   );
 }
