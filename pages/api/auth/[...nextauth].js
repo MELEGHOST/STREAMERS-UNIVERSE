@@ -1,7 +1,7 @@
-const NextAuth = require('next-auth');
-const TwitchProvider = require('next-auth/providers/twitch');
+import NextAuth from 'next-auth';
+import TwitchProvider from 'next-auth/providers/twitch';
 
-module.exports = NextAuth({
+export default NextAuth({
   providers: [
     TwitchProvider({
       clientId: process.env.TWITCH_CLIENT_ID,
