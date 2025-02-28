@@ -1,12 +1,14 @@
-import { useEffect } from 'react';
-import { useRouter } from 'next/router';
+const React = require('react');
+const { useRouter } = require('next/router');
 
-export default function Home() {
+function Home() {
   const router = useRouter();
 
-  useEffect(() => {
+  React.useEffect(() => {
     router.push('/auth');
   }, [router]);
 
-  return null; // Ничего не рендерим, так как сразу редиректим
+  return null;
 }
+
+module.exports = Home;
