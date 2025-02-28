@@ -6,6 +6,11 @@ export default NextAuth({
     TwitchProvider({
       clientId: process.env.TWITCH_CLIENT_ID,
       clientSecret: process.env.TWITCH_CLIENT_SECRET,
+      authorization: {
+        params: {
+          scope: 'user:read:email',
+        },
+      },
     }),
   ],
   callbacks: {
@@ -20,4 +25,5 @@ export default NextAuth({
       return session;
     },
   },
+  secret: process.env.NEXTAUTH_SECRET,
 });
