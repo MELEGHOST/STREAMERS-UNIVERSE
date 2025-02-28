@@ -4,7 +4,7 @@ const { useRouter } = require('next/router');
 const styled = require('styled-components').default;
 
 const Container = styled.div`
-  background: linear-gradient(to bottom, #0a0a2a, #1a1a4a); /* Тёмный космический градиент */
+  background: linear-gradient(to bottom, #0a0a2a, #1a1a4a); /* Базовый тёмный градиент */
   min-height: 100vh;
   display: flex;
   flex-direction: column;
@@ -14,11 +14,12 @@ const Container = styled.div`
   font-family: 'Arial', sans-serif;
   overflow: hidden;
   position: relative;
+  animation: pulse 5s infinite ease-in-out; /* Пульсация фона */
 `;
 
 const Logo = styled.img`
   max-width: 250px;
-  margin-bottom: 60px; /* Увеличен отступ, чтобы лого было выше кнопки */
+  margin-bottom: 60px; /* Лого выше кнопки */
 `;
 
 const AuthButton = styled.button`
@@ -78,9 +79,33 @@ const Stars = styled.div`
     animation: twinkle 2s infinite alternate 1s;
   }
 
+  & .meteor {
+    position: absolute;
+    width: 3px;
+    height: 3px;
+    border-radius: 50%;
+    background: #fff;
+    box-shadow: 0 0 10px #fff;
+    animation: meteor 5s linear infinite;
+  }
+
   @keyframes twinkle {
     from { opacity: 0.5; }
     to { opacity: 1; }
+  }
+
+  @keyframes meteor {
+    0% { transform: translateX(100vw) translateY(-100px); opacity: 0; }
+    50% { transform: translateX(-50vw) translateY(50vh); opacity: 1; }
+    100% { transform: translateX(-100vw) translateY(100vh); opacity: 0; }
+  }
+`;
+
+const Animations = styled.style`
+  @keyframes pulse {
+    0% { background: linear-gradient(to bottom, #0a0a2a, #1a1a4a); }
+    50% { background: linear-gradient(to bottom, #0f0f35, #1f1f55); }
+    100% { background: linear-gradient(to bottom, #0a0a2a, #1a1a4a); }
   }
 `;
 
@@ -105,13 +130,25 @@ function Auth() {
     }
   };
 
+  React.useEffect(() => {
+    // Генерируем несколько метеоров для анимации
+    const stars = document.querySelector('.stars');
+    for (let i = 0; i < 5; i++) {
+      const meteor = document.createElement('div');
+      meteor.className = 'meteor';
+      meteor.style.setProperty('--i', `${i}s`);
+      stars.appendChild(meteor);
+    }
+  }, []);
+
   return React.createElement(
     Container,
     null,
     [
-      React.createElement(Stars, null),
+      React.createElement(Stars, { className: 'stars' }),
       React.createElement(Logo, { src: '/logo.png', alt: 'Streamers Universe Logo' }),
-      React.createElement(AuthButton, { onClick: handleLogin }, 'Войти через Twitch')
+      React.createElement(AuthButton, { onClick: handleLogin }, 'Войти через Twitch'),
+      React.createElement(Animations, null)
     ]
   );
 }
