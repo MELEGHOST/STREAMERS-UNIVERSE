@@ -8,5 +8,5 @@ export default function Home() {
     router.push('/auth');
   }, [router]);
 
-  return null; // Ничего не рендерим, так как сразу редиректим
+  return null; // Ничего не рендерим, сразу редиректим
 }
