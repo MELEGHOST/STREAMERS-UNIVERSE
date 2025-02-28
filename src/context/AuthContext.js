@@ -19,6 +19,7 @@ function AuthProvider({ children }) {
   React.useEffect(() => {
     if (typeof window === 'undefined') return;
 
+    console.log('AuthContext: Starting checkLoggedIn');
     const checkLoggedIn = async () => {
       try {
         const storedUser = localStorage.getItem('user');
@@ -26,27 +27,35 @@ function AuthProvider({ children }) {
         const storedProfiles = JSON.parse(localStorage.getItem('profiles') || '[]');
         const storedStars = parseInt(localStorage.getItem('stars') || '0', 10);
 
+        console.log('AuthContext: Stored data - User:', storedUser, 'Token:', storedToken, 'Profiles:', storedProfiles, 'Stars:', storedStars);
+
         setProfiles(storedProfiles);
         setStars(storedStars);
 
         if (storedUser && storedToken) {
           const userData = JSON.parse(storedUser);
+          console.log('AuthContext: User found, setting state - User:', userData);
           setCurrentUser(userData);
           setIsAuthenticated(true);
           setIsStreamer(userData.isStreamer || false);
         } else {
+          console.log('AuthContext: No stored user or token, resetting state');
           setCurrentUser(null);
           setIsAuthenticated(false);
           setIsStreamer(false);
         }
 
         try {
+          console.log('AuthContext: Fetching /api/auth/me with token:', storedToken);
           const response = await fetch('/api/auth/me', {
             headers: { Authorization: `Bearer ${storedToken || ''}` },
           });
 
+          console.log('AuthContext: Response from /api/auth/me - Status:', response.status, 'OK:', response.ok);
+
           if (response.ok) {
             const data = await response.json();
+            console.log('AuthContext: Me API response:', data);
             setCurrentUser(data.user || null);
             setIsAuthenticated(data.isAuthenticated || false);
             setIsStreamer(data.user?.isStreamer || false);
@@ -62,6 +71,7 @@ function AuthProvider({ children }) {
               localStorage.setItem('profiles', JSON.stringify(newProfiles));
             }
           } else {
+            console.log('AuthContext: Me API failed, clearing auth');
             setCurrentUser(null);
             setIsAuthenticated(false);
             setIsStreamer(false);
@@ -69,7 +79,7 @@ function AuthProvider({ children }) {
             localStorage.removeItem('token');
           }
         } catch (serverError) {
-          console.error('Server auth check failed:', serverError);
+          console.error('AuthContext: Server error in /api/auth/me:', serverError);
           if (!storedUser || !storedToken) {
             setCurrentUser(null);
             setIsAuthenticated(false);
@@ -79,13 +89,14 @@ function AuthProvider({ children }) {
           }
         }
       } catch (error) {
-        console.error('Auth check failed:', error);
+        console.error('AuthContext: Error in checkLoggedIn:', error);
         setCurrentUser(null);
         setIsAuthenticated(false);
         setIsStreamer(false);
         localStorage.removeItem('user');
         localStorage.removeItem('token');
       } finally {
+        console.log('AuthContext: CheckLoggedIn completed, loading:', loading, 'isAuthenticated:', isAuthenticated);
         setLoading(false);
       }
     };
@@ -96,8 +107,10 @@ function AuthProvider({ children }) {
   const login = async (data) => {
     if (typeof window === 'undefined') return;
 
+    console.log('AuthContext: Starting login with data:', data);
     try {
       if (data.user) {
+        console.log('AuthContext: Logging in with user data:', data.user);
         setCurrentUser(data.user);
         setIsAuthenticated(true);
         setIsStreamer(data.user.isStreamer || false);
@@ -115,17 +128,22 @@ function AuthProvider({ children }) {
       }
 
       if (data.code) {
+        console.log('AuthContext: Exchanging Twitch code for token:', data.code);
         const response = await fetch('/api/auth/twitch/callback', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ code: data.code }),
         });
 
+        console.log('AuthContext: Twitch callback response - Status:', response.status, 'OK:', response.ok);
+
         if (!response.ok) {
           throw new Error(`Twitch auth failed: ${response.status}`);
         }
 
         const authData = await response.json();
+        console.log('AuthContext: Auth data from Twitch:', authData);
+
         const twitchResponse = await axios.get(`https://api.twitch.tv/helix/users`, {
           headers: {
             'Client-ID': process.env.TWITCH_CLIENT_ID,
@@ -160,6 +178,7 @@ function AuthProvider({ children }) {
           userData.subscriptions = (subsResponse.data.data || []).map(sub => sub.broadcaster_name);
         }
 
+        console.log('AuthContext: User data after login:', userData);
         setCurrentUser(userData);
         setIsAuthenticated(true);
         setIsStreamer(userData.isStreamer);
@@ -175,7 +194,7 @@ function AuthProvider({ children }) {
         router.push('/profile');
       }
     } catch (error) {
-      console.error('Login error:', error);
+      console.error('AuthContext: Login error:', error);
       throw error;
     }
   };
@@ -183,11 +202,13 @@ function AuthProvider({ children }) {
   const logout = async () => {
     if (typeof window === 'undefined') return;
 
+    console.log('AuthContext: Starting logout');
     try {
       await fetch('/api/auth/logout', { method: 'POST', headers: { Authorization: `Bearer ${localStorage.getItem('token') || ''}` } });
     } catch (error) {
-      console.error('Logout error:', error);
+      console.error('AuthContext: Logout error:', error);
     } finally {
+      console.log('AuthContext: Logout completed, clearing state');
       setCurrentUser(null);
       setIsAuthenticated(false);
       setIsStreamer(false);
@@ -197,6 +218,7 @@ function AuthProvider({ children }) {
   };
 
   const switchProfile = (profileId) => {
+    console.log('AuthContext: Switching profile to:', profileId);
     const profile = profiles.find(p => p.id === profileId);
     if (profile) {
       setCurrentUser(profile);
@@ -205,7 +227,7 @@ function AuthProvider({ children }) {
       localStorage.setItem('user', JSON.stringify(profile));
       router.push('/profile');
     } else {
-      console.error('Profile not found:', profileId);
+      console.error('AuthContext: Profile not found:', profileId);
     }
   };
 
@@ -259,6 +281,7 @@ module.exports = {
   useAuth: () => {
     const context = React.useContext(AuthContext);
     if (!context) throw new Error('useAuth must be used within an AuthProvider');
+    console.log('useAuth: Context value - isAuthenticated:', context.isAuthenticated, 'Stars:', context.stars);
     return context;
   }
 };
