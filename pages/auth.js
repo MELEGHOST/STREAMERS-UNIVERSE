@@ -356,7 +356,7 @@ const Stars = styled.div`
 
   @keyframes meteor {
     0% {
-      transform: translateX(${Math.random() * 100}vw) translateY(${Math.random() * -100}vh) rotate(${Math.random() * 360}deg);
+      transform: translateX(${Math.random() * 100}vw) translateY(${Math.random() * 100}vh) rotate(${Math.random() * 360}deg);
       opacity: 0;
     }
     50% {
@@ -375,31 +375,6 @@ const Animations = styled.style`
     0% { background: linear-gradient(to bottom, #0a0a2a, #1a1a4a); }
     50% { background: linear-gradient(to bottom, #0f0f35, #1b1b4b); }
     100% { background: linear-gradient(to bottom, #0a0a2a, #1a1a4a); }
-  }
-
-  @keyframes shootingStar {
-    0% { transform: translateX(0) translateY(0); opacity: 1; }
-    50% { transform: translateX(-55em) translateY(0); opacity: 1; }
-    70% { transform: translateX(-70em) translateY(0); opacity: 0; }
-    100% { transform: translateX(0) translateY(0); opacity: 0; }
-  }
-
-  @keyframes glowing-stars {
-    0% { opacity: 0; }
-    50% { opacity: 1; }
-    100% { opacity: 0; }
-  }
-
-  @keyframes wobble {
-    0%, 100% { transform: translate(0, 0); }
-    25% { transform: translate(-2px, -10px); }
-    50% { transform: translate(2px, 3px); }
-    75% { transform: translate(-1px, 5px); }
-  }
-
-  @keyframes blurMove {
-    0%, 100% { text-shadow: 5px 5px 20px rgba(255, 255, 255, 0.8), 10px 10px 30px rgba(255, 0, 255, 0.6); }
-    50% { filter: blur(1px); text-shadow: 10px 10px 25px rgba(255, 255, 255, 0.8), 15px 15px 35px rgba(255, 0, 255, 0.6); }
   }
 `;
 
