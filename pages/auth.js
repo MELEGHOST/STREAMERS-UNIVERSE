@@ -8,12 +8,14 @@ function Auth() {
 
   const handleTwitchLogin = async () => {
     try {
+      console.log('Initiating Twitch login with role:', role);
       const response = await fetch('/api/auth/twitch', { method: 'GET' });
       if (response.ok) {
         const { url } = await response.json();
+        console.log('Twitch auth URL:', url);
         window.location.href = url + (role ? `&state=${role}` : '');
       } else {
-        console.error('Failed to initiate Twitch login');
+        console.error('Failed to initiate Twitch login:', await response.text());
       }
     } catch (err) {
       console.error('Error initiating Twitch login:', err);
