@@ -1,33 +1,33 @@
-// src/context/AuthContext.js
 "use client";
 
 const React = require('react');
 const { useRouter } = require('next/router');
+const axios = require('axios');
 
-// Типы для данных пользователя и профилей (оставляем как комментарии для совместимости с TypeScript, если используется)
 const AuthContext = React.createContext();
 
 function AuthProvider({ children }) {
-  // Состояния для хранения данных пользователя
   const [currentUser, setCurrentUser] = React.useState(null);
   const [loading, setLoading] = React.useState(true);
   const [isAuthenticated, setIsAuthenticated] = React.useState(false);
   const [isStreamer, setIsStreamer] = React.useState(false);
-  const [profiles, setProfiles] = React.useState([]); // Список всех авторизованных профилей
+  const [profiles, setProfiles] = React.useState([]); // Список профилей
+  const [stars, setStars] = React.useState(0); // Telegram Stars как валюта
   const router = useRouter();
+  const moment = require('moment-timezone');
 
   React.useEffect(() => {
     if (typeof window === 'undefined') return;
 
-    // Проверка статуса авторизации при загрузке
     const checkLoggedIn = async () => {
       try {
-        // Сначала проверяем localStorage
         const storedUser = localStorage.getItem('user');
         const storedToken = localStorage.getItem('token');
         const storedProfiles = JSON.parse(localStorage.getItem('profiles') || '[]');
-        
+        const storedStars = parseInt(localStorage.getItem('stars') || '0', 10);
+
         setProfiles(storedProfiles);
+        setStars(storedStars);
 
         if (storedUser && storedToken) {
           const userData = JSON.parse(storedUser);
@@ -41,22 +41,18 @@ function AuthProvider({ children }) {
         }
 
         try {
-          // Проверка авторизации на сервере
           const response = await fetch('/api/auth/me', {
-            headers: {
-              Authorization: `Bearer ${storedToken || ''}`,
-            },
+            headers: { Authorization: `Bearer ${storedToken || ''}` },
           });
-          
+
           if (response.ok) {
             const data = await response.json();
             setCurrentUser(data.user || null);
             setIsAuthenticated(data.isAuthenticated || false);
-            setIsStreamer(data.isStreamer || false);
+            setIsStreamer(data.user?.isStreamer || false);
             if (data.user) {
               localStorage.setItem('user', JSON.stringify(data.user));
               localStorage.setItem('token', storedToken || '');
-              // Обновляем список профилей, если их ещё нет
               const newProfiles = [...new Set([...storedProfiles, { 
                 id: data.user.id, 
                 name: data.user.name, 
@@ -73,7 +69,7 @@ function AuthProvider({ children }) {
             localStorage.removeItem('token');
           }
         } catch (serverError) {
-          console.error('Ошибка проверки на сервере:', serverError);
+          console.error('Server auth check failed:', serverError);
           if (!storedUser || !storedToken) {
             setCurrentUser(null);
             setIsAuthenticated(false);
@@ -83,7 +79,7 @@ function AuthProvider({ children }) {
           }
         }
       } catch (error) {
-        console.error('Ошибка проверки авторизации:', error);
+        console.error('Auth check failed:', error);
         setCurrentUser(null);
         setIsAuthenticated(false);
         setIsStreamer(false);
@@ -93,13 +89,13 @@ function AuthProvider({ children }) {
         setLoading(false);
       }
     };
-    
+
     checkLoggedIn();
   }, []);
 
   const login = async (data) => {
     if (typeof window === 'undefined') return;
-    
+
     try {
       if (data.user) {
         setCurrentUser(data.user);
@@ -107,7 +103,6 @@ function AuthProvider({ children }) {
         setIsStreamer(data.user.isStreamer || false);
         localStorage.setItem('token', data.token || '');
         localStorage.setItem('user', JSON.stringify(data.user));
-        // Обновляем список профилей
         const newProfiles = [...new Set([...profiles, { 
           id: data.user.id, 
           name: data.user.name, 
@@ -115,75 +110,65 @@ function AuthProvider({ children }) {
         }])];
         setProfiles(newProfiles);
         localStorage.setItem('profiles', JSON.stringify(newProfiles));
-        console.log('Login successful, redirecting to /profile:', data.user); // Отладка
-        router.push('/profile'); // Перенаправляем на профиль после успешного входа
+        router.push('/profile');
         return;
       }
-      
+
       if (data.code) {
-        // Обмен кода на токен через сервер
         const response = await fetch('/api/auth/twitch/callback', {
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
+          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ code: data.code }),
         });
-        
-        console.log('Twitch callback response in AuthContext:', { 
-          status: response.status, 
-          statusText: response.statusText, 
-          ok: response.ok 
-        }); // Отладка
 
         if (!response.ok) {
-          const errorText = await response.text();
-          throw new Error(`Не удалось авторизоваться через Twitch: ${response.status} - ${errorText}`);
+          throw new Error(`Twitch auth failed: ${response.status}`);
         }
-        
-        const authData = await response.json();
-        let userData = authData.user;
 
-        if (!userData.isStreamer) {
-          // Для подписчика получаем данные о подписках
+        const authData = await response.json();
+        const twitchResponse = await axios.get(`https://api.twitch.tv/helix/users`, {
+          headers: {
+            'Client-ID': process.env.TWITCH_CLIENT_ID,
+            'Authorization': `Bearer ${authData.token}`,
+          },
+        });
+
+        let userData = twitchResponse.data.data[0];
+        const followersResponse = await axios.get(`https://api.twitch.tv/helix/users/follows?to_id=${userData.id}`, {
+          headers: {
+            'Client-ID': process.env.TWITCH_CLIENT_ID,
+            'Authorization': `Bearer ${authData.token}`,
+          },
+        });
+
+        const followersCount = followersResponse.data.total || 0;
+
+        if (!userData.isStreamer && followersCount < 265) {
           userData = {
             id: userData.id,
-            name: userData.name, // Используем реальный никнейм из Twitch
+            name: userData.display_name,
             isStreamer: false,
-            followers: 0,
-            subscriptions: [], // Инициализируем пустой массив подписок
+            followers: followersCount,
+            subscriptions: [],
           };
-          // Получаем данные о подписках через Twitch API
-          const subscriptionsResponse = await fetch(`https://api.twitch.tv/helix/subscriptions/user?broadcaster_id=${userData.id}`, {
+          // Получаем данные о подписках (если пользователь подписчик)
+          const subsResponse = await axios.get(`https://api.twitch.tv/helix/subscriptions/user?broadcaster_id=${userData.id}`, {
             headers: {
               'Client-ID': process.env.TWITCH_CLIENT_ID,
               'Authorization': `Bearer ${authData.token}`,
             },
           });
-          if (subscriptionsResponse.ok) {
-            const subscriptionsData = await subscriptionsResponse.json();
-            userData.subscriptions = subscriptionsData.data.map(sub => sub.broadcaster_name) || [];
-          } else {
-            userData.subscriptions = []; // Устанавливаем пустой массив при ошибке
-            console.log('Subscriptions error in AuthContext:', { 
-              status: subscriptionsResponse.status, 
-              statusText: subscriptionsResponse.statusText 
-            }); // Отладка
-          }
+          userData.subscriptions = (subsResponse.data.data || []).map(sub => sub.broadcaster_name);
         } else {
-          // Для стримера используем реальные данные из Twitch
-          if (userData.followers < 265) {
-            throw new Error('Недостаточно подписчиков для регистрации как стример (требуется минимум 265)');
-          }
           userData.isStreamer = true;
+          userData.followers = followersCount;
         }
 
         setCurrentUser(userData);
         setIsAuthenticated(true);
-        setIsStreamer(userData.isStreamer || false);
-        localStorage.setItem('token', authData.token || '');
+        setIsStreamer(userData.isStreamer);
+        localStorage.setItem('token', authData.token);
         localStorage.setItem('user', JSON.stringify(userData));
-        // Обновляем список профилей
         const newProfiles = [...new Set([...profiles, { 
           id: userData.id, 
           name: userData.name, 
@@ -191,53 +176,68 @@ function AuthProvider({ children }) {
         }])];
         setProfiles(newProfiles);
         localStorage.setItem('profiles', JSON.stringify(newProfiles));
-        console.log('Login successful with user data, redirecting to /profile:', userData); // Отладка
-        router.push('/profile'); // Перенаправляем на профиль после успешного входа
+        router.push('/profile');
       }
     } catch (error) {
-      console.error('Ошибка входа:', error);
+      console.error('Login error:', error);
       throw error;
     }
   };
 
   const logout = async () => {
     if (typeof window === 'undefined') return;
-    
+
     try {
-      // Вызов API для выхода
-      await fetch('/api/auth/logout', {
-        method: 'POST',
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem('token') || ''}`,
-        },
-      });
+      await fetch('/api/auth/logout', { method: 'POST', headers: { Authorization: `Bearer ${localStorage.getItem('token') || ''}` } });
     } catch (error) {
-      console.error('Ошибка выхода:', error);
+      console.error('Logout error:', error);
     } finally {
-      // Очистка данных независимо от ответа сервера
       setCurrentUser(null);
       setIsAuthenticated(false);
       setIsStreamer(false);
-      localStorage.clear(); // Полная очистка localStorage для сброса всех данных
-      console.log('Logged out, localStorage cleared, redirecting to /'); // Отладка
-      router.push('/'); // Перенаправляем на главную страницу
+      localStorage.clear();
+      router.push('/');
     }
   };
 
   const switchProfile = (profileId) => {
-    // Функция для смены профиля на основе ID
     const profile = profiles.find(p => p.id === profileId);
     if (profile) {
       setCurrentUser(profile);
       setIsAuthenticated(true);
-      setIsStreamer(profile.isStreamer || false);
+      setIsStreamer(profile.isStreamer);
       localStorage.setItem('user', JSON.stringify(profile));
-      // Здесь можно добавить запрос к серверу для проверки токена, если нужно
-      console.log('Switched to profile:', profile); // Отладка
       router.push('/profile');
     } else {
-      console.error('Profile not found:', profileId); // Отладка
+      console.error('Profile not found:', profileId);
     }
+  };
+
+  const earnStars = (amount) => {
+    const newStars = stars + amount;
+    setStars(newStars);
+    localStorage.setItem('stars', newStars);
+  };
+
+  const spendStars = (amount) => {
+    if (stars >= amount) {
+      const newStars = stars - amount;
+      setStars(newStars);
+      localStorage.setItem('stars', newStars);
+      return true;
+    }
+    return false;
+  };
+
+  const getGreeting = () => {
+    const userTimezone = moment.tz.guess();
+    const now = moment.tz(userTimezone);
+    const hour = now.hour();
+
+    if (hour >= 5 && hour < 12) return 'Доброе утро';
+    if (hour >= 12 && hour < 17) return 'Добрый день';
+    if (hour >= 17 && hour < 22) return 'Добрый вечер';
+    return 'Доброй ночи';
   };
 
   const value = {
@@ -246,9 +246,13 @@ function AuthProvider({ children }) {
     isStreamer,
     profiles,
     loading,
+    stars,
     login,
     logout,
-    switchProfile, // Добавляем функцию для смены профиля
+    switchProfile,
+    earnStars,
+    spendStars,
+    getGreeting,
   };
 
   return React.createElement(AuthContext.Provider, { value }, children);
@@ -258,9 +262,7 @@ module.exports = {
   AuthProvider,
   useAuth: () => {
     const context = React.useContext(AuthContext);
-    if (!context) {
-      throw new Error('useAuth must be used within an AuthProvider');
-    }
+    if (!context) throw new Error('useAuth must be used within an AuthProvider');
     return context;
   }
 };
