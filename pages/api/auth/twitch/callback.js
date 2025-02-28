@@ -38,6 +38,7 @@ async function handler(req, res) {
       name: user.display_name,
       isStreamer: followersCount >= 265,
       followers: followersCount,
+      subscriptions: [],
     };
 
     if (!userData.isStreamer) {
