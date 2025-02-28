@@ -3,6 +3,7 @@
 const React = require('react');
 const { useRouter } = require('next/router');
 const axios = require('axios');
+const moment = require('moment-timezone');
 
 const AuthContext = React.createContext();
 
@@ -11,10 +12,9 @@ function AuthProvider({ children }) {
   const [loading, setLoading] = React.useState(true);
   const [isAuthenticated, setIsAuthenticated] = React.useState(false);
   const [isStreamer, setIsStreamer] = React.useState(false);
-  const [profiles, setProfiles] = React.useState([]); // Список профилей
-  const [stars, setStars] = React.useState(0); // Telegram Stars как валюта
+  const [profiles, setProfiles] = React.useState([]);
+  const [stars, setStars] = React.useState(0);
   const router = useRouter();
-  const moment = require('moment-timezone');
 
   React.useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -133,8 +133,8 @@ function AuthProvider({ children }) {
           },
         });
 
-        let userData = twitchResponse.data.data[0];
-        const followersResponse = await axios.get(`https://api.twitch.tv/helix/users/follows?to_id=${userData.id}`, {
+        const user = twitchResponse.data.data[0];
+        const followersResponse = await axios.get(`https://api.twitch.tv/helix/users/follows?to_id=${user.id}`, {
           headers: {
             'Client-ID': process.env.TWITCH_CLIENT_ID,
             'Authorization': `Bearer ${authData.token}`,
@@ -142,26 +142,22 @@ function AuthProvider({ children }) {
         });
 
         const followersCount = followersResponse.data.total || 0;
+        let userData = {
+          id: user.id,
+          name: user.display_name,
+          isStreamer: followersCount >= 265,
+          followers: followersCount,
+          subscriptions: [],
+        };
 
-        if (!userData.isStreamer && followersCount < 265) {
-          userData = {
-            id: userData.id,
-            name: userData.display_name,
-            isStreamer: false,
-            followers: followersCount,
-            subscriptions: [],
-          };
-          // Получаем данные о подписках (если пользователь подписчик)
-          const subsResponse = await axios.get(`https://api.twitch.tv/helix/subscriptions/user?broadcaster_id=${userData.id}`, {
+        if (!userData.isStreamer) {
+          const subsResponse = await axios.get(`https://api.twitch.tv/helix/subscriptions/user?broadcaster_id=${user.id}`, {
             headers: {
               'Client-ID': process.env.TWITCH_CLIENT_ID,
               'Authorization': `Bearer ${authData.token}`,
             },
           });
           userData.subscriptions = (subsResponse.data.data || []).map(sub => sub.broadcaster_name);
-        } else {
-          userData.isStreamer = true;
-          userData.followers = followersCount;
         }
 
         setCurrentUser(userData);
