@@ -1,6 +1,4 @@
-const React = require('react');
-
-module.exports = {
+export default {
   reactStrictMode: true,
   output: "standalone",
   env: {
@@ -11,5 +9,8 @@ module.exports = {
   images: {
     domains: ["id.twitch.tv", "api.twitch.tv"],
     unoptimized: true
+  },
+  experimental: {
+    esmExternals: true // Включаем поддержку ES-модулей для внешних зависимостей
   }
 };
