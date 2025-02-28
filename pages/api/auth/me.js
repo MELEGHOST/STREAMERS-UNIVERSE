@@ -1,7 +1,6 @@
 export default async function handler(req, res) {
   try {
-    // Предполагаем, что сессия или токен проверяются middleware (например, next-auth)
-    const user = req.session?.user || null; // Замени на свою логику проверки сессии
+    const user = req.session?.user || null; // Предполагаем сессии через next-auth или кастомную логику
     if (!user) {
       return res.status(401).json({ message: 'Не авторизован' });
     }
