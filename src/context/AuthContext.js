@@ -1,53 +1,62 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+"use client";
 
-const AuthContext = createContext();
+const React = require('react');
+const { useSession, signOut } = require('next-auth/react');
+const { useRouter } = require('next/router');
 
-export function AuthProvider({ children }) {
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [user, setUser] = useState(null);
-  const [loading, setLoading] = useState(true);
+const AuthContext = React.createContext();
 
-  const checkLoggedIn = async () => {
-    try {
-      const response = await fetch('/api/auth/me', {
-        credentials: 'include', // Для отправки cookies или токенов
-      });
-      if (response.ok) {
-        const data = await response.json();
-        setUser(data.user);
-        setIsAuthenticated(true);
-      } else {
-        setUser(null);
-        setIsAuthenticated(false);
-      }
-    } catch (error) {
-      console.error('Ошибка проверки авторизации:', error);
+function AuthProvider({ children }) {
+  const { data: session, status } = useSession();
+  const router = useRouter();
+  const [isAuthenticated, setIsAuthenticated] = React.useState(false);
+  const [user, setUser] = React.useState(null);
+  const [loading, setLoading] = React.useState(true);
+
+  React.useEffect(() => {
+    if (status === 'loading') return;
+    if (session) {
+      setUser(session.user);
+      setIsAuthenticated(true);
+    } else {
       setUser(null);
       setIsAuthenticated(false);
-    } finally {
-      setLoading(false);
+    }
+    setLoading(false);
+  }, [session, status]);
+
+  const loginWithTwitch = async () => {
+    try {
+      await signIn('twitch', { callbackUrl: '/profile' });
+    } catch (error) {
+      console.error('Ошибка входа через Twitch:', error);
+      throw error;
     }
   };
 
-  const loginWithTwitch = async () => {
-    window.location.href = '/api/auth/twitch'; // Перенаправление на Twitch OAuth
-  };
-
   const logout = async () => {
-    await fetch('/api/auth/logout', { method: 'POST', credentials: 'include' });
+    await signOut({ redirect: true, callbackUrl: '/auth' });
     setUser(null);
     setIsAuthenticated(false);
   };
 
-  useEffect(() => {
-    checkLoggedIn();
-  }, []);
+  const value = {
+    isAuthenticated,
+    user,
+    loading,
+    loginWithTwitch,
+    logout,
+  };
 
-  return (
-    <AuthContext.Provider value={{ isAuthenticated, user, loading, loginWithTwitch, logout }}>
-      {children}
-    </AuthContext.Provider>
-  );
+  return React.createElement(AuthContext.Provider, { value }, children);
 }
 
-export const useAuth = () => useContext(AuthContext);
+module.exports = {
+  AuthProvider,
+  useAuth: () => {
+    const context = React.useContext(AuthContext);
+    if (!context) throw new Error('useAuth must be used within an AuthProvider');
+    console.log('useAuth: Context value - isAuthenticated:', context.isAuthenticated);
+    return context;
+  }
+};
