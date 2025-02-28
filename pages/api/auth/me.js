@@ -1,3 +1,4 @@
+// pages/api/auth/me.js
 const React = require('react');
 const axios = require('axios');
 
@@ -12,6 +13,7 @@ async function handler(req, res) {
   }
 
   try {
+    console.log('Me API: Fetching user with token:', token);
     const userResponse = await axios.get('https://api.twitch.tv/helix/users', {
       headers: {
         'Client-ID': process.env.TWITCH_CLIENT_ID,
@@ -43,8 +45,8 @@ async function handler(req, res) {
       isAuthenticated: true,
     });
   } catch (error) {
-    console.error('Me endpoint error:', error);
-    res.status(500).json({ error: 'Server error' });
+    console.error('Me API error:', error.response?.data || error.message);
+    res.status(500).json({ error: 'Failed to fetch user data: ' + (error.response?.data?.message || error.message) });
   }
 }
 
