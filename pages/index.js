@@ -1,10 +1,11 @@
 // pages/index.js
 const React = require('react');
 const { useAuth } = require('../src/context/AuthContext');
+const { useRouter } = require('next/router'); // Добавлен импорт useRouter
 const styled = require('styled-components').default;
 
 const Container = styled.div`
-  background: linear-gradient(to bottom, #001f3f, #003366);
+  background: linear-gradient(to bottom, #000022, #000044); /* Потемнее тёмно-синий */
   min-height: 100vh;
   display: flex;
   flex-direction: column;
@@ -13,13 +14,12 @@ const Container = styled.div`
   padding: 0;
   font-family: 'Arial', sans-serif;
   overflow: hidden;
+  position: relative;
 `;
 
 const Logo = styled.img`
   max-width: 200px;
   margin-bottom: 40px;
-  position: absolute;
-  top: 20px;
 `;
 
 const GalaxyButton = styled.div`
@@ -28,15 +28,15 @@ const GalaxyButton = styled.div`
     --active: 0;
     --bg: radial-gradient(
       120% 120% at 126% 126%,
-      hsl(245 calc(var(--active) * 97%) 98% / calc(var(--active) * 0.9)) 40%,
+      hsl(0 calc(var(--active) * 97%) 98% / calc(var(--active) * 0.9)) 40%,
       transparent 50%
     ) calc(100px - (var(--active) * 100px)) 0 / 100% 100% no-repeat,
     radial-gradient(
       120% 120% at 120% 120%,
-      hsl(245 calc(var(--active) * 97%) 70% / calc(var(--active) * 1)) 30%,
+      hsl(0 calc(var(--active) * 97%) 70% / calc(var(--active) * 1)) 30%,
       transparent 70%
     ) calc(100px - (var(--active) * 100px)) 0 / 100% 100% no-repeat,
-    hsl(245 calc(var(--active) * 100%) calc(12% - (var(--active) * 8%)));
+    hsl(0 calc(var(--active) * 100%) calc(12% - (var(--active) * 8%)));
     background: var(--bg);
     font-size: 1.4rem;
     font-weight: 500;
@@ -49,9 +49,9 @@ const GalaxyButton = styled.div`
     white-space: nowrap;
     border-radius: 2rem;
     position: relative;
-    box-shadow: 0 0 calc(var(--active) * 6em) calc(var(--active) * 3em) hsl(245 97% 61% / 0.5),
-      0 0.05em 0 0 hsl(245 calc(var(--active) * 97%) calc((var(--active) * 50%) + 30%)) inset,
-      0 -0.05em 0 0 hsl(245 calc(var(--active) * 97%) calc(var(--active) * 10%)) inset;
+    box-shadow: 0 0 calc(var(--active) * 6em) calc(var(--active) * 3em) hsla(12, 97%, 61%, 0.3),
+      0 0.05em 0 0 hsl(0, calc(var(--active) * 97%), calc((var(--active) * 50%) + 30%)) inset,
+      0 -0.05em 0 0 hsl(0, calc(var(--active) * 97%), calc(var(--active) * 10%)) inset;
     transition: box-shadow 0.25s ease-out, scale 0.25s, background 0.25s;
     scale: calc(1 + (var(--active) * 0.1));
     transform-style: preserve-3d;
@@ -104,7 +104,7 @@ const GalaxyButton = styled.div`
     width: 2px;
     height: 2px;
     border-radius: 50%;
-    opacity: 1;
+    opacity: 0.8;
     box-shadow: 140px 20px #fff, 425px 20px #fff, 70px 120px #fff, 20px 130px #fff, 110px 80px #fff, 280px 80px #fff, 250px 350px #fff, 280px 230px #fff, 220px 190px #fff, 450px 100px #fff, 380px 80px #fff, 520px 50px #fff;
     z-index: -1;
     transition: all 1.5s ease-in-out;
@@ -120,7 +120,7 @@ const GalaxyButton = styled.div`
     width: 2px;
     height: 2px;
     border-radius: 50%;
-    opacity: 1;
+    opacity: 0.8;
     box-shadow: 490px 330px #fff, 420px 300px #fff, 320px 280px #fff, 380px 350px #fff, 546px 170px #fff, 420px 180px #fff, 370px 150px #fff, 200px 250px #fff, 80px 20px #fff, 190px 50px #fff, 270px 20px #fff, 120px 230px #fff, 350px -1px #fff, 150px 369px #fff;
     z-index: -1;
     transition: all 2s ease-in-out;
@@ -161,14 +161,14 @@ const GalaxyButton = styled.div`
 
   @keyframes glowing-stars {
     0% { opacity: 0; }
-    50% { opacity: 1; }
+    50% { opacity: 0.8; }
     100% { opacity: 0; }
   }
 
   .text {
     translate: 2% -6%;
     letter-spacing: 0.01ch;
-    color: hsl(245 0% calc(60% + (var(--active) * 26%)));
+    color: hsl(0 0% calc(60% + (var(--active) * 26%)));
     z-index: 999;
     padding: 0 34px;
     font-weight: 600;
@@ -236,6 +236,7 @@ const GalaxyButton = styled.div`
 
 function Home() {
   const { isAuthenticated, stars } = useAuth();
+  const router = useRouter(); // Добавлен useRouter для onClick
   console.log('Index: isAuthenticated:', isAuthenticated, 'Stars:', stars);
 
   return React.createElement(
@@ -250,7 +251,7 @@ function Home() {
           'button',
           {
             className: 'space-button',
-            onClick: () => router.push('/auth'),
+            onClick: () => router.push('/auth'), // Исправлено использование router
           },
           [
             React.createElement('span', { className: 'backdrop' }),
@@ -259,7 +260,7 @@ function Home() {
           ]
         )
       ),
-      isAuthenticated && React.createElement('p', { style: { color: 'white', fontSize: '1.2em' } }, `Stars: ${stars} ⭐`)
+      isAuthenticated && React.createElement('p', { style: { color: 'white', fontSize: '1.2em', marginTop: '20px' } }, `Stars: ${stars} ⭐`)
     ]
   );
 }
