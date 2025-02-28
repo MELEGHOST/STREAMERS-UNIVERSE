@@ -1,7 +1,7 @@
-import NextAuth from 'next-auth';
-import TwitchProvider from 'next-auth/providers/twitch';
+const NextAuth = require('next-auth');
+const TwitchProvider = require('next-auth/providers/twitch');
 
-export default NextAuth({
+module.exports = NextAuth({
   providers: [
     TwitchProvider({
       clientId: process.env.TWITCH_CLIENT_ID,
@@ -9,14 +9,14 @@ export default NextAuth({
     }),
   ],
   callbacks: {
-    async jwt({ token, user }) {
-      if (user) {
-        token.id = user.id;
+    async jwt({ token, account }) {
+      if (account) {
+        token.accessToken = account.access_token;
       }
       return token;
     },
     async session({ session, token }) {
-      session.user.id = token.id;
+      session.accessToken = token.accessToken;
       return session;
     },
   },
