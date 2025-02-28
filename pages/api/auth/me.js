@@ -1,4 +1,5 @@
 const React = require('react');
+const axios = require('axios');
 
 async function handler(req, res) {
   if (req.method !== 'GET') {
@@ -11,28 +12,26 @@ async function handler(req, res) {
   }
 
   try {
-    const userResponse = await fetch('https://api.twitch.tv/helix/users', {
+    const userResponse = await axios.get('https://api.twitch.tv/helix/users', {
       headers: {
         'Client-ID': process.env.TWITCH_CLIENT_ID,
         'Authorization': `Bearer ${token}`,
       },
     });
 
-    if (!userResponse.ok) {
+    if (!userResponse.data.data || userResponse.data.data.length === 0) {
       return res.status(401).json({ error: 'Invalid token' });
     }
 
-    const userData = await userResponse.json();
-    const user = userData.data[0];
-    const followersResponse = await fetch(`https://api.twitch.tv/helix/users/follows?to_id=${user.id}`, {
+    const user = userResponse.data.data[0];
+    const followersResponse = await axios.get(`https://api.twitch.tv/helix/users/follows?to_id=${user.id}`, {
       headers: {
         'Client-ID': process.env.TWITCH_CLIENT_ID,
         'Authorization': `Bearer ${token}`,
       },
     });
 
-    const followersData = await followersResponse.json();
-    const followersCount = followersData.total || 0;
+    const followersCount = followersResponse.data.total || 0;
 
     res.status(200).json({
       user: {
