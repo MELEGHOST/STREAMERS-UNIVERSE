@@ -1,3 +1,6 @@
+import NextAuth from 'next-auth';
+import TwitchProvider from 'next-auth/providers/twitch';
+
 export const authOptions = {
   providers: [
     TwitchProvider({
@@ -35,3 +38,5 @@ export const authOptions = {
   },
   secret: process.env.NEXTAUTH_SECRET,
 };
+
+export default NextAuth(authOptions);
