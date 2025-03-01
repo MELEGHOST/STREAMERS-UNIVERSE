@@ -1,7 +1,7 @@
 import { getServerSession } from 'next-auth/next';
-import { authOptions } from '../[...nextauth]';
+import { authOptions } from '../[...nextauth]'; // Путь уже правильный, оставляем как есть
 
-export default async function handler(req, res) {
+export default async function handler(req, redirectTo, res) {
   try {
     if (req.method !== 'GET') {
       return res.status(405).json({ error: 'Method not allowed' });
@@ -14,6 +14,7 @@ export default async function handler(req, res) {
     // Construct the URL for the next-auth sign-in
     const url = `${baseUrl}/api/auth/signin/twitch?callbackUrl=${encodeURIComponent(callbackUrl)}`;
     
+    // Use res.redirect for server-side redirection
     res.redirect(url);
   } catch (error) {
     console.error('Ошибка /api/auth/twitch:', error);
