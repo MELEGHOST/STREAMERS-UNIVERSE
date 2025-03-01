@@ -1,3 +1,5 @@
+"use client";
+
 import { useState, useEffect } from 'react';
 import { SessionProvider } from 'next-auth/react';
 import { AuthProvider } from '../src/context/AuthContext';
