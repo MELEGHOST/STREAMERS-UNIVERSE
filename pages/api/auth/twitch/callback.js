@@ -1,6 +1,6 @@
 import axios from 'axios';
 import { getServerSession } from 'next-auth/next';
-import { authOptions } from './[...nextauth]'; // Указан путь к файлу [..nextauth].js в той же папке
+import { authOptions } from './[...nextauth]'; // Путь уже правильный, оставляем как есть
 
 export default async function handler(req, res) {
   if (req.method !== 'GET') {
@@ -42,15 +42,20 @@ export default async function handler(req, res) {
     console.log('Twitch callback: User response:', userResponse.data);
     const user = userResponse.data.data[0];
 
-    // Получаем сессию через next-auth
+    // Сохраняем в сессии через next-auth
     const session = await getServerSession(req, res, authOptions);
     if (!session) {
       return res.status(401).json({ error: 'No session found' });
     }
 
-    // Сохраняем токен и пользователя в сессии
     session.user = { ...session.user, ...user, accessToken: token };
     session.accessToken = token;
+
+    // Сохраняем токен и пользователя в localStorage для персистентности (Telegram Mini App)
+    if (typeof window !== 'undefined') { // Проверяем, что код выполняется на клиенте
+      localStorage.setItem('twitchToken', token);
+      localStorage.setItem('twitchUser', JSON.stringify(user));
+    }
 
     res.status(200).json({ user, token });
   } catch (error) {
