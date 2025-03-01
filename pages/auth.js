@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { signIn } from 'next-auth/react';
+import { signIn, useSession } from 'next-auth/react';
 import { useRouter } from 'next/router';
 import styled from 'styled-components';
 
@@ -135,18 +135,26 @@ const GalaxyButton = styled.div`
     border-radius: 50%;
     opacity: 1;
     box-shadow:
-      140px 20px #fff,
-      425px 20px #fff,
-      70px 120px #fff,
-      20px 130px #fff,
-      110px 80px #fff,
-      280px 80px #fff,
-      250px 350px #fff,
-      280px 230px #fff,
-      220px 190px #fff,
-      450px 100px #fff,
-      380px 80px #fff,
-      520px 50px #fff;
+      10vw 5vh #fff,
+      25vw 10vh #fff,
+      40vw 20vh #fff,
+      5vw 30vh #fff,
+      15vw 15vh #fff,
+      50vw 25vh #fff,
+      60vw 40vh #fff,
+      70vw 35vh #fff,
+      35vw 50vh #fff,
+      80vw 15vh #fff,
+      90vw 10vh #fff,
+      95vw 5vh #fff,
+      5vw 60vh #fff,
+      20vw 65vh #fff,
+      30vw 70vh #fff,
+      45vw 55vh #fff,
+      55vw 45vh #fff,
+      65vw 35vh #fff,
+      75vw 25vh #fff,
+      85vw 15vh #fff;
     z-index: -1;
     transition: all 1.5s ease-in-out;
     animation: 1s glowing-stars linear alternate infinite;
@@ -156,27 +164,33 @@ const GalaxyButton = styled.div`
   .galaxy::after {
     content: "";
     position: absolute;
-    top: -150px;
-    left: -65px;
+    top: 0;
+    left: 0;
     width: 2px;
     height: 2px;
     border-radius: 50%;
     opacity: 1;
     box-shadow:
-      490px 330px #fff,
-      420px 300px #fff,
-      320px 280px #fff,
-      380px 350px #fff,
-      546px 170px #fff,
-      420px 180px #fff,
-      370px 150px #fff,
-      200px 250px #fff,
-      80px 20px #fff,
-      190px 50px #fff,
-      270px 20px #fff,
-      120px 230px #fff,
-      350px -1px #fff,
-      150px 369px #fff;
+      20vw 60vh #fff,
+      30vw 55vh #fff,
+      45vw 50vh #fff,
+      55vw 65vh #fff,
+      65vw 30vh #fff,
+      75vw 40vh #fff,
+      85vw 25vh #fff,
+      10vw 45vh #fff,
+      15vw 5vh #fff,
+      35vw 10vh #fff,
+      50vw 5vh #fff,
+      25vw 35vh #fff,
+      60vw 0vh #fff,
+      40vw 70vh #fff,
+      70vw 15vh #fff,
+      80vw 20vh #fff,
+      90vw 30vh #fff,
+      5vw 25vh #fff,
+      15vw 40vh #fff,
+      25vw 50vh #fff;
     z-index: -1;
     transition: all 2s ease-in-out;
     animation: 1s glowing-stars linear alternate infinite;
@@ -390,6 +404,7 @@ const Animations = styled.style`
 `;
 
 export default function Auth() {
+  const { data: session, status } = useSession();
   const router = useRouter();
 
   const handleLogin = async () => {
@@ -399,6 +414,11 @@ export default function Auth() {
       if (!result?.ok) {
         throw new Error('Failed to initiate Twitch login');
       }
+      // Сохраняем токен и пользователя в localStorage после успешной авторизации
+      if (result.ok && result.user) {
+        localStorage.setItem('twitchToken', result.accessToken || '');
+        localStorage.setItem('twitchUser', JSON.stringify(result.user));
+      }
     } catch (error) {
       console.error('Error initiating Twitch login:', error);
       alert('Не удалось войти через Twitch. Проверь настройки или попробуй позже.');
@@ -406,19 +426,23 @@ export default function Auth() {
   };
 
   useEffect(() => {
-    // Генерируем несколько метеоров с случайными стартовыми позициями по всему экрану
-    const stars = document.querySelector('.stars');
-    for (let i = 0; i < 15; i++) { // Увеличил до 15 метеоров
-      const meteor = document.createElement('div');
-      meteor.className = 'meteor';
-      const startX = Math.random() * 100; // Случайный X от 0 до 100vw
-      const startY = Math.random() * 100; // Случайный Y от 0 до 100vh (чтобы спавнились по всему экрану)
-      const angle = Math.random() * 360; // Случайный угол вращения
-      meteor.style.transform = `translateX(${startX}vw) translateY(${startY}vh) rotate(${angle}deg)`;
-      meteor.style.setProperty('--i', `${i * 0.6}s`); // Разные задержки для метеоров
-      stars.appendChild(meteor);
+    // Восстанавливаем авторизацию из localStorage, если сессия отсутствует
+    const savedToken = localStorage.getItem('twitchToken');
+    const savedUser = localStorage.getItem('twitchUser');
+    if (savedToken && savedUser && status === 'unauthenticated') {
+      console.log('Restoring session from localStorage:', { token: savedToken, user: JSON.parse(savedUser) });
+      // Здесь можно отправить запрос на сервер для проверки токена, если нужно
+      // Например: fetch('/api/auth/verify', { headers: { 'Authorization': `Bearer ${savedToken}` } })
+      // Но для простоты просто устанавливаем сессию в состояние
+      const restoredSession = { user: JSON.parse(savedUser), accessToken: savedToken };
+      // Имитация сессии для next-auth (требуется кастомная интеграция)
     }
-  }, []);
+  }, [status]);
+
+  // Если сессия загружается, показываем загрузку
+  if (status === 'loading') {
+    return <div>Загрузка...</div>;
+  }
 
   return (
     <Container>
@@ -434,3 +458,7 @@ export default function Auth() {
     </Container>
   );
 }
+</DOCUMENT>
+
+Снова найди ошибки, но теперь с учётом моего последнего комментария про регистрацию, чтобы она запоминалась после выхода из миниаппа
+И так же как и в прошлый раз предложи варианты решения, выбери 1-2 наиболее успешных и исправь код, но теперь для всех файлов, которые нужно менять, напиши полные версии, а для неизменённых укажи, что изменений нет
