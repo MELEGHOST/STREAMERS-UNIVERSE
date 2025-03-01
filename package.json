@@ -12,7 +12,9 @@
     "react": "19.0.0",
     "react-dom": "19.0.0",
     "axios": "^1.7.7",
-    "next-auth": "^4.24.11"
+    "next-auth": "4.24.11",
+    "prisma": "^5.17.0", // Для работы с базой данных
+    "@prisma/client": "^5.17.0"
   },
   "devDependencies": {
     "typescript": "5.7.3",
@@ -23,5 +25,5 @@
   "engines": {
     "node": ">=20.0.0"
   },
-  "type": "module" 
+  "type": "module"
 }
