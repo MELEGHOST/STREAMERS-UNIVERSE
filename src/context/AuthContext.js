@@ -1,53 +1,96 @@
+"use client";
+
 import React, { createContext, useContext, useState, useEffect } from 'react';
+import { useSession, signOut } from 'next-auth/react';
+import { useRouter } from 'next/router';
 
 const AuthContext = createContext();
 
 export function AuthProvider({ children }) {
+  const { data: session, status } = useSession();
+  const router = useRouter();
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  const checkLoggedIn = async () => {
-    try {
-      const response = await fetch('/api/auth/me', {
-        credentials: 'include',
-      });
-      if (response.ok) {
-        const data = await response.json();
-        setUser(data.user);
-        setIsAuthenticated(true);
-      } else {
-        setUser(null);
-        setIsAuthenticated(false);
+  useEffect(() => {
+    if (status === 'loading') return;
+    const savedToken = localStorage.getItem('twitchToken');
+    const savedUser = localStorage.getItem('twitchUser');
+    if (session) {
+      setUser(session.user);
+      setIsAuthenticated(true);
+      // Сохраняем в localStorage для персистентности
+      if (session.user && session.accessToken) {
+        localStorage.setItem('twitchToken', session.accessToken);
+        localStorage.setItem('twitchUser', JSON.stringify(session.user));
       }
-    } catch (error) {
-      console.error('Ошибка проверки авторизации:', error);
+    } else if (savedToken && savedUser && status === 'unauthenticated') {
+      // Восстанавливаем сессию из localStorage
+      console.log('Restoring session from localStorage:', { token: savedToken, user: JSON.parse(savedUser) });
+      fetch('/api/auth/verify', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${savedToken}` },
+        body: JSON.stringify({ user: JSON.parse(savedUser) }),
+      })
+        .then(response => response.json())
+        .then(data => {
+          if (data.valid) {
+            setUser(JSON.parse(savedUser));
+            setIsAuthenticated(true);
+          } else {
+            localStorage.removeItem('twitchToken');
+            localStorage.removeItem('twitchUser');
+            setUser(null);
+            setIsAuthenticated(false);
+          }
+        })
+        .catch(error => {
+          console.error('Error verifying token:', error);
+          localStorage.removeItem('twitchToken');
+          localStorage.removeItem('twitchUser');
+          setUser(null);
+          setIsAuthenticated(false);
+        })
+        .finally(() => setLoading(false));
+    } else {
       setUser(null);
       setIsAuthenticated(false);
-    } finally {
       setLoading(false);
+    }
+  }, [session, status]);
+
+  const loginWithTwitch = async () => {
+    try {
+      await signIn('twitch', { callbackUrl: '/profile' });
+    } catch (error) {
+      console.error('Ошибка входа через Twitch:', error);
+      throw error;
     }
   };
 
-  const loginWithTwitch = async () => {
-    window.location.href = '/api/auth/twitch';
-  };
-
   const logout = async () => {
-    await fetch('/api/auth/logout', { method: 'POST', credentials: 'include' });
+    await signOut({ redirect: true, callbackUrl: '/auth' });
+    localStorage.removeItem('twitchToken');
+    localStorage.removeItem('twitchUser');
     setUser(null);
     setIsAuthenticated(false);
   };
 
-  useEffect(() => {
-    checkLoggedIn();
-  }, []);
+  const value = {
+    isAuthenticated,
+    user,
+    loading,
+    loginWithTwitch,
+    logout,
+  };
 
-  return (
-    <AuthContext.Provider value={{ isAuthenticated, user, loading, loginWithTwitch, logout }}>
-      {children}
-    </AuthContext.Provider>
-  );
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
 
-export const useAuth = () => useContext(AuthContext);
+export const useAuth = () => {
+  const context = useContext(AuthContext);
+  if (!context) throw new Error('useAuth must be used within an AuthProvider');
+  console.log('useAuth: Context value - isAuthenticated:', context.isAuthenticated);
+  return context;
+};
