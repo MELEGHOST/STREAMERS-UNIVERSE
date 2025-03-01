@@ -1,15 +1,12 @@
-import NextAuth from 'next-auth';
-import TwitchProvider from 'next-auth/providers/twitch';
-
-export default NextAuth({
+export const authOptions = {
   providers: [
     TwitchProvider({
       clientId: process.env.TWITCH_CLIENT_ID,
       clientSecret: process.env.TWITCH_CLIENT_SECRET,
-      redirectUri: process.env.TWITCH_REDIRECT_URI, // Добавляем TWITCH_REDIRECT_URI
+      redirectUri: process.env.TWITCH_REDIRECT_URI,
       authorization: {
         params: {
-          scope: 'user:read:email user:read:follows', // Расширяем скоуп для большего функционала
+          scope: 'user:read:email user:read:follows',
         },
       },
     }),
@@ -23,7 +20,7 @@ export default NextAuth({
         return token;
       } catch (error) {
         console.error('JWT callback error:', error);
-        return token; // Возвращаем токен, даже если ошибка
+        return token;
       }
     },
     async session({ session, token }) {
@@ -32,9 +29,9 @@ export default NextAuth({
         return session;
       } catch (error) {
         console.error('Session callback error:', error);
-        return session; // Возвращаем сессию, даже если ошибка
+        return session;
       }
     },
   },
-  secret: process.env.NEXTAUTH_SECRET, // Убедимся, что secret задан
-});
+  secret: process.env.NEXTAUTH_SECRET,
+};
