@@ -15,6 +15,13 @@ export function AuthProvider({ children }) {
 
   useEffect(() => {
     if (status === 'loading') return;
+
+    // Проверяем Telegram Mini App initData
+    if (typeof window !== 'undefined' && window.Telegram && window.Telegram.WebApp) {
+      const initData = window.Telegram.WebApp.initDataUnsafe || {};
+      console.log('Telegram initData:', initData);
+    }
+
     const savedToken = localStorage.getItem('twitchToken');
     const savedUser = localStorage.getItem('twitchUser');
     if (session) {
@@ -79,7 +86,7 @@ export function AuthProvider({ children }) {
 
   const value = {
     isAuthenticated,
-    user,
+    user, // Заменяем currentUser на user для совместимости с profile.js
     loading,
     loginWithTwitch,
     logout,
@@ -91,6 +98,5 @@ export function AuthProvider({ children }) {
 export const useAuth = () => {
   const context = useContext(AuthContext);
   if (!context) throw new Error('useAuth must be used within an AuthProvider');
-  console.log('useAuth: Context value - isAuthenticated:', context.isAuthenticated);
-  return context;
+  return context; // Убираем console.log для продакшена
 };
