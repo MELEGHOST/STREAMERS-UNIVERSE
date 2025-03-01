@@ -1,21 +1,8 @@
+"use client";
+
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../src/context/AuthContext';
-import styled from 'styled-components';
-
-const SettingsContainer = styled.div`
-  padding: 20px;
-  background-color: #f5f5f5;
-  max-width: 800px;
-  margin: 20px auto;
-  color: #333;
-`;
-
-const Select = styled.select`
-  padding: 8px;
-  margin: 5px;
-  border-radius: 5px;
-  border: 1px solid #ddd;
-`;
+import styles from './settings.module.css';
 
 export default function Settings() {
   const { user, isAuthenticated } = useAuth();
@@ -50,28 +37,28 @@ export default function Settings() {
   if (!isAuthenticated) return null;
 
   return (
-    <SettingsContainer>
+    <div className={styles.settingsContainer}>
       <h1>Настройки</h1>
-      <Select value={theme} onChange={(e) => setTheme(e.target.value)}>
+      <select className={styles.select} value={theme} onChange={(e) => setTheme(e.target.value)}>
         <option value="dark">Тёмная тема</option>
         <option value="light">Светлая тема</option>
-      </Select>
-      <Select value={fontSize} onChange={(e) => setFontSize(e.target.value)}>
+      </select>
+      <select className={styles.select} value={fontSize} onChange={(e) => setFontSize(e.target.value)}>
         <option value="small">Меньше (14px)</option>
         <option value="normal">Нормальный (16px)</option>
         <option value="large">Больше (18px)</option>
-      </Select>
-      <Select value={timezone} onChange={(e) => setTimezone(e.target.value)}>
+      </select>
+      <select className={styles.select} value={timezone} onChange={(e) => setTimezone(e.target.value)}>
         <option value="Europe/Moscow">Москва (MSK)</option>
         <option value="UTC">UTC</option>
         <option value="America/New_York">Нью-Йорк (EST)</option>
-      </Select>
-      <Select value={language} onChange={(e) => setLanguage(e.target.value)}>
+      </select>
+      <select className={styles.select} value={language} onChange={(e) => setLanguage(e.target.value)}>
         <option value="ru">Русский</option>
         <option value="en">Английский</option>
-      </Select>
-      <Button onClick={handleSaveSettings}>Сохранить</Button>
+      </select>
+      <button className={styles.button} onClick={handleSaveSettings}>Сохранить</button>
       <p>Текущий часовой пояс: {timezone}, Язык: {language === 'ru' ? 'Русский' : 'English'}</p>
-    </SettingsContainer>
+    </div>
   );
 }
