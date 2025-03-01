@@ -1,3 +1,5 @@
+"use client";
+
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../src/context/AuthContext';
 import styled from 'styled-components';
@@ -169,6 +171,8 @@ export default function Profile() {
       window.open(url, '_blank');
     }
   };
+
+  console.log('Profile component loading:', { styled, user, isAuthenticated }); // Отладка
 
   return (
     <ProfileContainer>
