@@ -2,29 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../src/context/AuthContext';
-import styled from 'styled-components';
-
-const FollowersContainer = styled.div`
-  padding: 20px;
-  background-color: #f5f5f5;
-  max-width: 800px;
-  margin: 20px auto;
-  color: #333;
-`;
-
-const RoleButton = styled.button`
-  padding: 5px 10px;
-  margin: 5px;
-  background-color: #e74c3c;
-  color: white;
-  border: none;
-  border-radius: 3px;
-  cursor: pointer;
-
-  &:hover {
-    background-color: #c0392b;
-  }
-`;
+import styles from './followers.module.css';
 
 export default function Followers() {
   const { user, isAuthenticated } = useAuth();
@@ -53,7 +31,7 @@ export default function Followers() {
   };
 
   return (
-    <FollowersContainer>
+    <div className={styles.followersContainer}>
       <h1>Мои подписчики</h1>
       {followers.length > 0 ? (
         followers.map((follower) => (
@@ -61,12 +39,12 @@ export default function Followers() {
             {follower.name} (Twitch ID: {follower.id})
             {isStreamer && (
               <>
-                <RoleButton onClick={() => handleAssignRole(follower.id, 'moderator')}>
+                <button className={styles.roleButton} onClick={() => handleAssignRole(follower.id, 'moderator')}>
                   Назначить модератором
-                </RoleButton>
-                <RoleButton onClick={() => handleAssignRole(follower.id, 'trusted')}>
+                </button>
+                <button className={styles.roleButton} onClick={() => handleAssignRole(follower.id, 'trusted')}>
                   Назначить доверенным
-                </RoleButton>
+                </button>
                 {roles[follower.id] && <span> Роль: {roles[follower.id]}</span>}
               </>
             )}
@@ -75,6 +53,6 @@ export default function Followers() {
       ) : (
         <p>У вас нет подписчиков</p>
       )}
-    </FollowersContainer>
+    </div>
   );
 }
