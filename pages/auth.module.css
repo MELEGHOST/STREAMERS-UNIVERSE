@@ -316,8 +316,37 @@
   width: 2px;
   height: 2px;
   border-radius: 50%;
-  box-shadow: 
-    ${Array.from({ length: 50 }, () => `${Math.random() * 100}vw ${Math.random() * 100}vh #fff`).join(',')};
+  box-shadow:
+    10vw 5vh #fff,
+    25vw 10vh #fff,
+    40vw 20vh #fff,
+    5vw 30vh #fff,
+    15vw 15vh #fff,
+    50vw 25vh #fff,
+    60vw 40vh #fff,
+    70vw 35vh #fff,
+    35vw 50vh #fff,
+    80vw 15vh #fff,
+    90vw 10vh #fff,
+    95vw 5vh #fff,
+    5vw 60vh #fff,
+    20vw 65vh #fff,
+    30vw 70vh #fff,
+    45vw 55vh #fff,
+    55vw 45vh #fff,
+    65vw 35vh #fff,
+    75vw 25vh #fff,
+    85vw 15vh #fff,
+    12vw 22vh #fff,
+    38vw 38vh #fff,
+    67vw 67vh #fff,
+    88vw 88vh #fff,
+    3vw 73vh #fff,
+    23vw 45vh #fff,
+    56vw 12vh #fff,
+    91vw 91vh #fff,
+    15vw 28vh #fff,
+    42vw 62vh #fff;
   animation: twinkle 3s infinite alternate;
 }
 
@@ -327,8 +356,37 @@
   width: 2px;
   height: 2px;
   border-radius: 50%;
-  box-shadow: 
-    ${Array.from({ length: 50 }, () => `${Math.random() * 100}vw ${Math.random() * 100}vh #fff`).join(',')};
+  box-shadow:
+    20vw 60vh #fff,
+    30vw 55vh #fff,
+    45vw 50vh #fff,
+    55vw 65vh #fff,
+    65vw 30vh #fff,
+    75vw 40vh #fff,
+    85vw 25vh #fff,
+    10vw 45vh #fff,
+    15vw 5vh #fff,
+    35vw 10vh #fff,
+    50vw 5vh #fff,
+    25vw 35vh #fff,
+    60vw 0vh #fff,
+    40vw 70vh #fff,
+    70vw 15vh #fff,
+    80vw 20vh #fff,
+    90vw 30vh #fff,
+    5vw 25vh #fff,
+    15vw 40vh #fff,
+    25vw 50vh #fff,
+    18vw 68vh #fff,
+    33vw 33vh #fff,
+    47vw 47vh #fff,
+    62vw 82vh #fff,
+    77vw 77vh #fff,
+    92vw 92vh #fff,
+    4vw 14vh #fff,
+    29vw 29vh #fff,
+    54vw 54vh #fff,
+    81vw 81vh #fff;
   animation: twinkle 3s infinite alternate 1.5s;
 }
 
@@ -392,72 +450,4 @@
 @keyframes blurMove {
   0%, 100% { text-shadow: 5px 5px 20px rgba(255, 255, 255, 0.8), 10px 10px 30px rgba(255, 0, 255, 0.6); }
   50% { filter: blur(1px); text-shadow: 10px 10px 25px rgba(255, 255, 255, 0.8), 15px 15px 35px rgba(255, 0, 255, 0.6); }
-}
-
-.text {
-  translate: 2% -6%;
-  letter-spacing: 0.01ch;
-  color: hsl(0 0% calc(60% + (var(--active) * 26%)));
-  z-index: 999;
-  padding: 0 34px;
-  font-weight: 600;
-  user-select: none;
-  -webkit-user-select: none;
-  -moz-user-select: none;
-  -ms-user-select: none;
-}
-
-.text::before {
-  content: "";
-  position: absolute;
-  top: -290%;
-  left: 90%;
-  rotate: -45deg;
-  width: 5em;
-  height: 1px;
-  background: linear-gradient(90deg, #ffffff, transparent);
-  animation: 4s shootingStar ease-in-out infinite;
-  transition: 1s ease;
-  z-index: -1;
-  animation-delay: 1s;
-  display: none;
-}
-
-.text::after {
-  content: "";
-  display: none;
-  position: absolute;
-  top: -290%;
-  left: 10%;
-  rotate: -45deg;
-  width: 5em;
-  height: 1px;
-  background: linear-gradient(90deg, #ffffff, transparent);
-  animation: 7s shootingStar ease-in-out infinite;
-  animation-delay: 3s;
-}
-
-.spaceButton:hover .text::before,
-.spaceButton:hover .text::after {
-  display: block;
-}
-
-@supports (selector(:has(:is(+ *)))) {
-  body:has(button:is(:hover, :focus-visible)) {
-    --active: 1;
-    --play-state: running;
-  }
-  .bodydrop {
-    display: none;
-  }
-}
-
-.spaceButton:is(:hover, :focus-visible) ~ :is(.bodydrop, .particle-pen) {
-  --active: 1;
-  --play-state: running;
-}
-
-.spaceButton:is(:hover, :focus-visible) {
-  --active: 1;
-  --play-state: running;
 }
