@@ -1,6 +1,6 @@
-const React = require('react');
-const { useAuth } = require('../src/context/AuthContext');
-const styled = require('styled-components').default;
+import React, { useState } from 'react';
+import { useAuth } from '../src/context/AuthContext';
+import styled from 'styled-components';
 
 const ProfileContainer = styled.div`
   padding: 20px;
@@ -9,6 +9,7 @@ const ProfileContainer = styled.div`
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
   max-width: 800px;
   margin: 20px auto;
+  color: #333;
 `;
 
 const Section = styled.div`
@@ -30,21 +31,36 @@ const Button = styled.button`
   }
 `;
 
-function Profile() {
-  const { currentUser, isAuthenticated, isStreamer, logout, switchProfile, profiles, stars, earnStars, spendStars } = useAuth();
-  const [question, setQuestion] = React.useState('');
-  const [questionPrice, setQuestionPrice] = React.useState(10); // Цена вопроса в Stars
-  const [streamSchedule, setStreamSchedule] = React.useState([]);
-  const [selectedDate, setSelectedDate] = React.useState('');
-  const [description, setDescription] = React.useState('');
-  const [allowedStreamers, setAllowedStreamers] = React.useState([]);
-  const [moderators, setModerators] = React.useState([]);
-  const [trustedFollowers, setTrustedFollowers] = React.useState([]);
-  const [rating, setRating] = React.useState(0);
-  const [streamerRating, setStreamerRating] = React.useState(0);
+export default function Profile() {
+  const { user, isAuthenticated, loading, logout } = useAuth();
+  const [question, setQuestion] = useState('');
+  const [questionPrice, setQuestionPrice] = useState(10); // Цена вопроса в Stars
+  const [streamSchedule, setStreamSchedule] = useState([]);
+  const [selectedDate, setSelectedDate] = useState('');
+  const [description, setDescription] = useState('');
+  const [allowedStreamers, setAllowedStreamers] = useState([]);
+  const [moderators, setModerators] = useState([]);
+  const [trustedFollowers, setTrustedFollowers] = useState([]);
+  const [rating, setRating] = useState(0);
+  const [streamerRating, setStreamerRating] = useState(0);
 
-  if (!isAuthenticated || !currentUser) {
-    return React.createElement('div', null, 'Please log in');
+  // Загружаем StreamCoins из localStorage
+  const userId = user?.id || 'defaultUserId'; // Предполагаем, что user имеет id
+  const streamCoins = JSON.parse(localStorage.getItem(`streamCoins_${userId}`)) || {
+    balance: 0,
+    totalEarned: 0,
+    totalSpent: 0,
+    transactions: [],
+  };
+
+  const isStreamer = user?.isStreamer || false; // Предполагаем, что user может иметь поле isStreamer
+
+  if (loading) {
+    return <div>Загрузка...</div>;
+  }
+
+  if (!isAuthenticated || !user) {
+    return <div>Пожалуйста, авторизуйтесь</div>;
   }
 
   const handleAddStream = () => {
@@ -70,7 +86,19 @@ function Profile() {
   };
 
   const handleAskQuestion = () => {
-    if (spendStars(questionPrice)) {
+    if (streamCoins.balance >= questionPrice) {
+      // Обновляем StreamCoins в localStorage
+      streamCoins.balance -= questionPrice;
+      streamCoins.totalSpent += questionPrice;
+      streamCoins.transactions.push({
+        id: `q_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`,
+        userId: userId,
+        type: 'spend',
+        amount: questionPrice,
+        reason: 'question',
+        timestamp: new Date().toISOString(),
+      });
+      localStorage.setItem(`streamCoins_${userId}`, JSON.stringify(streamCoins));
       console.log(`Question asked: ${question} for ${questionPrice} Stars`);
       setQuestion('');
     } else {
@@ -79,7 +107,18 @@ function Profile() {
   };
 
   const handleEarnStars = () => {
-    earnStars(5); // Заработать 5 Stars за рекламу
+    // Зарабатываем 5 Stars за рекламу
+    streamCoins.balance += 5;
+    streamCoins.totalEarned += 5;
+    streamCoins.transactions.push({
+      id: `ad_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`,
+      userId: userId,
+      type: 'earn',
+      amount: 5,
+      reason: 'ad',
+      timestamp: new Date().toISOString(),
+    });
+    localStorage.setItem(`streamCoins_${userId}`, JSON.stringify(streamCoins));
     alert('Earned 5 Stars from ad!');
   };
 
@@ -91,59 +130,97 @@ function Profile() {
     }
   };
 
-  return React.createElement(
-    ProfileContainer,
-    null,
-    [
-      React.createElement('h1', null, `Profile: ${currentUser.name}`),
-      React.createElement('p', null, `Followers: ${currentUser.followers || 0}`),
-      React.createElement('p', null, `Role: ${isStreamer ? 'Streamer' : 'Follower'}`),
-      React.createElement('p', null, `Stars: ${stars} ⭐`),
-      isStreamer && [
-        React.createElement(Section, null, [
-          React.createElement('h2', null, 'Stream Schedule'),
-          React.createElement('input', { type: 'date', value: selectedDate, onChange: (e) => setSelectedDate(e.target.value) }),
-          React.createElement('input', { type: 'text', value: description, onChange: (e) => setDescription(e.target.value), placeholder: 'Stream description' }),
-          React.createElement(Button, { onClick: handleAddStream }, 'Add Stream'),
-          streamSchedule.map((item, index) => React.createElement('div', { key: index }, `${item.date}: ${item.description}`)),
-          React.createElement('h3', null, 'Viewer Voting'),
-          streamSchedule.map((item, index) => React.createElement('div', { key: `vote-${index}` }, [
-            React.createElement('p', null, item.date),
-            React.createElement(Button, { onClick: () => handleVote(item.date, 'Yes') }, 'Vote Yes'),
-            React.createElement(Button, { onClick: () => handleVote(item.date, 'No') }, 'Vote No')
-          ])),
-          React.createElement('h3', null, 'Collaborations'),
-          React.createElement('input', { type: 'text', placeholder: 'Streamer ID for collab', onChange: (e) => setAllowedStreamers([...allowedStreamers, e.target.value]) }),
-          React.createElement(Button, { onClick: () => handleCollaborationRequest('streamer-id') }, 'Request Collaboration'),
-          React.createElement('h3', null, 'Moderators & Trusted Followers'),
-          React.createElement('input', { type: 'text', placeholder: 'Moderator ID', onChange: (e) => setModerators([...moderators, e.target.value]) }),
-          React.createElement('input', { type: 'text', placeholder: 'Trusted Follower ID', onChange: (e) => setTrustedFollowers([...trustedFollowers, e.target.value]) })
-        ]),
-      ],
-      !isStreamer && currentUser.followers < 265 && [
-        React.createElement(Section, null, [
-          React.createElement('h2', null, 'Become a Streamer'),
-          React.createElement('p', null, `Followers needed: ${265 - currentUser.followers}`),
-          React.createElement('p', null, 'Tips: Engage with your audience, stream regularly, use social media.'),
-          React.createElement('p', null, 'Achievements: 50 followers – Basic Badge, 100 followers – Silver Badge')
-        ]),
-      ],
-      React.createElement(Section, null, [
-        React.createElement('h3', null, 'Rate Streamer'),
-        [1, 2, 3, 4, 5].map((star) => React.createElement(Button, { key: star, onClick: () => handleRateStreamer(star) }, `⭐${star}`)),
-        React.createElement('p', null, `Your rating: ${rating}, Streamer rating: ${streamerRating}`)
-      ]),
-      React.createElement(Section, null, [
-        React.createElement('h3', null, 'Ask a Question'),
-        React.createElement('input', { type: 'text', value: question, onChange: (e) => setQuestion(e.target.value), placeholder: 'Your question' }),
-        React.createElement('input', { type: 'number', value: questionPrice, onChange: (e) => setQuestionPrice(parseInt(e.target.value) || 10), min: 1, placeholder: 'Stars' }),
-        React.createElement(Button, { onClick: handleAskQuestion }, 'Ask'),
-        React.createElement(Button, { onClick: handleEarnStars }, 'Earn Stars (Watch Ad)')
-      ]),
-      React.createElement(Button, { onClick: () => window.history.back() }, 'Back'),
-      React.createElement(Button, { onClick: logout }, 'Logout')
-    ]
+  // Проверяем Telegram Mini App
+  useEffect(() => {
+    if (typeof window !== 'undefined' && window.Telegram && window.Telegram.WebApp) {
+      const initData = window.Telegram.WebApp.initDataUnsafe || {};
+      console.log('Telegram initData in Profile:', initData);
+    }
+  }, []);
+
+  return (
+    <ProfileContainer>
+      <h1>Профиль: {user.name}</h1>
+      <p>Followers: {user.followers || 0}</p>
+      <p>Role: {isStreamer ? 'Streamer' : 'Follower'}</p>
+      <p>Stars: {streamCoins.balance} ⭐</p>
+      {isStreamer && (
+        <Section>
+          <h2>Stream Schedule</h2>
+          <input type="date" value={selectedDate} onChange={(e) => setSelectedDate(e.target.value)} />
+          <input
+            type="text"
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
+            placeholder="Stream description"
+          />
+          <Button onClick={handleAddStream}>Add Stream</Button>
+          {streamSchedule.map((item, index) => (
+            <div key={index}>{`${item.date}: ${item.description}`}</div>
+          ))}
+          <h3>Viewer Voting</h3>
+          {streamSchedule.map((item, index) => (
+            <div key={`vote-${index}`}>
+              <p>{item.date}</p>
+              <Button onClick={() => handleVote(item.date, 'Yes')}>Vote Yes</Button>
+              <Button onClick={() => handleVote(item.date, 'No')}>Vote No</Button>
+            </div>
+          ))}
+          <h3>Collaborations</h3>
+          <input
+            type="text"
+            placeholder="Streamer ID for collab"
+            onChange={(e) => setAllowedStreamers([...allowedStreamers, e.target.value])}
+          />
+          <Button onClick={() => handleCollaborationRequest('streamer-id')}>Request Collaboration</Button>
+          <h3>Moderators & Trusted Followers</h3>
+          <input
+            type="text"
+            placeholder="Moderator ID"
+            onChange={(e) => setModerators([...moderators, e.target.value])}
+          />
+          <input
+            type="text"
+            placeholder="Trusted Follower ID"
+            onChange={(e) => setTrustedFollowers([...trustedFollowers, e.target.value])}
+          />
+        </Section>
+      )}
+      {!isStreamer && user.followers < 265 && (
+        <Section>
+          <h2>Become a Streamer</h2>
+          <p>Followers needed: {265 - user.followers}</p>
+          <p>Tips: Engage with your audience, stream regularly, use social media.</p>
+          <p>Achievements: 50 followers – Basic Badge, 100 followers – Silver Badge</p>
+        </Section>
+      )}
+      <Section>
+        <h3>Rate Streamer</h3>
+        {[1, 2, 3, 4, 5].map((star) => (
+          <Button key={star} onClick={() => handleRateStreamer(star)}>⭐{star}</Button>
+        ))}
+        <p>Your rating: {rating}, Streamer rating: {streamerRating}</p>
+      </Section>
+      <Section>
+        <h3>Ask a Question</h3>
+        <input
+          type="text"
+          value={question}
+          onChange={(e) => setQuestion(e.target.value)}
+          placeholder="Your question"
+        />
+        <input
+          type="number"
+          value={questionPrice}
+          onChange={(e) => setQuestionPrice(parseInt(e.target.value) || 10)}
+          min={1}
+          placeholder="Stars"
+        />
+        <Button onClick={handleAskQuestion}>Ask</Button>
+        <Button onClick={handleEarnStars}>Earn Stars (Watch Ad)</Button>
+      </Section>
+      <Button onClick={() => window.history.back()}>Back</Button>
+      <Button onClick={logout}>Logout</Button>
+    </ProfileContainer>
   );
 }
-
-module.exports = Profile;
