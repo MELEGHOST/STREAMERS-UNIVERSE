@@ -13,7 +13,7 @@ export default {
   },
   webpack: (config) => {
     config.resolve.fallback = { fs: false, path: false };
-    // Поддержка styled-components через babel-loader
+    // Поддержка styled-components через babel-loader с улучшенными настройками
     config.module.rules.push({
       test: /\.(js|jsx|ts|tsx)$/,
       exclude: /node_modules/,
@@ -24,7 +24,8 @@ export default {
           plugins: [
             ['babel-plugin-styled-components', {
               displayName: process.env.NODE_ENV !== 'production', // Отладка в dev
-              ssr: false, // Отключаем SSR для styled-components, так как используем client-side
+              ssr: false, // Отключаем SSR для styled-components
+              pure: true, // Улучшаем обработку чистых компонентов
             }],
           ],
         },
