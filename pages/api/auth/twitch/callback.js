@@ -1,6 +1,6 @@
 import axios from 'axios';
 import { getServerSession } from 'next-auth/next';
-import { authOptions } from './[...nextauth]'; // Путь остаётся правильным, если создаём файл
+import { authOptions } from '../[...nextauth]'; // Исправлен путь на родительскую папку
 
 export default async function handler(req, res) {
   if (req.method !== 'GET') {
