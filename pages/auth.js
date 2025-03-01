@@ -431,11 +431,25 @@ export default function Auth() {
     const savedUser = localStorage.getItem('twitchUser');
     if (savedToken && savedUser && status === 'unauthenticated') {
       console.log('Restoring session from localStorage:', { token: savedToken, user: JSON.parse(savedUser) });
-      // Здесь можно отправить запрос на сервер для проверки токена, если нужно
-      // Например: fetch('/api/auth/verify', { headers: { 'Authorization': `Bearer ${savedToken}` } })
-      // Но для простоты просто устанавливаем сессию в состояние
-      const restoredSession = { user: JSON.parse(savedUser), accessToken: savedToken };
-      // Имитация сессии для next-auth (требуется кастомная интеграция)
+      // Проверяем токен через API для валидации
+      fetch('/api/auth/verify', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${savedToken}` },
+        body: JSON.stringify({ user: JSON.parse(savedUser) }),
+      })
+        .then(response => response.json())
+        .then(data => {
+          if (data.valid) {
+            // Имитация восстановления сессии для next-auth (нужно кастомизировать)
+            const restoredSession = { user: JSON.parse(savedUser), accessToken: savedToken };
+            // Здесь можем вызвать кастомный метод для восстановления сессии в next-auth
+            // Например, через кастомный хук или API
+          } else {
+            localStorage.removeItem('twitchToken');
+            localStorage.removeItem('twitchUser');
+          }
+        })
+        .catch(error => console.error('Error verifying token:', error));
     }
   }, [status]);
 
