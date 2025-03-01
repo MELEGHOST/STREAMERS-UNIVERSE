@@ -1,27 +1,27 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { signIn, useSession } from 'next-auth/react';
 import { useRouter } from 'next/router';
 import styled from 'styled-components';
 
 const Container = styled.div`
-  background: linear-gradient(to bottom, #0a0a2a, #1a1a4a); /* Тёмный космический градиент */
+  background: linear-gradient(to bottom, #0a0a2a, #1a1a4a);
   min-height: 100vh;
-  height: 100vh; /* Фиксированная высота для предотвращения прокрутки */
+  height: 100vh;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   padding: 20px;
   font-family: 'Arial', sans-serif;
-  overflow: hidden; /* Убираем прокрутку на мобильных устройствах */
+  overflow: hidden;
   position: relative;
-  -webkit-overflow-scrolling: touch; /* Отключаем нативную прокрутку iOS */
+  -webkit-overflow-scrolling: touch;
 `;
 
 const Logo = styled.img`
   max-width: 250px;
-  margin-bottom: 40px; /* Лого выше кнопки */
-  animation: pulse 2s infinite ease-in-out; /* Мягкое пульсирующее свечение */
+  margin-bottom: 40px;
+  animation: pulse 2s infinite ease-in-out;
 
   @keyframes pulse {
     0% { transform: scale(1); opacity: 0.8; box-shadow: 0 0 10px rgba(255, 255, 255, 0.3); }
@@ -37,16 +37,16 @@ const GalaxyButton = styled.div`
     --bg: radial-gradient(
           120% 120% at 126% 126%,
           hsl(0 calc(var(--active) * 97%) 98% / calc(var(--active) * 0.9)) 40%,
-          /* Changed hue to 0 for red */ transparent 50%
+          transparent 50%
         )
         calc(100px - (var(--active) * 100px)) 0 / 100% 100% no-repeat,
       radial-gradient(
           120% 120% at 120% 120%,
           hsl(0 calc(var(--active) * 97%) 70% / calc(var(--active) * 1)) 30%,
-          /* Changed hue to 0 for red */ transparent 70%
+          transparent 70%
         )
         calc(100px - (var(--active) * 100px)) 0 / 100% 100% no-repeat,
-      hsl(0 calc(var(--active) * 100%) calc(12% - (var(--active) * 8%))); /* Changed hue to 0 for red */
+      hsl(0 calc(var(--active) * 100%) calc(12% - (var(--active) * 8%)));
     background: var(--bg);
     font-size: 1.4rem;
     font-weight: 500;
@@ -73,10 +73,10 @@ const GalaxyButton = styled.div`
     transform-style: preserve-3d;
     perspective: 100vmin;
     overflow: hidden;
-    user-select: none; /* Запрещаем выделение кнопки */
-    -webkit-user-select: none; /* Для Safari */
-    -moz-user-select: none; /* Для Firefox */
-    -ms-user-select: none; /* Для Edge */
+    user-select: none;
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
   }
 
   .space-button:active {
@@ -406,54 +406,31 @@ const Animations = styled.style`
 export default function Auth() {
   const { data: session, status } = useSession();
   const router = useRouter();
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState(null);
 
   const handleLogin = async () => {
     try {
+      setIsLoading(true);
+      setError(null);
       console.log('Initiating Twitch login');
-      const result = await signIn('twitch', { callbackUrl: '/profile', redirect: true });
-      if (!result?.ok) {
-        throw new Error('Failed to initiate Twitch login');
-      }
-      // Сохраняем токен и пользователя в localStorage после успешной авторизации
-      if (result.ok && result.user) {
-        localStorage.setItem('twitchToken', result.accessToken || '');
-        localStorage.setItem('twitchUser', JSON.stringify(result.user));
-      }
+      await signIn('twitch', { callbackUrl: '/profile', redirect: true });
     } catch (error) {
       console.error('Error initiating Twitch login:', error);
-      alert('Не удалось войти через Twitch. Проверь настройки или попробуй позже.');
+      setError('Не удалось войти через Twitch. Проверьте настройки или попробуйте позже.');
+    } finally {
+      setIsLoading(false);
     }
   };
 
   useEffect(() => {
-    // Восстанавливаем авторизацию из localStorage, если сессия отсутствует
-    const savedToken = localStorage.getItem('twitchToken');
-    const savedUser = localStorage.getItem('twitchUser');
-    if (savedToken && savedUser && status === 'unauthenticated') {
-      console.log('Restoring session from localStorage:', { token: savedToken, user: JSON.parse(savedUser) });
-      // Проверяем токен через API для валидации
-      fetch('/api/auth/verify', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${savedToken}` },
-        body: JSON.stringify({ user: JSON.parse(savedUser) }),
-      })
-        .then(response => response.json())
-        .then(data => {
-          if (data.valid) {
-            // Имитация восстановления сессии для next-auth (нужно кастомизировать)
-            const restoredSession = { user: JSON.parse(savedUser), accessToken: savedToken };
-            // Здесь можем вызвать кастомный метод для восстановления сессии в next-auth
-            // Например, через кастомный хук или API
-          } else {
-            localStorage.removeItem('twitchToken');
-            localStorage.removeItem('twitchUser');
-          }
-        })
-        .catch(error => console.error('Error verifying token:', error));
+    // If authenticated, redirect to profile
+    if (status === 'authenticated') {
+      router.push('/profile');
     }
-  }, [status]);
+  }, [status, router]);
 
-  // Если сессия загружается, показываем загрузку
+  // Show loading state while checking session
   if (status === 'loading') {
     return <div>Загрузка...</div>;
   }
@@ -463,12 +440,19 @@ export default function Auth() {
       <Stars className="stars" />
       <Logo src="/logo.png" alt="Streamers Universe Logo" />
       <GalaxyButton className="galaxy-button">
-        <button className="space-button" onClick={handleLogin}>
+        <button 
+          className="space-button" 
+          onClick={handleLogin} 
+          disabled={isLoading}
+        >
           <span className="backdrop"></span>
           <span className="galaxy"></span>
-          <label className="text">Войти через Twitch</label>
+          <label className="text">
+            {isLoading ? 'Загрузка...' : 'Войти через Twitch'}
+          </label>
         </button>
       </GalaxyButton>
+      {error && <div style={{ color: 'red', marginTop: '20px' }}>{error}</div>}
     </Container>
   );
 }
