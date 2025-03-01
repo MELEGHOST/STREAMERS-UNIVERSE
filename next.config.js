@@ -13,7 +13,22 @@ export default {
   },
   webpack: (config) => {
     config.resolve.fallback = { fs: false, path: false };
+    // Поддержка styled-components через webpack
+    config.module.rules.push({
+      test: /\.css$/i,
+      use: ['style-loader', 'css-loader'],
+    });
+    config.module.rules.push({
+      test: /\.(js|jsx|ts|tsx)$/,
+      exclude: /node_modules/,
+      use: {
+        loader: 'babel-loader',
+        options: {
+          presets: ['next/babel'],
+          plugins: ['babel-plugin-styled-components'],
+        },
+      },
+    });
     return config;
   },
-  styledComponents: true, // Включение поддержки styled-components
 };
