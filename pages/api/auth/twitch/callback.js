@@ -1,7 +1,8 @@
-const React = require('react');
-const axios = require('axios');
+import axios from 'axios';
+import { getServerSession } from 'next-auth/next';
+import { authOptions } from './[...nextauth]'; // Указан путь к файлу [..nextauth].js в той же папке
 
-async function handler(req, res) {
+export default async function handler(req, res) {
   if (req.method !== 'GET') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
@@ -18,6 +19,7 @@ async function handler(req, res) {
       throw new Error('Missing Twitch environment variables');
     }
 
+    // Получаем токен от Twitch
     const tokenResponse = await axios.post('https://id.twitch.tv/oauth2/token', {
       client_id: process.env.TWITCH_CLIENT_ID,
       client_secret: process.env.TWITCH_CLIENT_SECRET,
@@ -28,6 +30,8 @@ async function handler(req, res) {
 
     console.log('Twitch callback: Token response:', tokenResponse.data);
     const token = tokenResponse.data.access_token;
+
+    // Получаем данные пользователя
     const userResponse = await axios.get('https://api.twitch.tv/helix/users', {
       headers: {
         'Client-ID': process.env.TWITCH_CLIENT_ID,
@@ -37,11 +41,20 @@ async function handler(req, res) {
 
     console.log('Twitch callback: User response:', userResponse.data);
     const user = userResponse.data.data[0];
+
+    // Получаем сессию через next-auth
+    const session = await getServerSession(req, res, authOptions);
+    if (!session) {
+      return res.status(401).json({ error: 'No session found' });
+    }
+
+    // Сохраняем токен и пользователя в сессии
+    session.user = { ...session.user, ...user, accessToken: token };
+    session.accessToken = token;
+
     res.status(200).json({ user, token });
   } catch (error) {
     console.error('Twitch callback error:', error.response?.data || error.message);
     res.status(500).json({ error: 'Failed to authenticate with Twitch: ' + (error.response?.data?.message || error.message) });
   }
 }
-
-module.exports = handler;
