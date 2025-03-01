@@ -111,6 +111,20 @@
     10px 10px 30px rgba(255, 0, 255, 0.6);
 }
 
+.spaceButton:hover,
+.spaceButton:focus-visible {
+  --active: 1;
+  --play-state: running;
+}
+
+.spaceButton:hover ~ .bodydrop,
+.spaceButton:focus-visible ~ .bodydrop,
+.spaceButton:hover ~ .particle-pen,
+.spaceButton:focus-visible ~ .particle-pen {
+  --active: 1;
+  --play-state: running;
+}
+
 @keyframes wobble {
   0%, 100% { transform: translate(0, 0); }
   25% { transform: translate(-2px, -10px); }
@@ -219,6 +233,10 @@
   transition: background 0.25s;
 }
 
+.bodydrop {
+  display: none;
+}
+
 @keyframes shootingStar {
   0% { transform: translateX(0) translateY(0); opacity: 1; }
   50% { transform: translateX(-55em) translateY(0); opacity: 1; }
@@ -278,26 +296,6 @@
 .spaceButton:hover .text::before,
 .spaceButton:hover .text::after {
   display: block;
-}
-
-@supports (selector(:has(:is(+ *)))) {
-  body:has(button:is(:hover, :focus-visible)) {
-    --active: 1;
-    --play-state: running;
-  }
-  .bodydrop {
-    display: none;
-  }
-}
-
-.spaceButton:is(:hover, :focus-visible) ~ :is(.bodydrop, .particle-pen) {
-  --active: 1;
-  --play-state: running;
-}
-
-.spaceButton:is(:hover, :focus-visible) {
-  --active: 1;
-  --play-state: running;
 }
 
 .stars {
