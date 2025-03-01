@@ -13,11 +13,7 @@ export default {
   },
   webpack: (config) => {
     config.resolve.fallback = { fs: false, path: false };
-    // Поддержка styled-components через webpack
-    config.module.rules.push({
-      test: /\.css$/i,
-      use: ['style-loader', 'css-loader'],
-    });
+    // Поддержка styled-components через babel-loader
     config.module.rules.push({
       test: /\.(js|jsx|ts|tsx)$/,
       exclude: /node_modules/,
