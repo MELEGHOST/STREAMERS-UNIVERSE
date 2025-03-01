@@ -1,0 +1,21 @@
+.followersContainer {
+  padding: 20px;
+  background-color: #f5f5f5;
+  max-width: 800px;
+  margin: 20px auto;
+  color: #333;
+}
+
+.roleButton {
+  padding: 5px 10px;
+  margin: 5px;
+  background-color: #e74c3c;
+  color: white;
+  border: none;
+  border-radius: 3px;
+  cursor: pointer;
+}
+
+.roleButton:hover {
+  background-color: #c0392b;
+}
