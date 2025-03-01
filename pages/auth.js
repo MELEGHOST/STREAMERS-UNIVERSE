@@ -1,27 +1,28 @@
-import React, { useEffect, useState } from 'react';
+"use client";
+
 import { signIn, useSession } from 'next-auth/react';
 import { useRouter } from 'next/router';
 import styled from 'styled-components';
 
 const Container = styled.div`
-  background: linear-gradient(to bottom, #0a0a2a, #1a1a4a);
+  background: linear-gradient(to bottom, #0a0a2a, #1a1a4a); /* Тёмный космический градиент */
   min-height: 100vh;
-  height: 100vh;
+  height: 100vh; /* Фиксированная высота для предотвращения прокрутки */
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   padding: 20px;
   font-family: 'Arial', sans-serif;
-  overflow: hidden;
+  overflow: hidden; /* Убираем прокрутку на мобильных устройствах */
   position: relative;
-  -webkit-overflow-scrolling: touch;
+  -webkit-overflow-scrolling: touch; /* Отключаем нативную прокрутку iOS */
 `;
 
 const Logo = styled.img`
   max-width: 250px;
-  margin-bottom: 40px;
-  animation: pulse 2s infinite ease-in-out;
+  margin-bottom: 40px; /* Лого выше кнопки */
+  animation: pulse 2s infinite ease-in-out; /* Мягкое пульсирующее свечение */
 
   @keyframes pulse {
     0% { transform: scale(1); opacity: 0.8; box-shadow: 0 0 10px rgba(255, 255, 255, 0.3); }
@@ -406,31 +407,26 @@ const Animations = styled.style`
 export default function Auth() {
   const { data: session, status } = useSession();
   const router = useRouter();
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState(null);
 
   const handleLogin = async () => {
     try {
-      setIsLoading(true);
-      setError(null);
       console.log('Initiating Twitch login');
-      await signIn('twitch', { callbackUrl: '/profile', redirect: true });
+      const result = await signIn('twitch', { callbackUrl: '/profile', redirect: true });
+      if (!result?.ok) {
+        throw new Error('Failed to initiate Twitch login');
+      }
+      // Сохраняем токен и пользователя в localStorage после успешной авторизации
+      if (result.ok && result.user) {
+        localStorage.setItem('twitchToken', result.accessToken || '');
+        localStorage.setItem('twitchUser', JSON.stringify(result.user));
+      }
     } catch (error) {
       console.error('Error initiating Twitch login:', error);
-      setError('Не удалось войти через Twitch. Проверьте настройки или попробуйте позже.');
-    } finally {
-      setIsLoading(false);
+      alert('Не удалось войти через Twitch. Проверь настройки или попробуй позже.');
     }
   };
 
-  useEffect(() => {
-    // If authenticated, redirect to profile
-    if (status === 'authenticated') {
-      router.push('/profile');
-    }
-  }, [status, router]);
-
-  // Show loading state while checking session
+  // Если сессия загружается, показываем загрузку
   if (status === 'loading') {
     return <div>Загрузка...</div>;
   }
@@ -440,19 +436,12 @@ export default function Auth() {
       <Stars className="stars" />
       <Logo src="/logo.png" alt="Streamers Universe Logo" />
       <GalaxyButton className="galaxy-button">
-        <button 
-          className="space-button" 
-          onClick={handleLogin} 
-          disabled={isLoading}
-        >
+        <button className="space-button" onClick={handleLogin}>
           <span className="backdrop"></span>
           <span className="galaxy"></span>
-          <label className="text">
-            {isLoading ? 'Загрузка...' : 'Войти через Twitch'}
-          </label>
+          <label className="text">Войти через Twitch</label>
         </button>
       </GalaxyButton>
-      {error && <div style={{ color: 'red', marginTop: '20px' }}>{error}</div>}
     </Container>
   );
 }
