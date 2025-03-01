@@ -1,18 +1,19 @@
 export default {
   reactStrictMode: true,
-  output: "standalone",
+  output: 'standalone',
   env: {
-    TWITCH_REDIRECT_URI: process.env.TWITCH_REDIRECT_URI || "https://streamers-universe.vercel.app/auth" // Только публичные данные
+    TWITCH_REDIRECT_URI: process.env.TWITCH_REDIRECT_URI || 'https://streamers-universe.vercel.app/auth',
   },
   images: {
-    domains: ["id.twitch.tv", "api.twitch.tv"],
-    unoptimized: true
+    domains: ['id.twitch.tv', 'api.twitch.tv'],
+    unoptimized: true,
   },
   experimental: {
-    esmExternals: true
+    esmExternals: true,
   },
   webpack: (config) => {
     config.resolve.fallback = { fs: false, path: false };
     return config;
-  }
+  },
+  styledComponents: true, // Включение поддержки styled-components
 };
