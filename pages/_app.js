@@ -15,6 +15,7 @@ const NavBar = styled.div`
   justify-content: space-around;
   padding: 10px;
   box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.2);
+  z-index: 1000; // Убедимся, что меню поверх контента
 `;
 
 const NavButton = styled.button`
