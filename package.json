@@ -23,7 +23,7 @@
     "@types/node": "22.13.5"
   },
   "engines": {
-    "node": "20.4.0"
+    "node": "20.5.0"
   },
   "type": "module"
 }
