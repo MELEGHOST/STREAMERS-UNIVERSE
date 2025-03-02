@@ -79,7 +79,7 @@ const authOptions = {
   logger: {
     level: process.env.NODE_ENV === 'development' ? 'debug' : 'error',
   },
-  // Добавляем настройки для стабильной работы с Vercel
+  // Добавляем адаптер для стабильности (null, если не используется база данных)
   adapter: null, // Отключаем адаптер, если не используется база данных
 };
 
