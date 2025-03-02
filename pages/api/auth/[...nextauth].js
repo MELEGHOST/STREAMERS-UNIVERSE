@@ -11,7 +11,7 @@ const authOptions = {
         url: 'https://id.twitch.tv/oauth2/authorize',
         params: { scope: 'user:read:email' },
       },
-      callbackUrl: process.env.TWITCH_REDIRECT_URI || 'https://streamers-universe.vercel.app/api/auth/callback/twitch', // Явно указываем callback URL
+      callbackUrl: process.env.TWITCH_REDIRECT_URI || 'https://streamers-universe.vercel.app/api/auth/callback/twitch',
     }),
   ],
   callbacks: {
@@ -22,11 +22,13 @@ const authOptions = {
       return token;
     },
     async session({ session, token }) {
-      session.accessToken = token.accessToken;
+      if (token.accessToken) {
+        session.accessToken = token.accessToken;
+      }
       return session;
     },
   },
-  secret: process.env.NEXTAUTH_SECRET || 'your-secret-key-here',
+  secret: process.env.NEXTAUTH_SECRET || 'your-secure-secret-key-here', // Уникальный секрет для продакшена
   pages: {
     signIn: '/auth',
     error: '/auth',
@@ -43,7 +45,16 @@ const authOptions = {
       console.debug('NextAuth Debug:', { code, metadata });
     },
   },
+  // Добавляем настройки для корректной работы логов
+  events: {
+    async signIn({ user, account, profile }) {
+      console.log('Sign in event:', { user, account, profile });
+    },
+    async signOut({ token }) {
+      console.log('Sign out event:', { token });
+    },
+  },
 };
 
 export default NextAuth(authOptions);
-export { authOptions }; // Экспортируем authOptions для использования в других файлах
+export { authOptions };
