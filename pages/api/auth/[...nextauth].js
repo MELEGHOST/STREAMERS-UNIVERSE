@@ -18,17 +18,19 @@ const authOptions = {
     async jwt({ token, account }) {
       if (account) {
         token.accessToken = account.access_token;
+        token.refreshToken = account.refresh_token; // Добавляем refresh_token, если доступен
       }
       return token;
     },
     async session({ session, token }) {
       if (token.accessToken) {
         session.accessToken = token.accessToken;
+        session.refreshToken = token.refreshToken; // Добавляем refresh_token в сессию
       }
       return session;
     },
   },
-  secret: process.env.NEXTAUTH_SECRET || 'your-secure-secret-key-here', // Уникальный секрет для продакшена
+  secret: process.env.NEXTAUTH_SECRET || 'a-very-secure-random-secret-32chars-long', // Уникальный секрет для продакшена (32+ символов)
   pages: {
     signIn: '/auth',
     error: '/auth',
@@ -45,7 +47,6 @@ const authOptions = {
       console.debug('NextAuth Debug:', { code, metadata });
     },
   },
-  // Добавляем настройки для корректной работы логов
   events: {
     async signIn({ user, account, profile }) {
       console.log('Sign in event:', { user, account, profile });
@@ -53,7 +54,12 @@ const authOptions = {
     async signOut({ token }) {
       console.log('Sign out event:', { token });
     },
+    async error({ error, message }) {
+      console.error('NextAuth Error Event:', { error, message });
+    },
   },
+  // Добавляем настройки для корректной работы логов и CORS
+  allowDangerousEmailAccountLinking: true, // Для упрощения тестирования (убрать в продакшене)
 };
 
 export default NextAuth(authOptions);
