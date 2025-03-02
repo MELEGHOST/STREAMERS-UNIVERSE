@@ -19,7 +19,7 @@ const authOptions = {
       if (account) {
         token.accessToken = account.access_token;
         token.refreshToken = account.refresh_token; // Добавляем refresh_token, если доступен
-        token.expiresAt = account.expires_at ? account.expires_at * 1000 : Date.now() + (account.expires_in * 1000); // Убедимся, что expires_at корректно конвертируется
+        token.expiresAt = account.expires_at ? account.expires_at * 1000 : Date.now() + (account.expires_in * 1000); // Учитываем, что expires_at может быть в секундах
       }
       return token;
     },
@@ -62,9 +62,13 @@ const authOptions = {
   },
   allowDangerousEmailAccountLinking: true, // Для тестов (убрать в продакшене)
   useSecureCookies: process.env.NODE_ENV === 'production', // Используем secure cookies только в продакшене
-  // Добавляем настройки для корректной работы логов и CORS
   jwt: {
     maxAge: 60 * 60 * 24 * 30, // 30 дней
+    secret: process.env.NEXTAUTH_SECRET, // Указываем тот же секрет для JWT
+  },
+  // Добавляем настройки для корректной работы логов
+  logger: {
+    level: process.env.NODE_ENV === 'development' ? 'debug' : 'error',
   },
 };
 
