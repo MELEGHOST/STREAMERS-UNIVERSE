@@ -26,7 +26,6 @@
     "@swc/node": "1.6.2",
     "@swc/jest": "0.2.36",
     "@swc/plugin": "0.2.165",
-    "@swc/compat": "0.1.7",
     "@swc/typescript": "0.0.12",
     "@swc/webpack-plugin": "1.7.0"
   },
