@@ -14,7 +14,8 @@
     "axios": "1.7.7",
     "next-auth": "4.24.11",
     "@swc/helpers": "0.5.15",
-    "@swc/core": "1.11.5"
+    "@swc/core": "1.11.5",
+    "@swc/wasm": "1.11.5"
   },
   "devDependencies": {
     "typescript": "5.7.3",
@@ -22,7 +23,7 @@
     "@types/node": "22.13.5"
   },
   "engines": {
-    "node": "20.3.1"
+    "node": "20"
   },
   "type": "module"
 }
