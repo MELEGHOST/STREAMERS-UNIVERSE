@@ -29,7 +29,6 @@ const authOptions = {
         session.refreshToken = token.refreshToken;
         session.expiresAt = token.expiresAt;
       } else {
-        // Логируем, если токен отсутствует, для диагностики
         console.error('Session callback: Token or accessToken is missing');
       }
       return session;
