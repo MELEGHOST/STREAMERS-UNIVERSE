@@ -1,46 +1,43 @@
 "use client";
 
-import { useState, useEffect } from 'react';
-import { SessionProvider } from 'next-auth/react';
+import React from 'react';
+import { SessionProvider, useSession } from 'next-auth/react';
 import { AuthProvider } from '../src/context/AuthContext';
 import styles from './_app.module.css';
-import { useRouter } from 'next/router';
 
-export default function App({ Component, pageProps }) {
-  const router = useRouter();
-  const [activePath, setActivePath] = useState('/profile');
+function NavMenu() {
+  const { data: session, status } = useSession();
 
-  useEffect(() => {
-    setActivePath(router.pathname);
-  }, [router.pathname]);
+  if (status === 'loading') {
+    return null; // Скрываем меню во время загрузки сессии
+  }
 
-  const menuItems = [
-    { name: 'Поиск', path: '/search' },
-    { name: 'Подписки', path: '/subscriptions' },
-    { name: 'Подписчики', path: '/followers' },
-    { name: 'Профиль', path: '/profile' }, // Центральный и выше визуально
-    { name: 'Настройки', path: '/settings' },
-  ];
+  if (!session) {
+    return null; // Скрываем меню, если пользователь не авторизован
+  }
 
   return (
-    <SessionProvider>
+    <nav className={styles.nav}>
+      <a href="/" className={styles.navLink}>Главная</a>
+      <a href="/profile" className={styles.navLink}>Профиль</a>
+      <a href="/search" className={styles.navLink}>Поиск</a>
+      <a href="/subscriptions" className={styles.navLink}>Подписки</a>
+      <a href="/followers" className={styles.navLink}>Подписчики</a>
+      <a href="/settings" className={styles.navLink}>Настройки</a>
+      <a href="/top" className={styles.navLink}>Топ</a>
+      <a href="/twitch" className={styles.navLink}>Twitch</a>
+    </nav>
+  );
+}
+
+export default function App({ Component, pageProps: { session, ...pageProps } }) {
+  return (
+    <SessionProvider session={session}>
       <AuthProvider>
-        <Component {...pageProps} />
-        <nav className={styles.navBar}>
-          {menuItems.map((item, index) => (
-            <button
-              key={item.path}
-              onClick={() => router.push(item.path)}
-              className={`${styles.navButton} ${activePath === item.path ? styles.active : ''}`}
-              style={{
-                marginTop: item.name === 'Профиль' ? '-10px' : '0', // Выше других
-                fontWeight: item.name === 'Профиль' ? 'bold' : 'normal',
-              }}
-            >
-              {item.name}
-            </button>
-          ))}
-        </nav>
+        <div className={styles.appContainer}>
+          <Component {...pageProps} />
+          <NavMenu />
+        </div>
       </AuthProvider>
     </SessionProvider>
   );
