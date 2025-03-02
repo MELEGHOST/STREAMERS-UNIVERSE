@@ -1,31 +1,9 @@
+"use client";
+
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../src/context/AuthContext';
-import styled from 'styled-components';
+import styles from './search.module.css';
 import axios from 'axios';
-
-const SearchContainer = styled.div`
-  padding: 20px;
-  background-color: #f5f5f5;
-  max-width: 800px;
-  margin: 20px auto;
-  color: #333;
-`;
-
-const Input = styled.input`
-  padding: 10px;
-  width: 100%;
-  margin-bottom: 10px;
-  border-radius: 5px;
-  border: 1px solid #ddd;
-`;
-
-const Result = styled.div`
-  margin-top: 10px;
-  padding: 10px;
-  background: white;
-  border-radius: 5px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-`;
 
 export default function Search() {
   const { user, isAuthenticated } = useAuth();
@@ -83,17 +61,18 @@ export default function Search() {
   if (!isAuthenticated) return null;
 
   return (
-    <SearchContainer>
+    <div className={styles.searchContainer}>
       <h1>Поиск пользователя</h1>
-      <Input
+      <input
         type="text"
         value={searchTerm}
         onChange={(e) => setSearchTerm(e.target.value)}
         placeholder="Введите ник Twitch"
+        className={styles.input}
       />
-      <Button onClick={handleSearch}>Поиск</Button>
+      <button className={styles.button} onClick={handleSearch}>Поиск</button>
       {results && (
-        <Result>
+        <div className={styles.result}>
           {results.error && <p>{results.error}</p>}
           {results.twitchData && (
             <>
@@ -103,8 +82,8 @@ export default function Search() {
               <p>Общие стримеры: {results.commonStreamers.join(', ') || 'Нет общих'}</p>
             </>
           )}
-        </Result>
+        </div>
       )}
-    </SearchContainer>
+    </div>
   );
 }
