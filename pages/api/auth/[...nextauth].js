@@ -72,6 +72,7 @@ const authOptions = {
     origin: process.env.TWITCH_REDIRECT_URI || 'https://streamers-universe.vercel.app',
     methods: ['GET', 'POST', 'PUT', 'DELETE'], // Разрешаем все методы для тестирования
     credentials: true, // Разрешаем отправку cookies и авторизационных данных
+    optionsSuccessStatus: 200 // Устанавливаем статус для OPTIONS-запросов, чтобы избежать проблем с CORS
   },
   session: {
     strategy: 'jwt', // Используем JWT для сессий
