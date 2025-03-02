@@ -11,7 +11,7 @@ const authOptions = {
         url: 'https://id.twitch.tv/oauth2/authorize',
         params: { scope: 'user:read:email' },
       },
-      callbackUrl: process.env.TWITCH_REDIRECT_URI || 'https://streamers-universe.vercel.app/api/auth/callback/twitch',
+      callbackUrl: process.env.TWITCH_REDIRECT_URI || 'https://streamers-universe.vercel.app/auth', // Обновлено на /auth
     }),
   ],
   callbacks: {
@@ -30,7 +30,7 @@ const authOptions = {
       return session;
     },
   },
-  secret: process.env.NEXTAUTH_SECRET || 'a-very-secure-random-secret-32chars-long', // Уникальный секрет для продакшена (32+ символов)
+  secret: process.env.NEXTAUTH_SECRET || 'a-very-secure-random-secret-32chars-long',
   pages: {
     signIn: '/auth',
     error: '/auth',
@@ -58,8 +58,7 @@ const authOptions = {
       console.error('NextAuth Error Event:', { error, message });
     },
   },
-  // Добавляем настройки для корректной работы логов и CORS
-  allowDangerousEmailAccountLinking: true, // Для упрощения тестирования (убрать в продакшене)
+  allowDangerousEmailAccountLinking: true,
 };
 
 export default NextAuth(authOptions);
