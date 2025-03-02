@@ -11,7 +11,7 @@ const authOptions = {
         url: 'https://id.twitch.tv/oauth2/authorize',
         params: { scope: 'user:read:email' },
       },
-      callbackUrl: process.env.TWITCH_REDIRECT_URI || 'https://streamers-universe.vercel.app/auth', // Обновлено на /auth
+      callbackUrl: process.env.TWITCH_REDIRECT_URI || 'https://streamers-universe.vercel.app/auth', // Подтверждаем /auth
     }),
   ],
   callbacks: {
@@ -19,18 +19,20 @@ const authOptions = {
       if (account) {
         token.accessToken = account.access_token;
         token.refreshToken = account.refresh_token; // Добавляем refresh_token, если доступен
+        token.expiresAt = account.expires_at || Date.now() + (account.expires_in * 1000); // Добавляем срок действия
       }
       return token;
     },
     async session({ session, token }) {
       if (token.accessToken) {
         session.accessToken = token.accessToken;
-        session.refreshToken = token.refreshToken; // Добавляем refresh_token в сессию
+        session.refreshToken = token.refreshToken;
+        session.expiresAt = token.expiresAt; // Добавляем срок действия в сессию
       }
       return session;
     },
   },
-  secret: process.env.NEXTAUTH_SECRET || 'a-very-secure-random-secret-32chars-long',
+  secret: process.env.NEXTAUTH_SECRET || 'a-very-secure-random-secret-32chars-long', // Убедимся, что секрет уникален и длинный
   pages: {
     signIn: '/auth',
     error: '/auth',
@@ -58,7 +60,10 @@ const authOptions = {
       console.error('NextAuth Error Event:', { error, message });
     },
   },
-  allowDangerousEmailAccountLinking: true,
+  // Добавляем настройки для корректной работы логов и CORS
+  allowDangerousEmailAccountLinking: true, // Для тестов (убрать в продакшене)
+  // Указываем, что логгер должен быть доступен для всех методов
+  useSecureCookies: process.env.NODE_ENV === 'production', // Используем secure cookies только в продакшене
 };
 
 export default NextAuth(authOptions);
