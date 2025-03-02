@@ -1,21 +1,14 @@
-const React = require('react');
-const { useAuth } = require('../src/context/AuthContext');
-const styled = require('styled-components').default;
+"use client";
 
-const TopContainer = styled.div`
-  padding: 20px;
-  background-color: #f5f5f5;
-  border-radius: 10px;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-  max-width: 800px;
-  margin: 20px auto;
-`;
+import React, { useState, useEffect } from 'react';
+import { useAuth } from '../src/context/AuthContext';
+import styles from './top.module.css';
 
-function Top() {
-  const { isAuthenticated, currentUser } = useAuth();
-  const [topStreamers, setTopStreamers] = React.useState([]);
+export default function Top() {
+  const { isAuthenticated, user } = useAuth();
+  const [topStreamers, setTopStreamers] = useState([]);
 
-  React.useEffect(() => {
+  useEffect(() => {
     if (isAuthenticated) {
       // Здесь можно добавить API-запрос для получения топа стримеров
       setTopStreamers([
@@ -26,17 +19,17 @@ function Top() {
   }, [isAuthenticated]);
 
   if (!isAuthenticated) {
-    return React.createElement('div', null, 'Please log in');
+    return <div className={styles.error}>Please log in</div>;
   }
 
-  return React.createElement(
-    TopContainer,
-    null,
-    [
-      React.createElement('h1', null, 'Top Streamers'),
-      topStreamers.map((streamer, index) => React.createElement('div', { key: index }, `${index + 1}. ${streamer.name} - Rating: ${streamer.rating}, Followers: ${streamer.followers}`))
-    ]
+  return (
+    <div className={styles.topContainer}>
+      <h1>Top Streamers</h1>
+      {topStreamers.map((streamer, index) => (
+        <div key={index} className={styles.streamerItem}>
+          {`${index + 1}. ${streamer.name} - Rating: ${streamer.rating}, Followers: ${streamer.followers}`}
+        </div>
+      ))}
+    </div>
   );
 }
-
-module.exports = Top;
