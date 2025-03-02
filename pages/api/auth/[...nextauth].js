@@ -11,7 +11,7 @@ const authOptions = {
         url: 'https://id.twitch.tv/oauth2/authorize',
         params: { scope: 'user:read:email' },
       },
-      callbackUrl: process.env.TWITCH_REDIRECT_URI || 'https://streamers-universe.vercel.app/auth', // Подтверждаем /auth
+      callbackUrl: process.env.TWITCH_REDIRECT_URI || 'https://streamers-universe.vercel.app/auth',
     }),
   ],
   callbacks: {
@@ -19,7 +19,7 @@ const authOptions = {
       if (account) {
         token.accessToken = account.access_token;
         token.refreshToken = account.refresh_token; // Добавляем refresh_token, если доступен
-        token.expiresAt = account.expires_at || Date.now() + (account.expires_in * 1000); // Добавляем срок действия
+        token.expiresAt = account.expires_at ? account.expires_at * 1000 : Date.now() + (account.expires_in * 1000); // Убедимся, что expires_at корректно конвертируется
       }
       return token;
     },
@@ -27,7 +27,7 @@ const authOptions = {
       if (token.accessToken) {
         session.accessToken = token.accessToken;
         session.refreshToken = token.refreshToken;
-        session.expiresAt = token.expiresAt; // Добавляем срок действия в сессию
+        session.expiresAt = token.expiresAt;
       }
       return session;
     },
@@ -60,10 +60,12 @@ const authOptions = {
       console.error('NextAuth Error Event:', { error, message });
     },
   },
-  // Добавляем настройки для корректной работы логов и CORS
   allowDangerousEmailAccountLinking: true, // Для тестов (убрать в продакшене)
-  // Указываем, что логгер должен быть доступен для всех методов
   useSecureCookies: process.env.NODE_ENV === 'production', // Используем secure cookies только в продакшене
+  // Добавляем настройки для корректной работы логов и CORS
+  jwt: {
+    maxAge: 60 * 60 * 24 * 30, // 30 дней
+  },
 };
 
 export default NextAuth(authOptions);
