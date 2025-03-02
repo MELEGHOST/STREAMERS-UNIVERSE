@@ -66,7 +66,15 @@ const authOptions = {
     maxAge: 60 * 60 * 24 * 30, // 30 дней
     secret: process.env.NEXTAUTH_SECRET, // Указываем тот же секрет для JWT
   },
-  // Добавляем настройки для корректной работы логов
+  cors: {
+    origin: process.env.TWITCH_REDIRECT_URI || 'https://streamers-universe.vercel.app',
+    methods: ['GET', 'POST', 'PUT', 'DELETE'], // Разрешаем все методы для тестирования
+  },
+  session: {
+    strategy: 'jwt', // Используем JWT для сессий
+    maxAge: 60 * 60 * 24 * 30, // 30 дней
+  },
+  // Добавляем настройки для стабильной работы логов
   logger: {
     level: process.env.NODE_ENV === 'development' ? 'debug' : 'error',
   },
