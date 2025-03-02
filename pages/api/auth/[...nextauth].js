@@ -24,7 +24,7 @@ const authOptions = {
       return token;
     },
     async session({ session, token }) {
-      if (token.accessToken) {
+      if (token && token.accessToken) {
         session.accessToken = token.accessToken;
         session.refreshToken = token.refreshToken;
         session.expiresAt = token.expiresAt;
@@ -69,12 +69,13 @@ const authOptions = {
   cors: {
     origin: process.env.TWITCH_REDIRECT_URI || 'https://streamers-universe.vercel.app',
     methods: ['GET', 'POST', 'PUT', 'DELETE'], // Разрешаем все методы для тестирования
+    credentials: true, // Разрешаем отправку cookies и авторизационных данных
   },
   session: {
     strategy: 'jwt', // Используем JWT для сессий
     maxAge: 60 * 60 * 24 * 30, // 30 дней
   },
-  // Добавляем настройки для стабильной работы логов
+  // Добавляем настройки для стабильной работы логов и предотвращения ошибок 405
   logger: {
     level: process.env.NODE_ENV === 'development' ? 'debug' : 'error',
   },
