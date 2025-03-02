@@ -20,7 +20,8 @@
     "@swc-node/register": "1.10.9",
     "@swc/cli": "0.1.62",
     "@swc-node/core": "1.10.9",
-    "@swc/register": "0.1.10"
+    "@swc/register": "0.1.10",
+    "@swc/compiler": "0.1.62"
   },
   "devDependencies": {
     "typescript": "5.7.3",
