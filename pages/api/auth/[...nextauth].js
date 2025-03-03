@@ -11,7 +11,7 @@ const authOptions = {
         url: 'https://id.twitch.tv/oauth2/authorize',
         params: { scope: 'user:read:email' },
       },
-      callbackUrl: process.env.TWITCH_REDIRECT_URI || 'https://streamers-universe.vercel.app/auth',
+      callbackUrl: process.env.TWITCH_RedIRECT_URI || 'https://streamers-universe.vercel.app/auth',
     }),
   ],
   callbacks: {
