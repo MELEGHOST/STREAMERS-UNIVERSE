@@ -18,6 +18,7 @@ const authOptions = {
     async jwt({ token, account, req }) {
       console.log('JWT callback:', { token, account, req });
       if (!account || !account.access_token) {
+        console.error('JWT callback: No access token available');
         throw new Error('No access token available in JWT callback');
       }
       token.accessToken = account.access_token;
@@ -77,7 +78,7 @@ const authOptions = {
   cors: {
     origin: process.env.TWITCH_REDIRECT_URI || 'https://streamers-universe.vercel.app',
     methods: ['GET', 'POST'], // Ограничиваем методы до GET и POST для избежания ошибок 405
-    credentials: true, // Разрешаем отправку cookies и авториzaционных данных
+    credentials: true, // Разрешаем отправку cookies и авторизационных данных
     optionsSuccessStatus: 200 // Устанавливаем статус для OPTIONS-запросов, чтобы избежать проблем с CORS
   },
   session: {
