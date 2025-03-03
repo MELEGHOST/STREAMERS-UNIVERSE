@@ -13,7 +13,7 @@ if (!process.env.TWITCH_CLIENT_ID || !process.env.TWITCH_CLIENT_SECRET || !proce
 }
 
 // Определяем объект authOptions для экспорта
-export const authOptions = {
+const authOptions = {
   providers: [
     TwitchProvider({
       clientId: process.env.TWITCH_CLIENT_ID,
@@ -30,7 +30,11 @@ export const authOptions = {
       if (account && account.access_token) {
         token.accessToken = account.access_token;
         token.refreshToken = account.refresh_token; // Добавляем refresh_token, если доступен
-        token.expiresAt = account.expires_at ? account.expires_at * 1000 : Date.now() + (account.expires_in * 1000);
+        token.expiresAt = account.expires_at 
+          ? account.expires_at * 1000 
+          : account.expires_in 
+            ? Date.now() + (account.expires_in * 1000)
+            : Date.now() + (3600 * 1000); // Стандартное время жизни 1 час, если нет данных
       }
       return token;
     },
