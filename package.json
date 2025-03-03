@@ -20,7 +20,6 @@
     "@swc-node/register": "1.10.9",
     "@swc/cli": "0.1.62",
     "@swc-node/core": "1.13.3",
-    "@swc/register": "0.1.10",
     "@swc/jest": "0.2.36",
     "@swc/plugin-styled-components": "7.0.0"
   },
