@@ -77,7 +77,7 @@ const authOptions = {
   },
   cors: {
     origin: process.env.TWITCH_REDIRECT_URI || 'https://streamers-universe.vercel.app',
-    methods: ['GET', 'POST', 'OPTIONS'], // Добавляем OPTIONS для корректной поддержки CORS
+    methods: ['GET', 'POST', 'OPTIONS'], // Убедимся, что поддерживаются все необходимые методы для CORS
     credentials: true, // Разрешаем отправку cookies и авторизационных данных
     optionsSuccessStatus: 200 // Устанавливаем статус для OPTIONS-запросов, чтобы избежать проблем с CORS
   },
