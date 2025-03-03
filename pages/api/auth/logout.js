@@ -13,17 +13,15 @@ export default async function handler(req, res) {
       return res.status(401).json({ error: 'Not authenticated' });
     }
 
-    // Очистка cookies через NextAuth.js или вручную
+    // Очистка cookies через NextAuth.js
     res.setHeader('Set-Cookie', [
       'next-auth.session-token=; Path=/; HttpOnly; SameSite=Strict; Max-Age=0', // Очистка сессии NextAuth
+      'next-auth.csrf-token=; Path=/; HttpOnly; SameSite=Strict; Max-Age=0', // Очистка CSRF токена
       'twitchToken=; Path=/; HttpOnly; SameSite=Strict; Max-Age=0', // Очистка кастомного токена
       'twitchUser=; Path=/; HttpOnly; SameSite=Strict; Max-Age=0', // Очистка данных пользователя
     ]);
 
-    // Выход через NextAuth.js (опционально, если требуется полная очистка сессии)
-    await new Promise((resolve) => {
-      req.session.destroy(() => resolve(true));
-    });
+    // Не используем req.session.destroy, так как в Next.js API routes это может работать не всегда
 
     res.status(200).json({ message: 'Logged out successfully' });
   } catch (error) {
