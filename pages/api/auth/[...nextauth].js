@@ -17,23 +17,23 @@ const authOptions = {
   callbacks: {
     async jwt({ token, account, req }) {
       console.log('JWT callback:', { token, account, req });
-      if (account) {
-        token.accessToken = account.access_token;
-        token.refreshToken = account.refresh_token; // Добавляем refresh_token, если доступен
-        token.expiresAt = account.expires_at ? account.expires_at * 1000 : Date.now() + (account.expires_in * 1000); // Учитываем, что expires_at может быть в секундах
+      if (!account || !account.access_token) {
+        throw new Error('No access token available in JWT callback');
       }
+      token.accessToken = account.access_token;
+      token.refreshToken = account.refresh_token; // Добавляем refresh_token, если доступен
+      token.expiresAt = account.expires_at ? account.expires_at * 1000 : Date.now() + (account.expires_in * 1000); // Учитываем, что expires_at может быть в секундах
       return token;
     },
     async session({ session, token, req }) {
       console.log('Session callback:', { session, token, req });
-      if (token && token.accessToken) {
-        session.accessToken = token.accessToken;
-        session.refreshToken = token.refreshToken;
-        session.expiresAt = token.expiresAt;
-      } else {
+      if (!token || !token.accessToken) {
         console.error('Session callback: Token or accessToken is missing');
         throw new Error('Invalid session token');
       }
+      session.accessToken = token.accessToken;
+      session.refreshToken = token.refreshToken;
+      session.expiresAt = token.expiresAt;
       return session;
     },
   },
