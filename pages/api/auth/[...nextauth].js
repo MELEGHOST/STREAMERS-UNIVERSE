@@ -15,7 +15,8 @@ const authOptions = {
     }),
   ],
   callbacks: {
-    async jwt({ token, account }) {
+    async jwt({ token, account, req }) {
+      console.log('JWT callback:', { token, account, req });
       if (account) {
         token.accessToken = account.access_token;
         token.refreshToken = account.refresh_token; // Добавляем refresh_token, если доступен
@@ -23,7 +24,8 @@ const authOptions = {
       }
       return token;
     },
-    async session({ session, token }) {
+    async session({ session, token, req }) {
+      console.log('Session callback:', { session, token, req });
       if (token && token.accessToken) {
         session.accessToken = token.accessToken;
         session.refreshToken = token.refreshToken;
