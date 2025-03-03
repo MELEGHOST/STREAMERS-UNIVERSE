@@ -1,30 +1,40 @@
-import { parse } from 'cookie';
+import { Pool } from '@vercel/postgres';
+import { getServerSession } from 'next-auth/next';
+import { authOptions } from './[...nextauth]';
 
-export default function handler(req, res) {
+const pool = new Pool({
+  connectionString: process.env.POSTGRES_URL,
+});
+
+export default async function handler(req, res) {
   if (req.method !== 'GET' && req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  const { userId } = req.query;
+  const session = await getServerSession(req, res, authOptions);
+  if (!session) {
+    return res.status(401).json({ error: 'Not authenticated' });
+  }
+
+  const userId = session.user.id; // Предполагаем, что в сессии есть user.id
   if (!userId) return res.status(400).json({ error: 'User ID required' });
 
   try {
-    // Используем cookies для хранения данных
     if (req.method === 'GET') {
-      // Получаем cookies из заголовка
-      const cookies = parse(req.headers.cookie || '');
-      const socialLinks = cookies[`socialLinks_${userId}`] ? JSON.parse(cookies[`socialLinks_${userId}`]) : {};
+      // Получаем социальные ссылки из базы данных
+      const result = await pool.query(
+        'SELECT social_links FROM user_socials WHERE user_id = $1',
+        [userId]
+      );
+      const socialLinks = result.rows[0]?.social_links || {};
       res.status(200).json(socialLinks);
     } else if (req.method === 'POST') {
       const { socialLinks } = req.body;
-      if (!socialLinks) {
-        return res.status(400).json({ error: 'Social links data required' });
-      }
-      
-      // Сохраняем данные в cookies (с 30-дневным сроком действия)
-      res.setHeader('Set-Cookie', [
-        `socialLinks_${userId}=${JSON.stringify(socialLinks)}; Path=/; HttpOnly; SameSite=Strict; Max-Age=2592000` // 30 дней
-      ]);
+      // Сохраняем социальные ссылки в базу данных
+      await pool.query(
+        'INSERT INTO user_socials (user_id, social_links) VALUES ($1, $2) ON CONFLICT (user_id) DO UPDATE SET social_links = $2',
+        [userId, socialLinks]
+      );
       res.status(200).json({ success: true });
     }
   } catch (error) {
