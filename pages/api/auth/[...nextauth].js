@@ -30,6 +30,7 @@ const authOptions = {
         session.expiresAt = token.expiresAt;
       } else {
         console.error('Session callback: Token or accessToken is missing');
+        throw new Error('Invalid session token');
       }
       return session;
     },
