@@ -32,6 +32,11 @@ const authOptions = {
         console.error('JWT callback: No access token available', { account, req });
         throw new Error('No access token available in JWT callback');
       }
+      // Дополнительная проверка на наличие secret
+      if (!process.env.NEXTAUTH_SECRET) {
+        console.error('JWT callback: NEXTAUTH_SECRET is missing');
+        throw new Error('NEXTAUTH_SECRET is required');
+      }
       token.accessToken = account.access_token;
       token.refreshToken = account.refresh_token; // Добавляем refresh_token, если доступен
       token.expiresAt = account.expires_at ? account.expires_at * 1000 : Date.now() + (account.expires_in * 1000); // Учитываем, что expires_at может быть в секундах
