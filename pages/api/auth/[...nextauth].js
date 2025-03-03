@@ -91,3 +91,4 @@ const authOptions = {
 };
 
 export default NextAuth(authOptions);
+export const getAuthOptions = () => authOptions; // Добавляем именованный экспорт для использования в других файлах
