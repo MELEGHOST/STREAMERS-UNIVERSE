@@ -1,4 +1,5 @@
-import { getServerSession, signIn } from 'next-auth/next';
+import { getServerSession } from 'next-auth/next';
+import { signIn } from 'next-auth/react';
 import { authOptions } from './[...nextauth]';
 
 export default async function handler(req, res) {
@@ -13,8 +14,14 @@ export default async function handler(req, res) {
     const baseUrl = `${process.env.NEXTAUTH_URL || `https://${req.headers.host}`}`;
     const callbackUrl = '/profile';
     
-    // Используем signIn для редиректа на Twitch OAuth
-    await signIn('twitch', { callbackUrl: `${baseUrl}${callbackUrl}`, redirect: true });
+    // Редирект на URL авторизации Twitch, так как signIn не может быть вызван на сервере
+    const twitchAuthUrl = `https://id.twitch.tv/oauth2/authorize?client_id=${
+      process.env.TWITCH_CLIENT_ID
+    }&redirect_uri=${
+      encodeURIComponent(process.env.TWITCH_REDIRECT_URI || `${baseUrl}/api/auth/callback/twitch`)
+    }&response_type=code&scope=user:read:email`;
+    
+    res.redirect(twitchAuthUrl);
   } catch (error) {
     console.error('Twitch sign-in error:', {
       error,
