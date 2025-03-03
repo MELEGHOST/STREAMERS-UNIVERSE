@@ -1,6 +1,11 @@
 import NextAuth from 'next-auth';
 import TwitchProvider from 'next-auth/providers/twitch';
 
+// Проверка наличия обязательных переменных окружения
+if (!process.env.TWITCH_CLIENT_ID || !process.env.TWITCH_CLIENT_SECRET || !process.env.NEXTAUTH_SECRET || !process.env.TWITCH_REDIRECT_URI) {
+  throw new Error('Missing required environment variables for NextAuth.js');
+}
+
 // Определяем объект authOptions для экспорта
 const authOptions = {
   providers: [
@@ -11,7 +16,7 @@ const authOptions = {
         url: 'https://id.twitch.tv/oauth2/authorize',
         params: { scope: 'user:read:email' },
       },
-      callbackUrl: process.env.TWITCH_REDIRECT_URI || 'https://streamers-universe-8lrrhpoxu-meleghosts-projects.vercel.app/auth',
+      callbackUrl: process.env.TWITCH_REDIRECT_URI || 'https://streamers-universe-adat68ofj-meleghosts-projects.vercel.app/auth',
     }),
   ],
   callbacks: {
@@ -41,7 +46,7 @@ const authOptions = {
       return session;
     },
   },
-  secret: process.env.NEXTAUTH_SECRET || 'a-very-secure-random-secret-32chars-long', // Убедимся, что секрет уникален и длинный
+  secret: process.env.NEXTAUTH_SECRET, // Убедимся, что секрет указан явно
   pages: {
     signIn: '/auth',
     error: '/auth',
@@ -76,7 +81,7 @@ const authOptions = {
     secret: process.env.NEXTAUTH_SECRET, // Указываем тот же секрет для JWT
   },
   cors: {
-    origin: process.env.TWITCH_REDIRECT_URI || 'https://streamers-universe-8lrrhpoxu-meleghosts-projects.vercel.app',
+    origin: process.env.TWITCH_REDIRECT_URI || 'https://streamers-universe-adat68ofj-meleghosts-projects.vercel.app',
     methods: ['GET', 'POST', 'OPTIONS'], // Убедимся, что поддерживаются все необходимые методы для CORS
     credentials: true, // Разрешаем отправку cookies и авторизационных данных
     optionsSuccessStatus: 200 // Устанавливаем статус для OPTIONS-запросов, чтобы избежать проблем с CORS
