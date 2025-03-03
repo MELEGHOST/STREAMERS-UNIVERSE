@@ -11,7 +11,7 @@ const authOptions = {
         url: 'https://id.twitch.tv/oauth2/authorize',
         params: { scope: 'user:read:email' },
       },
-      callbackUrl: process.env.TWITCH_REDIRECT_URI || 'https://streamers-universe.vercel.app/auth',
+      callbackUrl: process.env.TWITCH_REDIRECT_URI || 'https://streamers-universe-8lrrhpoxu-meleghosts-projects.vercel.app/auth',
     }),
   ],
   callbacks: {
@@ -76,7 +76,7 @@ const authOptions = {
     secret: process.env.NEXTAUTH_SECRET, // Указываем тот же секрет для JWT
   },
   cors: {
-    origin: process.env.TWITCH_REDIRECT_URI || 'https://streamers-universe.vercel.app',
+    origin: process.env.TWITCH_REDIRECT_URI || 'https://streamers-universe-8lrrhpoxu-meleghosts-projects.vercel.app',
     methods: ['GET', 'POST', 'OPTIONS'], // Убедимся, что поддерживаются все необходимые методы для CORS
     credentials: true, // Разрешаем отправку cookies и авторизационных данных
     optionsSuccessStatus: 200 // Устанавливаем статус для OPTIONS-запросов, чтобы избежать проблем с CORS
