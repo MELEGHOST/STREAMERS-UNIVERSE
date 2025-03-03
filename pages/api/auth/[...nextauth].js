@@ -13,7 +13,7 @@ if (!process.env.TWITCH_CLIENT_ID || !process.env.TWITCH_CLIENT_SECRET || !proce
 }
 
 // Определяем объект authOptions для экспорта
-const authOptions = {
+export const authOptions = {
   providers: [
     TwitchProvider({
       clientId: process.env.TWITCH_CLIENT_ID,
@@ -87,4 +87,3 @@ const authOptions = {
 };
 
 export default NextAuth(authOptions);
-// Убрали отдельный export { authOptions }, так как он дублирует экспорт и вызывает конфликт
