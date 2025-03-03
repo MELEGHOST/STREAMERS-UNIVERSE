@@ -7,12 +7,24 @@ export default async function handler(req, res) {
   }
 
   try {
-    // Clear cookies
+    const session = await getServerSession(req, res, authOptions);
+
+    if (!session) {
+      return res.status(401).json({ error: 'Not authenticated' });
+    }
+
+    // Очистка cookies через NextAuth.js или вручную
     res.setHeader('Set-Cookie', [
-      'twitchToken=; Path=/; HttpOnly; SameSite=Strict; Max-Age=0',
-      'twitchUser=; Path=/; HttpOnly; SameSite=Strict; Max-Age=0'
+      'next-auth.session-token=; Path=/; HttpOnly; SameSite=Strict; Max-Age=0', // Очистка сессии NextAuth
+      'twitchToken=; Path=/; HttpOnly; SameSite=Strict; Max-Age=0', // Очистка кастомного токена
+      'twitchUser=; Path=/; HttpOnly; SameSite=Strict; Max-Age=0', // Очистка данных пользователя
     ]);
-    
+
+    // Выход через NextAuth.js (опционально, если требуется полная очистка сессии)
+    await new Promise((resolve) => {
+      req.session.destroy(() => resolve(true));
+    });
+
     res.status(200).json({ message: 'Logged out successfully' });
   } catch (error) {
     console.error('Logout error:', error);
