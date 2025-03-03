@@ -22,7 +22,7 @@
     "@swc-node/core": "1.13.3",
     "@swc/register": "0.1.10",
     "@swc/transformer": "0.1.2",
-    "@swc/node": "1.6.2",
+    "@swc/node": "1.0.0",
     "@swc/jest": "0.2.36",
     "@swc/plugin": "0.2.165",
     "@swc/typescript": "0.0.12",
