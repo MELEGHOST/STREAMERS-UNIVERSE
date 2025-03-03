@@ -8,25 +8,26 @@
     "start": "next start"
   },
   "dependencies": {
-    "next": "15.2.0",
-    "react": "19.0.0",
-    "react-dom": "19.0.0",
-    "axios": "1.7.7",
-    "next-auth": "4.24.11",
-    "@swc/helpers": "0.5.15",
-    "@swc/core": "1.11.5",
-    "@swc/wasm": "1.11.5",
-    "@swc/types": "0.1.19",
-    "@swc-node/register": "1.10.9",
-    "@swc/cli": "0.1.62",
     "@swc-node/core": "1.13.3",
+    "@swc-node/register": "1.10.9",
+    "@swc/cli": "^0.6.0",
+    "@swc/core": "1.11.5",
+    "@swc/helpers": "0.5.15",
     "@swc/jest": "0.2.36",
-    "@swc/plugin-styled-components": "7.0.0"
+    "@swc/plugin-styled-components": "7.0.0",
+    "@swc/types": "0.1.19",
+    "@swc/wasm": "1.11.5",
+    "@vercel/postgres": "^0.10.0",
+    "axios": "1.7.7",
+    "next": "15.2.0",
+    "next-auth": "4.24.11",
+    "react": "19.0.0",
+    "react-dom": "19.0.0"
   },
   "devDependencies": {
-    "typescript": "5.7.3",
+    "@types/node": "22.13.5",
     "@types/react": "19.0.10",
-    "@types/node": "22.13.5"
+    "typescript": "5.7.3"
   },
   "engines": {
     "node": "22"
