@@ -9,22 +9,15 @@ export default function Auth() {
   const router = useRouter();
 
   const handleLogin = async () => {
-    try {
-      console.log('Initiating Twitch login');
-      const result = await signIn('twitch', { callbackUrl: '/profile', redirect: true });
-      if (!result?.ok) {
-        throw new Error('Failed to initiate Twitch login');
-      }
-      // Сохраняем токен и пользователя в localStorage после успешной авторизации
-      if (result.ok && result.user) {
-        localStorage.setItem('twitchToken', result.accessToken || '');
-        localStorage.setItem('twitchUser', JSON.stringify(result.user));
-      }
-    } catch (error) {
-      console.error('Error initiating Twitch login:', error);
-      alert('Не удалось войти через Twitch. Проверь настройки или попробуй позже.');
-    }
-  };
+  try {
+    console.log('Initiating Twitch login');
+    await signIn('twitch', { callbackUrl: '/profile' });
+    // При redirect: true (значение по умолчанию), дальнейший код не выполнится
+  } catch (error) {
+    console.error('Error initiating Twitch login:', error);
+    alert('Не удалось войти через Twitch. Проверь настройки или попробуй позже.');
+  }
+};
 
   // Если сессия загружается, показываем загрузку
   if (status === 'loading') {
