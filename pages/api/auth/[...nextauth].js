@@ -29,7 +29,10 @@ const authOptions = {
       console.log('Session callback:', { session, token, req });
       if (!token || !token.accessToken) {
         console.error('Session callback: Token or accessToken is missing');
-        throw new Error('Invalid session token');
+        return {
+          error: 'Invalid session token',
+          expires: new Date(Date.now() + 60 * 1000).toISOString(), // Устанавливаем короткий срок действия для немедленного обновления
+        };
       }
       session.accessToken = token.accessToken;
       session.refreshToken = token.refreshToken;
@@ -74,7 +77,7 @@ const authOptions = {
   cors: {
     origin: process.env.TWITCH_REDIRECT_URI || 'https://streamers-universe.vercel.app',
     methods: ['GET', 'POST'], // Ограничиваем методы до GET и POST для избежания ошибок 405
-    credentials: true, // Разрешаем отправку cookies и авторизационных данных
+    credentials: true, // Разрешаем отправку cookies и авториzaционных данных
     optionsSuccessStatus: 200 // Устанавливаем статус для OPTIONS-запросов, чтобы избежать проблем с CORS
   },
   session: {
