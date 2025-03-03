@@ -3,6 +3,12 @@ import TwitchProvider from 'next-auth/providers/twitch';
 
 // Проверка наличия обязательных переменных окружения
 if (!process.env.TWITCH_CLIENT_ID || !process.env.TWITCH_CLIENT_SECRET || !process.env.NEXTAUTH_SECRET || !process.env.TWITCH_REDIRECT_URI) {
+  console.error('Missing required environment variables for NextAuth.js:', {
+    TWITCH_CLIENT_ID: !!process.env.TWITCH_CLIENT_ID,
+    TWITCH_CLIENT_SECRET: !!process.env.TWITCH_CLIENT_SECRET,
+    NEXTAUTH_SECRET: !!process.env.NEXTAUTH_SECRET,
+    TWITCH_REDIRECT_URI: !!process.env.TWITCH_REDIRECT_URI,
+  });
   throw new Error('Missing required environment variables for NextAuth.js');
 }
 
@@ -23,7 +29,7 @@ const authOptions = {
     async jwt({ token, account, req }) {
       console.log('JWT callback:', { token, account, req });
       if (!account || !account.access_token) {
-        console.error('JWT callback: No access token available');
+        console.error('JWT callback: No access token available', { account, req });
         throw new Error('No access token available in JWT callback');
       }
       token.accessToken = account.access_token;
@@ -34,7 +40,7 @@ const authOptions = {
     async session({ session, token, req }) {
       console.log('Session callback:', { session, token, req });
       if (!token || !token.accessToken) {
-        console.error('Session callback: Token or accessToken is missing');
+        console.error('Session callback: Token or accessToken is missing', { token, req });
         return {
           error: 'Invalid session token',
           expires: new Date(Date.now() + 60 * 1000).toISOString(), // Устанавливаем короткий срок действия для немедленного обновления
@@ -84,7 +90,8 @@ const authOptions = {
     origin: process.env.TWITCH_REDIRECT_URI || 'https://streamers-universe-adat68ofj-meleghosts-projects.vercel.app',
     methods: ['GET', 'POST', 'OPTIONS'], // Убедимся, что поддерживаются все необходимые методы для CORS
     credentials: true, // Разрешаем отправку cookies и авторизационных данных
-    optionsSuccessStatus: 200 // Устанавливаем статус для OPTIONS-запросов, чтобы избежать проблем с CORS
+    optionsSuccessStatus: 200, // Устанавливаем статус для OPTIONS-запросов, чтобы избежать проблем с CORS
+    exposedHeaders: ['Set-Cookie'], // Разрешаем передачу заголовков Set-Cookie для cookies
   },
   session: {
     strategy: 'jwt', // Используем JWT для сессий
@@ -99,6 +106,13 @@ const authOptions = {
   // Отключаем внутренние логи NextAuth.js, чтобы избежать ошибок 405 для /api/auth/_log
   experimental: {
     disableLogRoutes: true,
+  },
+  // Добавляем кастомный обработчик ошибок для предотвращения возврата HTML
+  error: {
+    async handler(error, req, res) {
+      console.error('Custom NextAuth Error Handler:', { error, req, res });
+      res.status(500).json({ error: 'Internal Server Error', message: error.message || 'An error occurred' });
+    },
   },
 };
 
