@@ -22,7 +22,7 @@
     "@swc-node/core": "1.13.3",
     "@swc/register": "0.1.10",
     "@swc/jest": "0.2.36",
-    "@swc/webpack-plugin": "1.7.0",
+    "swc/webpack-plugin": "1.0.0",
     "@swc/plugin-styled-components": "7.0.0"
   },
   "devDependencies": {
