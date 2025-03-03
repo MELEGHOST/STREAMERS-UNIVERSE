@@ -115,7 +115,13 @@ const authOptions = {
   // Добавляем кастомный обработчик ошибок для предотвращения возврата HTML
   error: {
     async handler(error, req, res) {
-      console.error('Custom NextAuth Error Handler:', { error, req, res });
+      console.error('Custom NextAuth Error Handler - Request Details:', {
+        error,
+        method: req.method,
+        url: req.url,
+        headers: req.headers,
+        body: req.body,
+      });
       res.status(500).json({ error: 'Internal Server Error', message: error.message || 'An error occurred' });
     },
   },
