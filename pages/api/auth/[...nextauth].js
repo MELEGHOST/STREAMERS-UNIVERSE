@@ -1,6 +1,3 @@
-// Исправление файла pages/api/auth/[...nextauth].js
-
-// 1. Исправление дублирования объекта logger
 import NextAuth from 'next-auth';
 import TwitchProvider from 'next-auth/providers/twitch';
 
@@ -25,13 +22,11 @@ const authOptions = {
         url: 'https://id.twitch.tv/oauth2/authorize',
         params: { scope: 'user:read:email' },
       },
-      // Убираем callbackUrl из настроек провайдера, т.к. это может вызывать конфликты
     }),
   ],
   callbacks: {
     async jwt({ token, account }) {
       console.log('JWT callback:', { token, account });
-      // Проверяем account только если он существует
       if (account && account.access_token) {
         token.accessToken = account.access_token;
         token.refreshToken = account.refresh_token; // Добавляем refresh_token, если доступен
@@ -41,7 +36,6 @@ const authOptions = {
     },
     async session({ session, token }) {
       console.log('Session callback:', { session, token });
-      // Проверяем token только если он существует
       if (token) {
         session.accessToken = token.accessToken;
         session.refreshToken = token.refreshToken;
@@ -66,7 +60,6 @@ const authOptions = {
     debug(code, metadata) {
       console.debug('NextAuth Debug:', { code, metadata });
     },
-    // Устанавливаем уровень логов
     level: process.env.NODE_ENV === 'development' ? 'debug' : 'error',
   },
   events: {
@@ -88,75 +81,10 @@ const authOptions = {
     strategy: 'jwt',
     maxAge: 60 * 60 * 24 * 30, // 30 дней
   },
-  // Отключаем внутренние логи NextAuth.js, чтобы избежать ошибок 405 для /api/auth/_log
   experimental: {
     disableLogRoutes: true,
   },
 };
 
 export default NextAuth(authOptions);
-export { authOptions };
-
-// 2. Исправление файла pages/api/auth/twitch.js
-// Вместо импорта signIn из next-auth, использовать правильный импорт
-// pages/api/auth/twitch.js
-import { getServerSession } from 'next-auth/next';
-import { authOptions } from './[...nextauth]';
-
-export default async function handler(req, res) {
-  if (req.method !== 'GET') {
-    return res.status(405).json({ error: 'Method not allowed' });
-  }
-
-  try {
-    const session = await getServerSession(req, res, authOptions);
-    console.log('Current session before Twitch sign-in:', session);
-
-    const baseUrl = `${process.env.NEXTAUTH_URL || `https://${req.headers.host}`}`;
-    const callbackUrl = '/profile';
-    
-    // Вместо прямого вызова signIn возвращаем редирект на /api/auth/signin/twitch
-    return res.redirect(`/api/auth/signin/twitch?callbackUrl=${encodeURIComponent(`${baseUrl}${callbackUrl}`)}`);
-  } catch (error) {
-    console.error('Twitch sign-in error:', {
-      error,
-      stack: error.stack,
-      method: req.method,
-      url: req.url,
-    });
-    res.status(500).json({ error: 'Server error: ' + error.message });
-  }
-}
-
-// 3. Исправление файла pages/api/auth/logout.js
-// Удаляем нерабочую часть с req.session.destroy()
-import { getServerSession } from 'next-auth/next';
-import { authOptions } from './[...nextauth]';
-
-export default async function handler(req, res) {
-  if (req.method !== 'POST') {
-    return res.status(405).json({ error: 'Method not allowed' });
-  }
-
-  try {
-    const session = await getServerSession(req, res, authOptions);
-
-    if (!session) {
-      return res.status(401).json({ error: 'Not authenticated' });
-    }
-
-    // Очистка cookies через NextAuth.js или вручную
-    res.setHeader('Set-Cookie', [
-      'next-auth.session-token=; Path=/; HttpOnly; SameSite=Strict; Max-Age=0',
-      'next-auth.callback-url=; Path=/; HttpOnly; SameSite=Strict; Max-Age=0',
-      'next-auth.csrf-token=; Path=/; HttpOnly; SameSite=Strict; Max-Age=0',
-      'twitchToken=; Path=/; HttpOnly; SameSite=Strict; Max-Age=0',
-      'twitchUser=; Path=/; HttpOnly; SameSite=Strict; Max-Age=0',
-    ]);
-
-    res.status(200).json({ message: 'Logged out successfully' });
-  } catch (error) {
-    console.error('Logout error:', error);
-    res.status(500).json({ error: 'Failed to logout: ' + error.message });
-  }
-}
+// Убрали отдельный export { authOptions }, так как он дублирует экспорт и вызывает конфликт
