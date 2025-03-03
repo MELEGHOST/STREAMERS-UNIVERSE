@@ -9,19 +9,30 @@ export default function Auth() {
   const router = useRouter();
 
   const handleLogin = async () => {
-  try {
-    console.log('Initiating Twitch login');
-    await signIn('twitch', { callbackUrl: '/profile' });
-    // При redirect: true (значение по умолчанию), дальнейший код не выполнится
-  } catch (error) {
-    console.error('Error initiating Twitch login:', error);
-    alert('Не удалось войти через Twitch. Проверь настройки или попробуй позже.');
-  }
-};
+    try {
+      console.log('Initiating Twitch login with session status:', status);
+      await signIn('twitch', { callbackUrl: '/profile' });
+      // NextAuth автоматически перенаправляет пользователя и управляет сессией
+      // Нет необходимости в дополнительных действиях, таких как сохранение токена в localStorage
+    } catch (error) {
+      console.error('Error initiating Twitch login:', {
+        error,
+        message: error.message,
+        stack: error.stack,
+      });
+      alert('Не удалось войти через Twitch. Проверь настройки или попробуй позже.');
+    }
+  };
 
   // Если сессия загружается, показываем загрузку
   if (status === 'loading') {
-    return <div>Загрузка...</div>;
+    return <div className={styles.loading}>Загрузка...</div>;
+  }
+
+  // Если пользователь авторизован, перенаправляем на /profile
+  if (session) {
+    router.push('/profile');
+    return null; // Возвращаем null, пока редирект не завершён
   }
 
   return (
