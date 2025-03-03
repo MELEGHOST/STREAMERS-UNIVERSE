@@ -1,5 +1,5 @@
 import { getServerSession } from 'next-auth/next';
-import { authOptions } from './[...nextauth]';
+import { getAuthOptions } from './[...nextauth]';
 
 export default async function handler(req, res) {
   try {
@@ -8,7 +8,7 @@ export default async function handler(req, res) {
       url: req.url,
       headers: req.headers,
     }); // Отладка
-    const session = await getServerSession(req, res, authOptions);
+    const session = await getServerSession(req, res, getAuthOptions());
     
     console.log('Session retrieved:', session ? session : 'No session'); // Отладка
 
