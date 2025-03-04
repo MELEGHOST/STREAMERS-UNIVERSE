@@ -1,60 +1,57 @@
-import { useEffect, useState } from 'react';
-import { useSession } from 'next-auth/react'; // Обновленный импорт
+"use client";
 
-const Profile = () => {
-  const [session, loading] = useSession();
+import { useEffect, useState } from 'react';
+import { cookies } from 'next/headers';
+import styles from './profile.module.css';
+
+export default function Profile() {
   const [profileData, setProfileData] = useState(null);
-  const [loadingProfile, setLoadingProfile] = useState(true);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (session) {
-      fetch('/api/twitch/profile')
-        .then(response => response.json())
-        .then(data => {
-          setProfileData(data);
-          setLoadingProfile(false);
-        })
-        .catch(error => {
-          console.error('Error fetching profile data:', error);
-          setLoadingProfile(false);
-        });
-    }
-  }, [session]);
+    const fetchProfile = async () => {
+      try {
+        const response = await fetch('/api/twitch/profile', { credentials: 'include' });
+        if (!response.ok) throw new Error('Failed to fetch profile');
+        const data = await response.json();
+        setProfileData(data);
+      } catch (error) {
+        console.error('Error fetching profile:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchProfile();
+  }, []);
 
   if (loading) {
-    return <div>Loading...</div>;
+    return <div className={styles.loading}>Загрузка...</div>;
   }
 
-  if (!session) {
-    return <div>Please sign in to view your profile</div>;
-  }
-
-  if (loadingProfile) {
-    return <div>Loading profile data...</div>;
+  if (!cookies().get('twitch_access_token')) {
+    return <div>Пожалуйста, войдите через Twitch.</div>;
   }
 
   if (!profileData) {
-    return <div>Error loading profile data</div>;
+    return <div>Ошибка загрузки данных профиля.</div>;
   }
 
   return (
-    <div>
-      <h1>Profile</h1>
-      <p>Nickname: {profileData.user.display_name}</p>
-      <p>Followers:</p>
+    <div className={styles.container}>
+      <h1>Профиль Twitch</h1>
+      <p>Никнейм: {profileData.twitchName}</p>
+      <h2>Фолловеры ({profileData.followersCount})</h2>
       <ul>
-        {profileData.followers.map(follower => (
-          <li key={follower.id}>{follower.name}</li>
+        {profileData.followers.map((follower, index) => (
+          <li key={index}>{follower}</li>
         ))}
       </ul>
-      <p>Following:</p>
+      <h2>Фолловинги ({profileData.followingsCount})</h2>
       <ul>
-        {profileData.following.map(following => (
-          <li key={following.id}>{following.name}</li>
+        {profileData.followings.map((following, index) => (
+          <li key={index}>{following}</li>
         ))}
       </ul>
     </div>
   );
-};
-
-export default Profile;
+}
