@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from 'react';
-import Cookies from 'js-cookie'; // Импорт для работы с cookies на клиенте
+import Cookies from 'js-cookie'; // Теперь с типами благодаря @types/js-cookie
 import styles from './profile.module.css';
 
 export default function Profile() {
