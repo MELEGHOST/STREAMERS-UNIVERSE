@@ -22,6 +22,7 @@ const authOptions = {
         url: 'https://id.twitch.tv/oauth2/authorize',
         params: { scope: 'user:read:email' },
       },
+      callbackUrl: process.env.TWITCH_REDIRECT_URI || 'https://streamers-universe-3pa9pn2ri-meleghosts-projects.vercel.app/auth',
     }),
   ],
   callbacks: {
@@ -86,7 +87,7 @@ const authOptions = {
     maxAge: 60 * 60 * 24 * 30, // 30 дней
   },
   cors: {
-    origin: process.env.TWITCH_REDIRECT_URI || 'https://streamers-universe-adat68ofj-meleghosts-projects.vercel.app',
+    origin: process.env.TWITCH_REDIRECT_URI || 'https://streamers-universe-3pa9pn2ri-meleghosts-projects.vercel.app',
     methods: ['GET', 'POST', 'OPTIONS'], // Поддержка всех необходимых методов для CORS
     credentials: true, // Разрешаем cookies и авторизационные данные
     optionsSuccessStatus: 200, // Устанавливаем статус для OPTIONS-запросов
