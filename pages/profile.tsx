@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from 'react';
-import { cookies } from 'next/headers';
+import Cookies from 'js-cookie'; // Импорт для работы с cookies на клиенте
 import styles from './profile.module.css';
 
 export default function Profile() {
@@ -9,26 +9,26 @@ export default function Profile() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const fetchProfile = async () => {
-      try {
-        const response = await fetch('/api/twitch/profile', { credentials: 'include' });
-        if (!response.ok) throw new Error('Failed to fetch profile');
-        const data = await response.json();
-        setProfileData(data);
-      } catch (error) {
-        console.error('Error fetching profile:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchProfile();
+    const accessToken = Cookies.get('twitch_access_token');
+    if (accessToken) {
+      fetch('/api/twitch/profile', { credentials: 'include' })
+        .then(res => {
+          if (!res.ok) throw new Error('Failed to fetch profile');
+          return res.json();
+        })
+        .then(data => setProfileData(data))
+        .catch(error => console.error('Error fetching profile:', error))
+        .finally(() => setLoading(false));
+    } else {
+      setLoading(false);
+    }
   }, []);
 
   if (loading) {
     return <div className={styles.loading}>Загрузка...</div>;
   }
 
-  if (!cookies().get('twitch_access_token')) {
+  if (!Cookies.get('twitch_access_token')) {
     return <div>Пожалуйста, войдите через Twitch.</div>;
   }
 
