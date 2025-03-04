@@ -1,60 +1,71 @@
-import { getServerSession } from 'next-auth/next';
-import { authOptions } from './auth/[...nextauth]';
-import axios from 'axios';
+import { getSession } from 'next-auth/client';
 
-export default async function handler(req, res) {
-  if (req.method !== 'GET') {
-    return res.status(405).json({ error: 'Method not allowed' });
+const getTwitchUserData = async (accessToken) => {
+  const response = await fetch('https://api.twitch.tv/helix/users', {
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+      'Client-ID': process.env.TWITCH_CLIENT_ID,
+    },
+  });
+
+  const data = await response.json();
+  return data.data[0];
+};
+
+const getTwitchFollowers = async (userId, accessToken) => {
+  const response = await fetch(`https://api.twitch.tv/helix/users/follows?to_id=${userId}`, {
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+      'Client-ID': process.env.TWITCH_CLIENT_ID,
+    },
+  });
+
+  const data = await response.json();
+  return data.data;
+};
+
+const getTwitchFollowing = async (userId, accessToken) => {
+  const response = await fetch(`https://api.twitch.tv/helix/users/follows?from_id=${userId}`, {
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+      'Client-ID': process.env.TWITCH_CLIENT_ID,
+    },
+  });
+
+  const data = await response.json();
+  return data.data;
+};
+
+export default async (req, res) => {
+  const session = await getSession({ req });
+  if (!session) {
+    return res.status(401).json({ error: 'Unauthorized' });
   }
+
+  const { accessToken } = session;
+
   try {
-    const session = await getServerSession(req, res, authOptions);
-    if (!session) {
-      return res.status(401).json({ error: 'Not authenticated' });
-    }
+    const userData = await getTwitchUserData(accessToken);
+    const followersData = await getTwitchFollowers(userData.id, accessToken);
+    const followingData = await getTwitchFollowing(userData.id, accessToken);
 
-    const accessToken = session.accessToken;
-    if (!accessToken) {
-      return res.status(400).json({ error: 'Access token not found' });
-    }
+    const followers = followersData.map(follower => ({
+      id: follower.from_id,
+      name: follower.from_name,
+    }));
 
-    // Получаем данные пользователя
-    const userResponse = await axios.get('https://api.twitch.tv/helix/users', {
-      headers: {
-        'Client-ID': process.env.TWITCH_CLIENT_ID,
-        'Authorization': `Bearer ${accessToken}`,
-      },
-    });
-    const user = userResponse.data.data[0];
-    const userId = user.id;
-    const twitchName = user.display_name;
-
-    // Получаем фолловеров
-    const followersResponse = await axios.get(`https://api.twitch.tv/helix/users/follows?to_id=${userId}`, {
-      headers: {
-        'Client-ID': process.env.TWITCH_CLIENT_ID,
-        'Authorization': `Bearer ${accessToken}`,
-      },
-    });
-    const followers = followersResponse.data.data.map(follower => follower.from_name);
-
-    // Получаем фолловингов
-    const followingsResponse = await axios.get(`https://api.twitch.tv/helix/users/follows?from_id=${userId}`, {
-      headers: {
-        'Client-ID': process.env.TWITCH_CLIENT_ID,
-        'Authorization': `Bearer ${accessToken}`,
-      },
-    });
-    const followings = followingsResponse.data.data.map(following => following.to_name);
+    const following = followingData.map(following => ({
+      id: following.to_id,
+      name: following.to_name,
+    }));
 
     res.status(200).json({
-      twitchName,
-      followersCount: followers.length,
+      user: userData,
       followers,
-      followingsCount: followings.length,
-      followings,
+      following,
     });
   } catch (error) {
-    console.error('Twitch profile error:', error);
-    res.status(500).json({ error: 'Server error', message: error.message });
+    console.error(error);
+    res.status(500).json({ error: 'Internal Server Error' });
   }
-}
+};
