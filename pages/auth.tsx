@@ -1,6 +1,7 @@
 "use client";
 
 import { useRouter } from 'next/navigation';
+import Cookies from 'js-cookie'; // Теперь с типами
 import styles from './auth.module.css';
 
 export default function Auth() {
@@ -9,6 +10,12 @@ export default function Auth() {
   const handleLogin = () => {
     router.push('/api/auth/twitch/login');
   };
+
+  // Проверка авторизации через cookies (опционально)
+  if (Cookies.get('twitch_access_token')) {
+    router.push('/profile');
+    return null;
+  }
 
   return (
     <div className={styles.container}>
