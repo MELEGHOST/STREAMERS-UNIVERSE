@@ -4,7 +4,7 @@ import { signIn, useSession } from 'next-auth/react';
 import { useRouter } from 'next/router';
 import styles from './auth.module.css';
 
-export default function Auth() {
+export default function Auth() 
   const { data: session, status } = useSession();
   const router = useRouter();
 
