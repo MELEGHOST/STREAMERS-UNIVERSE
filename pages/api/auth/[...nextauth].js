@@ -18,7 +18,7 @@ if (missingEnvVars.length > 0) {
   throw new Error(`Missing required environment variables: ${missingEnvVars.join(', ')}`);
 }
 
-export default NextAuth({
+const authOptions = {
   providers: [
     TwitchProvider({
       clientId: process.env.TWITCH_CLIENT_ID,
@@ -66,6 +66,7 @@ export default NextAuth({
     },
   },
   debug: process.env.NODE_ENV === 'development',
-});
+};
 
-// Обработка ошибок перенесена в callbacks.error, если потребуется
+export default NextAuth(authOptions);
+export const getAuthOptions = () => authOptions; // Именованный экспорт для использования
