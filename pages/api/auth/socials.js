@@ -1,6 +1,6 @@
 import { Pool } from '@vercel/postgres';
 import { getServerSession } from 'next-auth/next';
-import { getAuthOptions } from '../auth/[...nextauth]'; // Убедимся, что путь корректен
+import { getAuthOptions } from './auth/[...nextauth]'; // Убедимся, что путь корректен
 
 const pool = new Pool({
   connectionString: process.env.POSTGRES_URL,
