@@ -13,7 +13,6 @@ export default function Auth() {
       console.log('Initiating Twitch login with session status:', status);
       await signIn('twitch', { callbackUrl: '/profile' });
       // NextAuth автоматически перенаправляет пользователя и управляет сессией
-      // Нет необходимости в дополнительных действиях, таких как сохранение токена в localStorage
     } catch (error) {
       console.error('Error initiating Twitch login:', {
         error,
