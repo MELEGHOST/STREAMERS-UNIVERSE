@@ -1,5 +1,5 @@
 import { getServerSession } from 'next-auth/next';
-import { getAuthOptions } from '../auth/[...nextauth]';
+import { getAuthOptions } from '../auth/[...nextauth]'; // Исправлен путь
 
 export default async function handler(req, res) {
   try {
