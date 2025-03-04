@@ -18,7 +18,7 @@
     "@swc/types": "0.1.19",
     "@swc/wasm": "1.11.5",
     "@vercel/postgres": "^0.10.0",
-    "axios": "1.7.7",
+    "axios": "1.8.1",
     "next": "15.2.1",
     "next-auth": "4.24.11",
     "react": "19.0.0",
