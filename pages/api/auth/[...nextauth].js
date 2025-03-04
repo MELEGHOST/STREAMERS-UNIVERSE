@@ -25,7 +25,7 @@ const authOptions = {
       clientSecret: process.env.TWITCH_CLIENT_SECRET,
       authorization: {
         url: 'https://id.twitch.tv/oauth2/authorize',
-        params: { scope: 'user:read:email openid' },
+        params: { scope: 'user:read:email user:read:follows' },
       },
     }),
   ],
