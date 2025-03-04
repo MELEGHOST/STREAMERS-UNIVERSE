@@ -1,11 +1,20 @@
 "use client";
 
 import { useEffect, useState } from 'react';
-import Cookies from 'js-cookie'; // Теперь с типами благодаря @types/js-cookie
+import Cookies from 'js-cookie';
 import styles from './profile.module.css';
 
+// Определение типа для данных профиля Twitch
+interface TwitchProfile {
+  twitchName: string;
+  followersCount: number;
+  followers: string[];
+  followingsCount: number;
+  followings: string[];
+}
+
 export default function Profile() {
-  const [profileData, setProfileData] = useState(null);
+  const [profileData, setProfileData] = useState<TwitchProfile | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -16,7 +25,7 @@ export default function Profile() {
           if (!res.ok) throw new Error('Failed to fetch profile');
           return res.json();
         })
-        .then(data => setProfileData(data))
+        .then(data => setProfileData(data as TwitchProfile))
         .catch(error => console.error('Error fetching profile:', error))
         .finally(() => setLoading(false));
     } else {
