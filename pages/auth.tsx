@@ -1,7 +1,7 @@
 "use client";
 
 import { signIn, useSession } from 'next-auth/react';
-import { useRouter } from 'next/router';
+import { useRouter } from 'next/navigation';
 import styles from './auth.module.css';
 
 export default function Auth() {
@@ -12,26 +12,19 @@ export default function Auth() {
     try {
       console.log('Initiating Twitch login with session status:', status);
       await signIn('twitch', { callbackUrl: '/profile' });
-      // NextAuth автоматически перенаправляет пользователя и управляет сессией
-    } catch (error: any) {
-      console.error('Error initiating Twitch login:', {
-        error,
-        message: (error as Error).message,
-        stack: (error as Error).stack,
-      });
+    } catch (error) {
+      console.error('Error initiating Twitch login:', error);
       alert('Не удалось войти через Twitch. Проверь настройки или попробуй позже.');
     }
   };
 
-  // Если сессия загружается, показываем загрузку
   if (status === 'loading') {
     return <div className={styles.loading}>Загрузка...</div>;
   }
 
-  // Если пользователь авторизован, перенаправляем на /profile
   if (session) {
     router.push('/profile');
-    return null; // Возвращаем null, пока редирект не завершён
+    return null;
   }
 
   return (
