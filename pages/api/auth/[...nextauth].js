@@ -22,7 +22,7 @@ const authOptions = {
         url: 'https://id.twitch.tv/oauth2/authorize',
         params: { scope: 'user:read:email' },
       },
-      callbackUrl: process.env.TWITCH_REDIRECT_URI || 'https://streamers-universe-3pa9pn2ri-meleghosts-projects.vercel.app/auth',
+      callbackUrl: process.env.TWITCH_REDIRECT_URI || 'https://streamers-universe-fuqzwh16c-meleghosts-projects.vercel.app/auth',
     }),
   ],
   callbacks: {
@@ -58,10 +58,6 @@ const authOptions = {
   logger: {
     error(code, metadata) {
       console.error('NextAuth Error:', { code, metadata });
-      // Предотвращаем отправку POST на /api/auth/_log, если это внутренний лог
-      if (code === 'CLIENT_FETCH_ERROR' && metadata.url === '/api/auth/_log') {
-        return; // Игнорируем эту ошибку
-      }
     },
     warn(code) {
       console.warn('NextAuth Warning:', code);
@@ -91,7 +87,7 @@ const authOptions = {
     maxAge: 60 * 60 * 24 * 30, // 30 дней
   },
   cors: {
-    origin: process.env.TWITCH_REDIRECT_URI || 'https://streamers-universe-3pa9pn2ri-meleghosts-projects.vercel.app',
+    origin: process.env.TWITCH_REDIRECT_URI || 'https://streamers-universe-fuqzwh16c-meleghosts-projects.vercel.app',
     methods: ['GET', 'POST', 'OPTIONS'], // Поддержка всех необходимых методов для CORS
     credentials: true, // Разрешаем cookies и авторизационные данные
     optionsSuccessStatus: 200, // Устанавливаем статус для OPTIONS-запросов
