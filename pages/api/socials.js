@@ -1,18 +1,26 @@
 import { Pool } from '@vercel/postgres';
-import { getServerSession } from 'next-auth/next';
-import { authOptions } from './auth/[...nextauth]';
+import { cookies } from 'next/headers';
 
 export default async function handler(req, res) {
   if (req.method !== 'GET' && req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
   try {
-    const session = await getServerSession(req, res, authOptions);
-    if (!session) {
+    const accessToken = cookies().get('twitch_access_token')?.value;
+    if (!accessToken) {
       return res.status(401).json({ error: 'Not authenticated' });
     }
-    const userId = session.user.id;
-    if (!userId) return res.status(400).json({ error: 'User ID required' });
+
+    // Получаем userId через Twitch API (предполагаем, что токен валиден)
+    const userResponse = await fetch('https://api.twitch.tv/helix/users', {
+      headers: {
+        'Client-ID': process.env.TWITCH_CLIENT_ID,
+        'Authorization': `Bearer ${accessToken}`,
+      },
+    });
+    if (!userResponse.ok) throw new Error('Failed to get user');
+    const userData = await userResponse.json();
+    const userId = userData.data[0].id;
 
     const pool = new Pool({ connectionString: process.env.POSTGRES_URL });
     if (req.method === 'GET') {
