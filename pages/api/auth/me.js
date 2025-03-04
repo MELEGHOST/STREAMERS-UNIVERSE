@@ -1,5 +1,5 @@
 import { getServerSession } from 'next-auth/next';
-import { getAuthOptions } from './[...nextauth]'; // Исправлен путь для подкаталога auth
+import { getAuthOptions } from './[...nextauth]'; // Путь для подкаталога auth
 
 export default async function handler(req, res) {
   try {
