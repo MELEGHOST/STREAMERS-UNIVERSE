@@ -13,11 +13,11 @@ export default function Auth() {
       console.log('Initiating Twitch login with session status:', status);
       await signIn('twitch', { callbackUrl: '/profile' });
       // NextAuth автоматически перенаправляет пользователя и управляет сессией
-    } catch (error: any) { // Явно указываем тип 'any' или 'Error' для простоты
+    } catch (error: any) {
       console.error('Error initiating Twitch login:', {
         error,
-        message: (error as Error).message, // Явное приведение типа к Error
-        stack: (error as Error).stack,     // Явное приведение типа к Error
+        message: (error as Error).message,
+        stack: (error as Error).stack,
       });
       alert('Не удалось войти через Twitch. Проверь настройки или попробуй позже.');
     }
