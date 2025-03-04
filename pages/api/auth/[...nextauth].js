@@ -69,4 +69,4 @@ const authOptions = {
 };
 
 export default NextAuth(authOptions);
-export const getAuthOptions = () => authOptions; // Именованный экспорт для использования
+export const authOptions as const = authOptions; // Именованный экспорт для использования
