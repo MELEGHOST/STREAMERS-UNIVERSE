@@ -85,10 +85,17 @@ const authOptions = {
     strategy: 'jwt',
     maxAge: 60 * 60 * 24 * 30, // 30 дней
   },
+  cors: {
+    origin: process.env.TWITCH_REDIRECT_URI || 'https://streamers-universe-adat68ofj-meleghosts-projects.vercel.app',
+    methods: ['GET', 'POST', 'OPTIONS'], // Поддержка всех необходимых методов для CORS
+    credentials: true, // Разрешаем cookies и авторизационные данные
+    optionsSuccessStatus: 200, // Устанавливаем статус для OPTIONS-запросов
+    exposedHeaders: ['Set-Cookie'], // Разрешаем передачу заголовков Set-Cookie
+  },
   experimental: {
-    disableLogRoutes: true,
+    disableLogRoutes: true, // Отключаем внутренние логи NextAuth.js, чтобы избежать ошибок 405
   },
 };
 
 export default NextAuth(authOptions);
-export const getAuthOptions = () => authOptions; // Добавляем именованный экспорт для использования в других файлах
+export const getAuthOptions = () => authOptions; // Именованный экспорт для использования в других файлах
