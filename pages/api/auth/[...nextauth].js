@@ -1,7 +1,7 @@
 import NextAuth from 'next-auth';
 import TwitchProvider from 'next-auth/providers/twitch';
 
-// Проверка переменных окружения с обработкой ошибок
+// Проверка переменных окружения
 const requiredEnvVars = {
   TWITCH_CLIENT_ID: process.env.TWITCH_CLIENT_ID,
   TWITCH_CLIENT_SECRET: process.env.TWITCH_CLIENT_SECRET,
@@ -18,17 +18,15 @@ if (missingEnvVars.length > 0) {
   throw new Error(`Missing required environment variables: ${missingEnvVars.join(', ')}`);
 }
 
-// Определяем объект authOptions
-const authOptions = {
+export default NextAuth({
   providers: [
     TwitchProvider({
       clientId: process.env.TWITCH_CLIENT_ID,
       clientSecret: process.env.TWITCH_CLIENT_SECRET,
       authorization: {
         url: 'https://id.twitch.tv/oauth2/authorize',
-        params: { scope: 'user:read:email openid' }, // Добавлен scope openid для совместимости
+        params: { scope: 'user:read:email openid' },
       },
-      redirectUri: process.env.TWITCH_REDIRECT_URI || 'https://streamers-universe-fuqzwh16c-meleghosts-projects.vercel.app/api/auth/callback/twitch',
     }),
   ],
   secret: process.env.NEXTAUTH_SECRET,
@@ -41,7 +39,7 @@ const authOptions = {
   },
   pages: {
     signIn: '/auth',
-    error: '/auth', // Перенаправляем ошибки на страницу /auth
+    error: '/auth',
   },
   callbacks: {
     async jwt({ token, account }) {
@@ -67,51 +65,7 @@ const authOptions = {
       return session;
     },
   },
-  events: {
-    async signIn({ user, account, profile }) {
-      console.log('Sign in event:', { user, account, profile });
-    },
-    async signOut({ token }) {
-      console.log('Sign out event:', { token });
-    },
-    async error({ error, message }) {
-      console.error('NextAuth Error Event:', { error, message });
-    },
-  },
   debug: process.env.NODE_ENV === 'development',
-  logger: {
-    error(code, metadata) {
-      console.error('NextAuth Error:', { code, metadata });
-      // Полностью подавляем логирование на /api/auth/_log
-      return;
-    },
-    warn(code) {
-      console.warn('NextAuth Warning:', code);
-    },
-    debug(code, metadata) {
-      if (process.env.NODE_ENV === 'development') {
-        console.debug('NextAuth Debug:', { code, metadata });
-      }
-    },
-  },
-  useSecureCookies: process.env.NODE_ENV === 'production',
-  cors: {
-    origin: process.env.TWITCH_REDIRECT_URI || 'https://streamers-universe-fuqzwh16c-meleghosts-projects.vercel.app',
-    methods: ['GET', 'POST', 'OPTIONS'],
-    credentials: true,
-    optionsSuccessStatus: 200,
-    exposedHeaders: ['Set-Cookie'],
-  },
-};
+});
 
-// Обработка ошибок для предотвращения возврата HTML
-export default async function handler(req, res) {
-  try {
-    return await NextAuth(req, res, authOptions);
-  } catch (error) {
-    console.error('NextAuth Handler Error:', error);
-    res.status(500).json({ error: 'Internal Server Error', message: error.message });
-  }
-}
-
-export const getAuthOptions = () => authOptions; // Именованный экспорт для использования в других файлах
+// Обработка ошибок перенесена в callbacks.error, если потребуется
