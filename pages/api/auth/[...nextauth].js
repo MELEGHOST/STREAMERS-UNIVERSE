@@ -58,6 +58,10 @@ const authOptions = {
   logger: {
     error(code, metadata) {
       console.error('NextAuth Error:', { code, metadata });
+      // Предотвращаем отправку POST на /api/auth/_log, если это внутренний лог
+      if (code === 'CLIENT_FETCH_ERROR' && metadata.url === '/api/auth/_log') {
+        return; // Игнорируем эту ошибку
+      }
     },
     warn(code) {
       console.warn('NextAuth Warning:', code);
