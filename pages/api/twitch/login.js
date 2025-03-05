@@ -3,6 +3,7 @@ export default function handler(req, res) {
     return res.status(405).json({ error: 'Method not allowed' });
   }
   const baseUrl = 'https://streamers-universe.vercel.app';
-  const twitchAuthUrl = `https://id.twitch.tv/oauth2/authorize?client_id=${process.env.TWITCH_CLIENT_ID}&redirect_uri=${encodeURIComponent(baseUrl + '/api/twitch/callback')}&response_type=code&scope=user:read:email`;
+  const state = Math.random().toString(36).substring(2); // Случайный state
+  const twitchAuthUrl = `https://id.twitch.tv/oauth2/authorize?client_id=${process.env.TWITCH_CLIENT_ID}&redirect_uri=${encodeURIComponent(baseUrl + '/api/twitch/callback')}&response_type=code&scope=user%3Aread%3Aemail&state=${state}`;
   res.redirect(302, twitchAuthUrl);
 }
