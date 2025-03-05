@@ -1,32 +1,42 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
-import { useAuth } from '../src/context/AuthContext';
+import Cookies from 'js-cookie';
 import styles from './followers.module.css';
 
 export default function Followers() {
-  const { user, isAuthenticated } = useAuth();
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [userId, setUserId] = useState(null);
+  const [isStreamer, setIsStreamer] = useState(false);
   const [followers, setFollowers] = useState([]);
   const [roles, setRoles] = useState({});
 
   useEffect(() => {
-    if (!isAuthenticated) window.location.href = '/auth';
-    else {
-      const followersData = JSON.parse(localStorage.getItem(`followers_${user.id}`)) || [];
+    const accessToken = Cookies.get('twitch_access_token');
+    if (!accessToken) {
+      window.location.href = '/auth';
+    } else {
+      setIsAuthenticated(true);
+      // Предполагаем, что userId и isStreamer хранятся в localStorage или приходят из API
+      const storedUser = JSON.parse(localStorage.getItem('twitch_user') || '{}');
+      const userId = storedUser.id || 'unknown'; // Заменить на реальный ID, если доступен
+      const isStreamer = storedUser.isStreamer || false; // Заменить на реальные данные
+      setUserId(userId);
+      setIsStreamer(isStreamer);
+
+      const followersData = JSON.parse(localStorage.getItem(`followers_${userId}`)) || [];
       setFollowers(followersData);
-      const savedRoles = JSON.parse(localStorage.getItem(`roles_${user.id}`)) || {};
+      const savedRoles = JSON.parse(localStorage.getItem(`roles_${userId}`)) || {};
       setRoles(savedRoles);
     }
-  }, [isAuthenticated, user?.id]);
+  }, []);
 
   if (!isAuthenticated) return null;
-
-  const isStreamer = user?.isStreamer || false;
 
   const handleAssignRole = (followerId, role) => {
     const updatedRoles = { ...roles, [followerId]: role };
     setRoles(updatedRoles);
-    localStorage.setItem(`roles_${user.id}`, JSON.stringify(updatedRoles));
+    localStorage.setItem(`roles_${userId}`, JSON.stringify(updatedRoles));
     console.log(`Assigned ${role} to follower ${followerId}`);
   };
 
@@ -55,4 +65,10 @@ export default function Followers() {
       )}
     </div>
   );
+}
+
+export async function getStaticProps() {
+  return {
+    props: {}, // Нет данных для prerendering, всё загружается на клиенте
+  };
 }
