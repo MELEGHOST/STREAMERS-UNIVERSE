@@ -47,9 +47,9 @@ export default function Profile() {
 
           const data = await response.json();
           setProfileData(data);
-        } catch (error) {
+        } catch (error: any) { // Явно указываем тип any или Error
           console.error('Error fetching profile:', error);
-          setError(error.message || 'Failed to load profile');
+          setError(error.message || 'Failed to load profile'); // Безопасный доступ через || для fallback
         } finally {
           setLoading(false);
         }
