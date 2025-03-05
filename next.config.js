@@ -9,7 +9,6 @@ export default {
     unoptimized: true,
   },
   experimental: {
-    appDir: true, // Включение App Router
     esmExternals: true,
   },
   webpack: (config) => {
