@@ -42,9 +42,9 @@ export default function EditProfile() {
 
         const data = await response.json();
         setSocialLinks(data);
-      } catch (error) {
+      } catch (error: any) { // Явно указываем тип any или Error
         console.error('Error fetching social links:', error);
-        setError(error.message || 'Failed to load social links');
+        setError(error.message || 'Failed to load social links'); // Безопасный доступ через || для fallback
       } finally {
         setLoading(false);
       }
@@ -76,7 +76,7 @@ export default function EditProfile() {
 
       alert('Profile updated successfully!');
       router.push('/profile');
-    } catch (error) {
+    } catch (error: any) { // Явно указываем тип any или Error
       console.error('Error updating social links:', error);
       setError(error.message || 'Failed to update profile');
     }
