@@ -1,25 +1,33 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
-import { useAuth } from '../src/context/AuthContext';
+import Cookies from 'js-cookie';
 import styles from './subscriptions.module.css';
 
 export default function Subscriptions() {
-  const { user, isAuthenticated } = useAuth();
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [userId, setUserId] = useState(null);
   const [subscriptions, setSubscriptions] = useState([]);
 
   useEffect(() => {
-    if (!isAuthenticated) window.location.href = '/auth';
-    else {
-      const subscriptionsData = JSON.parse(localStorage.getItem(`subscriptions_${user.id}`)) || [];
+    const accessToken = Cookies.get('twitch_access_token');
+    if (!accessToken) {
+      window.location.href = '/auth';
+    } else {
+      setIsAuthenticated(true);
+      const storedUser = JSON.parse(localStorage.getItem('twitch_user') || '{}');
+      const userId = storedUser.id || 'unknown'; // ID из localStorage
+      setUserId(userId);
+
+      const subscriptionsData = JSON.parse(localStorage.getItem(`subscriptions_${userId}`)) || [];
       setSubscriptions(subscriptionsData);
     }
-  }, [isAuthenticated, user?.id]);
+  }, []);
 
   const handleUnsubscribe = (streamerId) => {
     const updatedSubscriptions = subscriptions.filter(id => id !== streamerId);
     setSubscriptions(updatedSubscriptions);
-    localStorage.setItem(`subscriptions_${user.id}`, JSON.stringify(updatedSubscriptions));
+    localStorage.setItem(`subscriptions_${userId}`, JSON.stringify(updatedSubscriptions));
     console.log(`Unsubscribed from ${streamerId}`);
   };
 
@@ -40,4 +48,10 @@ export default function Subscriptions() {
       )}
     </div>
   );
+}
+
+export async function getStaticProps() {
+  return {
+    props: {}, // Нет данных для prerendering, всё загружается на клиенте
+  };
 }
