@@ -1,25 +1,29 @@
 "use client";
 
-import { useRouter } from 'next/navigation';
+import { useEffect } from 'react';
+import { useRouter } from 'next/router';
 import Cookies from 'js-cookie';
 import styles from './auth.module.css';
 
 export default function Auth() {
   const router = useRouter();
 
+  useEffect(() => {
+    // Check if already authenticated
+    const accessToken = Cookies.get('twitch_access_token');
+    if (accessToken) {
+      router.push('/profile');
+    }
+  }, [router]);
+
   const handleLogin = () => {
-    console.log('Login clicked, pushing to /api/twitch/login');
     try {
-      router.push('/api/twitch/login');
+      // Direct navigation to the login API
+      window.location.href = '/api/twitch/login';
     } catch (error) {
       console.error('Error in handleLogin:', error);
     }
   };
-
-  if (Cookies.get('twitch_access_token')) {
-    router.push('/profile');
-    return null;
-  }
 
   return (
     <div className={styles.container}>
@@ -29,7 +33,7 @@ export default function Auth() {
         <button className={styles.spaceButton} onClick={handleLogin}>
           <span className={styles.backdrop}></span>
           <span className={styles.galaxy}></span>
-          <label className={styles.text}>Войти через Twitch</label>
+          <label className={styles.text}>Login with Twitch</label>
         </button>
       </div>
     </div>
