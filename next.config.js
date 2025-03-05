@@ -1,15 +1,22 @@
-export default {
+/** @type {import('next').NextConfig} */
+const nextConfig = {
   reactStrictMode: true,
   output: 'standalone',
   env: {
     TWITCH_REDIRECT_URI: process.env.TWITCH_REDIRECT_URI || 'https://streamers-universe.vercel.app/api/twitch/callback',
   },
   images: {
-    domains: ['id.twitch.tv', 'api.twitch.tv'],
+    domains: ['id.twitch.tv', 'api.twitch.tv', 'static-cdn.jtvnw.net'],
     unoptimized: true,
   },
   webpack: (config) => {
     config.resolve.fallback = { fs: false, path: false };
     return config;
   },
+  // Add public runtimes for client-side code
+  publicRuntimeConfig: {
+    NEXT_PUBLIC_TWITCH_CLIENT_ID: process.env.TWITCH_CLIENT_ID,
+  },
 };
+
+export default nextConfig;
