@@ -7,9 +7,10 @@ export default async function handler(req, res) {
   }
   try {
     const { code, state } = req.query;
-    if (!code || !state) {
-      return res.status(400).json({ error: 'Missing code or state' });
+    if (!code) {
+      return res.status(400).json({ error: 'Missing code' });
     }
+    // Игнорируем state, если его нет
 
     const baseUrl = 'https://streamers-universe.vercel.app';
     const redirectUri = `${baseUrl}/api/twitch/callback`;
