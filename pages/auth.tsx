@@ -1,17 +1,16 @@
 "use client";
 
 import { useRouter } from 'next/navigation';
-import Cookies from 'js-cookie'; // Теперь с типами
+import Cookies from 'js-cookie';
 import styles from './auth.module.css';
 
 export default function Auth() {
   const router = useRouter();
 
   const handleLogin = () => {
-    router.push('/api/auth/twitch/login');
+    router.push('/api/twitch/login');
   };
 
-  // Проверка авторизации через cookies (опционально)
   if (Cookies.get('twitch_access_token')) {
     router.push('/profile');
     return null;
@@ -20,7 +19,7 @@ export default function Auth() {
   return (
     <div className={styles.container}>
       <div className={styles.stars} />
-      <img className={styles.logo} src="/logo.png" alt="Streamers Universe Logo" />
+      <img className={styles.logo} src="/assets/logo.png" alt="Streamers Universe Logo" />
       <div className={styles.galaxyButton}>
         <button className={styles.spaceButton} onClick={handleLogin}>
           <span className={styles.backdrop}></span>
