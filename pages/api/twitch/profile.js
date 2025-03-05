@@ -4,40 +4,88 @@ export default async function handler(req, res) {
   if (req.method !== 'GET') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
+  
   try {
-    const accessToken = req.cookies.get('twitch_access_token')?.value;
+    // Fixed cookie access in API routes
+    const accessToken = req.cookies.twitch_access_token;
+    
     if (!accessToken) {
       return res.status(401).json({ error: 'Not authenticated' });
     }
 
-    // Получаем данные пользователя
+    // Get user data
     const userResponse = await axios.get('https://api.twitch.tv/helix/users', {
       headers: {
         'Client-ID': process.env.TWITCH_CLIENT_ID,
         'Authorization': `Bearer ${accessToken}`,
       },
     });
+    
     const user = userResponse.data.data[0];
     const userId = user.id;
     const twitchName = user.display_name;
 
-    // Получаем фолловеров
-    const followersResponse = await axios.get(`https://api.twitch.tv/helix/users/follows?to_id=${userId}`, {
-      headers: {
-        'Client-ID': process.env.TWITCH_CLIENT_ID,
-        'Authorization': `Bearer ${accessToken}`,
-      },
-    });
-    const followers = followersResponse.data.data.map(follower => follower.from_name);
+    // Get followers - adding pagination support for large accounts
+    let followers = [];
+    let cursor = null;
+    let hasMoreFollowers = true;
+    
+    while (hasMoreFollowers) {
+      const url = cursor 
+        ? `https://api.twitch.tv/helix/users/follows?to_id=${userId}&after=${cursor}`
+        : `https://api.twitch.tv/helix/users/follows?to_id=${userId}`;
+        
+      const followersResponse = await axios.get(url, {
+        headers: {
+          'Client-ID': process.env.TWITCH_CLIENT_ID,
+          'Authorization': `Bearer ${accessToken}`,
+        },
+      });
+      
+      followers = [...followers, ...followersResponse.data.data.map(f => f.from_name)];
+      
+      if (followersResponse.data.pagination && followersResponse.data.pagination.cursor) {
+        cursor = followersResponse.data.pagination.cursor;
+      } else {
+        hasMoreFollowers = false;
+      }
+      
+      // Limit to first 100 for performance
+      if (followers.length >= 100) {
+        hasMoreFollowers = false;
+      }
+    }
 
-    // Получаем фолловингов
-    const followingsResponse = await axios.get(`https://api.twitch.tv/helix/users/follows?from_id=${userId}`, {
-      headers: {
-        'Client-ID': process.env.TWITCH_CLIENT_ID,
-        'Authorization': `Bearer ${accessToken}`,
-      },
-    });
-    const followings = followingsResponse.data.data.map(following => following.to_name);
+    // Get following - adding pagination support
+    let followings = [];
+    cursor = null;
+    let hasMoreFollowings = true;
+    
+    while (hasMoreFollowings) {
+      const url = cursor 
+        ? `https://api.twitch.tv/helix/users/follows?from_id=${userId}&after=${cursor}`
+        : `https://api.twitch.tv/helix/users/follows?from_id=${userId}`;
+        
+      const followingsResponse = await axios.get(url, {
+        headers: {
+          'Client-ID': process.env.TWITCH_CLIENT_ID,
+          'Authorization': `Bearer ${accessToken}`,
+        },
+      });
+      
+      followings = [...followings, ...followingsResponse.data.data.map(f => f.to_name)];
+      
+      if (followingsResponse.data.pagination && followingsResponse.data.pagination.cursor) {
+        cursor = followingsResponse.data.pagination.cursor;
+      } else {
+        hasMoreFollowings = false;
+      }
+      
+      // Limit to first 100 for performance
+      if (followings.length >= 100) {
+        hasMoreFollowings = false;
+      }
+    }
 
     res.status(200).json({
       twitchName,
