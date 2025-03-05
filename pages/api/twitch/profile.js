@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { parse } from 'cookie';
 
 export default async function handler(req, res) {
   if (req.method !== 'GET') {
@@ -6,8 +7,9 @@ export default async function handler(req, res) {
   }
   
   try {
-    // Fixed cookie access in API routes
-    const accessToken = req.cookies.twitch_access_token;
+    // Proper cookie parsing in API routes
+    const cookies = parse(req.headers.cookie || '');
+    const accessToken = cookies.twitch_access_token;
     
     if (!accessToken) {
       return res.status(401).json({ error: 'Not authenticated' });
