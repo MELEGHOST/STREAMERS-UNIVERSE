@@ -20,53 +20,56 @@ export default function Profile() {
   const router = useRouter();
 
   useEffect(() => {
-    // Parse URL parameters for user data
-    if (typeof window !== 'undefined') {
-      const urlParams = new URLSearchParams(window.location.search);
-      const userData = urlParams.get('user');
-      
-      if (userData) {
-        try {
-          localStorage.setItem('twitch_user', userData);
-          window.history.replaceState({}, document.title, '/profile'); // Remove parameters from URL
-        } catch (e) {
-          console.error('Failed to store user data:', e);
-        }
-      }
+    const checkAuthAndLoadProfile = async () => {
+      if (typeof window !== 'undefined') {
+        const accessToken = Cookies.get('twitch_access_token');
 
-      const accessToken = Cookies.get('twitch_access_token');
-      
-      if (!accessToken) {
-        setLoading(false);
-        setError('Not authenticated');
-        return;
-      }
-
-      // Fetch profile data
-      fetch('/api/twitch/profile', { 
-        method: 'GET',
-        credentials: 'include',
-        headers: {
-          'Content-Type': 'application/json',
-        }
-      })
-        .then(res => {
-          if (!res.ok) {
-            throw new Error(`Failed to fetch profile: ${res.status}`);
-          }
-          return res.json();
-        })
-        .then(data => {
-          setProfileData(data);
+        if (!accessToken) {
+          setError('Not authenticated');
           setLoading(false);
-        })
-        .catch(error => {
+          router.push('/auth');
+          return;
+        }
+
+        try {
+          // Fetch profile data
+          const response = await fetch('/api/twitch/profile', {
+            method: 'GET',
+            credentials: 'include', // Убедимся, что cookies передаются
+            headers: {
+              'Content-Type': 'application/json',
+            },
+          });
+
+          if (!response.ok) {
+            throw new Error(`Failed to fetch profile: ${response.status}`);
+          }
+
+          const data = await response.json();
+          setProfileData(data);
+        } catch (error) {
           console.error('Error fetching profile:', error);
           setError(error.message || 'Failed to load profile');
+        } finally {
           setLoading(false);
-        });
-    }
-  }, []);
+        }
+
+        // Очистка URL-параметров, если они есть
+        const urlParams = new URLSearchParams(window.location.search);
+        const userData = urlParams.get('user');
+        if (userData) {
+          try {
+            localStorage.setItem('twitch_user', userData);
+            window.history.replaceState({}, document.title, '/profile'); // Удаляем параметры из URL
+          } catch (e) {
+            console.error('Failed to store user data:', e);
+          }
+        }
+      }
+    };
+
+    checkAuthAndLoadProfile();
+  }, [router]);
 
   const handleLogout = async () => {
     try {
@@ -74,11 +77,11 @@ export default function Profile() {
         method: 'POST',
         credentials: 'include',
       });
-      
+
       Cookies.remove('twitch_access_token');
       Cookies.remove('twitch_refresh_token');
       Cookies.remove('twitch_expires_at');
-      
+
       router.push('/auth');
     } catch (error) {
       console.error('Logout error:', error);
@@ -89,11 +92,11 @@ export default function Profile() {
     return <div className={styles.loading}>Loading...</div>;
   }
 
-  if (error || !Cookies.get('twitch_access_token')) {
+  if (error) {
     return (
       <div className={styles.profileContainer}>
         <div className={styles.error}>
-          Please log in through Twitch.
+          {error}
           <button className={styles.button} onClick={() => router.push('/auth')}>
             Go to Login
           </button>
@@ -119,7 +122,7 @@ export default function Profile() {
     <div className={styles.profileContainer}>
       <h1>Twitch Profile</h1>
       <p>Username: {profileData.twitchName}</p>
-      
+
       <div className={styles.section}>
         <h2>Followers ({profileData.followersCount})</h2>
         <ul>
@@ -132,7 +135,7 @@ export default function Profile() {
           )}
         </ul>
       </div>
-      
+
       <div className={styles.section}>
         <h2>Following ({profileData.followingsCount})</h2>
         <ul>
@@ -145,7 +148,11 @@ export default function Profile() {
           )}
         </ul>
       </div>
-      
+
+      {/* Добавляем возможность редактирования профиля */}
+      <button className={styles.button} onClick={() => router.push('/edit-profile')}>
+        Edit Profile
+      </button>
       <button className={styles.button} onClick={handleLogout}>
         Logout
       </button>
