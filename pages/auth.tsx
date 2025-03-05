@@ -8,7 +8,7 @@ export default function Auth() {
   const router = useRouter();
 
   const handleLogin = () => {
-    console.log('Login clicked, pushing to /api/twitch/login'); // Отладка
+    console.log('Login clicked, pushing to /api/twitch/login');
     try {
       router.push('/api/twitch/login');
     } catch (error) {
