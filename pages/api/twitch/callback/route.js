@@ -3,6 +3,11 @@ import { cookies } from 'next/headers';
 
 export async function GET(req) {
   try {
+    // Явная проверка серверного контекста
+    if (typeof window !== 'undefined') {
+      throw new Error('This Route Handler must be called from the server');
+    }
+
     const url = new URL(req.url);
     const { searchParams } = url;
     const code = searchParams.get('code');
