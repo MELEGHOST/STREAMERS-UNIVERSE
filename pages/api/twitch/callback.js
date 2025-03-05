@@ -6,11 +6,11 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: 'Method not allowed' });
   }
   try {
-    const { code, state } = req.query;
+    const url = new URL(req.url, `http://${req.headers.host}`);
+    const { code, state } = Object.fromEntries(url.searchParams);
     if (!code) {
       return res.status(400).json({ error: 'Missing code' });
     }
-    // Игнорируем state, если его нет
 
     const baseUrl = 'https://streamers-universe.vercel.app';
     const redirectUri = `${baseUrl}/api/twitch/callback`;
@@ -39,9 +39,11 @@ export default async function handler(req, res) {
       isStreamer: false, // Логика для определения стримера
     };
 
-    cookies().set('twitch_access_token', access_token, { httpOnly: true, secure: true, maxAge: expires_in });
-    cookies().set('twitch_refresh_token', refresh_token, { httpOnly: true, secure: true, maxAge: 30 * 24 * 60 * 60 });
-    cookies().set('twitch_expires_at', expiresAt.toString(), { httpOnly: true, secure: true, maxAge: expires_in });
+    // Используем cookies из next/headers в серверном контексте
+    const cookieStore = cookies();
+    cookieStore.set('twitch_access_token', access_token, { httpOnly: true, secure: true, maxAge: expires_in });
+    cookieStore.set('twitch_refresh_token', refresh_token, { httpOnly: true, secure: true, maxAge: 30 * 24 * 60 * 60 });
+    cookieStore.set('twitch_expires_at', expiresAt.toString(), { httpOnly: true, secure: true, maxAge: expires_in });
 
     res.redirect(302, '/profile?user=' + encodeURIComponent(JSON.stringify(userData)));
   } catch (error) {
