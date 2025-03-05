@@ -1,36 +1,43 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
-import { useAuth } from '../src/context/AuthContext';
+import Cookies from 'js-cookie';
 import styles from './search.module.css';
 import axios from 'axios';
 
 export default function Search() {
-  const { user, isAuthenticated } = useAuth();
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [userId, setUserId] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [results, setResults] = useState(null);
 
   useEffect(() => {
-    if (!isAuthenticated) window.location.href = '/auth';
-  }, [isAuthenticated]);
+    const accessToken = Cookies.get('twitch_access_token');
+    if (!accessToken) {
+      window.location.href = '/auth';
+    } else {
+      setIsAuthenticated(true);
+      const storedUser = JSON.parse(localStorage.getItem('twitch_user') || '{}');
+      setUserId(storedUser.id || 'unknown');
+    }
+  }, []);
 
   const handleSearch = async () => {
     if (!searchTerm) return;
     try {
-      // Поиск пользователя Twitch по никнейму
+      const accessToken = Cookies.get('twitch_access_token');
       const twitchResponse = await axios.get(`https://api.twitch.tv/helix/users?login=${searchTerm}`, {
         headers: {
-          'Client-ID': process.env.TWITCH_CLIENT_ID,
-          'Authorization': `Bearer ${localStorage.getItem('twitchToken')}`,
+          'Client-ID': process.env.NEXT_PUBLIC_TWITCH_CLIENT_ID, // Используем публичную переменную
+          'Authorization': `Bearer ${accessToken}`,
         },
       });
       const twitchUser = twitchResponse.data.data[0];
 
-      // Проверка регистрации в приложении (из localStorage)
       const appUsers = [];
       for (let i = 0; i < localStorage.length; i++) {
         const key = localStorage.key(i);
-        if (key.startsWith('twitchUser_')) {
+        if (key && key.startsWith('twitchUser_')) {
           const storedUser = JSON.parse(localStorage.getItem(key));
           if (storedUser.name === searchTerm) {
             appUsers.push(storedUser);
@@ -38,12 +45,11 @@ export default function Search() {
         }
       }
 
-      // Проверка общих стримеров (упрощённо, из localStorage)
       const commonStreamers = [];
-      if (twitchUser && user) {
-        const userFollows = JSON.parse(localStorage.getItem(`follows_${user.id}`)) || [];
+      if (twitchUser && userId) {
+        const userFollows = JSON.parse(localStorage.getItem(`follows_${userId}`)) || [];
         const targetFollows = JSON.parse(localStorage.getItem(`follows_${twitchUser.id}`)) || [];
-        commonStreamers = userFollows.filter(f => targetFollows.includes(f));
+        commonStreamers.push(...userFollows.filter(f => targetFollows.includes(f)));
       }
 
       setResults({
@@ -86,4 +92,10 @@ export default function Search() {
       )}
     </div>
   );
+}
+
+export async function getStaticProps() {
+  return {
+    props: {}, // Нет данных для prerendering, всё загружается на клиенте
+  };
 }
