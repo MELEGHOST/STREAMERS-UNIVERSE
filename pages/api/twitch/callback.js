@@ -1,11 +1,16 @@
 import axios from 'axios';
 import { cookies } from 'next/headers';
 
-export default async function handler(req, res) {
+export default function handler(req, res) {
   if (req.method !== 'GET') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
   try {
+    // Убедимся, что это серверный запрос
+    if (typeof window !== 'undefined') {
+      throw new Error('This API route must be called from the server');
+    }
+
     const url = new URL(req.url, `http://${req.headers.host}`);
     const searchParams = new URLSearchParams(url.search);
     const code = searchParams.get('code');
