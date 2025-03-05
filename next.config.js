@@ -8,9 +8,6 @@ export default {
     domains: ['id.twitch.tv', 'api.twitch.tv'],
     unoptimized: true,
   },
-  experimental: {
-    esmExternals: true,
-  },
   webpack: (config) => {
     config.resolve.fallback = { fs: false, path: false };
     return config;
