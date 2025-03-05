@@ -9,6 +9,17 @@ export async function GET(req) {
     const code = searchParams.get('code');
     const state = searchParams.get('state');
 
+    // Handle error response from Twitch
+    const error = searchParams.get('error');
+    const errorDescription = searchParams.get('error_description');
+    if (error) {
+      console.error(`Twitch auth error: ${error} - ${errorDescription}`);
+      return new Response(JSON.stringify({ error, description: errorDescription }), { 
+        status: 400,
+        headers: { 'Content-Type': 'application/json' }
+      });
+    }
+
     if (!code) {
       return new Response(JSON.stringify({ error: 'Missing code' }), { 
         status: 400,
@@ -16,8 +27,8 @@ export async function GET(req) {
       });
     }
 
-    const baseUrl = 'https://streamers-universe.vercel.app';
-    const redirectUri = `${baseUrl}/api/twitch/callback`;
+    // Use environment variable for redirect URI to ensure consistency
+    const redirectUri = process.env.TWITCH_REDIRECT_URI;
     
     // Fix: Use URLSearchParams for form-urlencoded data
     const params = new URLSearchParams();
