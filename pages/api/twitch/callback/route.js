@@ -1,23 +1,15 @@
 import axios from 'axios';
 import { cookies } from 'next/headers';
 
-export default async function handler(req, res) {
-  if (req.method !== 'GET') {
-    return res.status(405).json({ error: 'Method not allowed' });
-  }
+export async function GET(req) {
   try {
-    // Убедимся, что это серверный запрос
-    if (typeof window !== 'undefined') {
-      throw new Error('This API route must be called from the server');
-    }
-
-    const url = new URL(req.url, `http://${req.headers.host}`);
-    const searchParams = new URLSearchParams(url.search);
+    const url = new URL(req.url);
+    const { searchParams } = url;
     const code = searchParams.get('code');
     const state = searchParams.get('state');
 
     if (!code) {
-      return res.status(400).json({ error: 'Missing code' });
+      return new Response(JSON.stringify({ error: 'Missing code' }), { status: 400 });
     }
 
     const baseUrl = 'https://streamers-universe.vercel.app';
@@ -47,15 +39,17 @@ export default async function handler(req, res) {
       isStreamer: false, // Логика для определения стримера
     };
 
-    // Используем cookies из next/headers в серверном контексте
     const cookieStore = cookies();
     cookieStore.set('twitch_access_token', access_token, { httpOnly: true, secure: true, maxAge: expires_in });
     cookieStore.set('twitch_refresh_token', refresh_token, { httpOnly: true, secure: true, maxAge: 30 * 24 * 60 * 60 });
     cookieStore.set('twitch_expires_at', expiresAt.toString(), { httpOnly: true, secure: true, maxAge: expires_in });
 
-    res.redirect(302, '/profile?user=' + encodeURIComponent(JSON.stringify(userData)));
+    return new Response(null, {
+      status: 302,
+      headers: { Location: `/profile?user=${encodeURIComponent(JSON.stringify(userData))}` },
+    });
   } catch (error) {
     console.error('Twitch callback error:', error);
-    res.status(500).json({ error: 'Server error', message: error.message });
+    return new Response(JSON.stringify({ error: 'Server error', message: error.message }), { status: 500 });
   }
 }
