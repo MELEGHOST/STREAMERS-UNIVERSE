@@ -1,4 +1,5 @@
 import { Pool } from '@vercel/postgres';
+import { parse } from 'cookie';
 
 export default async function handler(req, res) {
   if (req.method !== 'GET' && req.method !== 'POST') {
@@ -6,8 +7,9 @@ export default async function handler(req, res) {
   }
   
   try {
-    // Fixed cookie access in API routes
-    const accessToken = req.cookies.twitch_access_token;
+    // Proper cookie parsing in API routes
+    const cookies = parse(req.headers.cookie || '');
+    const accessToken = cookies.twitch_access_token;
     
     if (!accessToken) {
       return res.status(401).json({ error: 'Not authenticated' });
@@ -21,7 +23,12 @@ export default async function handler(req, res) {
       },
     });
     
-    if (!userResponse.ok) throw new Error('Failed to get user');
+    if (!userResponse.ok) {
+      if (userResponse.status === 401) {
+        return res.status(401).json({ error: 'Authentication token expired' });
+      }
+      throw new Error(`Failed to get user: ${userResponse.status}`);
+    }
     
     const userData = await userResponse.json();
     const userId = userData.data[0].id;
