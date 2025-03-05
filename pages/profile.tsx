@@ -4,7 +4,6 @@ import { useEffect, useState } from 'react';
 import Cookies from 'js-cookie';
 import styles from './profile.module.css';
 
-// Определение типа для данных профиля Twitch
 interface TwitchProfile {
   twitchName: string;
   followersCount: number;
@@ -18,6 +17,13 @@ export default function Profile() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const userData = urlParams.get('user');
+    if (userData) {
+      localStorage.setItem('twitch_user', userData);
+      window.history.replaceState({}, document.title, '/profile'); // Убираем параметры из URL
+    }
+
     const accessToken = Cookies.get('twitch_access_token');
     if (accessToken) {
       fetch('/api/twitch/profile', { credentials: 'include' })
@@ -25,7 +31,7 @@ export default function Profile() {
           if (!res.ok) throw new Error('Failed to fetch profile');
           return res.json();
         })
-        .then(data => setProfileData(data as TwitchProfile))
+        .then(data => setProfileData(data))
         .catch(error => console.error('Error fetching profile:', error))
         .finally(() => setLoading(false));
     } else {
