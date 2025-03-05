@@ -24,7 +24,7 @@ export default function Auth() {
   return (
     <div className={styles.container}>
       <div className={styles.stars} />
-      <img className={styles.logo} <img src="/assets/logo.png" alt="Streamers Universe Logo" />
+      <img className={styles.logo} src="/assets/logo.png" alt="Streamers Universe Logo" />
       <div className={styles.galaxyButton}>
         <button className={styles.spaceButton} onClick={handleLogin}>
           <span className={styles.backdrop}></span>
