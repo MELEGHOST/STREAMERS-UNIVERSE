@@ -44,7 +44,6 @@ export async function GET(req) {
       isStreamer: false, // Логика для определения стримера
     };
 
-    // Используем cookies из next/headers в серверном контексте
     const cookieStore = cookies();
     cookieStore.set('twitch_access_token', access_token, { httpOnly: true, secure: true, maxAge: expires_in });
     cookieStore.set('twitch_refresh_token', refresh_token, { httpOnly: true, secure: true, maxAge: 30 * 24 * 60 * 60 });
