@@ -3,64 +3,58 @@
 import React, { useState, useEffect } from 'react';
 import Cookies from 'js-cookie';
 import styles from './search.module.css';
-import axios from 'axios';
+import { useRouter } from 'next/router';
 
 export default function Search() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [userId, setUserId] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [results, setResults] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const router = useRouter();
 
   useEffect(() => {
     const accessToken = Cookies.get('twitch_access_token');
     if (!accessToken) {
-      window.location.href = '/auth';
+      router.push('/auth');
     } else {
       setIsAuthenticated(true);
-      const storedUser = JSON.parse(localStorage.getItem('twitch_user') || '{}');
-      setUserId(storedUser.id || 'unknown');
+      try {
+        const storedUser = JSON.parse(localStorage.getItem('twitch_user') || '{}');
+        setUserId(storedUser.id || 'unknown');
+      } catch (e) {
+        console.error('Failed to parse user data:', e);
+      }
     }
-  }, []);
+  }, [router]);
 
   const handleSearch = async () => {
     if (!searchTerm) return;
+    
+    setLoading(true);
     try {
       const accessToken = Cookies.get('twitch_access_token');
-      const twitchResponse = await axios.get(`https://api.twitch.tv/helix/users?login=${searchTerm}`, {
+      
+      // Make search request through our own API to avoid exposing credentials
+      const response = await fetch(`/api/twitch/search?login=${encodeURIComponent(searchTerm)}`, {
+        method: 'GET',
+        credentials: 'include',
         headers: {
-          'Client-ID': process.env.NEXT_PUBLIC_TWITCH_CLIENT_ID, // Используем публичную переменную
-          'Authorization': `Bearer ${accessToken}`,
-        },
-      });
-      const twitchUser = twitchResponse.data.data[0];
-
-      const appUsers = [];
-      for (let i = 0; i < localStorage.length; i++) {
-        const key = localStorage.key(i);
-        if (key && key.startsWith('twitchUser_')) {
-          const storedUser = JSON.parse(localStorage.getItem(key));
-          if (storedUser.name === searchTerm) {
-            appUsers.push(storedUser);
-          }
+          'Content-Type': 'application/json',
         }
-      }
-
-      const commonStreamers = [];
-      if (twitchUser && userId) {
-        const userFollows = JSON.parse(localStorage.getItem(`follows_${userId}`)) || [];
-        const targetFollows = JSON.parse(localStorage.getItem(`follows_${twitchUser.id}`)) || [];
-        commonStreamers.push(...userFollows.filter(f => targetFollows.includes(f)));
-      }
-
-      setResults({
-        twitchData: twitchUser,
-        isRegistered: appUsers.length > 0,
-        followers: twitchUser?.follower_count || 0,
-        commonStreamers,
       });
+      
+      if (!response.ok) {
+        throw new Error('Search failed');
+      }
+      
+      const data = await response.json();
+      setResults(data);
     } catch (error) {
       console.error('Search error:', error);
-      setResults({ error: 'Не удалось найти пользователя' });
+      setResults({ error: 'Could not find user' });
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -68,34 +62,40 @@ export default function Search() {
 
   return (
     <div className={styles.searchContainer}>
-      <h1>Поиск пользователя</h1>
-      <input
-        type="text"
-        value={searchTerm}
-        onChange={(e) => setSearchTerm(e.target.value)}
-        placeholder="Введите ник Twitch"
-        className={styles.input}
-      />
-      <button className={styles.button} onClick={handleSearch}>Поиск</button>
+      <h1>Search User</h1>
+      <div className={styles.searchBox}>
+        <input
+          type="text"
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          placeholder="Enter Twitch username"
+          className={styles.input}
+          onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
+        />
+        <button 
+          className={styles.button} 
+          onClick={handleSearch}
+          disabled={loading}
+        >
+          {loading ? 'Searching...' : 'Search'}
+        </button>
+      </div>
+      
       {results && (
         <div className={styles.result}>
-          {results.error && <p>{results.error}</p>}
+          {results.error && <p className={styles.error}>{results.error}</p>}
           {results.twitchData && (
             <>
-              <p>Ник: {results.twitchData.display_name}</p>
-              <p>Зарегистрирован в приложении: {results.isRegistered ? 'Да' : 'Нет'}</p>
-              <p>Фолловеры: {results.followers}</p>
-              <p>Общие стримеры: {results.commonStreamers.join(', ') || 'Нет общих'}</p>
+              <p>Username: {results.twitchData.display_name}</p>
+              <p>Registered in app: {results.isRegistered ? 'Yes' : 'No'}</p>
+              <p>Followers: {results.followers}</p>
+              <p>Common streamers: {results.commonStreamers?.length > 0 ? 
+                results.commonStreamers.join(', ') : 'None'}
+              </p>
             </>
           )}
         </div>
       )}
     </div>
   );
-}
-
-export async function getStaticProps() {
-  return {
-    props: {}, // Нет данных для prerendering, всё загружается на клиенте
-  };
 }
