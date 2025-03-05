@@ -2,13 +2,14 @@ export default {
   reactStrictMode: true,
   output: 'standalone',
   env: {
-    TWITCH_REDIRECT_URI: process.env.TWITCH_REDIRECT_URI || 'https://streamers-universe.vercel.app/auth',
+    TWITCH_REDIRECT_URI: process.env.TWITCH_REDIRECT_URI || 'https://streamers-universe.vercel.app/api/twitch/callback',
   },
   images: {
     domains: ['id.twitch.tv', 'api.twitch.tv'],
     unoptimized: true,
   },
   experimental: {
+    appDir: true, // Включение App Router
     esmExternals: true,
   },
   webpack: (config) => {
