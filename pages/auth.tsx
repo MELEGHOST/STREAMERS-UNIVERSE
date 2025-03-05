@@ -8,7 +8,8 @@ export default function Auth() {
   const router = useRouter();
 
   const handleLogin = () => {
-    router.push('/auth');
+    console.log('Login clicked, pushing to /api/twitch/login'); // Улучшенная отладка
+    router.push('/api/twitch/login');
   };
 
   if (Cookies.get('twitch_access_token')) {
