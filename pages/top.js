@@ -1,22 +1,26 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
-import { useAuth } from '../src/context/AuthContext';
+import Cookies from 'js-cookie';
 import styles from './top.module.css';
 
 export default function Top() {
-  const { isAuthenticated, user } = useAuth();
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [topStreamers, setTopStreamers] = useState([]);
 
   useEffect(() => {
-    if (isAuthenticated) {
+    const accessToken = Cookies.get('twitch_access_token');
+    if (!accessToken) {
+      setIsAuthenticated(false);
+    } else {
+      setIsAuthenticated(true);
       // Здесь можно добавить API-запрос для получения топа стримеров
       setTopStreamers([
         { name: 'Streamer1', rating: 4.5, followers: 1000 },
         { name: 'Streamer2', rating: 4.0, followers: 800 },
       ]);
     }
-  }, [isAuthenticated]);
+  }, []);
 
   if (!isAuthenticated) {
     return <div className={styles.error}>Please log in</div>;
@@ -32,4 +36,10 @@ export default function Top() {
       ))}
     </div>
   );
+}
+
+export async function getStaticProps() {
+  return {
+    props: {}, // Нет данных для prerendering, всё загружается на клиенте
+  };
 }
