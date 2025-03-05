@@ -7,7 +7,10 @@ export default async function handler(req, res) {
   }
   try {
     const url = new URL(req.url, `http://${req.headers.host}`);
-    const { code, state } = Object.fromEntries(url.searchParams);
+    const searchParams = new URLSearchParams(url.search);
+    const code = searchParams.get('code');
+    const state = searchParams.get('state');
+
     if (!code) {
       return res.status(400).json({ error: 'Missing code' });
     }
