@@ -24,6 +24,8 @@ export default function Profile() {
       if (typeof window !== 'undefined') {
         const accessToken = Cookies.get('twitch_access_token');
 
+        console.log('Checking authentication - accessToken:', accessToken ? 'present' : 'missing');
+
         if (!accessToken) {
           setError('Not authenticated');
           setLoading(false);
@@ -32,7 +34,7 @@ export default function Profile() {
         }
 
         try {
-          // Fetch profile data
+          // Fetch profile data with credentials to include cookies
           const response = await fetch('/api/twitch/profile', {
             method: 'GET',
             credentials: 'include', // Убедимся, что cookies передаются
@@ -41,15 +43,17 @@ export default function Profile() {
             },
           });
 
+          console.log('Profile API response status:', response.status);
+
           if (!response.ok) {
             throw new Error(`Failed to fetch profile: ${response.status}`);
           }
 
           const data = await response.json();
           setProfileData(data);
-        } catch (error: any) { // Явно указываем тип any или Error
+        } catch (error: any) {
           console.error('Error fetching profile:', error);
-          setError(error.message || 'Failed to load profile'); // Безопасный доступ через || для fallback
+          setError(error.message || 'Failed to load profile');
         } finally {
           setLoading(false);
         }
