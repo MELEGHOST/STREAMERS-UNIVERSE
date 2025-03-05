@@ -1,37 +1,46 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
-import { useAuth } from '../src/context/AuthContext';
+import Cookies from 'js-cookie';
 import styles from './settings.module.css';
 
 export default function Settings() {
-  const { user, isAuthenticated } = useAuth();
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [userId, setUserId] = useState(null);
   const [theme, setTheme] = useState('dark');
   const [fontSize, setFontSize] = useState('normal');
   const [timezone, setTimezone] = useState('Europe/Moscow');
   const [language, setLanguage] = useState('ru');
 
   useEffect(() => {
-    if (!isAuthenticated) window.location.href = '/auth';
-    else {
-      const savedSettings = JSON.parse(localStorage.getItem(`settings_${user.id}`)) || {};
+    const accessToken = Cookies.get('twitch_access_token');
+    if (!accessToken) {
+      window.location.href = '/auth';
+    } else {
+      setIsAuthenticated(true);
+      const storedUser = JSON.parse(localStorage.getItem('twitch_user') || '{}');
+      const userId = storedUser.id || 'unknown'; // ID из localStorage
+      setUserId(userId);
+
+      const savedSettings = JSON.parse(localStorage.getItem(`settings_${userId}`)) || {};
       setTheme(savedSettings.theme || 'dark');
       setFontSize(savedSettings.fontSize || 'normal');
       setTimezone(savedSettings.timezone || 'Europe/Moscow');
       setLanguage(savedSettings.language || 'ru');
+      applySettings(savedSettings);
     }
-  }, [isAuthenticated, user?.id]);
+  }, []);
 
   const handleSaveSettings = () => {
     const settings = { theme, fontSize, timezone, language };
-    localStorage.setItem(`settings_${user.id}`, JSON.stringify(settings));
-    applySettings();
+    localStorage.setItem(`settings_${userId}`, JSON.stringify(settings));
+    applySettings(settings);
     console.log('Settings saved:', settings);
   };
 
-  const applySettings = () => {
-    document.body.className = theme === 'dark' ? 'dark-theme' : 'light-theme';
-    document.body.style.fontSize = fontSize === 'small' ? '14px' : fontSize === 'large' ? '18px' : '16px';
+  const applySettings = (settings = { theme, fontSize, timezone, language }) => {
+    document.body.className = settings.theme === 'dark' ? 'dark-theme' : 'light-theme';
+    document.body.style.fontSize = settings.fontSize === 'small' ? '14px' : settings.fontSize === 'large' ? '18px' : '16px';
   };
 
   if (!isAuthenticated) return null;
@@ -61,4 +70,10 @@ export default function Settings() {
       <p>Текущий часовой пояс: {timezone}, Язык: {language === 'ru' ? 'Русский' : 'English'}</p>
     </div>
   );
+}
+
+export async function getStaticProps() {
+  return {
+    props: {}, // Нет данных для prerendering, всё загружается на клиенте
+  };
 }
