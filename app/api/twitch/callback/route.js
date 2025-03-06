@@ -8,7 +8,7 @@ export async function GET(request) {
   const code = searchParams.get('code');
   const state = searchParams.get('state');
 
-  console.log('Callback received:', { code: !!code, state: !!state });
+  console.log('Callback received with:', { code: !!code, state: !!state });
 
   if (!code || !state) {
     console.error('Missing code or state:', { code, state });
@@ -18,8 +18,13 @@ export async function GET(request) {
   try {
     // Получаем сохранённый state из cookies
     const savedState = getCookie('twitch_state', { req: request });
-    console.log('Saved state:', savedState);
-    console.log('Received state:', state);
+    console.log('Saved state from cookie:', savedState);
+    console.log('Received state from query:', state);
+
+    if (!savedState) {
+      console.error('No saved state found in cookies');
+      throw new Error('Отсутствует сохранённый state в cookies');
+    }
 
     if (savedState !== state) {
       console.error('State mismatch:', { savedState, receivedState: state });
@@ -57,25 +62,23 @@ export async function GET(request) {
     const expiresAt = new Date(Date.now() + expires_in * 1000).toUTCString();
     const cookieOptions = {
       httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
+      secure: process.env.NODE_ENV !== 'development', // Разрешаем на dev без HTTPS
       sameSite: 'lax',
       path: '/',
       maxAge: expires_in,
     };
 
     const response = NextResponse.redirect(new URL('/profile', request.url));
-    response.cookies.set('twitch_access_token', access_token, cookieOptions);
-    response.cookies.set('twitch_refresh_token', refresh_token, cookieOptions);
-    response.cookies.set('twitch_expires_at', expiresAt, cookieOptions);
+    const setCookieResult = {
+      twitch_access_token: response.cookies.set('twitch_access_token', access_token, cookieOptions),
+      twitch_refresh_token: response.cookies.set('twitch_refresh_token', refresh_token, cookieOptions),
+      twitch_expires_at: response.cookies.set('twitch_expires_at', expiresAt, cookieOptions),
+    };
+    console.log('Cookie set results:', setCookieResult);
 
     // Удаляем state после использования
     response.cookies.set('twitch_state', '', { ...cookieOptions, maxAge: 0 });
-
-    console.log('Cookies set:', {
-      twitch_access_token: access_token.substring(0, 5) + '...',
-      twitch_refresh_token: refresh_token.substring(0, 5) + '...',
-      twitch_expires_at: expiresAt,
-    });
+    console.log('State cookie cleared');
 
     // Получение данных пользователя
     const userResponse = await axios.get('https://api.twitch.tv/helix/users', {
