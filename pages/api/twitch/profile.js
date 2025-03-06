@@ -11,6 +11,8 @@ export default async function handler(req, res) {
     const cookies = parse(req.headers.cookie || '');
     const accessToken = cookies.twitch_access_token;
 
+    console.log('Profile API - accessToken:', accessToken ? 'present' : 'missing');
+
     if (!accessToken) {
       return res.status(401).json({ error: 'Not authenticated' });
     }
