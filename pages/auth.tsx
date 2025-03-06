@@ -101,6 +101,7 @@ export default function Auth() {
           <span className={styles.galaxy}></span>
           <label className={styles.text}>Войти через Twitch</label>
         </button>
+        <div className={styles.bodydrop}></div>
       </div>
     </div>
   );
