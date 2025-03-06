@@ -32,70 +32,85 @@ export default async function handler(req, res) {
     const user = userResponse.data.data[0];
     const userId = user.id;
     const twitchName = user.display_name;
-    const profileImageUrl = user.profile_image_url; // Получаем URL аватарки напрямую из API
+    const profileImageUrl = user.profile_image_url;
 
-    // Получаем подписчиков с поддержкой пагинации
+    // Получаем подписчиков (с ограничением для производительности)
     let followers = [];
     let cursor = null;
     let hasMoreFollowers = true;
     let totalFollowersCount = 0;
+    let followerFetchAttempts = 0;
+    const MAX_FETCH_ATTEMPTS = 3; // Limit pagination attempts for performance
 
-    while (hasMoreFollowers) {
+    while (hasMoreFollowers && followerFetchAttempts < MAX_FETCH_ATTEMPTS) {
+      followerFetchAttempts++;
       const url = cursor
         ? `https://api.twitch.tv/helix/users/follows?to_id=${userId}&after=${cursor}`
         : `https://api.twitch.tv/helix/users/follows?to_id=${userId}`;
 
-      const followersResponse = await axios.get(url, {
-        headers: {
-          'Client-ID': process.env.TWITCH_CLIENT_ID,
-          'Authorization': `Bearer ${accessToken}`,
-        },
-      });
+      try {
+        const followersResponse = await axios.get(url, {
+          headers: {
+            'Client-ID': process.env.TWITCH_CLIENT_ID,
+            'Authorization': `Bearer ${accessToken}`,
+          },
+        });
 
-      totalFollowersCount = followersResponse.data.total;
-      followers = [...followers, ...followersResponse.data.data.map((f) => f.from_name)];
+        totalFollowersCount = followersResponse.data.total;
+        followers = [...followers, ...followersResponse.data.data.map((f) => f.from_name)];
 
-      if (followersResponse.data.pagination && followersResponse.data.pagination.cursor) {
-        cursor = followersResponse.data.pagination.cursor;
-      } else {
-        hasMoreFollowers = false;
-      }
+        if (followersResponse.data.pagination && followersResponse.data.pagination.cursor) {
+          cursor = followersResponse.data.pagination.cursor;
+        } else {
+          hasMoreFollowers = false;
+        }
 
-      // Ограничиваем до 100 подписчиков для производительности
-      if (followers.length >= 100) {
+        // Ограничиваем до 100 подписчиков для производительности
+        if (followers.length >= 100) {
+          hasMoreFollowers = false;
+        }
+      } catch (err) {
+        console.error('Error fetching followers:', err.message);
         hasMoreFollowers = false;
       }
     }
 
-    // Получаем подписки пользователя с поддержкой пагинации
+    // Получаем подписки пользователя (с ограничением для производительности)
     let followings = [];
     cursor = null;
     let hasMoreFollowings = true;
     let totalFollowingsCount = 0;
+    let followingFetchAttempts = 0;
 
-    while (hasMoreFollowings) {
+    while (hasMoreFollowings && followingFetchAttempts < MAX_FETCH_ATTEMPTS) {
+      followingFetchAttempts++;
       const url = cursor
         ? `https://api.twitch.tv/helix/users/follows?from_id=${userId}&after=${cursor}`
         : `https://api.twitch.tv/helix/users/follows?from_id=${userId}`;
 
-      const followingsResponse = await axios.get(url, {
-        headers: {
-          'Client-ID': process.env.TWITCH_CLIENT_ID,
-          'Authorization': `Bearer ${accessToken}`,
-        },
-      });
+      try {
+        const followingsResponse = await axios.get(url, {
+          headers: {
+            'Client-ID': process.env.TWITCH_CLIENT_ID,
+            'Authorization': `Bearer ${accessToken}`,
+          },
+        });
 
-      totalFollowingsCount = followingsResponse.data.total;
-      followings = [...followings, ...followingsResponse.data.data.map((f) => f.to_name)];
+        totalFollowingsCount = followingsResponse.data.total;
+        followings = [...followings, ...followingsResponse.data.data.map((f) => f.to_name)];
 
-      if (followingsResponse.data.pagination && followingsResponse.data.pagination.cursor) {
-        cursor = followingsResponse.data.pagination.cursor;
-      } else {
-        hasMoreFollowings = false;
-      }
+        if (followingsResponse.data.pagination && followingsResponse.data.pagination.cursor) {
+          cursor = followingsResponse.data.pagination.cursor;
+        } else {
+          hasMoreFollowings = false;
+        }
 
-      // Ограничиваем до 100 подписок для производительности
-      if (followings.length >= 100) {
+        // Ограничиваем до 100 подписок для производительности
+        if (followings.length >= 100) {
+          hasMoreFollowings = false;
+        }
+      } catch (err) {
+        console.error('Error fetching followings:', err.message);
         hasMoreFollowings = false;
       }
     }
@@ -108,7 +123,7 @@ export default async function handler(req, res) {
       followingsCount: totalFollowingsCount || followings.length,
       followings,
       id: userId,
-      profileImageUrl, // Добавляем URL аватарки
+      profileImageUrl,
     };
 
     console.log('Возвращаемые данные профиля:', { 
