@@ -1,38 +1,37 @@
-import { setCookie } from 'cookies-next';
+import { NextResponse } from 'next/server';
 
-export default function handler(req, res) {
-  if (req.method !== 'GET') {
-    return res.status(405).json({ error: 'Метод не разрешен' });
-  }
+export async function GET(request) {
+  console.log('Login request started:', new Date().toISOString());
 
+  // Проверяем конфигурацию
   if (!process.env.TWITCH_CLIENT_ID) {
-    return res.status(500).json({ error: 'Отсутствует переменная окружения TWITCH_CLIENT_ID' });
+    console.error('Отсутствует TWITCH_CLIENT_ID в переменных окружения');
+    return NextResponse.json(
+      { error: 'Отсутствует переменная окружения TWITCH_CLIENT_ID' }, 
+      { status: 500 }
+    );
   }
 
   if (!process.env.TWITCH_REDIRECT_URI) {
-    return res.status(500).json({ error: 'Отсутствует переменная окружения TWITCH_REDIRECT_URI' });
+    console.error('Отсутствует TWITCH_REDIRECT_URI в переменных окружения');
+    return NextResponse.json(
+      { error: 'Отсутствует переменная окружения TWITCH_REDIRECT_URI' }, 
+      { status: 500 }
+    );
   }
 
   const redirectUri = process.env.TWITCH_REDIRECT_URI;
 
-  // Создаем случайный state для безопасности
-  const state = Math.random().toString(36).substring(2, 15); // Укороченный state для совместимости
+  // Создаем случайный state для CSRF-защиты - более надежный
+  const state = Array.from(crypto.getRandomValues(new Uint8Array(24)))
+    .map(b => b.toString(16).padStart(2, '0'))
+    .join('');
 
-  // Сохраняем state в cookies с явной проверкой
-  const setStateResult = setCookie('twitch_state', state, {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
-    sameSite: 'lax',
-    maxAge: 600, // 10 минут
-    path: '/',
-  }, { req, res });
-  console.log('State set in cookie:', { state, result: setStateResult });
+  console.log('Generated state:', state);
+  console.log('Redirect URI:', redirectUri);
 
   // Определяем необходимые разрешения
   const scopes = 'user:read:email user:read:follows';
-
-  console.log('Redirect URI:', redirectUri);
-  console.log('State value:', state);
 
   // Формируем URL для авторизации
   const twitchAuthUrl = `https://id.twitch.tv/oauth2/authorize?client_id=${
@@ -43,8 +42,21 @@ export default function handler(req, res) {
     encodeURIComponent(scopes)
   }&state=${state}`;
 
-  console.log('Auth URL:', twitchAuthUrl);
+  console.log('Auth URL (without state):', twitchAuthUrl.replace(state, '[REDACTED]'));
 
-  // Перенаправляем пользователя
-  res.redirect(302, twitchAuthUrl);
+  // Создаем ответ с редиректом
+  const response = NextResponse.redirect(twitchAuthUrl);
+
+  // Устанавливаем state в cookie для последующей проверки
+  response.cookies.set('twitch_state', state, {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'lax',
+    maxAge: 600, // 10 минут
+    path: '/'
+  });
+
+  console.log('State cookie set successfully');
+  
+  return response;
 }
