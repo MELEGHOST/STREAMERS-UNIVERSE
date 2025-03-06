@@ -58,12 +58,12 @@ export async function GET(request) {
       throw new Error('Invalid token response from Twitch');
     }
 
-    // Сохранение токенов в cookies с отладкой
+    // Сохранение токенов в cookies с отладкой и резервной проверкой
     const expiresAt = new Date(Date.now() + expires_in * 1000).toUTCString();
     const cookieOptions = {
       httpOnly: true,
       secure: process.env.NODE_ENV !== 'development', // Разрешаем на dev без HTTPS
-      sameSite: 'lax',
+      sameSite: 'lax', // Попробуем 'none' если не работает
       path: '/',
       maxAge: expires_in,
     };
@@ -75,6 +75,16 @@ export async function GET(request) {
       twitch_expires_at: response.cookies.set('twitch_expires_at', expiresAt, cookieOptions),
     };
     console.log('Cookie set results:', cookieResults);
+
+    // Резервная проверка через setCookie (cookies-next)
+    setCookie('twitch_access_token', access_token, { ...cookieOptions, req, res: response });
+    setCookie('twitch_refresh_token', refresh_token, { ...cookieOptions, req, res: response });
+    setCookie('twitch_expires_at', expiresAt, { ...cookieOptions, req, res: response });
+    console.log('Backup cookie set using setCookie:', {
+      twitch_access_token: access_token.substring(0, 5) + '...',
+      twitch_refresh_token: refresh_token.substring(0, 5) + '...',
+      twitch_expires_at: expiresAt,
+    });
 
     // Удаляем state после использования
     response.cookies.set('twitch_state', '', { ...cookieOptions, maxAge: 0 });
