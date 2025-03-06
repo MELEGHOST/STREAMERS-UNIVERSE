@@ -33,7 +33,7 @@ export default function Auth() {
         <button className={styles.spaceButton} onClick={handleLogin}>
           <span className={styles.backdrop}></span>
           <span className={styles.galaxy}></span>
-          <label className={styles.text}>Login with Twitch</label>
+          <label className={styles.text}>Войти через Twitch</label>
         </button>
       </div>
     </div>
