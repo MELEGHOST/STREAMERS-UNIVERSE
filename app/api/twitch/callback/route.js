@@ -1,18 +1,40 @@
 import { NextResponse } from 'next/server';
 import axios from 'axios';
 import querystring from 'querystring';
+import { cookies } from 'next/cookies';
 
 export async function GET(request) {
   console.log('Callback started:', new Date().toISOString(), 'URL:', request.url);
   const { searchParams } = new URL(request.url);
   const code = searchParams.get('code');
-  const state = searchParams.get('state');
+  const receivedState = searchParams.get('state');
 
-  console.log('Received params:', { code: !!code, state: !!state, fullUrl: request.url });
+  console.log('Received params:', { code: !!code, state: !!receivedState, fullUrl: request.url });
 
-  if (!code || !state) {
-    console.error('Missing code or state:', { code, state });
-    return NextResponse.json({ error: 'Отсутствует код или state' }, { status: 400 });
+  if (!code || !receivedState) {
+    console.error('Missing code or state:', { code, state: receivedState });
+    return NextResponse.redirect(new URL(`/auth?error=auth_failed&message=${encodeURIComponent('Отсутствует код или state')}`, request.url));
+  }
+
+  // Получаем state из cookies для проверки
+  const cookieStore = cookies();
+  const storedState = cookieStore.get('twitch_state')?.value;
+  
+  console.log('State comparison:', { 
+    receivedState, 
+    storedState, 
+    match: receivedState === storedState 
+  });
+
+  // Проверяем соответствие state для CSRF-защиты
+  if (!storedState || receivedState !== storedState) {
+    console.error('State mismatch, possible CSRF attack:', { 
+      receivedState, 
+      storedState 
+    });
+    return NextResponse.redirect(
+      new URL(`/auth?error=auth_failed&message=${encodeURIComponent('Несоответствие state, возможная атака CSRF')}`, request.url)
+    );
   }
 
   try {
@@ -56,19 +78,27 @@ export async function GET(request) {
     const expiresAt = new Date(Date.now() + expires_in * 1000);
     const response = NextResponse.redirect(new URL('/profile', request.url));
 
-    // Установка cookies с минимальными настройками
-    response.headers.append(
-      'Set-Cookie',
-      `twitch_access_token=${access_token}; HttpOnly; Path=/; Expires=${expiresAt.toUTCString()}`
-    );
-    response.headers.append(
-      'Set-Cookie',
-      `twitch_refresh_token=${refresh_token}; HttpOnly; Path=/; Expires=${expiresAt.toUTCString()}`
-    );
-    response.headers.append(
-      'Set-Cookie',
-      `twitch_expires_at=${expiresAt.toISOString()}; HttpOnly; Path=/; Expires=${expiresAt.toUTCString()}`
-    );
+    // Установка cookies
+    response.cookies.set('twitch_access_token', access_token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      expires: expiresAt,
+      path: '/'
+    });
+    
+    response.cookies.set('twitch_refresh_token', refresh_token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      expires: expiresAt,
+      path: '/'
+    });
+    
+    response.cookies.set('twitch_expires_at', expiresAt.toISOString(), {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      expires: expiresAt,
+      path: '/'
+    });
 
     console.log('Cookies set:', {
       twitch_access_token: access_token.substring(0, 5) + '...',
@@ -76,12 +106,15 @@ export async function GET(request) {
       twitch_expires_at: expiresAt.toISOString(),
     });
 
-    // Очистка state
-    response.headers.append(
-      'Set-Cookie',
-      `twitch_state=; HttpOnly; Path=/; Expires=Thu, 01 Jan 1970 00:00:00 GMT`
-    );
-    console.log('State cleared');
+    // Очистка state cookie после успешной авторизации
+    response.cookies.set('twitch_state', '', {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      expires: new Date(0),
+      path: '/'
+    });
+    
+    console.log('State cookie cleared');
 
     return response;
   } catch (error) {
