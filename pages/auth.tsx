@@ -9,7 +9,7 @@ export default function Auth() {
   const router = useRouter();
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
   const [errorMessage, setErrorMessage] = useState('');
-  const [isPressing, setIsPressing] = useState(false);
+  const [pressStartTime, setPressStartTime] = useState<number | null>(null);
 
   useEffect(() => {
     // Проверяем, авторизован ли пользователь уже
@@ -33,9 +33,12 @@ export default function Auth() {
 
   const handleLoginPress = (e: React.MouseEvent<HTMLButtonElement> | React.TouchEvent<HTMLButtonElement>) => {
     e.preventDefault();
-    setIsPressing(true);
+    console.log('Button pressed, starting timer');
+    setPressStartTime(Date.now());
     timeoutRef.current = setTimeout(() => {
-      if (isPressing) {
+      const pressDuration = Date.now() - (pressStartTime || 0);
+      console.log('Timer finished, press duration:', pressDuration, 'ms');
+      if (pressDuration >= 1420) {
         console.log('Long press detected, redirecting to /api/twitch/login');
         try {
           window.location.href = '/api/twitch/login';
@@ -43,13 +46,16 @@ export default function Auth() {
           console.error('Ошибка редиректа в handleLoginPress:', error);
           setErrorMessage('Не удалось перейти на страницу авторизации');
         }
+      } else {
+        console.log('Press too short, no redirect');
       }
     }, 1420); // 1.42 секунды
   };
 
   const handleLoginRelease = (e: React.MouseEvent<HTMLButtonElement> | React.TouchEvent<HTMLButtonElement>) => {
     e.preventDefault();
-    setIsPressing(false);
+    console.log('Button released');
+    setPressStartTime(null);
     if (timeoutRef.current) {
       clearTimeout(timeoutRef.current);
       timeoutRef.current = null;
