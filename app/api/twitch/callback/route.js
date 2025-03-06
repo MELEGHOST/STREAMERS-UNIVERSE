@@ -9,6 +9,7 @@ export async function GET(request) {
   const code = searchParams.get('code');
   const state = searchParams.get('state');
 
+  console.log('Callback request URL:', request.url);
   console.log('Callback received with:', { code: !!code, state: !!state });
 
   if (!code || !state) {
@@ -34,7 +35,7 @@ export async function GET(request) {
 
     // Проверяем переменные окружения
     console.log('Environment variables:', {
-      TWITCH_CLIENT_ID: process.env.TWITCH_CLIENT_ID,
+      TWITCH_CLIENT_ID: process.env.TWITCH_CLIENT_ID ? process.env.TWITCH_CLIENT_ID.substring(0, 5) + '...' : 'undefined',
       TWITCH_CLIENT_SECRET: !!process.env.TWITCH_CLIENT_SECRET,
       TWITCH_REDIRECT_URI: process.env.TWITCH_REDIRECT_URI,
     });
@@ -56,40 +57,41 @@ export async function GET(request) {
         headers: {
           'Content-Type': 'application/x-www-form-urlencoded',
         },
+        maxRedirects: 0, // Отключаем редиректы для точного ответа
       }
     );
 
-    console.log('Token response received:', tokenResponse.data);
+    console.log('Token response status:', tokenResponse.status);
+    console.log('Token response headers:', tokenResponse.headers);
+    console.log('Token response data:', tokenResponse.data);
 
     const { access_token, refresh_token, expires_in } = tokenResponse.data;
     if (!access_token || !refresh_token || !expires_in) {
-      throw new Error('Invalid token response from Twitch');
+      throw new Error('Invalid token response from Twitch: ' + JSON.stringify(tokenResponse.data));
     }
 
-    // Сохранение токенов в cookies
+    // Сохранение токенов в cookies с минимальными настройками
     const expiresAt = new Date(Date.now() + expires_in * 1000);
     const cookieOptions = {
       httpOnly: true,
-      secure: process.env.NODE_ENV !== 'development', // Разрешаем на dev без HTTPS
-      sameSite: 'lax',
-      path: '/',
+      path: '/', // Убраны secure и sameSite для теста
       expires: expiresAt,
     };
 
     const response = NextResponse.redirect(new URL('/profile', request.url));
 
-    // Альтернативный способ через Set-Cookie заголовок
+    // Установка через Set-Cookie с минимальными настройками
     response.headers.append(
       'Set-Cookie',
-      `twitch_access_token=${access_token}; HttpOnly; Path=/; SameSite=Lax; Expires=${expiresAt.toUTCString()}${process.env.NODE_ENV !== 'development' ? '; Secure' : ''}`
+      `twitch_access_token=${access_token}; HttpOnly; Path=/; Expires=${expiresAt.toUTCString()}`
     );
     response.headers.append(
       'Set-Cookie',
-      `twitch_refresh_token=${refresh_token}; HttpOnly; Path=/; SameSite=Lax; Expires=${expiresAt.toUTCString()}${process.env.NODE_ENV !== 'development' ? '; Secure' : ''}`
+      `twitch_refresh_token=${refresh_token}; HttpOnly; Path=/; Expires=${expiresAt.toUTCString()}`
     );
     response.headers.append(
       'Set-Cookie',
-      `twitch_expires_at=${expiresAt.toISOString()}; HttpOnly; Path=/; SameSite=Lax; Expires=${expiresAt.toUTCString()}${process.env.NODE_ENV !== 'development' ? '; Secure' : ''}`
+      `twitch_expires_at=${expiresAt.toISOString()}; HttpOnly; Path=/; Expires=${expiresAt.toUTCString()}`
     );
 
     console.log('Set-Cookie headers applied:', {
@@ -98,7 +100,7 @@ export async function GET(request) {
       twitch_expires_at: expiresAt.toISOString(),
     });
 
-    // Попытка через cookies-next как резерв
+    // Резерв через cookies-next
     setCookie('twitch_access_token', access_token, { ...cookieOptions, req, res: response });
     setCookie('twitch_refresh_token', refresh_token, { ...cookieOptions, req, res: response });
     setCookie('twitch_expires_at', expiresAt.toISOString(), { ...cookieOptions, req, res: response });
@@ -108,10 +110,10 @@ export async function GET(request) {
       twitch_expires_at: expiresAt.toISOString(),
     });
 
-    // Удаляем state после использования
+    // Удаляем state
     response.headers.append(
       'Set-Cookie',
-      `twitch_state=; HttpOnly; Path=/; SameSite=Lax; Expires=Thu, 01 Jan 1970 00:00:00 GMT${process.env.NODE_ENV !== 'development' ? '; Secure' : ''}`
+      `twitch_state=; HttpOnly; Path=/; Expires=Thu, 01 Jan 1970 00:00:00 GMT`
     );
     console.log('State cookie cleared');
 
@@ -128,7 +130,6 @@ export async function GET(request) {
     const twitchName = user.display_name;
     const profileImageUrl = user.profile_image_url;
 
-    // Проверка статуса стримера
     const followsResponse = await axios.get(`https://api.twitch.tv/helix/users/follows?to_id=${userId}`, {
       headers: {
         'Client-ID': process.env.TWITCH_CLIENT_ID,
@@ -141,7 +142,6 @@ export async function GET(request) {
 
     console.log(`User ${twitchName} has ${followersCount} followers, streamer status: ${isStreamer}`);
 
-    // Передача данных в URL
     const userData = {
       id: userId,
       name: twitchName,
@@ -156,16 +156,15 @@ export async function GET(request) {
 
     return response;
   } catch (error) {
-    console.error('Authentication error:', error);
-
-    if (error.response) {
-      console.error('Error details:', {
+    console.error('Authentication error:', {
+      message: error.message,
+      stack: error.stack,
+      response: error.response ? {
         status: error.response.status,
         data: error.response.data,
-      });
-    } else {
-      console.error('Unknown error:', error.message);
-    }
+        headers: error.response.headers,
+      } : null,
+    });
 
     const errorUrl = new URL('/auth', request.url);
     errorUrl.searchParams.set('error', 'auth_failed');
