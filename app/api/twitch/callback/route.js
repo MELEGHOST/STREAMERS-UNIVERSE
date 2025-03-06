@@ -69,12 +69,12 @@ export async function GET(request) {
     };
 
     const response = NextResponse.redirect(new URL('/profile', request.url));
-    const setCookieResult = {
+    const cookieResults = {
       twitch_access_token: response.cookies.set('twitch_access_token', access_token, cookieOptions),
       twitch_refresh_token: response.cookies.set('twitch_refresh_token', refresh_token, cookieOptions),
       twitch_expires_at: response.cookies.set('twitch_expires_at', expiresAt, cookieOptions),
     };
-    console.log('Cookie set results:', setCookieResult);
+    console.log('Cookie set results:', cookieResults);
 
     // Удаляем state после использования
     response.cookies.set('twitch_state', '', { ...cookieOptions, maxAge: 0 });
