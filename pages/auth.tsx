@@ -10,12 +10,15 @@ export default function Auth() {
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
   const pressStartRef = useRef<number | null>(null);
   const [errorMessage, setErrorMessage] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
     // Проверяем, авторизован ли пользователь уже
     const accessToken = Cookies.get('twitch_access_token');
     if (accessToken) {
+      console.log('Обнаружен токен доступа, перенаправление на /profile');
       router.push('/profile');
+      return;
     }
 
     // Проверяем наличие ошибки авторизации
@@ -29,7 +32,7 @@ export default function Auth() {
         setErrorMessage('Произошла ошибка при авторизации через Twitch');
       }
     }
-  }, [router]);
+  }, [router, router.query]);
 
   const handleLoginPress = (e: React.MouseEvent<HTMLButtonElement> | React.TouchEvent<HTMLButtonElement>) => {
     e.preventDefault();
@@ -54,10 +57,14 @@ export default function Auth() {
     if (pressDuration >= 1420) {
       console.log('Long press detected, redirecting to /api/twitch/login');
       try {
+        setIsLoading(true); // Показываем индикатор загрузки
+        // Очищаем предыдущие сообщения об ошибках
+        setErrorMessage('');
         window.location.href = '/api/twitch/login';
       } catch (error) {
         console.error('Ошибка редиректа в handleLoginRelease:', error);
         setErrorMessage('Не удалось перейти на страницу авторизации');
+        setIsLoading(false);
       }
     } else {
       console.log('Press too short, no redirect');
@@ -89,20 +96,29 @@ export default function Auth() {
       
       <div className={styles.galaxyButton}>
         <button
-          className={styles.spaceButton}
+          className={`${styles.spaceButton} ${isLoading ? styles.loading : ''}`}
           onMouseDown={handleLoginPress}
           onMouseUp={handleLoginRelease}
           onMouseLeave={handleLoginRelease}
           onTouchStart={handleLoginPress}
           onTouchEnd={handleLoginRelease}
           onClick={(e) => e.preventDefault()} // Блокируем простое нажатие
+          disabled={isLoading}
         >
           <span className={styles.backdrop}></span>
           <span className={styles.galaxy}></span>
-          <label className={styles.text}>Войти через Twitch</label>
+          <label className={styles.text}>
+            {isLoading ? 'Загрузка...' : 'Войти через Twitch'}
+          </label>
         </button>
         <div className={styles.bodydrop}></div>
       </div>
+      
+      {isLoading && (
+        <div className={styles.loadingText}>
+          Переход на авторизацию Twitch...
+        </div>
+      )}
     </div>
   );
 }
