@@ -20,7 +20,14 @@ export default function Auth() {
     const { error, message } = router.query;
     if (error) {
       console.error('Ошибка авторизации:', error);
-      setErrorMessage(message ? decodeURIComponent(message) : 'Произошла ошибка при авторизации через Twitch');
+      
+      // Исправлено: обрабатываем случаи, когда message может быть массивом
+      if (message) {
+        const messageStr = Array.isArray(message) ? message[0] : message;
+        setErrorMessage(decodeURIComponent(messageStr));
+      } else {
+        setErrorMessage('Произошла ошибка при авторизации через Twitch');
+      }
     }
   }, [router]);
 
