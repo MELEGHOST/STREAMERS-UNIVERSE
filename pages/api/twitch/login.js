@@ -18,14 +18,20 @@ export default function handler(req, res) {
   // Создаем случайный state для безопасности
   const state = Math.random().toString(36).substring(2);
 
-  // Сохраняем state в cookies с истечением через 10 минут
-  setCookie('twitch_state', state, { httpOnly: true, secure: process.env.NODE_ENV === 'production', sameSite: 'lax', maxAge: 600, path: '/' }, { req, res });
+  // Сохраняем state в cookies с явной проверкой
+  const setStateResult = setCookie('twitch_state', state, {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'lax',
+    maxAge: 600, // 10 минут
+    path: '/',
+  }, { req, res });
+  console.log('State set in cookie:', { state, result: setStateResult });
 
   // Определяем необходимые разрешения
   const scopes = 'user:read:email user:read:follows';
 
   console.log('Redirect URI:', redirectUri);
-  console.log('Сохранённый state:', state);
 
   // Формируем URL для авторизации
   const twitchAuthUrl = `https://id.twitch.tv/oauth2/authorize?client_id=${
