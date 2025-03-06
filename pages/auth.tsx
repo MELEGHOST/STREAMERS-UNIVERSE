@@ -1,12 +1,13 @@
 "use client";
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/router';
 import Cookies from 'js-cookie';
 import styles from './auth.module.css';
 
 export default function Auth() {
   const router = useRouter();
+  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
   const [errorMessage, setErrorMessage] = useState('');
 
   useEffect(() => {
@@ -15,13 +16,11 @@ export default function Auth() {
     if (accessToken) {
       router.push('/profile');
     }
-    
+
     // Проверяем наличие ошибки авторизации
     const { error, message } = router.query;
     if (error) {
       console.error('Ошибка авторизации:', error);
-      
-      // Исправлено: обрабатываем случаи, когда message может быть массивом
       if (message) {
         const messageStr = Array.isArray(message) ? message[0] : message;
         setErrorMessage(decodeURIComponent(messageStr));
@@ -31,13 +30,22 @@ export default function Auth() {
     }
   }, [router]);
 
-  const handleLogin = () => {
-    try {
-      // Прямая навигация на API логина
-      window.location.href = '/api/twitch/login';
-    } catch (error) {
-      console.error('Ошибка в handleLogin:', error);
-      setErrorMessage('Не удалось перейти на страницу авторизации');
+  const handleLoginPress = (e: React.MouseEvent<HTMLButtonElement>) => {
+    e.preventDefault();
+    timeoutRef.current = setTimeout(() => {
+      try {
+        window.location.href = '/api/twitch/login';
+      } catch (error) {
+        console.error('Ошибка в handleLoginPress:', error);
+        setErrorMessage('Не удалось перейти на страницу авторизации');
+      }
+    }, 1420); // 1.42 секунды
+  };
+
+  const handleLoginRelease = () => {
+    if (timeoutRef.current) {
+      clearTimeout(timeoutRef.current);
+      timeoutRef.current = null;
     }
   };
 
@@ -64,7 +72,14 @@ export default function Auth() {
       )}
       
       <div className={styles.galaxyButton}>
-        <button className={styles.spaceButton} onClick={handleLogin}>
+        <button
+          className={styles.spaceButton}
+          onMouseDown={handleLoginPress}
+          onMouseUp={handleLoginRelease}
+          onMouseLeave={handleLoginRelease}
+          onTouchStart={handleLoginPress}
+          onTouchEnd={handleLoginRelease}
+        >
           <span className={styles.backdrop}></span>
           <span className={styles.galaxy}></span>
           <label className={styles.text}>Войти через Twitch</label>
