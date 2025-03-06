@@ -1,6 +1,5 @@
 import { NextResponse } from 'next/server';
 import axios from 'axios';
-import Cookies from 'js-cookie';
 
 export async function GET(request) {
   const { searchParams } = new URL(request.url);
@@ -36,13 +35,14 @@ export async function GET(request) {
     const cookieOptions = {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production', // Только для HTTPS в продакшене
-      sameSite: 'lax' as const,
+      sameSite: 'lax', // Убрали 'as const'
       expires: new Date(expiresAt),
     };
 
-    Cookies.set('twitch_access_token', access_token, cookieOptions);
-    Cookies.set('twitch_refresh_token', refresh_token, cookieOptions);
-    Cookies.set('twitch_expires_at', expiresAt, cookieOptions);
+    const response = NextResponse.redirect(new URL('/profile', request.url));
+    response.cookies.set('twitch_access_token', access_token, cookieOptions);
+    response.cookies.set('twitch_refresh_token', refresh_token, cookieOptions);
+    response.cookies.set('twitch_expires_at', expiresAt, cookieOptions);
 
     console.log('Сохранённые токены:', {
       access_token: access_token.substring(0, 5) + '...', // Логируем только начало для безопасности
@@ -71,15 +71,4 @@ export async function GET(request) {
     });
 
     const followersCount = followsResponse.data.total || 0;
-    const isStreamer = followersCount >= 100; // Определяем стримера как того, у кого 100+ фолловеров
-
-    console.log('Данные пользователя:', { userId, twitchName, followersCount, isStreamer });
-
-    // Передача данных в URL для профиля
-    const userData = encodeURIComponent(JSON.stringify({ id: userId, isStreamer }));
-    return NextResponse.redirect(new URL(`/profile?user=${userData}`, request.url));
-  } catch (error) {
-    console.error('Ошибка в callback:', error);
-    return NextResponse.json({ error: 'Ошибка авторизации', message: error.message }, { status: 500 });
-  }
-}
+    const isStreamer = followersCount >= 150; // Исправляем порог н
