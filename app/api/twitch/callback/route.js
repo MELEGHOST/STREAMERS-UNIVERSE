@@ -1,67 +1,56 @@
+import { NextResponse } from 'next/server';
 import axios from 'axios';
-import { cookies } from 'next/headers';
+import Cookies from 'js-cookie';
 
-export async function GET(req) {
+export async function GET(request) {
+  const { searchParams } = new URL(request.url);
+  const code = searchParams.get('code');
+  const state = searchParams.get('state');
+
+  if (!code || !state) {
+    return NextResponse.json({ error: 'Отсутствует код или state' }, { status: 400 });
+  }
+
   try {
-    // Явная проверка серверного контекста
-    if (typeof window !== 'undefined') {
-      throw new Error('This Route Handler must be called from the server');
-    }
-
-    const url = new URL(req.url);
-    const { searchParams } = url;
-    const code = searchParams.get('code');
-    const state = searchParams.get('state');
-
-    // Добавляем отладочные логи
-    console.log('Callback request received with params:', {
-      code: code ? 'present' : 'missing',
-      state: state ? 'present' : 'missing',
-    });
-
-    // Обработка ошибок от Twitch
-    const error = searchParams.get('error');
-    const errorDescription = searchParams.get('error_description');
-    if (error) {
-      console.error(`Twitch auth error: ${error} - ${errorDescription}`);
-      return new Response(JSON.stringify({ error, description: errorDescription }), {
-        status: 400,
-        headers: { 'Content-Type': 'application/json' },
-      });
-    }
-
-    if (!code) {
-      console.error('Missing code parameter in callback request');
-      return new Response(JSON.stringify({ error: 'Missing code parameter' }), {
-        status: 400,
-        headers: { 'Content-Type': 'application/json' },
-      });
-    }
-
-    // Используем TWITCH_REDIRECT_URI из env
-    const redirectUri = process.env.TWITCH_REDIRECT_URI || 'https://streamers-universe.vercel.app/api/twitch/callback';
-
-    // Используем URLSearchParams для form-urlencoded
-    const params = new URLSearchParams();
-    params.append('client_id', process.env.TWITCH_CLIENT_ID);
-    params.append('client_secret', process.env.TWITCH_CLIENT_SECRET);
-    params.append('code', code);
-    params.append('grant_type', 'authorization_code');
-    params.append('redirect_uri', redirectUri);
-
-    console.log('Sending token request with params:', params.toString());
-
+    // Обмен кода на токен
     const tokenResponse = await axios.post(
       'https://id.twitch.tv/oauth2/token',
-      params.toString(),
       {
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        client_id: process.env.TWITCH_CLIENT_ID,
+        client_secret: process.env.TWITCH_CLIENT_SECRET,
+        code: code,
+        grant_type: 'authorization_code',
+        redirect_uri: process.env.TWITCH_REDIRECT_URI,
+      },
+      {
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+        },
       }
     );
 
     const { access_token, refresh_token, expires_in } = tokenResponse.data;
-    const expiresAt = Date.now() + (expires_in * 1000);
 
+    // Сохранение токенов в cookies с правильными настройками
+    const expiresAt = new Date(Date.now() + expires_in * 1000).toUTCString();
+    const cookieOptions = {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production', // Только для HTTPS в продакшене
+      sameSite: 'lax' as const,
+      expires: new Date(expiresAt),
+    };
+
+    Cookies.set('twitch_access_token', access_token, cookieOptions);
+    Cookies.set('twitch_refresh_token', refresh_token, cookieOptions);
+    Cookies.set('twitch_expires_at', expiresAt, cookieOptions);
+
+    console.log('Сохранённые токены:', {
+      access_token: access_token.substring(0, 5) + '...', // Логируем только начало для безопасности
+      refresh_token: refresh_token.substring(0, 5) + '...',
+      expires_at: expiresAt,
+    });
+
+    // Получение данных пользователя
     const userResponse = await axios.get('https://api.twitch.tv/helix/users', {
       headers: {
         'Client-ID': process.env.TWITCH_CLIENT_ID,
@@ -70,42 +59,27 @@ export async function GET(req) {
     });
 
     const user = userResponse.data.data[0];
-    const userData = {
-      id: user.id,
-      isStreamer: false, // Логика для определения стримера
-    };
+    const userId = user.id;
+    const twitchName = user.display_name;
 
-    // Устанавливаем cookies
-    const cookieStore = cookies();
-    cookieStore.set('twitch_access_token', access_token, {
-      httpOnly: true,
-      secure: true,
-      maxAge: expires_in,
-    });
-    cookieStore.set('twitch_refresh_token', refresh_token, {
-      httpOnly: true,
-      secure: true,
-      maxAge: 30 * 24 * 60 * 60,
-    });
-    cookieStore.set('twitch_expires_at', expiresAt.toString(), {
-      httpOnly: true,
-      secure: true,
-      maxAge: expires_in,
+    // Проверка статуса стримера через количество фолловеров
+    const followsResponse = await axios.get(`https://api.twitch.tv/helix/users/follows?to_id=${userId}`, {
+      headers: {
+        'Client-ID': process.env.TWITCH_CLIENT_ID,
+        'Authorization': `Bearer ${access_token}`,
+      },
     });
 
-    return new Response(null, {
-      status: 302,
-      headers: { Location: `/profile?user=${encodeURIComponent(JSON.stringify(userData))}` },
-    });
+    const followersCount = followsResponse.data.total || 0;
+    const isStreamer = followersCount >= 100; // Определяем стримера как того, у кого 100+ фолловеров
+
+    console.log('Данные пользователя:', { userId, twitchName, followersCount, isStreamer });
+
+    // Передача данных в URL для профиля
+    const userData = encodeURIComponent(JSON.stringify({ id: userId, isStreamer }));
+    return NextResponse.redirect(new URL(`/profile?user=${userData}`, request.url));
   } catch (error) {
-    console.error('Twitch callback error:', error);
-    let errorMessage = 'Server error';
-    if (error.response) {
-      errorMessage = `Twitch API error: ${error.response.status} - ${error.response.data.message || error.response.data}`;
-    }
-    return new Response(JSON.stringify({ error: 'Server error', message: errorMessage }), {
-      status: 500,
-      headers: { 'Content-Type': 'application/json' },
-    });
+    console.error('Ошибка в callback:', error);
+    return NextResponse.json({ error: 'Ошибка авторизации', message: error.message }, { status: 500 });
   }
 }
