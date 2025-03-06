@@ -11,6 +11,7 @@ interface TwitchProfile {
   followers: string[];
   followingsCount: number;
   followings: string[];
+  profileImageUrl: string; // Добавляем URL аватарки
 }
 
 export default function Profile() {
@@ -23,21 +24,35 @@ export default function Profile() {
     const checkAuthAndLoadProfile = async () => {
       if (typeof window !== 'undefined') {
         const accessToken = Cookies.get('twitch_access_token');
+        const urlParams = new URLSearchParams(window.location.search);
+        const userDataParam = urlParams.get('user');
 
         console.log('Checking authentication - accessToken:', accessToken ? 'present' : 'missing');
+        console.log('URL user data:', userDataParam);
 
         if (!accessToken) {
-          setError('Not authenticated');
+          setError('Пожалуйста, войдите через Twitch.');
           setLoading(false);
           router.push('/auth');
           return;
+        }
+
+        let userData: any = null;
+        if (userDataParam) {
+          try {
+            userData = JSON.parse(decodeURIComponent(userDataParam));
+            localStorage.setItem('twitch_user', userDataParam);
+            window.history.replaceState({}, document.title, '/profile'); // Удаляем параметры из URL
+          } catch (e) {
+            console.error('Ошибка парсинга данных пользователя:', e);
+          }
         }
 
         try {
           // Fetch profile data with credentials to include cookies
           const response = await fetch('/api/twitch/profile', {
             method: 'GET',
-            credentials: 'include', // Убедимся, что cookies передаются
+            credentials: 'include',
             headers: {
               'Content-Type': 'application/json',
             },
@@ -46,28 +61,21 @@ export default function Profile() {
           console.log('Profile API response status:', response.status);
 
           if (!response.ok) {
-            throw new Error(`Failed to fetch profile: ${response.status}`);
+            throw new Error(`Не удалось загрузить профиль: ${response.status}`);
           }
 
           const data = await response.json();
-          setProfileData(data);
+          // Добавляем URL аватарки из Twitch API
+          const profileImageUrl = `https://static-cdn.jtvnw.net/jtv_user_pictures/${data.id}-profile_image-300x300.jpg`;
+          setProfileData({
+            ...data,
+            profileImageUrl,
+          });
         } catch (error: any) {
-          console.error('Error fetching profile:', error);
-          setError(error.message || 'Failed to load profile');
+          console.error('Ошибка загрузки профиля:', error);
+          setError(error.message || 'Не удалось загрузить профиль');
         } finally {
           setLoading(false);
-        }
-
-        // Очистка URL-параметров, если они есть
-        const urlParams = new URLSearchParams(window.location.search);
-        const userData = urlParams.get('user');
-        if (userData) {
-          try {
-            localStorage.setItem('twitch_user', userData);
-            window.history.replaceState({}, document.title, '/profile'); // Удаляем параметры из URL
-          } catch (e) {
-            console.error('Failed to store user data:', e);
-          }
         }
       }
     };
@@ -88,12 +96,12 @@ export default function Profile() {
 
       router.push('/auth');
     } catch (error) {
-      console.error('Logout error:', error);
+      console.error('Ошибка выхода:', error);
     }
   };
 
   if (loading) {
-    return <div className={styles.loading}>Loading...</div>;
+    return <div className={styles.loading}>Загрузка...</div>;
   }
 
   if (error) {
@@ -102,7 +110,7 @@ export default function Profile() {
         <div className={styles.error}>
           {error}
           <button className={styles.button} onClick={() => router.push('/auth')}>
-            Go to Login
+            Перейти к входу
           </button>
         </div>
       </div>
@@ -113,9 +121,9 @@ export default function Profile() {
     return (
       <div className={styles.profileContainer}>
         <div className={styles.error}>
-          Error loading profile data.
+          Ошибка загрузки данных профиля.
           <button className={styles.button} onClick={() => window.location.reload()}>
-            Retry
+            Повторить
           </button>
         </div>
       </div>
@@ -124,41 +132,44 @@ export default function Profile() {
 
   return (
     <div className={styles.profileContainer}>
-      <h1>Twitch Profile</h1>
-      <p>Username: {profileData.twitchName}</p>
+      <h1>Профиль Twitch</h1>
+      {profileData.profileImageUrl && (
+        <img src={profileData.profileImageUrl} alt={`${profileData.twitchName} аватарка`} className={styles.avatar} />
+      )}
+      <p>Никнейм: {profileData.twitchName}</p>
 
       <div className={styles.section}>
-        <h2>Followers ({profileData.followersCount})</h2>
+        <h2>Подписчики ({profileData.followersCount})</h2>
         <ul>
           {profileData.followers.length > 0 ? (
             profileData.followers.map((follower, index) => (
               <li key={index}>{follower}</li>
             ))
           ) : (
-            <li>No followers</li>
+            <li>Нет подписчиков</li>
           )}
         </ul>
       </div>
 
       <div className={styles.section}>
-        <h2>Following ({profileData.followingsCount})</h2>
+        <h2>На кого подписан ({profileData.followingsCount})</h2>
         <ul>
           {profileData.followings.length > 0 ? (
             profileData.followings.map((following, index) => (
               <li key={index}>{following}</li>
             ))
           ) : (
-            <li>Not following anyone</li>
+            <li>Не подписан ни на кого</li>
           )}
         </ul>
       </div>
 
       {/* Добавляем возможность редактирования профиля */}
       <button className={styles.button} onClick={() => router.push('/edit-profile')}>
-        Edit Profile
+        Редактировать профиль
       </button>
       <button className={styles.button} onClick={handleLogout}>
-        Logout
+        Выйти
       </button>
     </div>
   );
