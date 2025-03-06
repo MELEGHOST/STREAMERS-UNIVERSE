@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import axios from 'axios';
 import querystring from 'querystring';
+import { getCookie } from 'cookies-next';
 
 export async function GET(request) {
   const { searchParams } = new URL(request.url);
@@ -12,10 +13,17 @@ export async function GET(request) {
   }
 
   try {
-    // Проверка state (должна совпадать с сохранённым, но для простоты пока только логируем)
+    // Получаем сохранённый state из cookies
+    const savedState = getCookie('twitch_state', { req: request });
+    console.log('Сохранённый state:', savedState);
     console.log('Полученный state:', state);
 
-    // Обмен кода на токен с правильным форматированием данных
+    if (savedState !== state) {
+      console.error('Несоответствие state:', { savedState, receivedState: state });
+      throw new Error('Несоответствие state, возможная атака CSRF');
+    }
+
+    // Обмен кода на токен
     const tokenParams = querystring.stringify({
       client_id: process.env.TWITCH_CLIENT_ID,
       client_secret: process.env.TWITCH_CLIENT_SECRET,
@@ -24,7 +32,6 @@ export async function GET(request) {
       redirect_uri: process.env.TWITCH_REDIRECT_URI,
     });
 
-    // Исправленный запрос токена с детальным логированием
     console.log('Token request params:', tokenParams);
     const tokenResponse = await axios.post(
       'https://id.twitch.tv/oauth2/token',
@@ -37,9 +44,6 @@ export async function GET(request) {
     );
 
     const { access_token, refresh_token, expires_in } = tokenResponse.data;
-
-    // Логирование для отладки
-    console.log('Получен токен доступа:', access_token ? 'успешно' : 'ошибка');
     console.log('Token response:', tokenResponse.data);
 
     // Сохранение токенов в cookies
@@ -55,6 +59,9 @@ export async function GET(request) {
     response.cookies.set('twitch_access_token', access_token, cookieOptions);
     response.cookies.set('twitch_refresh_token', refresh_token, cookieOptions);
     response.cookies.set('twitch_expires_at', expiresAt, cookieOptions);
+
+    // Удаляем state после использования
+    response.cookies.set('twitch_state', '', { ...cookieOptions, maxAge: 0 });
 
     // Получение данных пользователя
     const userResponse = await axios.get('https://api.twitch.tv/helix/users', {
@@ -91,7 +98,10 @@ export async function GET(request) {
       profileImageUrl,
     };
 
+    const url = new URL('/profile', request.url);
     url.searchParams.set('user', encodeURIComponent(JSON.stringify(userData)));
+    response.headers.set('Location', url.toString());
+
     return response;
   } catch (error) {
     console.error('Ошибка авторизации:', error);
