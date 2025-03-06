@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import axios from 'axios';
 import querystring from 'querystring';
-import { getCookie, setCookie } from 'cookies-next'; // Проверка импорта
+import { getCookie, setCookie } from 'cookies-next';
 
 export async function GET(request) {
   console.log('cookies-next imported successfully:', typeof getCookie === 'function' && typeof setCookie === 'function');
@@ -32,6 +32,13 @@ export async function GET(request) {
       throw new Error('Несоответствие state, возможная атака CSRF');
     }
 
+    // Проверяем переменные окружения
+    console.log('Environment variables:', {
+      TWITCH_CLIENT_ID: process.env.TWITCH_CLIENT_ID,
+      TWITCH_CLIENT_SECRET: !!process.env.TWITCH_CLIENT_SECRET,
+      TWITCH_REDIRECT_URI: process.env.TWITCH_REDIRECT_URI,
+    });
+
     // Обмен кода на токен
     const tokenParams = querystring.stringify({
       client_id: process.env.TWITCH_CLIENT_ID,
@@ -59,36 +66,53 @@ export async function GET(request) {
       throw new Error('Invalid token response from Twitch');
     }
 
-    // Сохранение токенов в cookies с отладкой и резервной проверкой
-    const expiresAt = new Date(Date.now() + expires_in * 1000).toUTCString();
+    // Сохранение токенов в cookies
+    const expiresAt = new Date(Date.now() + expires_in * 1000);
     const cookieOptions = {
       httpOnly: true,
       secure: process.env.NODE_ENV !== 'development', // Разрешаем на dev без HTTPS
       sameSite: 'lax',
       path: '/',
-      maxAge: expires_in,
+      expires: expiresAt,
     };
 
     const response = NextResponse.redirect(new URL('/profile', request.url));
-    const cookieResults = {
-      twitch_access_token: response.cookies.set('twitch_access_token', access_token, cookieOptions),
-      twitch_refresh_token: response.cookies.set('twitch_refresh_token', refresh_token, cookieOptions),
-      twitch_expires_at: response.cookies.set('twitch_expires_at', expiresAt, cookieOptions),
-    };
-    console.log('Cookie set results (NextResponse):', cookieResults);
 
-    // Резервная проверка через setCookie (cookies-next)
-    setCookie('twitch_access_token', access_token, { ...cookieOptions, req, res: response });
-    setCookie('twitch_refresh_token', refresh_token, { ...cookieOptions, req, res: response });
-    setCookie('twitch_expires_at', expiresAt, { ...cookieOptions, req, res: response });
-    console.log('Backup cookie set using setCookie:', {
+    // Альтернативный способ через Set-Cookie заголовок
+    response.headers.append(
+      'Set-Cookie',
+      `twitch_access_token=${access_token}; HttpOnly; Path=/; SameSite=Lax; Expires=${expiresAt.toUTCString()}${process.env.NODE_ENV !== 'development' ? '; Secure' : ''}`
+    );
+    response.headers.append(
+      'Set-Cookie',
+      `twitch_refresh_token=${refresh_token}; HttpOnly; Path=/; SameSite=Lax; Expires=${expiresAt.toUTCString()}${process.env.NODE_ENV !== 'development' ? '; Secure' : ''}`
+    );
+    response.headers.append(
+      'Set-Cookie',
+      `twitch_expires_at=${expiresAt.toISOString()}; HttpOnly; Path=/; SameSite=Lax; Expires=${expiresAt.toUTCString()}${process.env.NODE_ENV !== 'development' ? '; Secure' : ''}`
+    );
+
+    console.log('Set-Cookie headers applied:', {
       twitch_access_token: access_token.substring(0, 5) + '...',
       twitch_refresh_token: refresh_token.substring(0, 5) + '...',
-      twitch_expires_at: expiresAt,
+      twitch_expires_at: expiresAt.toISOString(),
+    });
+
+    // Попытка через cookies-next как резерв
+    setCookie('twitch_access_token', access_token, { ...cookieOptions, req, res: response });
+    setCookie('twitch_refresh_token', refresh_token, { ...cookieOptions, req, res: response });
+    setCookie('twitch_expires_at', expiresAt.toISOString(), { ...cookieOptions, req, res: response });
+    console.log('Backup cookie set using cookies-next:', {
+      twitch_access_token: access_token.substring(0, 5) + '...',
+      twitch_refresh_token: refresh_token.substring(0, 5) + '...',
+      twitch_expires_at: expiresAt.toISOString(),
     });
 
     // Удаляем state после использования
-    response.cookies.set('twitch_state', '', { ...cookieOptions, maxAge: 0 });
+    response.headers.append(
+      'Set-Cookie',
+      `twitch_state=; HttpOnly; Path=/; SameSite=Lax; Expires=Thu, 01 Jan 1970 00:00:00 GMT${process.env.NODE_ENV !== 'development' ? '; Secure' : ''}`
+    );
     console.log('State cookie cleared');
 
     // Получение данных пользователя
