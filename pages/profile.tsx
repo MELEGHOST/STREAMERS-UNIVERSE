@@ -42,10 +42,14 @@ export default function Profile() {
         if (userDataParam) {
           try {
             userData = JSON.parse(decodeURIComponent(userDataParam));
+            console.log('Разобранные данные пользователя:', userData);
             localStorage.setItem('twitch_user', userDataParam);
             window.history.replaceState({}, document.title, '/profile'); // Удаляем параметры из URL
           } catch (e) {
             console.error('Ошибка парсинга данных пользователя:', e);
+            setError('Ошибка парсинга данных профиля из URL');
+            setLoading(false);
+            return;
           }
         }
 
@@ -56,16 +60,19 @@ export default function Profile() {
             credentials: 'include', // Убедимся, что cookies передаются
             headers: {
               'Content-Type': 'application/json',
+              'Authorization': `Bearer ${accessToken}`, // Добавляем токен в заголовки для явной проверки
             },
           });
 
           console.log('Статус ответа API профиля:', response.status);
+          console.log('Полный ответ API:', await response.clone().text());
 
           if (!response.ok) {
             throw new Error(`Не удалось загрузить профиль: ${response.status}`);
           }
 
           const data = await response.json();
+          console.log('Полученные данные профиля:', data);
           // Добавляем URL аватарки из Twitch API
           const profileImageUrl = `https://static-cdn.jtvnw.net/jtv_user_pictures/${data.id}-profile_image-300x300.jpg`;
           setProfileData({
