@@ -71,4 +71,27 @@ export async function GET(request) {
     });
 
     const followersCount = followsResponse.data.total || 0;
-    const isStreamer = followersCount >= 150; // Исправляем порог н
+    const isStreamer = followersCount >= 150; // Исправляем порог на 150 подписчиков
+
+    // Сохраняем данные в URL для профиля
+    const userData = {
+      id: userId,
+      name: twitchName,
+      isStreamer,
+      followersCount
+    };
+
+    // Добавляем данные пользователя в параметр URL
+    const profileUrl = new URL('/profile', request.url);
+    profileUrl.searchParams.set('user', encodeURIComponent(JSON.stringify(userData)));
+    
+    return response;
+  } catch (error) {
+    console.error('Ошибка авторизации:', error);
+    
+    const errorResponse = NextResponse.redirect(new URL('/auth', request.url));
+    errorResponse.searchParams.set('error', 'auth_failed');
+    
+    return errorResponse;
+  }
+}
