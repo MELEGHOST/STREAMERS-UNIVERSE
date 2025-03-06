@@ -36,31 +36,17 @@ export default function Auth() {
   return (
     <div className={styles.container}>
       <div className={styles.stars} />
-      {/* Use next/image component or verify the path is correct */}
+      
       <div className={styles.logoContainer}>
-        {/* 
-        If using static import:
-        <Image 
-          src="/assets/logo.png" 
-          alt="Streamers Universe Logo" 
-          width={200} 
-          height={200} 
-          className={styles.logo} 
-          onError={(e) => {
-            console.error('Failed to load logo');
-            e.currentTarget.src = '/placeholder-logo.png'; // Fallback image
-          }}
-        />
-        */}
-        
-        {/* Fallback to regular img tag with error handler */}
+        {/* Используем гарантированное изображение или плейсхолдер */}
         <img 
           className={styles.logo} 
-          src="/assets/logo.png" 
+          src="/logo.png" // Исправлен путь к логотипу - убран каталог assets/
           alt="Streamers Universe Logo" 
           onError={(e) => {
-            console.error('Failed to load logo');
-            e.currentTarget.src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="100" height="100" viewBox="0 0 100 100"%3E%3Crect width="100" height="100" fill="%23764ABC"%3E%3C/rect%3E%3Ctext x="50" y="50" font-family="Arial" font-size="12" text-anchor="middle" fill="white"%3ELogo%3C/text%3E%3C/svg%3E';
+            console.error('Не удалось загрузить логотип, использую плейсхолдер');
+            // Использование инлайн SVG как плейсхолдер
+            e.currentTarget.src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="200" height="200" viewBox="0 0 200 200"%3E%3Crect width="200" height="200" fill="%237B41C9"%3E%3C/rect%3E%3Ctext x="100" y="100" font-family="Arial" font-size="24" text-anchor="middle" fill="white"%3EStreamers Universe%3C/text%3E%3C/svg%3E';
           }}
         />
       </div>
