@@ -8,6 +8,8 @@ export async function GET(request) {
   const code = searchParams.get('code');
   const state = searchParams.get('state');
 
+  console.log('Callback received:', { code: !!code, state: !!state });
+
   if (!code || !state) {
     console.error('Missing code or state:', { code, state });
     return NextResponse.json({ error: 'Отсутствует код или state' }, { status: 400 });
@@ -16,11 +18,11 @@ export async function GET(request) {
   try {
     // Получаем сохранённый state из cookies
     const savedState = getCookie('twitch_state', { req: request });
-    console.log('Сохранённый state:', savedState);
-    console.log('Полученный state:', state);
+    console.log('Saved state:', savedState);
+    console.log('Received state:', state);
 
     if (savedState !== state) {
-      console.error('Несоответствие state:', { savedState, receivedState: state });
+      console.error('State mismatch:', { savedState, receivedState: state });
       throw new Error('Несоответствие state, возможная атака CSRF');
     }
 
@@ -44,17 +46,21 @@ export async function GET(request) {
       }
     );
 
-    const { access_token, refresh_token, expires_in } = tokenResponse.data;
-    console.log('Token response:', tokenResponse.data);
+    console.log('Token response received:', tokenResponse.data);
 
-    // Сохранение токенов в cookies с явной проверкой
+    const { access_token, refresh_token, expires_in } = tokenResponse.data;
+    if (!access_token || !refresh_token || !expires_in) {
+      throw new Error('Invalid token response from Twitch');
+    }
+
+    // Сохранение токенов в cookies с отладкой
     const expiresAt = new Date(Date.now() + expires_in * 1000).toUTCString();
     const cookieOptions = {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'lax',
       path: '/',
-      maxAge: expires_in, // Устанавливаем maxAge для соответствия expires_in
+      maxAge: expires_in,
     };
 
     const response = NextResponse.redirect(new URL('/profile', request.url));
@@ -66,9 +72,9 @@ export async function GET(request) {
     response.cookies.set('twitch_state', '', { ...cookieOptions, maxAge: 0 });
 
     console.log('Cookies set:', {
-      access_token: access_token.substring(0, 5) + '...',
-      refresh_token: refresh_token.substring(0, 5) + '...',
-      expires_at: expiresAt,
+      twitch_access_token: access_token.substring(0, 5) + '...',
+      twitch_refresh_token: refresh_token.substring(0, 5) + '...',
+      twitch_expires_at: expiresAt,
     });
 
     // Получение данных пользователя
@@ -95,7 +101,7 @@ export async function GET(request) {
     const followersCount = followsResponse.data.total || 0;
     const isStreamer = followersCount >= 150;
 
-    console.log(`Пользователь ${twitchName} имеет ${followersCount} подписчиков, статус стримера: ${isStreamer}`);
+    console.log(`User ${twitchName} has ${followersCount} followers, streamer status: ${isStreamer}`);
 
     // Передача данных в URL
     const userData = {
@@ -112,15 +118,15 @@ export async function GET(request) {
 
     return response;
   } catch (error) {
-    console.error('Ошибка авторизации:', error);
+    console.error('Authentication error:', error);
 
     if (error.response) {
-      console.error('Детали ошибки:', {
+      console.error('Error details:', {
         status: error.response.status,
         data: error.response.data,
       });
     } else {
-      console.error('Неизвестная ошибка:', error.message);
+      console.error('Unknown error:', error.message);
     }
 
     const errorUrl = new URL('/auth', request.url);
