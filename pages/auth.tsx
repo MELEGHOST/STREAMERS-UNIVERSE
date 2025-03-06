@@ -30,7 +30,7 @@ export default function Auth() {
     }
   }, [router]);
 
-  const handleLoginPress = (e: React.MouseEvent<HTMLButtonElement>) => {
+  const handleLoginPress = (e: React.MouseEvent<HTMLButtonElement> | React.TouchEvent<HTMLButtonElement>) => {
     e.preventDefault();
     timeoutRef.current = setTimeout(() => {
       try {
@@ -42,7 +42,8 @@ export default function Auth() {
     }, 1420); // 1.42 секунды
   };
 
-  const handleLoginRelease = () => {
+  const handleLoginRelease = (e: React.MouseEvent<HTMLButtonElement> | React.TouchEvent<HTMLButtonElement>) => {
+    e.preventDefault();
     if (timeoutRef.current) {
       clearTimeout(timeoutRef.current);
       timeoutRef.current = null;
