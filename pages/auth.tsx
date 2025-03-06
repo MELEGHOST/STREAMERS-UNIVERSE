@@ -36,10 +36,11 @@ export default function Auth() {
     setIsPressing(true);
     timeoutRef.current = setTimeout(() => {
       if (isPressing) {
+        console.log('Long press detected, redirecting to /api/twitch/login');
         try {
           window.location.href = '/api/twitch/login';
         } catch (error) {
-          console.error('Ошибка в handleLoginPress:', error);
+          console.error('Ошибка редиректа в handleLoginPress:', error);
           setErrorMessage('Не удалось перейти на страницу авторизации');
         }
       }
