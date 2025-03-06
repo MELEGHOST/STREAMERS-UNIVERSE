@@ -1,3 +1,55 @@
+.avatar {
+  width: 150px;
+  height: 150px;
+  border-radius: 50%;
+  margin-bottom: 20px;
+  object-fit: cover;
+}
+
+.profileContainer {
+  padding: 20px;
+  color: white;
+  background: linear-gradient(to bottom, #0a0a2a, #1a1a4a);
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.section {
+  margin: 20px 0;
+  width: 100%;
+  max-width: 600px;
+}
+
+.loading {
+  color: white;
+  font-size: 18px;
+}
+
+.error {
+  color: white;
+  text-align: center;
+  padding: 20px;
+  background: rgba(255, 0, 0, 0.1);
+  border-radius: 5px;
+}
+
+.button {
+  padding: 10px 20px;
+  margin: 10px;
+  background: #007bff;
+  color: white;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  font-size: 16px;
+}
+
+.button:hover {
+  background: #0056b3;
+}
+
 .editForm {
   display: flex;
   flex-direction: column;
