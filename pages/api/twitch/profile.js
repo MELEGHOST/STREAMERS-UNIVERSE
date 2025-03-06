@@ -12,6 +12,7 @@ export default async function handler(req, res) {
     const accessToken = cookies.twitch_access_token;
 
     console.log('Profile API - accessToken:', accessToken ? 'присутствует' : 'отсутствует');
+    console.log('Полные cookies:', cookies);
 
     if (!accessToken) {
       return res.status(401).json({ error: 'Не авторизован' });
@@ -24,6 +25,8 @@ export default async function handler(req, res) {
         'Authorization': `Bearer ${accessToken}`,
       },
     });
+
+    console.log('Ответ Twitch API для пользователя:', userResponse.data);
 
     const user = userResponse.data.data[0];
     const userId = user.id;
@@ -45,6 +48,8 @@ export default async function handler(req, res) {
           'Authorization': `Bearer ${accessToken}`,
         },
       });
+
+      console.log('Ответ Twitch API для подписчиков:', followersResponse.data);
 
       followers = [...followers, ...followersResponse.data.data.map((f) => f.from_name)];
 
@@ -77,6 +82,8 @@ export default async function handler(req, res) {
         },
       });
 
+      console.log('Ответ Twitch API для подписок:', followingsResponse.data);
+
       followings = [...followings, ...followingsResponse.data.data.map((f) => f.to_name)];
 
       if (followingsResponse.data.pagination && followingsResponse.data.pagination.cursor) {
@@ -91,14 +98,18 @@ export default async function handler(req, res) {
       }
     }
 
-    res.status(200).json({
+    const profileData = {
       twitchName,
       followersCount: followers.length,
       followers,
       followingsCount: followings.length,
       followings,
       id: userId, // Убедимся, что ID возвращается для аватарки
-    });
+    };
+
+    console.log('Возвращаемые данные профиля:', profileData);
+
+    res.status(200).json(profileData);
   } catch (error) {
     console.error('Ошибка профиля Twitch:', error);
     if (error.response && error.response.status === 401) {
