@@ -16,7 +16,7 @@ export default function handler(req, res) {
   const redirectUri = process.env.TWITCH_REDIRECT_URI;
 
   // Создаем случайный state для безопасности
-  const state = Math.random().toString(36).substring(2);
+  const state = Math.random().toString(36).substring(2, 15); // Укороченный state для совместимости
 
   // Сохраняем state в cookies с явной проверкой
   const setStateResult = setCookie('twitch_state', state, {
@@ -32,6 +32,7 @@ export default function handler(req, res) {
   const scopes = 'user:read:email user:read:follows';
 
   console.log('Redirect URI:', redirectUri);
+  console.log('State value:', state);
 
   // Формируем URL для авторизации
   const twitchAuthUrl = `https://id.twitch.tv/oauth2/authorize?client_id=${
