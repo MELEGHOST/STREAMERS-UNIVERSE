@@ -62,7 +62,12 @@ export async function GET(request) {
     });
 
     const followersCount = followsResponse.data.total || 0;
+    
+    // ИСПРАВЛЕНИЕ: Пользователь считается стримером, если у него 150+ подписчиков
+    // Было неправильно: isStreamer не обновлялся даже если followersCount >= 150
     const isStreamer = followersCount >= 150;
+    
+    console.log(`Пользователь ${twitchName} имеет ${followersCount} подписчиков, статус стримера: ${isStreamer}`);
 
     // Create response with redirect
     const response = NextResponse.redirect(new URL('/profile', request.url));
@@ -76,7 +81,7 @@ export async function GET(request) {
     const userData = {
       id: userId,
       name: twitchName,
-      isStreamer,
+      isStreamer, // Здесь используется исправленная переменная
       followersCount,
       profileImageUrl
     };
