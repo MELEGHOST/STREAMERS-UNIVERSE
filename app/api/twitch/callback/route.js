@@ -1,9 +1,10 @@
 import { NextResponse } from 'next/server';
 import axios from 'axios';
 import querystring from 'querystring';
-import { getCookie, setCookie } from 'cookies-next';
+import { getCookie, setCookie } from 'cookies-next'; // Проверка импорта
 
 export async function GET(request) {
+  console.log('cookies-next imported successfully:', typeof getCookie === 'function' && typeof setCookie === 'function');
   const { searchParams } = new URL(request.url);
   const code = searchParams.get('code');
   const state = searchParams.get('state');
@@ -63,7 +64,7 @@ export async function GET(request) {
     const cookieOptions = {
       httpOnly: true,
       secure: process.env.NODE_ENV !== 'development', // Разрешаем на dev без HTTPS
-      sameSite: 'lax', // Попробуем 'none' если не работает
+      sameSite: 'lax',
       path: '/',
       maxAge: expires_in,
     };
@@ -74,7 +75,7 @@ export async function GET(request) {
       twitch_refresh_token: response.cookies.set('twitch_refresh_token', refresh_token, cookieOptions),
       twitch_expires_at: response.cookies.set('twitch_expires_at', expiresAt, cookieOptions),
     };
-    console.log('Cookie set results:', cookieResults);
+    console.log('Cookie set results (NextResponse):', cookieResults);
 
     // Резервная проверка через setCookie (cookies-next)
     setCookie('twitch_access_token', access_token, { ...cookieOptions, req, res: response });
