@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import Cookies from 'js-cookie';
-import styles from './profile.module.css';
+import styles from './profile.module.css'; // Убедимся, что путь корректен (из pages/)
 import { useRouter } from 'next/router';
 
 interface TwitchProfile {
@@ -11,8 +11,8 @@ interface TwitchProfile {
   followers: string[];
   followingsCount: number;
   followings: string[];
-  profileImageUrl?: string;
-  id: string;
+  profileImageUrl: string; // URL аватарки
+  id: string; // Добавляем ID для аватарки
 }
 
 export default function Profile() {
@@ -31,57 +31,84 @@ export default function Profile() {
         console.log('Проверка авторизации - accessToken:', accessToken ? 'присутствует' : 'отсутствует');
         console.log('Данные пользователя из URL:', userDataParam);
 
-        if (!accessToken) {
+        if (!accessToken && !userDataParam) {
           setError('Пожалуйста, войдите через Twitch.');
           setLoading(false);
           router.push('/auth');
           return;
         }
 
-        // Очищаем параметры из URL после их получения
+        let userData: any = null;
         if (userDataParam) {
           try {
-            const userData = JSON.parse(decodeURIComponent(userDataParam));
+            userData = JSON.parse(decodeURIComponent(userDataParam));
             console.log('Разобранные данные пользователя:', userData);
-            localStorage.setItem('twitch_user', JSON.stringify(userData));
-            window.history.replaceState({}, document.title, '/profile');
+            localStorage.setItem('twitch_user', userDataParam);
+            window.history.replaceState({}, document.title, '/profile'); // Удаляем параметры из URL
           } catch (e) {
             console.error('Ошибка парсинга данных пользователя:', e);
+            setError('Ошибка парсинга данных профиля из URL');
+            setLoading(false);
+            return;
           }
         }
 
         try {
-          // Загружаем данные профиля через API
+          // Fetch profile data with credentials to include cookies
           const response = await fetch('/api/twitch/profile', {
             method: 'GET',
-            credentials: 'include',
+            credentials: 'include', // Убедимся, что cookies передаются
             headers: {
               'Content-Type': 'application/json',
+              'Authorization': `Bearer ${accessToken || ''}`, // Добавляем токен в заголовки
             },
           });
 
           console.log('Статус ответа API профиля:', response.status);
+          console.log('Полный ответ API:', await response.clone().text());
 
           if (!response.ok) {
-            const errorText = await response.text();
-            console.error('Ошибка ответа API:', errorText);
+            if (userData) {
+              // Используем данные из URL как запасной вариант
+              const profileImageUrl = `https://static-cdn.jtvnw.net/jtv_user_pictures/${userData.id}-profile_image-300x300.jpg`;
+              setProfileData({
+                twitchName: 'Загрузка данных...',
+                followersCount: 0,
+                followers: [],
+                followingsCount: 0,
+                followings: [],
+                profileImageUrl,
+                id: userData.id,
+              });
+              return;
+            }
             throw new Error(`Не удалось загрузить профиль: ${response.status}`);
           }
 
           const data = await response.json();
           console.log('Полученные данные профиля:', data);
-
-          // Формируем URL аватарки на основе ID пользователя
-          const profileImageUrl = data.id 
-            ? `https://static-cdn.jtvnw.net/jtv_user_pictures/${data.id}-profile_image-300x300.jpg` 
-            : undefined;
-
+          // Добавляем URL аватарки из Twitch API
+          const profileImageUrl = `https://static-cdn.jtvnw.net/jtv_user_pictures/${data.id}-profile_image-300x300.jpg`;
           setProfileData({
             ...data,
             profileImageUrl,
           });
         } catch (error: any) {
           console.error('Ошибка загрузки профиля:', error);
+          if (userData) {
+            // Используем данные из URL как запасной вариант
+            const profileImageUrl = `https://static-cdn.jtvnw.net/jtv_user_pictures/${userData.id}-profile_image-300x300.jpg`;
+            setProfileData({
+              twitchName: 'Загрузка данных...',
+              followersCount: 0,
+              followers: [],
+              followingsCount: 0,
+              followings: [],
+              profileImageUrl,
+              id: userData.id,
+            });
+            return;
+          }
           setError(error.message || 'Не удалось загрузить профиль');
         } finally {
           setLoading(false);
@@ -102,7 +129,6 @@ export default function Profile() {
       Cookies.remove('twitch_access_token');
       Cookies.remove('twitch_refresh_token');
       Cookies.remove('twitch_expires_at');
-      localStorage.removeItem('twitch_user');
 
       router.push('/auth');
     } catch (error) {
@@ -144,22 +170,14 @@ export default function Profile() {
     <div className={styles.profileContainer}>
       <h1>Профиль Twitch</h1>
       {profileData.profileImageUrl && (
-        <img 
-          src={profileData.profileImageUrl} 
-          alt={`${profileData.twitchName} аватарка`} 
-          className={styles.avatar}
-          onError={(e) => {
-            // Запасной вариант, если аватарка не загрузилась
-            (e.target as HTMLImageElement).src = 'https://static-cdn.jtvnw.net/user-default-pictures-uv/cdd517fe-def4-11e9-948e-784f43822e80-profile_image-300x300.png';
-          }}
-        />
+        <img src={profileData.profileImageUrl} alt={`${profileData.twitchName} аватарка`} className={styles.avatar} />
       )}
       <p>Никнейм: {profileData.twitchName}</p>
 
       <div className={styles.section}>
         <h2>Подписчики ({profileData.followersCount})</h2>
         <ul>
-          {profileData.followers && profileData.followers.length > 0 ? (
+          {profileData.followers.length > 0 ? (
             profileData.followers.map((follower, index) => (
               <li key={index}>{follower}</li>
             ))
@@ -172,7 +190,7 @@ export default function Profile() {
       <div className={styles.section}>
         <h2>На кого подписан ({profileData.followingsCount})</h2>
         <ul>
-          {profileData.followings && profileData.followings.length > 0 ? (
+          {profileData.followings.length > 0 ? (
             profileData.followings.map((following, index) => (
               <li key={index}>{following}</li>
             ))
@@ -182,6 +200,7 @@ export default function Profile() {
         </ul>
       </div>
 
+      {/* Добавляем возможность редактирования профиля */}
       <button className={styles.button} onClick={() => router.push('/edit-profile')}>
         Редактировать профиль
       </button>
