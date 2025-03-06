@@ -18,7 +18,7 @@ export default function handler(req, res) {
   // Создаем случайный state для безопасности
   const state = Math.random().toString(36).substring(2);
 
-  // Сохраняем state в cookies
+  // Сохраняем state в cookies с истечением через 10 минут
   setCookie('twitch_state', state, { httpOnly: true, secure: process.env.NODE_ENV === 'production', sameSite: 'lax', maxAge: 600, path: '/' }, { req, res });
 
   // Определяем необходимые разрешения
