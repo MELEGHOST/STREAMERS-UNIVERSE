@@ -9,6 +9,7 @@ export default function Auth() {
   const router = useRouter();
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
   const [errorMessage, setErrorMessage] = useState('');
+  const [isPressing, setIsPressing] = useState(false);
 
   useEffect(() => {
     // Проверяем, авторизован ли пользователь уже
@@ -32,18 +33,22 @@ export default function Auth() {
 
   const handleLoginPress = (e: React.MouseEvent<HTMLButtonElement> | React.TouchEvent<HTMLButtonElement>) => {
     e.preventDefault();
+    setIsPressing(true);
     timeoutRef.current = setTimeout(() => {
-      try {
-        window.location.href = '/api/twitch/login';
-      } catch (error) {
-        console.error('Ошибка в handleLoginPress:', error);
-        setErrorMessage('Не удалось перейти на страницу авторизации');
+      if (isPressing) {
+        try {
+          window.location.href = '/api/twitch/login';
+        } catch (error) {
+          console.error('Ошибка в handleLoginPress:', error);
+          setErrorMessage('Не удалось перейти на страницу авторизации');
+        }
       }
     }, 1420); // 1.42 секунды
   };
 
   const handleLoginRelease = (e: React.MouseEvent<HTMLButtonElement> | React.TouchEvent<HTMLButtonElement>) => {
     e.preventDefault();
+    setIsPressing(false);
     if (timeoutRef.current) {
       clearTimeout(timeoutRef.current);
       timeoutRef.current = null;
@@ -80,6 +85,7 @@ export default function Auth() {
           onMouseLeave={handleLoginRelease}
           onTouchStart={handleLoginPress}
           onTouchEnd={handleLoginRelease}
+          onClick={(e) => e.preventDefault()} // Блокируем простое нажатие
         >
           <span className={styles.backdrop}></span>
           <span className={styles.galaxy}></span>
