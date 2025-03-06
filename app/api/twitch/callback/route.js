@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import axios from 'axios';
 import querystring from 'querystring';
-import { getCookie } from 'cookies-next';
+import { getCookie, setCookie } from 'cookies-next';
 
 export async function GET(request) {
   const { searchParams } = new URL(request.url);
@@ -9,6 +9,7 @@ export async function GET(request) {
   const state = searchParams.get('state');
 
   if (!code || !state) {
+    console.error('Missing code or state:', { code, state });
     return NextResponse.json({ error: 'Отсутствует код или state' }, { status: 400 });
   }
 
@@ -46,13 +47,14 @@ export async function GET(request) {
     const { access_token, refresh_token, expires_in } = tokenResponse.data;
     console.log('Token response:', tokenResponse.data);
 
-    // Сохранение токенов в cookies
+    // Сохранение токенов в cookies с явной проверкой
     const expiresAt = new Date(Date.now() + expires_in * 1000).toUTCString();
     const cookieOptions = {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'lax',
       path: '/',
+      maxAge: expires_in, // Устанавливаем maxAge для соответствия expires_in
     };
 
     const response = NextResponse.redirect(new URL('/profile', request.url));
@@ -62,6 +64,12 @@ export async function GET(request) {
 
     // Удаляем state после использования
     response.cookies.set('twitch_state', '', { ...cookieOptions, maxAge: 0 });
+
+    console.log('Cookies set:', {
+      access_token: access_token.substring(0, 5) + '...',
+      refresh_token: refresh_token.substring(0, 5) + '...',
+      expires_at: expiresAt,
+    });
 
     // Получение данных пользователя
     const userResponse = await axios.get('https://api.twitch.tv/helix/users', {
@@ -111,6 +119,8 @@ export async function GET(request) {
         status: error.response.status,
         data: error.response.data,
       });
+    } else {
+      console.error('Неизвестная ошибка:', error.message);
     }
 
     const errorUrl = new URL('/auth', request.url);
