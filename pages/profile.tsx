@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import Cookies from 'js-cookie';
-import styles from './profile.module.css';
+import styles from './profile.module.css'; // Убедимся, что путь корректен (из pages/)
 import { useRouter } from 'next/router';
 
 interface TwitchProfile {
@@ -11,7 +11,8 @@ interface TwitchProfile {
   followers: string[];
   followingsCount: number;
   followings: string[];
-  profileImageUrl: string; // Добавляем URL аватарки
+  profileImageUrl: string; // URL аватарки
+  id: string; // Добавляем ID для аватарки
 }
 
 export default function Profile() {
@@ -27,8 +28,8 @@ export default function Profile() {
         const urlParams = new URLSearchParams(window.location.search);
         const userDataParam = urlParams.get('user');
 
-        console.log('Checking authentication - accessToken:', accessToken ? 'present' : 'missing');
-        console.log('URL user data:', userDataParam);
+        console.log('Проверка авторизации - accessToken:', accessToken ? 'присутствует' : 'отсутствует');
+        console.log('Данные пользователя из URL:', userDataParam);
 
         if (!accessToken) {
           setError('Пожалуйста, войдите через Twitch.');
@@ -52,13 +53,13 @@ export default function Profile() {
           // Fetch profile data with credentials to include cookies
           const response = await fetch('/api/twitch/profile', {
             method: 'GET',
-            credentials: 'include',
+            credentials: 'include', // Убедимся, что cookies передаются
             headers: {
               'Content-Type': 'application/json',
             },
           });
 
-          console.log('Profile API response status:', response.status);
+          console.log('Статус ответа API профиля:', response.status);
 
           if (!response.ok) {
             throw new Error(`Не удалось загрузить профиль: ${response.status}`);
