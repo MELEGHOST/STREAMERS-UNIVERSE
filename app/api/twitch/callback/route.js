@@ -3,12 +3,12 @@ import axios from 'axios';
 import querystring from 'querystring';
 
 export async function GET(request) {
-  console.log('Callback started:', new Date().toISOString());
+  console.log('Callback started:', new Date().toISOString(), 'URL:', request.url);
   const { searchParams } = new URL(request.url);
   const code = searchParams.get('code');
   const state = searchParams.get('state');
 
-  console.log('Received params:', { code: !!code, state: !!state });
+  console.log('Received params:', { code: !!code, state: !!state, fullUrl: request.url });
 
   if (!code || !state) {
     console.error('Missing code or state:', { code, state });
@@ -17,7 +17,7 @@ export async function GET(request) {
 
   try {
     console.log('Environment check:', {
-      TWITCH_CLIENT_ID: process.env.TWITCH_CLIENT_ID ? 'defined' : 'undefined',
+      TWITCH_CLIENT_ID: process.env.TWITCH_CLIENT_ID ? process.env.TWITCH_CLIENT_ID.substring(0, 5) + '...' : 'undefined',
       TWITCH_CLIENT_SECRET: !!process.env.TWITCH_CLIENT_SECRET,
       TWITCH_REDIRECT_URI: process.env.TWITCH_REDIRECT_URI,
     });
@@ -44,8 +44,8 @@ export async function GET(request) {
 
     console.log('Token response:', {
       status: tokenResponse.status,
-      data: tokenResponse.data,
       headers: tokenResponse.headers,
+      data: tokenResponse.data,
     });
 
     const { access_token, refresh_token, expires_in } = tokenResponse.data;
@@ -56,7 +56,7 @@ export async function GET(request) {
     const expiresAt = new Date(Date.now() + expires_in * 1000);
     const response = NextResponse.redirect(new URL('/profile', request.url));
 
-    // Минимальная установка cookies
+    // Установка cookies с минимальными настройками
     response.headers.append(
       'Set-Cookie',
       `twitch_access_token=${access_token}; HttpOnly; Path=/; Expires=${expiresAt.toUTCString()}`
@@ -76,6 +76,7 @@ export async function GET(request) {
       twitch_expires_at: expiresAt.toISOString(),
     });
 
+    // Очистка state
     response.headers.append(
       'Set-Cookie',
       `twitch_state=; HttpOnly; Path=/; Expires=Thu, 01 Jan 1970 00:00:00 GMT`
@@ -91,6 +92,11 @@ export async function GET(request) {
         status: error.response.status,
         data: error.response.data,
         headers: error.response.headers,
+      } : null,
+      request: error.request ? {
+        method: error.request.method,
+        url: error.request.path,
+        headers: error.request._header,
       } : null,
     });
 
