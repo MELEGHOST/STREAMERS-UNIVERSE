@@ -34,21 +34,11 @@ export async function GET(request) {
     const expiresAt = new Date(Date.now() + expires_in * 1000).toUTCString();
     const cookieOptions = {
       httpOnly: true,
-      secure: process.env.NODE_ENV === 'production', // Только для HTTPS в продакшене
-      sameSite: 'lax', // Убрали 'as const'
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      path: '/',  // Make sure the path is set to root
       expires: new Date(expiresAt),
     };
-
-    const response = NextResponse.redirect(new URL('/profile', request.url));
-    response.cookies.set('twitch_access_token', access_token, cookieOptions);
-    response.cookies.set('twitch_refresh_token', refresh_token, cookieOptions);
-    response.cookies.set('twitch_expires_at', expiresAt, cookieOptions);
-
-    console.log('Сохранённые токены:', {
-      access_token: access_token.substring(0, 5) + '...', // Логируем только начало для безопасности
-      refresh_token: refresh_token.substring(0, 5) + '...',
-      expires_at: expiresAt,
-    });
 
     // Получение данных пользователя
     const userResponse = await axios.get('https://api.twitch.tv/helix/users', {
@@ -61,6 +51,7 @@ export async function GET(request) {
     const user = userResponse.data.data[0];
     const userId = user.id;
     const twitchName = user.display_name;
+    const profileImageUrl = user.profile_image_url;
 
     // Проверка статуса стримера через количество фолловеров
     const followsResponse = await axios.get(`https://api.twitch.tv/helix/users/follows?to_id=${userId}`, {
@@ -71,27 +62,36 @@ export async function GET(request) {
     });
 
     const followersCount = followsResponse.data.total || 0;
-    const isStreamer = followersCount >= 150; // Исправляем порог на 150 подписчиков
+    const isStreamer = followersCount >= 150;
 
-    // Сохраняем данные в URL для профиля
+    // Create response with redirect
+    const response = NextResponse.redirect(new URL('/profile', request.url));
+    
+    // Set cookies properly
+    response.cookies.set('twitch_access_token', access_token, cookieOptions);
+    response.cookies.set('twitch_refresh_token', refresh_token, cookieOptions);
+    response.cookies.set('twitch_expires_at', expiresAt, cookieOptions);
+
+    // Добавляем данные пользователя в параметр URL
     const userData = {
       id: userId,
       name: twitchName,
       isStreamer,
-      followersCount
+      followersCount,
+      profileImageUrl
     };
 
-    // Добавляем данные пользователя в параметр URL
-    const profileUrl = new URL('/profile', request.url);
-    profileUrl.searchParams.set('user', encodeURIComponent(JSON.stringify(userData)));
+    // Add user data to URL params
+    const url = new URL('/profile', request.url);
+    url.searchParams.set('user', encodeURIComponent(JSON.stringify(userData)));
     
-    return response;
+    return NextResponse.redirect(url);
   } catch (error) {
     console.error('Ошибка авторизации:', error);
     
-    const errorResponse = NextResponse.redirect(new URL('/auth', request.url));
-    errorResponse.searchParams.set('error', 'auth_failed');
+    const errorUrl = new URL('/auth', request.url);
+    errorUrl.searchParams.set('error', 'auth_failed');
     
-    return errorResponse;
+    return NextResponse.redirect(errorUrl);
   }
 }
