@@ -7,18 +7,17 @@ export default async function handler(req, res) {
   }
 
   try {
-    // Правильная обработка cookies в API-роутах
+    // Получаем токен доступа из cookies
     const cookies = parse(req.headers.cookie || '');
     const accessToken = cookies.twitch_access_token;
 
     console.log('Profile API - accessToken:', accessToken ? 'присутствует' : 'отсутствует');
-    console.log('Полные cookies:', cookies);
 
     if (!accessToken) {
       return res.status(401).json({ error: 'Не авторизован' });
     }
 
-    // Получение данных пользователя
+    // Получаем данные пользователя
     const userResponse = await axios.get('https://api.twitch.tv/helix/users', {
       headers: {
         'Client-ID': process.env.TWITCH_CLIENT_ID,
@@ -26,16 +25,20 @@ export default async function handler(req, res) {
       },
     });
 
-    console.log('Ответ Twitch API для пользователя:', userResponse.data);
+    if (!userResponse.data.data || userResponse.data.data.length === 0) {
+      return res.status(404).json({ error: 'Пользователь не найден' });
+    }
 
     const user = userResponse.data.data[0];
     const userId = user.id;
     const twitchName = user.display_name;
+    const profileImageUrl = user.profile_image_url; // Получаем URL аватарки напрямую из API
 
-    // Получение подписчиков - добавляем поддержку пагинации для больших аккаунтов
+    // Получаем подписчиков с поддержкой пагинации
     let followers = [];
     let cursor = null;
     let hasMoreFollowers = true;
+    let totalFollowersCount = 0;
 
     while (hasMoreFollowers) {
       const url = cursor
@@ -49,8 +52,7 @@ export default async function handler(req, res) {
         },
       });
 
-      console.log('Ответ Twitch API для подписчиков:', followersResponse.data);
-
+      totalFollowersCount = followersResponse.data.total;
       followers = [...followers, ...followersResponse.data.data.map((f) => f.from_name)];
 
       if (followersResponse.data.pagination && followersResponse.data.pagination.cursor) {
@@ -59,16 +61,17 @@ export default async function handler(req, res) {
         hasMoreFollowers = false;
       }
 
-      // Ограничение до первых 100 для производительности
+      // Ограничиваем до 100 подписчиков для производительности
       if (followers.length >= 100) {
         hasMoreFollowers = false;
       }
     }
 
-    // Получение подписок - добавляем поддержку пагинации
+    // Получаем подписки пользователя с поддержкой пагинации
     let followings = [];
     cursor = null;
     let hasMoreFollowings = true;
+    let totalFollowingsCount = 0;
 
     while (hasMoreFollowings) {
       const url = cursor
@@ -82,8 +85,7 @@ export default async function handler(req, res) {
         },
       });
 
-      console.log('Ответ Twitch API для подписок:', followingsResponse.data);
-
+      totalFollowingsCount = followingsResponse.data.total;
       followings = [...followings, ...followingsResponse.data.data.map((f) => f.to_name)];
 
       if (followingsResponse.data.pagination && followingsResponse.data.pagination.cursor) {
@@ -92,29 +94,47 @@ export default async function handler(req, res) {
         hasMoreFollowings = false;
       }
 
-      // Ограничение до первых 100 для производительности
+      // Ограничиваем до 100 подписок для производительности
       if (followings.length >= 100) {
         hasMoreFollowings = false;
       }
     }
 
+    // Формируем данные профиля
     const profileData = {
       twitchName,
-      followersCount: followers.length,
+      followersCount: totalFollowersCount || followers.length,
       followers,
-      followingsCount: followings.length,
+      followingsCount: totalFollowingsCount || followings.length,
       followings,
-      id: userId, // Убедимся, что ID возвращается для аватарки
+      id: userId,
+      profileImageUrl, // Добавляем URL аватарки
     };
 
-    console.log('Возвращаемые данные профиля:', profileData);
+    console.log('Возвращаемые данные профиля:', { 
+      ...profileData, 
+      followers: profileData.followers.length > 0 ? `${profileData.followers.length} подписчиков` : 'нет',
+      followings: profileData.followings.length > 0 ? `${profileData.followings.length} подписок` : 'нет',
+    });
 
     res.status(200).json(profileData);
   } catch (error) {
     console.error('Ошибка профиля Twitch:', error);
-    if (error.response && error.response.status === 401) {
-      return res.status(401).json({ error: 'Срок действия токена авторизации истёк' });
+    
+    if (error.response) {
+      console.error('Детали ошибки API:', {
+        status: error.response.status,
+        data: error.response.data
+      });
+      
+      if (error.response.status === 401) {
+        return res.status(401).json({ error: 'Срок действия токена авторизации истёк' });
+      }
     }
-    res.status(500).json({ error: 'Ошибка сервера', message: error.message });
+    
+    res.status(500).json({ 
+      error: 'Ошибка сервера', 
+      message: error.message || 'Неизвестная ошибка при получении данных профиля'
+    });
   }
 }
