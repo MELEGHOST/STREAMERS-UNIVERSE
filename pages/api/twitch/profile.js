@@ -97,7 +97,7 @@ export default async function handler(req, res) {
       followers,
       followingsCount: followings.length,
       followings,
-      id: userId, // Добавляем ID для загрузки аватарки
+      id: userId, // Убедимся, что ID возвращается для аватарки
     });
   } catch (error) {
     console.error('Ошибка профиля Twitch:', error);
