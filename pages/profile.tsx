@@ -13,7 +13,7 @@ interface TwitchProfile {
   followings: string[];
   profileImageUrl: string;
   id: string;
-  isStreamer?: boolean; // Добавлен новый параметр
+  isStreamer?: boolean;
 }
 
 export default function Profile() {
@@ -39,12 +39,11 @@ export default function Profile() {
             userData = JSON.parse(decodeURIComponent(userDataParam));
             console.log('Разобранные данные пользователя:', userData);
             
-            // Убедимся, что статус стримера правильно сохранен
-            // Проверяем, что если followersCount >= 150, то isStreamer должен быть true
-            if (userData.followersCount >= 150 && userData.isStreamer === false) {
-              userData.isStreamer = true;
-              console.log('Корректировка статуса стримера: установлен в true, т.к. количество подписчиков >=150');
-            }
+            // Всегда проверяем статус стримера на основе количества подписчиков
+            // и устанавливаем правильное значение
+            const isStreamer = userData.followersCount >= 150;
+            userData.isStreamer = isStreamer;
+            console.log(`Проверка статуса стримера: ${userData.followersCount} подписчиков, статус: ${isStreamer}`);
             
             localStorage.setItem('twitch_user', JSON.stringify(userData));
             
@@ -66,7 +65,7 @@ export default function Profile() {
                 followings: [],
                 profileImageUrl,
                 id: userData.id,
-                isStreamer: userData.isStreamer
+                isStreamer: isStreamer // Используем корректно рассчитанное значение
               });
               setLoading(false);
               return;
@@ -107,7 +106,7 @@ export default function Profile() {
               setProfileData({
                 ...data,
                 profileImageUrl,
-                isStreamer, // Добавляем правильное значение статуса стримера
+                isStreamer, // Всегда устанавливаем на основе количества подписчиков
               });
               
               // Обновляем локальное хранилище с правильным статусом стримера
@@ -133,7 +132,7 @@ export default function Profile() {
                   followings: [],
                   profileImageUrl,
                   id: userData.id,
-                  isStreamer, // Добавляем правильное значение статуса стримера
+                  isStreamer, // Всегда устанавливаем на основе количества подписчиков
                 });
                 
                 // Обновляем локальное хранилище с правильным статусом стримера
@@ -163,7 +162,7 @@ export default function Profile() {
                 followings: [],
                 profileImageUrl,
                 id: userData.id,
-                isStreamer, // Добавляем правильное значение статуса стримера
+                isStreamer, // Всегда устанавливаем на основе количества подписчиков
               });
               
               // Обновляем локальное хранилище с правильным статусом стримера
