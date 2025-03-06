@@ -3,21 +3,21 @@ import { parse } from 'cookie';
 
 export default async function handler(req, res) {
   if (req.method !== 'GET') {
-    return res.status(405).json({ error: 'Method not allowed' });
+    return res.status(405).json({ error: 'Метод не разрешен' });
   }
 
   try {
-    // Proper cookie parsing in API routes
+    // Правильная обработка cookies в API-роутах
     const cookies = parse(req.headers.cookie || '');
     const accessToken = cookies.twitch_access_token;
 
-    console.log('Profile API - accessToken:', accessToken ? 'present' : 'missing');
+    console.log('Profile API - accessToken:', accessToken ? 'присутствует' : 'отсутствует');
 
     if (!accessToken) {
-      return res.status(401).json({ error: 'Not authenticated' });
+      return res.status(401).json({ error: 'Не авторизован' });
     }
 
-    // Get user data
+    // Получение данных пользователя
     const userResponse = await axios.get('https://api.twitch.tv/helix/users', {
       headers: {
         'Client-ID': process.env.TWITCH_CLIENT_ID,
@@ -29,7 +29,7 @@ export default async function handler(req, res) {
     const userId = user.id;
     const twitchName = user.display_name;
 
-    // Get followers - adding pagination support for large accounts
+    // Получение подписчиков - добавляем поддержку пагинации для больших аккаунтов
     let followers = [];
     let cursor = null;
     let hasMoreFollowers = true;
@@ -54,13 +54,13 @@ export default async function handler(req, res) {
         hasMoreFollowers = false;
       }
 
-      // Limit to first 100 for performance
+      // Ограничение до первых 100 для производительности
       if (followers.length >= 100) {
         hasMoreFollowers = false;
       }
     }
 
-    // Get following - adding pagination support
+    // Получение подписок - добавляем поддержку пагинации
     let followings = [];
     cursor = null;
     let hasMoreFollowings = true;
@@ -85,7 +85,7 @@ export default async function handler(req, res) {
         hasMoreFollowings = false;
       }
 
-      // Limit to first 100 for performance
+      // Ограничение до первых 100 для производительности
       if (followings.length >= 100) {
         hasMoreFollowings = false;
       }
@@ -97,12 +97,13 @@ export default async function handler(req, res) {
       followers,
       followingsCount: followings.length,
       followings,
+      id: userId, // Добавляем ID для загрузки аватарки
     });
   } catch (error) {
-    console.error('Twitch profile error:', error);
+    console.error('Ошибка профиля Twitch:', error);
     if (error.response && error.response.status === 401) {
-      return res.status(401).json({ error: 'Authentication token expired' });
+      return res.status(401).json({ error: 'Срок действия токена авторизации истёк' });
     }
-    res.status(500).json({ error: 'Server error', message: error.message });
+    res.status(500).json({ error: 'Ошибка сервера', message: error.message });
   }
 }
