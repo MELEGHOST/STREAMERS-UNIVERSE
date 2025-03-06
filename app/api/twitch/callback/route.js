@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import axios from 'axios';
+import querystring from 'querystring';
 
 export async function GET(request) {
   const { searchParams } = new URL(request.url);
@@ -11,16 +12,19 @@ export async function GET(request) {
   }
 
   try {
-    // Обмен кода на токен
+    // Обмен кода на токен с правильным форматированием данных
+    const tokenParams = querystring.stringify({
+      client_id: process.env.TWITCH_CLIENT_ID,
+      client_secret: process.env.TWITCH_CLIENT_SECRET,
+      code: code,
+      grant_type: 'authorization_code',
+      redirect_uri: process.env.TWITCH_REDIRECT_URI,
+    });
+
+    // Исправленный запрос токена с корректными заголовками
     const tokenResponse = await axios.post(
       'https://id.twitch.tv/oauth2/token',
-      {
-        client_id: process.env.TWITCH_CLIENT_ID,
-        client_secret: process.env.TWITCH_CLIENT_SECRET,
-        code: code,
-        grant_type: 'authorization_code',
-        redirect_uri: process.env.TWITCH_REDIRECT_URI,
-      },
+      tokenParams,
       {
         headers: {
           'Content-Type': 'application/x-www-form-urlencoded',
@@ -30,14 +34,16 @@ export async function GET(request) {
 
     const { access_token, refresh_token, expires_in } = tokenResponse.data;
 
+    // Логирование для отладки (можно удалить в продакшне)
+    console.log('Получен токен доступа:', access_token ? 'успешно' : 'ошибка');
+
     // Сохранение токенов в cookies с правильными настройками
     const expiresAt = new Date(Date.now() + expires_in * 1000).toUTCString();
     const cookieOptions = {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'lax',
-      path: '/',  // Make sure the path is set to root
-      expires: new Date(expiresAt),
+      path: '/',
     };
 
     // Получение данных пользователя
@@ -68,10 +74,13 @@ export async function GET(request) {
     
     console.log(`Пользователь ${twitchName} имеет ${followersCount} подписчиков, статус стримера: ${isStreamer}`);
 
-    // Create response with redirect
-    const response = NextResponse.redirect(new URL('/profile', request.url));
+    // Создаем URL для редиректа
+    const url = new URL('/profile', request.url);
     
-    // Set cookies properly
+    // Создаем ответ с редиректом
+    const response = NextResponse.redirect(url);
+    
+    // Устанавливаем куки с максимальным сроком действия
     response.cookies.set('twitch_access_token', access_token, cookieOptions);
     response.cookies.set('twitch_refresh_token', refresh_token, cookieOptions);
     response.cookies.set('twitch_expires_at', expiresAt, cookieOptions);
@@ -80,21 +89,30 @@ export async function GET(request) {
     const userData = {
       id: userId,
       name: twitchName,
-      isStreamer: isStreamer, // Убедимся, что передаем правильное значение
+      isStreamer: isStreamer,
       followersCount,
       profileImageUrl
     };
 
-    // Add user data to URL params
-    const url = new URL('/profile', request.url);
+    // Добавляем параметры пользователя в URL
     url.searchParams.set('user', encodeURIComponent(JSON.stringify(userData)));
     
-    return NextResponse.redirect(url);
+    return response;
   } catch (error) {
     console.error('Ошибка авторизации:', error);
     
+    // Более подробное логирование ошибки для отладки
+    if (error.response) {
+      console.error('Детали ошибки:', {
+        status: error.response.status,
+        data: error.response.data
+      });
+    }
+    
+    // Создаем URL с ошибкой и более информативным сообщением
     const errorUrl = new URL('/auth', request.url);
     errorUrl.searchParams.set('error', 'auth_failed');
+    errorUrl.searchParams.set('message', encodeURIComponent(error.message || 'Ошибка при обработке авторизации'));
     
     return NextResponse.redirect(errorUrl);
   }
