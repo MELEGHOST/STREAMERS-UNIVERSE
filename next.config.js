@@ -22,6 +22,15 @@ const nextConfig = {
   experimental: {
     pagesDir: true,
   },
+  // Добавляем настройки для куков
+  serverRuntimeConfig: {
+    cookieOptions: {
+      secure: false,
+      httpOnly: true,
+      sameSite: 'lax',
+      path: '/',
+    },
+  },
 };
 
 export default nextConfig;

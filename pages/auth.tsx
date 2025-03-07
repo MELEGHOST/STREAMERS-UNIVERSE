@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/router';
 import Cookies from 'js-cookie';
+import { getCookie, hasCookie } from '../utils/cookies';
 import styles from './auth.module.css';
 
 export default function Auth() {
@@ -14,7 +15,7 @@ export default function Auth() {
 
   useEffect(() => {
     // Проверяем, авторизован ли пользователь уже
-    const accessToken = Cookies.get('twitch_access_token');
+    const accessToken = getCookie('twitch_access_token');
     if (accessToken) {
       console.log('Обнаружен токен доступа, перенаправление на /profile');
       router.push('/profile');

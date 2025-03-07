@@ -89,10 +89,16 @@ export async function GET(request) {
     // Создаем redirect с установкой cookies
     const response = NextResponse.redirect(`${url.origin}/profile`);
     
+    // Добавляем заголовки для разрешения куков
+    response.headers.set('Access-Control-Allow-Credentials', 'true');
+    response.headers.set('Access-Control-Allow-Origin', url.origin);
+    response.headers.set('Access-Control-Allow-Methods', 'GET,OPTIONS,PATCH,DELETE,POST,PUT');
+    response.headers.set('Access-Control-Allow-Headers', 'X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version');
+    
     // Устанавливаем cookies с токенами
     response.cookies.set('twitch_access_token', tokenData.access_token, {
       httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
+      secure: false,
       sameSite: 'lax',
       maxAge: tokenData.expires_in,
       path: '/',
@@ -100,7 +106,7 @@ export async function GET(request) {
     
     response.cookies.set('twitch_refresh_token', tokenData.refresh_token, {
       httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
+      secure: false,
       sameSite: 'lax',
       // Без maxAge, чтобы cookie была сессионной
       path: '/',
@@ -114,7 +120,7 @@ export async function GET(request) {
       profile_image_url: user.profile_image_url,
     }), {
       httpOnly: false, // Доступно для JS на клиенте
-      secure: process.env.NODE_ENV === 'production',
+      secure: false,
       sameSite: 'lax',
       maxAge: tokenData.expires_in,
       path: '/',

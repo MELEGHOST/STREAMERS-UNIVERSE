@@ -49,10 +49,16 @@ export async function GET(request) {
   // Создаем ответ с редиректом
   const response = NextResponse.redirect(twitchAuthUrl);
 
+  // Добавляем заголовки для разрешения куков
+  response.headers.set('Access-Control-Allow-Credentials', 'true');
+  response.headers.set('Access-Control-Allow-Origin', '*');
+  response.headers.set('Access-Control-Allow-Methods', 'GET,OPTIONS,PATCH,DELETE,POST,PUT');
+  response.headers.set('Access-Control-Allow-Headers', 'X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version');
+
   // Устанавливаем state в cookie для последующей проверки
   response.cookies.set('twitch_state', state, {
     httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
+    secure: false,
     sameSite: 'lax',
     maxAge: 600, // 10 минут
     path: '/'

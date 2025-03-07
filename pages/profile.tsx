@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import Cookies from 'js-cookie';
+import { getCookie, setCookie } from '../utils/cookies';
 import styles from './profile.module.css';
 import { useRouter } from 'next/router';
 
@@ -25,7 +26,7 @@ export default function Profile() {
   useEffect(() => {
     const checkAuthAndLoadProfile = async () => {
       if (typeof window !== 'undefined') {
-        const accessToken = Cookies.get('twitch_access_token');
+        const accessToken = getCookie('twitch_access_token');
         const urlParams = new URLSearchParams(window.location.search);
         const userDataParam = urlParams.get('user');
 
@@ -46,6 +47,7 @@ export default function Profile() {
             console.log(`Проверка статуса стримера: ${userData.followersCount} подписчиков, статус: ${isStreamer}`);
             
             localStorage.setItem('twitch_user', JSON.stringify(userData));
+            setCookie('twitch_user', JSON.stringify(userData));
             
             // Remove parameters from URL
             window.history.replaceState({}, document.title, '/profile');
