@@ -1,23 +1,21 @@
-import { NextResponse } from 'next/server';
+import { serialize } from 'cookie';
 
-export async function GET(request) {
+export default async function handler(req, res) {
+  if (req.method !== 'GET') {
+    return res.status(405).json({ error: 'Method not allowed' });
+  }
+
   console.log('Login request started:', new Date().toISOString());
 
   // Проверяем конфигурацию
   if (!process.env.TWITCH_CLIENT_ID) {
     console.error('Отсутствует TWITCH_CLIENT_ID в переменных окружения');
-    return NextResponse.json(
-      { error: 'Отсутствует переменная окружения TWITCH_CLIENT_ID' }, 
-      { status: 500 }
-    );
+    return res.status(500).json({ error: 'Отсутствует переменная окружения TWITCH_CLIENT_ID' });
   }
 
   if (!process.env.TWITCH_REDIRECT_URI) {
     console.error('Отсутствует TWITCH_REDIRECT_URI в переменных окружения');
-    return NextResponse.json(
-      { error: 'Отсутствует переменная окружения TWITCH_REDIRECT_URI' }, 
-      { status: 500 }
-    );
+    return res.status(500).json({ error: 'Отсутствует переменная окружения TWITCH_REDIRECT_URI' });
   }
 
   // Используем правильный URI без .js в конце
@@ -45,19 +43,17 @@ export async function GET(request) {
 
   console.log('Auth URL (without state):', twitchAuthUrl.replace(state, '[REDACTED]'));
 
-  // Создаем ответ с редиректом
-  const response = NextResponse.redirect(twitchAuthUrl);
-
   // Устанавливаем state в cookie для последующей проверки
-  response.cookies.set('twitch_state', state, {
+  res.setHeader('Set-Cookie', serialize('twitch_state', state, {
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production',
     sameSite: 'lax',
     maxAge: 600, // 10 минут
     path: '/'
-  });
+  }));
 
   console.log('State cookie set successfully');
   
-  return response;
+  // Перенаправляем на Twitch для авторизации
+  res.redirect(twitchAuthUrl);
 }
