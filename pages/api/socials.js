@@ -1,4 +1,4 @@
-import { Pool } from '@vercel/postgres';
+import { createPool } from '@vercel/postgres';
 import { parse } from 'cookie';
 
 export default async function handler(req, res) {
@@ -33,11 +33,20 @@ export default async function handler(req, res) {
     const userData = await userResponse.json();
     const userId = userData.data[0].id;
 
-    const pool = new Pool({ connectionString: process.env.POSTGRES_URL });
+    const pool = createPool({ connectionString: process.env.POSTGRES_URL });
     
     if (req.method === 'GET') {
       const result = await pool.query('SELECT social_links FROM user_socials WHERE user_id = $1', [userId]);
-      const socialLinks = result.rows[0]?.social_links || {};
+      const socialLinks = result.rows[0]?.social_links || {
+        description: '',
+        twitch: '',
+        youtube: '',
+        discord: '',
+        telegram: '',
+        vk: '',
+        yandexMusic: '',
+        isMusician: false
+      };
       res.status(200).json(socialLinks);
     } else if (req.method === 'POST') {
       const { socialLinks } = req.body;

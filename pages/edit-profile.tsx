@@ -7,10 +7,14 @@ import { useRouter } from 'next/router';
 
 export default function EditProfile() {
   const [socialLinks, setSocialLinks] = useState({
-    twitter: '',
+    description: '',
+    twitch: '',
     youtube: '',
     discord: '',
-    description: '',
+    telegram: '',
+    vk: '',
+    yandexMusic: '',
+    isMusician: false
   });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -128,45 +132,125 @@ export default function EditProfile() {
 
   return (
     <div className={styles.profileContainer}>
-      <h1>Edit Profile</h1>
+      <h1>Редактирование профиля</h1>
       <form onSubmit={handleSubmit} className={styles.editForm}>
-        <textarea
-          name="description"
-          value={socialLinks.description}
-          onChange={handleChange}
-          placeholder="Description"
-          className={styles.textarea}
-        />
-        <input
-          type="text"
-          name="twitter"
-          value={socialLinks.twitter}
-          onChange={handleChange}
-          placeholder="Twitter URL"
-          className={styles.input}
-        />
-        <input
-          type="text"
-          name="youtube"
-          value={socialLinks.youtube}
-          onChange={handleChange}
-          placeholder="YouTube URL"
-          className={styles.input}
-        />
-        <input
-          type="text"
-          name="discord"
-          value={socialLinks.discord}
-          onChange={handleChange}
-          placeholder="Discord Username"
-          className={styles.input}
-        />
-        <button type="submit" className={styles.button}>
-          Save Changes
-        </button>
-        <button type="button" className={styles.button} onClick={() => router.push('/profile')}>
-          Back to Profile
-        </button>
+        <div className={styles.formSection}>
+          <h2>Описание профиля</h2>
+          <textarea
+            name="description"
+            value={socialLinks.description}
+            onChange={handleChange}
+            placeholder="Расскажите о себе"
+            className={styles.textarea}
+          />
+        </div>
+
+        <div className={styles.formSection}>
+          <h2>Социальные сети</h2>
+          
+          <div className={styles.inputGroup}>
+            <label htmlFor="twitch">Twitch</label>
+            <input
+              type="text"
+              id="twitch"
+              name="twitch"
+              value={socialLinks.twitch}
+              onChange={handleChange}
+              placeholder="https://twitch.tv/ваш_канал"
+              className={styles.input}
+            />
+          </div>
+          
+          <div className={styles.inputGroup}>
+            <label htmlFor="youtube">YouTube</label>
+            <input
+              type="text"
+              id="youtube"
+              name="youtube"
+              value={socialLinks.youtube}
+              onChange={handleChange}
+              placeholder="https://youtube.com/c/ваш_канал"
+              className={styles.input}
+            />
+          </div>
+          
+          <div className={styles.inputGroup}>
+            <label htmlFor="discord">Discord сервер</label>
+            <input
+              type="text"
+              id="discord"
+              name="discord"
+              value={socialLinks.discord}
+              onChange={handleChange}
+              placeholder="https://discord.gg/ваш_сервер"
+              className={styles.input}
+            />
+          </div>
+          
+          <div className={styles.inputGroup}>
+            <label htmlFor="telegram">Telegram канал</label>
+            <input
+              type="text"
+              id="telegram"
+              name="telegram"
+              value={socialLinks.telegram}
+              onChange={handleChange}
+              placeholder="https://t.me/ваш_канал"
+              className={styles.input}
+            />
+          </div>
+          
+          <div className={styles.inputGroup}>
+            <label htmlFor="vk">Группа ВКонтакте</label>
+            <input
+              type="text"
+              id="vk"
+              name="vk"
+              value={socialLinks.vk}
+              onChange={handleChange}
+              placeholder="https://vk.com/ваша_группа"
+              className={styles.input}
+            />
+          </div>
+          
+          <div className={styles.inputGroup}>
+            <div className={styles.checkboxGroup}>
+              <input
+                type="checkbox"
+                id="isMusician"
+                name="isMusician"
+                checked={socialLinks.isMusician}
+                onChange={(e) => setSocialLinks(prev => ({ ...prev, isMusician: e.target.checked }))}
+                className={styles.checkbox}
+              />
+              <label htmlFor="isMusician">Я музыкант</label>
+            </div>
+          </div>
+          
+          {socialLinks.isMusician && (
+            <div className={styles.inputGroup}>
+              <label htmlFor="yandexMusic">Яндекс Музыка (карточка музыканта)</label>
+              <input
+                type="text"
+                id="yandexMusic"
+                name="yandexMusic"
+                value={socialLinks.yandexMusic}
+                onChange={handleChange}
+                placeholder="https://music.yandex.ru/artist/ваш_id"
+                className={styles.input}
+              />
+            </div>
+          )}
+        </div>
+        
+        <div className={styles.buttonGroup}>
+          <button type="submit" className={styles.button}>
+            Сохранить изменения
+          </button>
+          <button type="button" className={styles.button} onClick={() => router.push('/profile')}>
+            Вернуться к профилю
+          </button>
+        </div>
       </form>
     </div>
   );

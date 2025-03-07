@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
-import { Pool } from '@vercel/postgres';
+import { createPool } from '@vercel/postgres';
 
 // API-эндпоинт с путем /api/user-socials
 export async function GET(request) {
@@ -32,13 +32,17 @@ export async function GET(request) {
     const userId = userData.data[0].id;
 
     // Получаем социальные ссылки из базы данных
-    const pool = new Pool({ connectionString: process.env.POSTGRES_URL });
+    const pool = createPool({ connectionString: process.env.POSTGRES_URL });
     const result = await pool.query('SELECT social_links FROM user_socials WHERE user_id = $1', [userId]);
     const socialLinks = result.rows[0]?.social_links || {
-      twitter: '',
+      description: '',
+      twitch: '',
       youtube: '',
       discord: '',
-      description: '',
+      telegram: '',
+      vk: '',
+      yandexMusic: '',
+      isMusician: false
     };
     
     return NextResponse.json(socialLinks);
@@ -80,7 +84,7 @@ export async function POST(request) {
     const { socialLinks } = await request.json();
 
     // Сохраняем социальные ссылки в базу данных
-    const pool = new Pool({ connectionString: process.env.POSTGRES_URL });
+    const pool = createPool({ connectionString: process.env.POSTGRES_URL });
     await pool.query(
       'INSERT INTO user_socials (user_id, social_links) VALUES ($1, $2) ON CONFLICT (user_id) DO UPDATE SET social_links = $2',
       [userId, socialLinks]

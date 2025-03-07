@@ -129,31 +129,153 @@
 .editForm {
   display: flex;
   flex-direction: column;
-  gap: 15px;
-  max-width: 500px;
+  gap: 20px;
   width: 100%;
-  padding: 20px;
-  background: rgba(255, 255, 255, 0.05);
+  max-width: 600px;
+  margin: 0 auto;
+}
+
+.formSection {
+  background-color: rgba(0, 0, 0, 0.2);
   border-radius: 10px;
-  backdrop-filter: blur(5px);
+  padding: 20px;
+  margin-bottom: 20px;
+}
+
+.formSection h2 {
+  margin-top: 0;
+  margin-bottom: 15px;
+  color: #9146FF;
+  font-size: 1.2rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  padding-bottom: 10px;
+}
+
+.inputGroup {
+  margin-bottom: 15px;
+}
+
+.inputGroup label {
+  display: block;
+  margin-bottom: 5px;
+  font-weight: 500;
+  color: #ccc;
+}
+
+.checkboxGroup {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.checkbox {
+  width: 18px;
+  height: 18px;
+  accent-color: #9146FF;
+}
+
+.buttonGroup {
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+  margin-top: 20px;
 }
 
 .textarea {
   width: 100%;
-  min-height: 100px;
+  min-height: 120px;
   padding: 10px;
-  border: 1px solid rgba(255, 255, 255, 0.2);
   border-radius: 5px;
-  background: rgba(0, 0, 0, 0.5);
+  border: 1px solid #333;
+  background-color: #1F1F23;
   color: white;
+  font-family: inherit;
   resize: vertical;
+}
+
+.textarea:focus {
+  outline: none;
+  border-color: #9146FF;
 }
 
 .input {
   width: 100%;
   padding: 10px;
-  border: 1px solid rgba(255, 255, 255, 0.2);
   border-radius: 5px;
-  background: rgba(0, 0, 0, 0.5);
+  border: 1px solid #333;
+  background-color: #1F1F23;
   color: white;
+}
+
+.input:focus {
+  outline: none;
+  border-color: #9146FF;
+}
+
+.profileHeader {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-bottom: 30px;
+  padding: 20px;
+  background-color: rgba(0, 0, 0, 0.2);
+  border-radius: 10px;
+  text-align: center;
+}
+
+@media (min-width: 768px) {
+  .profileHeader {
+    flex-direction: row;
+    text-align: left;
+  }
+}
+
+.profileInfo {
+  flex: 1;
+  margin-left: 0;
+  margin-top: 20px;
+}
+
+@media (min-width: 768px) {
+  .profileInfo {
+    margin-left: 30px;
+    margin-top: 0;
+  }
+}
+
+.description {
+  margin: 15px 0;
+  padding: 15px;
+  background-color: rgba(0, 0, 0, 0.3);
+  border-radius: 8px;
+  border-left: 3px solid #9146FF;
+}
+
+.socialLinks {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 15px;
+}
+
+.socialLink {
+  display: flex;
+  align-items: center;
+  padding: 8px 15px;
+  background-color: rgba(145, 70, 255, 0.1);
+  border: 1px solid rgba(145, 70, 255, 0.3);
+  border-radius: 20px;
+  color: white;
+  text-decoration: none;
+  transition: all 0.3s ease;
+}
+
+.socialLink:hover {
+  background-color: rgba(145, 70, 255, 0.3);
+  transform: translateY(-2px);
+}
+
+.socialIcon {
+  margin-right: 8px;
+  font-size: 1.2rem;
 }

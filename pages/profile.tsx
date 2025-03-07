@@ -23,6 +23,16 @@ export default function Profile() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
+  const [socialLinks, setSocialLinks] = useState({
+    description: '',
+    twitch: '',
+    youtube: '',
+    discord: '',
+    telegram: '',
+    vk: '',
+    yandexMusic: '',
+    isMusician: false
+  });
 
   // Функция для загрузки данных пользователя
   const loadUserData = async () => {
@@ -231,6 +241,41 @@ export default function Profile() {
     }
   };
 
+  // Функция для загрузки социальных ссылок
+  const loadSocialLinks = async () => {
+    try {
+      // Сначала пробуем новый API-эндпоинт в директории app
+      let response = await fetch('/api/user-socials', {
+        method: 'GET',
+        credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      // Если новый API-эндпоинт недоступен, пробуем старый в директории pages
+      if (!response.ok && response.status === 404) {
+        console.log('Новый API-эндпоинт недоступен, пробуем старый');
+        response = await fetch('/api/socials', {
+          method: 'GET',
+          credentials: 'include',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        });
+      }
+
+      if (!response.ok) {
+        throw new Error(`Failed to fetch social links: ${response.status}`);
+      }
+
+      const data = await response.json();
+      setSocialLinks(data);
+    } catch (error) {
+      console.error('Error fetching social links:', error);
+    }
+  };
+
   useEffect(() => {
     // Проверяем наличие параметра smooth в URL
     const urlParams = new URLSearchParams(window.location.search);
@@ -290,6 +335,12 @@ export default function Profile() {
     loadUserData();
   }, [router]);
 
+  useEffect(() => {
+    if (profileData) {
+      loadSocialLinks();
+    }
+  }, [profileData]);
+
   const handleLogout = async () => {
     try {
       await fetch('/api/twitch/logout', {
@@ -307,6 +358,71 @@ export default function Profile() {
     } catch (error) {
       console.error('Ошибка выхода:', error);
     }
+  };
+
+  // Функция для отображения социальных ссылок
+  const renderSocialLinks = () => {
+    const links = [];
+    
+    if (socialLinks.twitch) {
+      links.push(
+        <a href={socialLinks.twitch} target="_blank" rel="noopener noreferrer" className={styles.socialLink} key="twitch">
+          <div className={styles.socialIcon}>🎮</div>
+          <span>Twitch</span>
+        </a>
+      );
+    }
+    
+    if (socialLinks.youtube) {
+      links.push(
+        <a href={socialLinks.youtube} target="_blank" rel="noopener noreferrer" className={styles.socialLink} key="youtube">
+          <div className={styles.socialIcon}>📺</div>
+          <span>YouTube</span>
+        </a>
+      );
+    }
+    
+    if (socialLinks.discord) {
+      links.push(
+        <a href={socialLinks.discord} target="_blank" rel="noopener noreferrer" className={styles.socialLink} key="discord">
+          <div className={styles.socialIcon}>💬</div>
+          <span>Discord</span>
+        </a>
+      );
+    }
+    
+    if (socialLinks.telegram) {
+      links.push(
+        <a href={socialLinks.telegram} target="_blank" rel="noopener noreferrer" className={styles.socialLink} key="telegram">
+          <div className={styles.socialIcon}>📱</div>
+          <span>Telegram</span>
+        </a>
+      );
+    }
+    
+    if (socialLinks.vk) {
+      links.push(
+        <a href={socialLinks.vk} target="_blank" rel="noopener noreferrer" className={styles.socialLink} key="vk">
+          <div className={styles.socialIcon}>👥</div>
+          <span>ВКонтакте</span>
+        </a>
+      );
+    }
+    
+    if (socialLinks.isMusician && socialLinks.yandexMusic) {
+      links.push(
+        <a href={socialLinks.yandexMusic} target="_blank" rel="noopener noreferrer" className={styles.socialLink} key="yandexMusic">
+          <div className={styles.socialIcon}>🎵</div>
+          <span>Яндекс Музыка</span>
+        </a>
+      );
+    }
+    
+    return links.length > 0 ? (
+      <div className={styles.socialLinks}>
+        {links}
+      </div>
+    ) : null;
   };
 
   if (loading) {
@@ -362,12 +478,26 @@ export default function Profile() {
   return (
     <div className={styles.profileContainer}>
       <CookieChecker />
-      <h1>Профиль Twitch</h1>
-      {profileData.profileImageUrl && (
-        <img src={profileData.profileImageUrl} alt={`${profileData.twitchName} аватарка`} className={styles.avatar} />
-      )}
-      <p>Никнейм: {profileData.twitchName}</p>
-      <p>Статус: {profileData.isStreamer ? 'Стример' : 'Зритель'} (Подписчиков: {profileData.followersCount})</p>
+      <div className={styles.profileHeader}>
+        <img 
+          src={profileData.profileImageUrl} 
+          alt={`${profileData.twitchName} avatar`} 
+          className={styles.avatar}
+          onError={(e) => {
+            e.currentTarget.src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="200" height="200" viewBox="0 0 200 200"%3E%3Crect width="200" height="200" fill="%237B41C9"%3E%3C/rect%3E%3Ctext x="100" y="100" font-family="Arial" font-size="24" text-anchor="middle" fill="white"%3ENo Image%3C/text%3E%3C/svg%3E';
+          }}
+        />
+        <div className={styles.profileInfo}>
+          <h1>{profileData.twitchName}</h1>
+          <p>Статус: {profileData.isStreamer ? 'Стример' : 'Зритель'} (Подписчиков: {profileData.followersCount})</p>
+          {socialLinks.description && (
+            <div className={styles.description}>
+              <p>{socialLinks.description}</p>
+            </div>
+          )}
+          {renderSocialLinks()}
+        </div>
+      </div>
 
       <div className={styles.section}>
         <h2>Подписчики ({profileData.followersCount})</h2>
