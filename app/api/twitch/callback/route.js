@@ -136,6 +136,7 @@ export async function GET(request) {
     response.cookies.delete('twitch_state');
     
     console.log('Callback успешно завершен, перенаправление на /profile с данными пользователя');
+    console.log('Redirect URL:', redirectUrl.toString());
     return NextResponse.redirect(redirectUrl.toString());
     
   } catch (error) {

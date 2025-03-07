@@ -22,7 +22,7 @@ export async function GET(request) {
   }
 
   // Используем правильный URI без .js в конце
-  const redirectUri = process.env.TWITCH_REDIRECT_URI.replace(/\.js$/, '');
+  const redirectUri = process.env.TWITCH_REDIRECT_URI.replace(/\.js$/, '').replace(/\/route$/, '');
 
   // Создаем случайный state для CSRF-защиты - более надежный
   const state = Array.from(crypto.getRandomValues(new Uint8Array(24)))
