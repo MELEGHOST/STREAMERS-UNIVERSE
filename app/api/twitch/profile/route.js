@@ -1,33 +1,18 @@
+import { NextResponse } from 'next/server';
+import { cookies } from 'next/headers';
 import axios from 'axios';
-import { parse } from 'cookie';
 
-export default async function handler(req, res) {
-  if (req.method !== 'GET') {
-    return res.status(405).json({ error: 'Метод не разрешен' });
-  }
-
-  // Добавляем CORS-заголовки
-  res.setHeader('Access-Control-Allow-Credentials', 'true');
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS,PATCH,DELETE,POST,PUT');
-  res.setHeader('Access-Control-Allow-Headers', 'X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version, Authorization');
-
-  // Для OPTIONS запросов сразу возвращаем ответ с заголовками CORS
-  if (req.method === 'OPTIONS') {
-    return res.status(200).end();
-  }
-
+export async function GET(request) {
   try {
     // Получаем токен доступа из cookies
-    const cookies = parse(req.headers.cookie || '');
-    let accessToken = cookies.twitch_access_token;
+    const cookieStore = cookies();
+    let accessToken = cookieStore.get('twitch_access_token')?.value;
 
     console.log('Profile API - accessToken из cookies:', accessToken ? 'присутствует' : 'отсутствует');
-    console.log('Profile API - все куки:', req.headers.cookie);
     
     // Если токен не найден в cookies, проверяем заголовок Authorization
-    if (!accessToken && req.headers.authorization) {
-      const authHeader = req.headers.authorization;
+    const authHeader = request.headers.get('authorization');
+    if (!accessToken && authHeader) {
       if (authHeader.startsWith('Bearer ')) {
         accessToken = authHeader.substring(7);
         console.log('Profile API - accessToken из заголовка Authorization:', 'присутствует');
@@ -35,18 +20,19 @@ export default async function handler(req, res) {
     }
     
     // Если токен все еще не найден, проверяем параметры запроса
-    if (!accessToken && req.query.access_token) {
-      accessToken = req.query.access_token;
+    const url = new URL(request.url);
+    if (!accessToken && url.searchParams.get('access_token')) {
+      accessToken = url.searchParams.get('access_token');
       console.log('Profile API - accessToken из query параметров:', 'присутствует');
     }
 
     // Проверяем, что токен не пустой и не undefined
     if (!accessToken || accessToken === 'undefined' || accessToken === 'null') {
       console.error('Profile API - Токен доступа не найден или недействителен');
-      return res.status(401).json({ 
+      return NextResponse.json({ 
         error: 'Не авторизован', 
         message: 'Токен доступа не найден или недействителен. Пожалуйста, войдите снова.' 
-      });
+      }, { status: 401 });
     }
 
     // Логируем токен для отладки (только первые 10 символов)
@@ -68,10 +54,10 @@ export default async function handler(req, res) {
       console.error('Profile API - Ошибка проверки токена:', tokenError.message);
       
       if (tokenError.response && tokenError.response.status === 401) {
-        return res.status(401).json({ 
+        return NextResponse.json({ 
           error: 'Срок действия токена авторизации истёк', 
           message: 'Пожалуйста, войдите снова.' 
-        });
+        }, { status: 401 });
       }
       
       // Продолжаем выполнение, даже если проверка не удалась
@@ -91,7 +77,7 @@ export default async function handler(req, res) {
 
       if (!userResponse.data.data || userResponse.data.data.length === 0) {
         console.error('Profile API - Пользователь не найден в ответе Twitch API');
-        return res.status(404).json({ error: 'Пользователь не найден' });
+        return NextResponse.json({ error: 'Пользователь не найден' }, { status: 404 });
       }
 
       const user = userResponse.data.data[0];
@@ -103,11 +89,7 @@ export default async function handler(req, res) {
 
       // Получаем подписчиков (с ограничением для производительности)
       let followers = [];
-      let cursor = null;
-      let hasMoreFollowers = true;
       let totalFollowersCount = 0;
-      let followerFetchAttempts = 0;
-      const MAX_FETCH_ATTEMPTS = 3; // Limit pagination attempts for performance
 
       try {
         console.log(`Profile API - Запрос подписчиков...`);
@@ -182,7 +164,7 @@ export default async function handler(req, res) {
         isStreamer,
       });
 
-      res.status(200).json(profileData);
+      return NextResponse.json(profileData);
     } catch (apiError) {
       console.error('Ошибка при запросе к Twitch API:', apiError.message);
       
@@ -193,10 +175,10 @@ export default async function handler(req, res) {
         });
         
         if (apiError.response.status === 401) {
-          return res.status(401).json({ 
+          return NextResponse.json({ 
             error: 'Срок действия токена авторизации истёк', 
             message: 'Пожалуйста, войдите снова.' 
-          });
+          }, { status: 401 });
         }
       }
       
@@ -212,16 +194,16 @@ export default async function handler(req, res) {
       });
       
       if (error.response.status === 401) {
-        return res.status(401).json({ 
+        return NextResponse.json({ 
           error: 'Срок действия токена авторизации истёк',
           message: 'Пожалуйста, войдите снова.'
-        });
+        }, { status: 401 });
       }
     }
     
-    res.status(500).json({ 
+    return NextResponse.json({ 
       error: 'Ошибка сервера', 
       message: error.message || 'Неизвестная ошибка при получении данных профиля'
-    });
+    }, { status: 500 });
   }
-}
+} 

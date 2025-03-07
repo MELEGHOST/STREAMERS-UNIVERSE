@@ -1,33 +1,36 @@
 'use client';
 
-import { useRouter } from 'next/router';
-import { useEffect, useState } from 'react';
+import { usePathname, useSearchParams } from 'next/navigation';
+import { useEffect, useState, useCallback } from 'react';
 
 export default function PageTransition({ children }) {
-  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
   const [isLoading, setIsLoading] = useState(false);
+  const [prevPath, setPrevPath] = useState('');
 
-  useEffect(() => {
-    function handleStart() {
+  // Создаем строку текущего пути для отслеживания изменений
+  const currentPath = pathname + searchParams.toString();
+
+  // Функция для обработки изменения пути
+  const handleRouteChange = useCallback(() => {
+    if (prevPath && prevPath !== currentPath) {
       console.log('Начало перехода между страницами');
       setIsLoading(true);
+      
+      // Имитируем завершение перехода
+      setTimeout(() => {
+        console.log('Завершение перехода между страницами');
+        setIsLoading(false);
+      }, 300);
     }
+    
+    setPrevPath(currentPath);
+  }, [currentPath, prevPath]);
 
-    function handleComplete() {
-      console.log('Завершение перехода между страницами');
-      setIsLoading(false);
-    }
-
-    router.events.on('routeChangeStart', handleStart);
-    router.events.on('routeChangeComplete', handleComplete);
-    router.events.on('routeChangeError', handleComplete);
-
-    return () => {
-      router.events.off('routeChangeStart', handleStart);
-      router.events.off('routeChangeComplete', handleComplete);
-      router.events.off('routeChangeError', handleComplete);
-    };
-  }, [router]);
+  useEffect(() => {
+    handleRouteChange();
+  }, [pathname, searchParams, handleRouteChange]);
 
   if (isLoading) {
     return (

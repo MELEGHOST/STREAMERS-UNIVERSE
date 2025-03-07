@@ -1,28 +1,35 @@
-// Обработчик обратного вызова от Twitch после авторизации
-export default async function handler(req, res) {
+import { NextResponse } from 'next/server';
+import { cookies } from 'next/headers';
+
+export async function GET(request) {
   try {
-    // Получаем код авторизации и состояние из запроса
-    const { code, state, error, error_description } = req.query;
+    // Получаем URL и параметры запроса
+    const url = new URL(request.url);
+    const code = url.searchParams.get('code');
+    const state = url.searchParams.get('state');
+    const error = url.searchParams.get('error');
+    const error_description = url.searchParams.get('error_description');
     
     // Проверяем наличие ошибки от Twitch
     if (error) {
       console.error('Ошибка авторизации Twitch:', error, error_description);
-      return res.redirect(`/auth?error=${encodeURIComponent(error)}&message=${encodeURIComponent(error_description || 'Ошибка авторизации')}`);
+      return NextResponse.redirect(new URL(`/auth?error=${encodeURIComponent(error)}&message=${encodeURIComponent(error_description || 'Ошибка авторизации')}`, request.url));
     }
     
     // Проверяем наличие кода авторизации
     if (!code) {
       console.error('Отсутствует код авторизации в ответе Twitch');
-      return res.redirect('/auth?error=no_code&message=Не получен код авторизации от Twitch');
+      return NextResponse.redirect(new URL('/auth?error=no_code&message=Не получен код авторизации от Twitch', request.url));
     }
     
     // Получаем состояние из куки для проверки
-    const cookieState = req.cookies.twitch_auth_state;
+    const cookieStore = cookies();
+    const cookieState = cookieStore.get('twitch_auth_state')?.value;
     
     // Проверяем соответствие состояния для защиты от CSRF
     if (cookieState && state !== cookieState) {
       console.error('Несоответствие состояния при авторизации Twitch');
-      return res.redirect('/auth?error=state_mismatch&message=Ошибка безопасности при авторизации');
+      return NextResponse.redirect(new URL('/auth?error=state_mismatch&message=Ошибка безопасности при авторизации', request.url));
     }
     
     // Получаем параметры для обмена кода на токен
@@ -33,7 +40,7 @@ export default async function handler(req, res) {
     // Проверяем наличие необходимых параметров
     if (!clientId || !clientSecret) {
       console.error('Отсутствуют необходимые параметры в переменных окружения');
-      return res.redirect('/auth?error=config_error&message=Ошибка конфигурации сервера');
+      return NextResponse.redirect(new URL('/auth?error=config_error&message=Ошибка конфигурации сервера', request.url));
     }
     
     // Формируем запрос для обмена кода на токен
@@ -55,7 +62,7 @@ export default async function handler(req, res) {
     if (!tokenResponse.ok) {
       const errorData = await tokenResponse.json().catch(() => ({}));
       console.error('Ошибка получения токена от Twitch:', tokenResponse.status, errorData);
-      return res.redirect(`/auth?error=token_error&message=Ошибка получения токена (${tokenResponse.status})`);
+      return NextResponse.redirect(new URL(`/auth?error=token_error&message=Ошибка получения токена (${tokenResponse.status})`, request.url));
     }
     
     // Получаем данные токена
@@ -65,7 +72,7 @@ export default async function handler(req, res) {
     // Проверяем наличие токена доступа
     if (!access_token) {
       console.error('Отсутствует токен доступа в ответе Twitch');
-      return res.redirect('/auth?error=no_token&message=Не получен токен доступа от Twitch');
+      return NextResponse.redirect(new URL('/auth?error=no_token&message=Не получен токен доступа от Twitch', request.url));
     }
     
     // Получаем данные пользователя с использованием токена
@@ -79,7 +86,7 @@ export default async function handler(req, res) {
     // Проверяем успешность запроса
     if (!userResponse.ok) {
       console.error('Ошибка получения данных пользователя от Twitch:', userResponse.status);
-      return res.redirect(`/auth?error=user_error&message=Ошибка получения данных пользователя (${userResponse.status})`);
+      return NextResponse.redirect(new URL(`/auth?error=user_error&message=Ошибка получения данных пользователя (${userResponse.status})`, request.url));
     }
     
     // Получаем данные пользователя
@@ -88,7 +95,7 @@ export default async function handler(req, res) {
     // Проверяем наличие данных пользователя
     if (!userData.data || userData.data.length === 0) {
       console.error('Отсутствуют данные пользователя в ответе Twitch');
-      return res.redirect('/auth?error=no_user_data&message=Не получены данные пользователя от Twitch');
+      return NextResponse.redirect(new URL('/auth?error=no_user_data&message=Не получены данные пользователя от Twitch', request.url));
     }
     
     const user = userData.data[0];
@@ -142,17 +149,27 @@ export default async function handler(req, res) {
       isStreamer
     };
     
-    // Устанавливаем куки с токенами и данными пользователя
-    // Используем HttpOnly для токенов для безопасности
-    res.setHeader('Set-Cookie', [
-      `twitch_access_token=${access_token}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${expires_in}`,
-      `twitch_refresh_token=${refresh_token}; Path=/; HttpOnly; SameSite=Lax; Max-Age=31536000`, // 1 год
-    ]);
+    // Создаем новый объект Response для установки куки
+    const response = NextResponse.redirect(new URL('/menu', request.url));
     
-    // Перенаправляем на страницу меню с данными пользователя
-    return res.redirect('/menu');
+    // Устанавливаем куки с токенами и данными пользователя
+    response.cookies.set('twitch_access_token', access_token, { 
+      path: '/', 
+      httpOnly: true, 
+      sameSite: 'lax', 
+      maxAge: expires_in 
+    });
+    
+    response.cookies.set('twitch_refresh_token', refresh_token, { 
+      path: '/', 
+      httpOnly: true, 
+      sameSite: 'lax', 
+      maxAge: 31536000 // 1 год
+    });
+    
+    return response;
   } catch (error) {
     console.error('Ошибка при обработке обратного вызова от Twitch:', error);
-    return res.redirect(`/auth?error=server_error&message=${encodeURIComponent(error.message || 'Внутренняя ошибка сервера')}`);
+    return NextResponse.redirect(new URL(`/auth?error=server_error&message=${encodeURIComponent(error.message || 'Внутренняя ошибка сервера')}`, request.url));
   }
 } 
