@@ -76,6 +76,18 @@ export async function POST(request) {
   try {
     const body = await request.json();
     
+    // Валидация входных данных
+    const validatedData = {
+      description: typeof body.description === 'string' ? body.description.slice(0, 500) : '',
+      twitch: typeof body.twitch === 'string' ? body.twitch.slice(0, 100) : '',
+      youtube: typeof body.youtube === 'string' ? body.youtube.slice(0, 100) : '',
+      discord: typeof body.discord === 'string' ? body.discord.slice(0, 100) : '',
+      telegram: typeof body.telegram === 'string' ? body.telegram.slice(0, 100) : '',
+      vk: typeof body.vk === 'string' ? body.vk.slice(0, 100) : '',
+      yandexMusic: typeof body.yandexMusic === 'string' ? body.yandexMusic.slice(0, 100) : '',
+      isMusician: Boolean(body.isMusician)
+    };
+    
     // Получаем токен доступа из куки
     const cookieStore = cookies();
     const accessToken = cookieStore.get('twitch_access_token')?.value;
@@ -123,14 +135,14 @@ export async function POST(request) {
          is_musician = $9`,
       [
         userId,
-        body.description || '',
-        body.twitch || '',
-        body.youtube || '',
-        body.discord || '',
-        body.telegram || '',
-        body.vk || '',
-        body.yandexMusic || '',
-        body.isMusician || false
+        validatedData.description,
+        validatedData.twitch,
+        validatedData.youtube,
+        validatedData.discord,
+        validatedData.telegram,
+        validatedData.vk,
+        validatedData.yandexMusic,
+        validatedData.isMusician
       ]
     );
     

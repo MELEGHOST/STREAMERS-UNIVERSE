@@ -78,11 +78,18 @@ class StreamCoinsManager {
   // Save updates to server
   async saveData() {
     try {
+      // Получаем CSRF-токен из куки
+      const csrfToken = document.cookie
+        .split('; ')
+        .find(row => row.startsWith('csrf_token='))
+        ?.split('=')[1];
+        
       const response = await fetch(this.apiEndpoint, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
+          'Authorization': `Bearer ${localStorage.getItem('token')}`,
+          'X-CSRF-Token': csrfToken || '' // Добавляем CSRF-токен в заголовок
         },
         body: JSON.stringify(this.data)
       });

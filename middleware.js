@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { randomBytes } from 'crypto';
 
 export function middleware(request) {
   // Получаем текущий URL
@@ -10,12 +11,48 @@ export function middleware(request) {
   // Клонируем текущий ответ
   const response = NextResponse.next();
   
-  // Получаем origin запроса
-  const origin = request.headers.get('origin') || '*';
+  // Генерируем CSRF-токен, если его нет в куках
+  const cookies = request.cookies;
+  if (!cookies.has('csrf_token')) {
+    // Генерируем случайный токен
+    const csrfToken = randomBytes(16).toString('hex');
+    
+    // Устанавливаем токен в куки
+    response.cookies.set('csrf_token', csrfToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'strict',
+      path: '/',
+      maxAge: 60 * 60 * 24 // 1 день
+    });
+    
+    console.log('Middleware: сгенерирован новый CSRF-токен');
+  }
   
-  // Добавляем заголовки для разрешения куков и CORS
+  // Добавляем заголовки безопасности
+  response.headers.set('X-Content-Type-Options', 'nosniff');
+  response.headers.set('X-Frame-Options', 'DENY');
+  response.headers.set('X-XSS-Protection', '1; mode=block');
+  response.headers.set('Referrer-Policy', 'strict-origin-when-cross-origin');
+  response.headers.set('Content-Security-Policy', "default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https://*.twitch.tv https://*.jtvnw.net; connect-src 'self' https://api.twitch.tv https://id.twitch.tv; frame-ancestors 'none';");
+  
+  // Получаем origin запроса
+  const origin = request.headers.get('origin');
+  
+  // Список разрешенных доменов
+  const allowedOrigins = [
+    'https://streamers-universe.vercel.app',
+    'https://streamers-universe.com',
+    'https://streamers-universe-meleghost-meleghosts-projects.vercel.app',
+    // Добавьте другие разрешенные домены
+  ];
+  
+  // Проверяем, является ли origin разрешенным
+  const isAllowedOrigin = origin && allowedOrigins.includes(origin);
+  
+  // Устанавливаем заголовки CORS только для разрешенных доменов
   response.headers.set('Access-Control-Allow-Credentials', 'true');
-  response.headers.set('Access-Control-Allow-Origin', origin);
+  response.headers.set('Access-Control-Allow-Origin', isAllowedOrigin ? origin : allowedOrigins[0]);
   response.headers.set('Access-Control-Allow-Methods', 'GET,OPTIONS,PATCH,DELETE,POST,PUT');
   response.headers.set('Access-Control-Allow-Headers', 'X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version, Authorization');
   
@@ -67,30 +104,11 @@ export function middleware(request) {
         if (authHeader && authHeader.startsWith('Bearer ')) {
           const token = authHeader.substring(7);
           
-          // Добавляем скрипт для сохранения токена в sessionStorage
+          // Добавляем токен в заголовок ответа для безопасной обработки на клиенте
           response.headers.set('X-Auth-Token', token);
           
-          // Добавляем скрипт для сохранения токена в sessionStorage
-          const script = `
-            <script>
-              try {
-                // Сохраняем токен из заголовка в sessionStorage
-                sessionStorage.setItem('auth_header_token', '${token}');
-                console.log('Токен из заголовка Authorization сохранен в sessionStorage');
-                
-                // Пытаемся также сохранить в localStorage для долгосрочного хранения
-                localStorage.setItem('cookie_twitch_access_token', '${token}');
-                console.log('Токен из заголовка Authorization сохранен в localStorage');
-              } catch (e) {
-                console.error('Ошибка при сохранении токена из заголовка:', e);
-              }
-            </script>
-          `;
-          
-          // Добавляем скрипт в ответ
-          const originalHtml = response.body || '';
-          const newHtml = originalHtml + script;
-          response.body = newHtml;
+          // Безопасно передаем токен через заголовок вместо внедрения скрипта
+          // Клиент должен обрабатывать этот заголовок безопасным способом
         }
       }
     }

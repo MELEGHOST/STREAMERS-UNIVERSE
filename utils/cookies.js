@@ -7,6 +7,8 @@ export const setCookie = (name, value, options = {}) => {
       path: '/',
       secure: window.location.protocol === 'https:', // Автоматически определяем по протоколу
       sameSite: 'lax',
+      // Для токенов аутентификации используем httpOnly
+      httpOnly: name.includes('token') || name.includes('access'),
     };
     
     const cookieOptions = { ...defaultOptions, ...options };
@@ -23,13 +25,16 @@ export const setCookie = (name, value, options = {}) => {
         const maxAge = cookieOptions.maxAge ? `; max-age=${cookieOptions.maxAge}` : '';
         const secure = cookieOptions.secure ? '; secure' : '';
         const sameSite = cookieOptions.sameSite ? `; samesite=${cookieOptions.sameSite}` : '';
+        const httpOnly = cookieOptions.httpOnly ? '; httpOnly' : '';
         
-        document.cookie = `${name}=${encodeURIComponent(value)}; path=${cookieOptions.path}${expires}${maxAge}${secure}${sameSite}`;
+        document.cookie = `${name}=${encodeURIComponent(value)}; path=${cookieOptions.path}${expires}${maxAge}${secure}${sameSite}${httpOnly}`;
         console.log(`Кука ${name} установлена через document.cookie`);
         
-        // Сохраняем в localStorage как резервную копию
-        localStorage.setItem(`cookie_${name}`, value);
-        console.log(`Резервная копия куки ${name} сохранена в localStorage`);
+        // Сохраняем в localStorage только нечувствительные данные
+        if (!name.includes('token') && !name.includes('access')) {
+          localStorage.setItem(`cookie_${name}`, value);
+          console.log(`Резервная копия куки ${name} сохранена в localStorage`);
+        }
       } catch (docCookieError) {
         console.error(`Ошибка при установке куки ${name} через document.cookie:`, docCookieError);
       }
@@ -126,48 +131,33 @@ export const setCookieWithLocalStorage = (name, value, options = {}) => {
   }
 };
 
-// Функция для получения куки с использованием localStorage в качестве резервного варианта
+// Функция для получения куки с проверкой localStorage
 export const getCookieWithLocalStorage = (name) => {
   try {
-    // Сначала пытаемся получить куку
-    const cookieValue = getCookie(name);
+    // Сначала пытаемся получить из куки
+    let cookieValue = Cookies.get(name);
     
-    // Если куки нет, пытаемся получить из localStorage
-    if (!cookieValue && typeof window !== 'undefined') {
-      // Сначала проверяем прямое соответствие в localStorage
-      let localStorageValue = localStorage.getItem(name);
-      
-      // Если не нашли, проверяем с префиксом cookie_
-      if (!localStorageValue) {
-        localStorageValue = localStorage.getItem(`cookie_${name}`);
-      }
-      
-      if (localStorageValue) {
-        console.log(`Данные ${name} получены из localStorage`);
+    // Если не нашли в куках, пытаемся получить из localStorage
+    // Но только для нечувствительных данных (не токенов)
+    if (!cookieValue && !name.includes('token')) {
+      cookieValue = localStorage.getItem(`cookie_${name}`);
+      if (cookieValue) {
+        console.log(`Значение для ${name} получено из localStorage`);
         
-        // Если нашли в localStorage, пытаемся восстановить куку
-        try {
-          setCookie(name, localStorageValue);
-          console.log(`Восстановлена кука ${name} из localStorage`);
-        } catch (restoreError) {
-          console.error(`Ошибка при восстановлении куки ${name} из localStorage:`, restoreError);
-        }
-        
-        return localStorageValue;
+        // Восстанавливаем куку
+        setCookie(name, cookieValue);
       }
     }
     
-    // Если не нашли ни в куках, ни в localStorage, но это токен доступа,
-    // пробуем получить его из заголовка Authorization
+    // Для токенов доступа не используем sessionStorage
     if (!cookieValue && name === 'twitch_access_token' && typeof window !== 'undefined') {
       // Проверяем, есть ли токен в sessionStorage (мог быть сохранен из заголовка)
       const sessionToken = sessionStorage.getItem('auth_header_token');
       if (sessionToken) {
         console.log('Токен доступа получен из sessionStorage (заголовок Authorization)');
         
-        // Восстанавливаем куку и localStorage
+        // Восстанавливаем куку, но не localStorage
         setCookie(name, sessionToken);
-        localStorage.setItem(`cookie_${name}`, sessionToken);
         
         return sessionToken;
       }
