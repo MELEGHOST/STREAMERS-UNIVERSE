@@ -1,11 +1,9 @@
 import React, { useEffect } from 'react';
-import { AppProps } from 'next/app';
 import '../styles/global.css'; // Относительный путь от pages/ к корню проекта
 import CookieChecker from '../components/CookieChecker';
-import SimpleLogo from '../components/SimpleLogo';
 import { useRouter } from 'next/router';
 
-export default function MyApp({ Component, pageProps }: AppProps) {
+export default function MyApp({ Component, pageProps }) {
   const router = useRouter();
   
   // Добавляем обработчик переходов между страницами для плавного перехода
@@ -58,4 +56,4 @@ export default function MyApp({ Component, pageProps }: AppProps) {
       <CookieChecker />
     </>
   );
-}
+} 

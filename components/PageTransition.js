@@ -1,24 +1,22 @@
-import { useEffect, useState, ReactNode } from 'react';
+'use client';
+
 import { useRouter } from 'next/router';
+import { useEffect, useState } from 'react';
 
-interface PageTransitionProps {
-  children: ReactNode;
-}
-
-const PageTransition: React.FC<PageTransitionProps> = ({ children }) => {
+export default function PageTransition({ children }) {
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
-    const handleStart = () => {
+    function handleStart() {
       console.log('Начало перехода между страницами');
       setIsLoading(true);
-    };
+    }
 
-    const handleComplete = () => {
+    function handleComplete() {
       console.log('Завершение перехода между страницами');
       setIsLoading(false);
-    };
+    }
 
     router.events.on('routeChangeStart', handleStart);
     router.events.on('routeChangeComplete', handleComplete);
@@ -31,21 +29,16 @@ const PageTransition: React.FC<PageTransitionProps> = ({ children }) => {
     };
   }, [router]);
 
-  return (
-    <>
-      {isLoading && (
+  if (isLoading) {
+    return (
+      <div>
         <div className="global-loading">
           <div className="global-spinner"></div>
         </div>
-      )}
-      <div style={{ 
-        opacity: isLoading ? 0 : 1, 
-        transition: 'opacity 0.3s ease-in-out' 
-      }}>
-        {children}
+        <div style={{ opacity: 0 }}>{children}</div>
       </div>
-    </>
-  );
-};
+    );
+  }
 
-export default PageTransition; 
+  return <div style={{ opacity: 1, transition: 'opacity 0.3s ease-in-out' }}>{children}</div>;
+} 
