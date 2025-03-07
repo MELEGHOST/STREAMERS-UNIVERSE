@@ -17,205 +17,105 @@ export default function Settings() {
   const [saveMessage, setSaveMessage] = useState('');
 
   useEffect(() => {
-    const accessToken = Cookies.get('twitch_access_token');
-    if (!accessToken) {
-      router.push('/auth');
-    } else {
-      setIsAuthenticated(true);
-      const storedUser = JSON.parse(localStorage.getItem('twitch_user') || '{}');
-      const userId = storedUser.id || 'unknown';
-      setUserId(userId);
-
-      // Загружаем сохраненные настройки
-      const savedSettings = JSON.parse(localStorage.getItem(`settings_${userId}`)) || {};
-      setTheme(savedSettings.theme || 'base');
-      setFontSize(savedSettings.fontSize || 'normal');
-      setTimezone(savedSettings.timezone || 'Europe/Moscow');
-      setLanguage(savedSettings.language || 'ru');
-      
-      // Применяем настройки при загрузке
-      applySettings(savedSettings);
+    try {
+      const accessToken = Cookies.get('twitch_access_token');
+      if (!accessToken) {
+        router.push('/auth');
+      } else {
+        setIsAuthenticated(true);
+        
+        // Безопасно получаем данные пользователя
+        try {
+          const storedUser = localStorage.getItem('twitch_user');
+          if (storedUser) {
+            const parsedUser = JSON.parse(storedUser);
+            const userId = parsedUser.id || 'unknown';
+            setUserId(userId);
+            
+            // Загружаем сохраненные настройки
+            try {
+              const savedSettingsStr = localStorage.getItem(`settings_${userId}`);
+              if (savedSettingsStr) {
+                const savedSettings = JSON.parse(savedSettingsStr);
+                setTheme(savedSettings.theme || 'base');
+                setFontSize(savedSettings.fontSize || 'normal');
+                setTimezone(savedSettings.timezone || 'Europe/Moscow');
+                setLanguage(savedSettings.language || 'ru');
+              } else {
+                // Если нет пользовательских настроек, проверяем глобальные
+                const globalTheme = localStorage.getItem('global_theme');
+                const globalFontSize = localStorage.getItem('global_fontSize');
+                
+                if (globalTheme) setTheme(globalTheme);
+                if (globalFontSize) setFontSize(globalFontSize);
+              }
+            } catch (e) {
+              console.error('Ошибка при загрузке настроек:', e);
+            }
+          }
+        } catch (e) {
+          console.error('Ошибка при получении данных пользователя:', e);
+        }
+        
+        setLoading(false);
+      }
+    } catch (error) {
+      console.error('Ошибка при проверке аутентификации:', error);
       setLoading(false);
     }
   }, [router]);
 
   const handleSaveSettings = () => {
-    const settings = { theme, fontSize, timezone, language };
-    localStorage.setItem(`settings_${userId}`, JSON.stringify(settings));
-    applySettings(settings);
-    
-    // Показываем сообщение об успешном сохранении
-    setSaveMessage('Настройки успешно сохранены!');
-    setTimeout(() => setSaveMessage(''), 3000);
-    
-    console.log('Settings saved:', settings);
+    try {
+      const settings = { theme, fontSize, timezone, language };
+      
+      // Сохраняем пользовательские настройки
+      if (userId) {
+        localStorage.setItem(`settings_${userId}`, JSON.stringify(settings));
+      }
+      
+      // Также обновляем глобальные настройки для применения на всех страницах
+      localStorage.setItem('global_theme', theme);
+      localStorage.setItem('global_fontSize', fontSize);
+      
+      // Применяем настройки
+      applySettings(settings);
+      
+      // Показываем сообщение об успешном сохранении
+      setSaveMessage('Настройки успешно сохранены!');
+      setTimeout(() => setSaveMessage(''), 3000);
+      
+      console.log('Settings saved:', settings);
+      
+      // Создаем событие для обновления темы на других вкладках
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new StorageEvent('storage', {
+          key: 'global_theme',
+          newValue: theme
+        }));
+      }
+    } catch (error) {
+      console.error('Ошибка при сохранении настроек:', error);
+      setSaveMessage('Ошибка при сохранении настроек. Попробуйте еще раз.');
+      setTimeout(() => setSaveMessage(''), 3000);
+    }
   };
 
   const applySettings = (settings = { theme, fontSize, timezone, language }) => {
-    // Применяем тему
-    document.documentElement.classList.remove('base-theme', 'dark-theme', 'light-theme');
-    document.documentElement.classList.add(`${settings.theme}-theme`);
-    
-    // Применяем размер шрифта
-    let fontSizeValue = '16px';
-    if (settings.fontSize === 'small') fontSizeValue = '14px';
-    if (settings.fontSize === 'large') fontSizeValue = '18px';
-    
-    document.documentElement.style.setProperty('--base-font-size', fontSizeValue);
-    
-    // Добавляем CSS переменные для темы, если их еще нет
-    if (!document.getElementById('theme-styles')) {
-      const styleElement = document.createElement('style');
-      styleElement.id = 'theme-styles';
-      styleElement.innerHTML = `
-        :root {
-          --base-font-size: ${fontSizeValue};
-        }
-        
-        :root.base-theme {
-          --bg-color: #1a1a4a;
-          --text-color: #ffffff;
-          --primary-color: #9146FF;
-          --secondary-color: #7B41C9;
-          --accent-color: #9B6AE8;
-        }
-        
-        :root.dark-theme {
-          --bg-color: #121212;
-          --text-color: #ffffff;
-          --primary-color: #7B41C9;
-          --secondary-color: #5A2E94;
-          --accent-color: #9B6AE8;
-        }
-        
-        :root.light-theme {
-          --bg-color: #f5f5f5;
-          --text-color: #333333;
-          --primary-color: #7B41C9;
-          --secondary-color: #5A2E94;
-          --accent-color: #9B6AE8;
-        }
-        
-        body {
-          background-color: var(--bg-color);
-          color: var(--text-color);
-          font-size: var(--base-font-size);
-          transition: background-color 0.3s, color 0.3s, font-size 0.3s;
-        }
-        
-        /* Глобальные стили для всех страниц */
-        .settingsContainer, .profileContainer, .menuContainer, 
-        .searchContainer, .followersContainer, .subscriptionsContainer {
-          background-color: var(--bg-color);
-          color: var(--text-color);
-        }
-        
-        h1, h2, h3 {
-          color: var(--primary-color);
-        }
-        
-        button {
-          background-color: var(--primary-color);
-          color: white;
-        }
-        
-        button:hover {
-          background-color: var(--secondary-color);
-        }
-        
-        input, select {
-          background-color: var(--bg-color);
-          color: var(--text-color);
-          border: 1px solid var(--secondary-color);
-        }
-        
-        a {
-          color: var(--primary-color);
-        }
-        
-        a:hover {
-          color: var(--secondary-color);
-        }
-      `;
-      document.head.appendChild(styleElement);
-    } else {
-      // Обновляем существующие стили
-      const styleElement = document.getElementById('theme-styles');
-      styleElement.innerHTML = `
-        :root {
-          --base-font-size: ${fontSizeValue};
-        }
-        
-        :root.base-theme {
-          --bg-color: #1a1a4a;
-          --text-color: #ffffff;
-          --primary-color: #9146FF;
-          --secondary-color: #7B41C9;
-          --accent-color: #9B6AE8;
-        }
-        
-        :root.dark-theme {
-          --bg-color: #121212;
-          --text-color: #ffffff;
-          --primary-color: #7B41C9;
-          --secondary-color: #5A2E94;
-          --accent-color: #9B6AE8;
-        }
-        
-        :root.light-theme {
-          --bg-color: #f5f5f5;
-          --text-color: #333333;
-          --primary-color: #7B41C9;
-          --secondary-color: #5A2E94;
-          --accent-color: #9B6AE8;
-        }
-        
-        body {
-          background-color: var(--bg-color);
-          color: var(--text-color);
-          font-size: var(--base-font-size);
-          transition: background-color 0.3s, color 0.3s, font-size 0.3s;
-        }
-        
-        /* Глобальные стили для всех страниц */
-        .settingsContainer, .profileContainer, .menuContainer, 
-        .searchContainer, .followersContainer, .subscriptionsContainer {
-          background-color: var(--bg-color);
-          color: var(--text-color);
-        }
-        
-        h1, h2, h3 {
-          color: var(--primary-color);
-        }
-        
-        button {
-          background-color: var(--primary-color);
-          color: white;
-        }
-        
-        button:hover {
-          background-color: var(--secondary-color);
-        }
-        
-        input, select {
-          background-color: var(--bg-color);
-          color: var(--text-color);
-          border: 1px solid var(--secondary-color);
-        }
-        
-        a {
-          color: var(--primary-color);
-        }
-        
-        a:hover {
-          color: var(--secondary-color);
-        }
-      `;
+    try {
+      // Применяем тему
+      document.documentElement.classList.remove('base-theme', 'dark-theme', 'light-theme');
+      document.documentElement.classList.add(`${settings.theme}-theme`);
+      
+      // Применяем размер шрифта
+      let fontSizeValue = '16px';
+      if (settings.fontSize === 'small') fontSizeValue = '14px';
+      if (settings.fontSize === 'large') fontSizeValue = '18px';
+      
+      document.documentElement.style.setProperty('--base-font-size', fontSizeValue);
+    } catch (error) {
+      console.error('Ошибка при применении настроек:', error);
     }
-    
-    // Сохраняем настройки в localStorage для применения при загрузке других страниц
-    localStorage.setItem('global_theme', settings.theme);
-    localStorage.setItem('global_fontSize', settings.fontSize);
   };
 
   if (!isAuthenticated || loading) {

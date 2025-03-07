@@ -4,7 +4,9 @@ import styles from './SocialButton.module.css';
 const SocialButton = ({ type, url, username, subscribers }) => {
   // Определяем цвет и иконку в зависимости от типа социальной сети
   const getSocialConfig = (type) => {
-    switch (type.toLowerCase()) {
+    const socialType = (type || '').toLowerCase();
+    
+    switch (socialType) {
       case 'twitch':
         return {
           color: '#9146ff',
@@ -33,10 +35,10 @@ const SocialButton = ({ type, url, username, subscribers }) => {
               version="1.1"
               viewBox="0 -7 48 48"
             >
-              <g stroke-width="0" id="SVGRepo_bgCarrier"></g>
+              <g strokeWidth="0" id="SVGRepo_bgCarrier"></g>
               <g
-                stroke-linejoin="round"
-                stroke-linecap="round"
+                strokeLinejoin="round"
+                strokeLinecap="round"
                 id="SVGRepo_tracerCarrier"
               ></g>
               <g id="SVGRepo_iconCarrier">
@@ -44,9 +46,9 @@ const SocialButton = ({ type, url, username, subscribers }) => {
                 <desc>Created with Sketch.</desc>
                 <defs></defs>
                 <g
-                  fill-rule="evenodd"
+                  fillRule="evenodd"
                   fill="none"
-                  stroke-width="1"
+                  strokeWidth="1"
                   stroke="none"
                   id="Icons"
                 >
@@ -150,7 +152,29 @@ const SocialButton = ({ type, url, username, subscribers }) => {
     }
   };
 
+  // Безопасно получаем конфигурацию
   const config = getSocialConfig(type);
+  const safeUsername = username || 'username';
+  const safeUrl = url || '#';
+
+  // Проверяем, является ли URL действительным
+  const isValidUrl = (url) => {
+    try {
+      new URL(url);
+      return true;
+    } catch (e) {
+      return false;
+    }
+  };
+
+  // Обрабатываем клик по кнопке
+  const handleClick = (e) => {
+    if (!isValidUrl(safeUrl)) {
+      e.preventDefault();
+      console.error('Недействительный URL:', safeUrl);
+      alert('Недействительная ссылка. Пожалуйста, проверьте URL.');
+    }
+  };
 
   return (
     <div className={styles.tooltipContainer} style={{'--color': config.color}}>
@@ -159,15 +183,21 @@ const SocialButton = ({ type, url, username, subscribers }) => {
           <div className={styles.user}>
             <div className={styles.img}>{config.initials}</div>
             <div className={styles.details}>
-              <div className={styles.name}>{type}</div>
-              <div className={styles.username}>@{username || 'username'}</div>
+              <div className={styles.name}>{type || 'Соцсеть'}</div>
+              <div className={styles.username}>@{safeUsername}</div>
             </div>
           </div>
           {subscribers && <div className={styles.about}>{subscribers} подписчиков</div>}
         </div>
       </div>
       <div className={styles.text}>
-        <a href={url} target="_blank" rel="noopener noreferrer" className={styles.icon}>
+        <a 
+          href={safeUrl} 
+          target="_blank" 
+          rel="noopener noreferrer" 
+          className={styles.icon}
+          onClick={handleClick}
+        >
           <div className={styles.layer}>
             <span></span>
             <span></span>
@@ -177,7 +207,7 @@ const SocialButton = ({ type, url, username, subscribers }) => {
               {config.icon}
             </span>
           </div>
-          <div className={styles.text}>{type}</div>
+          <div className={styles.text}>{type || 'Соцсеть'}</div>
         </a>
       </div>
     </div>

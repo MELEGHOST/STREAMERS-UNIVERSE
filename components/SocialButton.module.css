@@ -8,6 +8,7 @@
   border-radius: 10px;
   display: inline-block;
   margin: 10px;
+  z-index: 1;
 }
 
 .tooltip {
@@ -27,6 +28,8 @@
     -5px -5px 15px rgba(255, 255, 255, 0.1);
   z-index: 10;
   width: 200px;
+  background-color: rgba(30, 30, 46, 0.95);
+  visibility: hidden;
 }
 
 .profile {
@@ -98,99 +101,106 @@
 }
 
 .icon .text {
-  position: absolute;
-  left: 50%;
-  bottom: -5px;
-  opacity: 0;
-  font-weight: 700;
-  transform: translateX(-50%);
-  transition:
-    bottom 0.3s ease,
-    opacity 0.3s ease;
+  position: relative;
+  top: 5px;
+  text-align: center;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  transition: 0.3s;
+  margin-top: 5px;
 }
 
 .icon:hover .text {
-  bottom: -35px;
-  opacity: 1;
+  color: var(--color);
+  font-weight: 700;
 }
 
 .icon:hover .layer span:nth-child(1) {
+  transform: translate(10px, -10px);
   opacity: 0.2;
 }
 
 .icon:hover .layer span:nth-child(2) {
+  transform: translate(20px, -20px);
   opacity: 0.4;
-  transform: translate(5px, -5px);
 }
 
 .icon:hover .layer span:nth-child(3) {
+  transform: translate(30px, -30px);
   opacity: 0.6;
-  transform: translate(10px, -10px);
 }
 
 .icon:hover .layer span:nth-child(4) {
+  transform: translate(40px, -40px);
   opacity: 0.8;
-  transform: translate(15px, -15px);
 }
 
 .icon:hover .layer span:nth-child(5) {
+  transform: translate(0, 0);
   opacity: 1;
-  transform: translate(20px, -20px);
 }
 
 .svg {
-  position: absolute;
-  top: 10px;
-  left: 10px;
-  width: 50px;
-  height: 50px;
+  position: relative;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 100%;
+  height: 100%;
 }
 
 .svg path {
-  fill: var(--color);
+  transition: fill 0.3s;
 }
 
 .user {
   display: flex;
+  align-items: center;
   gap: 10px;
 }
 
 .img {
-  width: 50px;
-  height: 50px;
-  font-size: 25px;
-  font-weight: 700;
-  border: 1px solid var(--border);
-  border-radius: 10px;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: var(--color);
+  color: white;
   display: flex;
-  align-items: center;
   justify-content: center;
-  background: #fff;
-  color: var(--color);
+  align-items: center;
+  font-weight: bold;
+  font-size: 14px;
 }
 
 .name {
-  font-size: 17px;
-  font-weight: 700;
-  color: #ffffff;
+  font-weight: bold;
+  color: white;
+  font-size: 16px;
+  margin-bottom: 2px;
 }
 
 .details {
   display: flex;
   flex-direction: column;
-  gap: 0;
-  color: var(--color);
+  justify-content: center;
+}
+
+.username {
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 14px;
 }
 
 .about {
+  margin-top: 10px;
   color: rgba(255, 255, 255, 0.7);
-  padding-top: 5px;
+  font-size: 14px;
+  text-align: center;
 }
 
-/* Адаптивность для мобильных устройств */
 @media (max-width: 768px) {
   .tooltipContainer {
     margin: 5px;
+    font-size: 14px;
   }
   
   .layer {
@@ -199,13 +209,65 @@
   }
   
   .svg {
-    width: 40px;
-    height: 40px;
-    top: 10px;
-    left: 10px;
+    transform: scale(0.8);
   }
   
   .tooltip {
     width: 180px;
+    left: 50%;
+    transform: translateX(-50%);
+  }
+  
+  .tooltipContainer:hover .tooltip {
+    top: -140px;
+  }
+}
+
+/* Исправления для мобильных устройств */
+@media (max-width: 480px) {
+  .tooltipContainer {
+    margin: 3px;
+  }
+  
+  .layer {
+    width: 50px;
+    height: 50px;
+  }
+  
+  .layer span {
+    padding: 8px;
+  }
+  
+  .tooltip {
+    width: 160px;
+  }
+  
+  .tooltipContainer:hover .tooltip {
+    top: -130px;
+  }
+  
+  .img {
+    width: 30px;
+    height: 30px;
+    font-size: 12px;
+  }
+  
+  .name {
+    font-size: 14px;
+  }
+  
+  .username, .about {
+    font-size: 12px;
+  }
+}
+
+/* Исправления для Safari */
+@supports (-webkit-touch-callout: none) {
+  .layer span {
+    transform: translateZ(0);
+  }
+  
+  .tooltip {
+    transform: translateX(-50%) translateZ(0);
   }
 } 

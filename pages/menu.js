@@ -8,32 +8,48 @@ export default function Menu() {
   const [userData, setUserData] = useState(null);
   const [isStreamer, setIsStreamer] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
   useEffect(() => {
     // Проверяем авторизацию
-    const accessToken = Cookies.get('twitch_access_token');
-    if (!accessToken) {
-      router.push('/auth');
-      return;
-    }
-
-    // Получаем данные пользователя из localStorage
     try {
-      const storedUserData = localStorage.getItem('twitch_user');
-      if (storedUserData) {
-        const parsedData = JSON.parse(storedUserData);
-        setUserData(parsedData);
-        setIsStreamer(parsedData.isStreamer || false);
+      const accessToken = Cookies.get('twitch_access_token');
+      if (!accessToken) {
+        console.log('Токен доступа отсутствует, перенаправление на страницу авторизации');
+        router.push('/auth');
+        return;
       }
-      setLoading(false);
+
+      // Получаем данные пользователя из localStorage
+      try {
+        const storedUserData = localStorage.getItem('twitch_user');
+        if (storedUserData) {
+          const parsedData = JSON.parse(storedUserData);
+          setUserData(parsedData);
+          setIsStreamer(parsedData.isStreamer || false);
+        } else {
+          setError('Данные пользователя не найдены. Пожалуйста, авторизуйтесь снова.');
+        }
+      } catch (e) {
+        console.error('Ошибка при получении данных пользователя:', e);
+        setError('Ошибка при загрузке данных пользователя. Пожалуйста, обновите страницу или авторизуйтесь снова.');
+      } finally {
+        setLoading(false);
+      }
     } catch (e) {
-      console.error('Ошибка при получении данных пользователя:', e);
+      console.error('Ошибка при проверке авторизации:', e);
+      setError('Ошибка при проверке авторизации. Пожалуйста, обновите страницу или авторизуйтесь снова.');
       setLoading(false);
     }
   }, [router]);
 
   const handleMenuItemClick = (path) => {
-    router.push(path);
+    try {
+      router.push(path);
+    } catch (e) {
+      console.error('Ошибка при переходе на страницу:', path, e);
+      alert(`Ошибка при переходе на страницу ${path}. Пожалуйста, попробуйте еще раз.`);
+    }
   };
 
   if (loading) {
@@ -41,6 +57,17 @@ export default function Menu() {
       <div className={styles.loading}>
         <div className={styles.spinner}></div>
         <p>Загрузка...</p>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className={styles.error}>
+        <p>{error}</p>
+        <button className={styles.button} onClick={() => router.push('/auth')}>
+          Вернуться на страницу авторизации
+        </button>
       </div>
     );
   }
