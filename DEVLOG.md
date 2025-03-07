@@ -11,6 +11,10 @@
   - Обновлен компонент PageTransition.js для работы с App Router (next/navigation вместо next/router)
   - Исправлены синтаксические ошибки в middleware.js
   - Добавлено свойство "type": "module" в package.json для корректной обработки next.config.js
+  - Исправлена проблема с кодировкой UTF-8 в файле app/api/twitch/search/route.js
+  - Исправлена проблема с кодировкой UTF-8 в файле app/api/twitch/profile/route.js
+  - Исправлена проблема с кодировкой UTF-8 в файле app/api/twitch/callback/route.js
+  - Исправлена проблема с кодировкой UTF-8 в файле app/api/twitch/logout/route.js
 - Улучшена обработка куков и авторизации:
   - Обновлены API-эндпоинты для работы с cookies из next/headers
   - Улучшена обработка токенов и состояния авторизации
