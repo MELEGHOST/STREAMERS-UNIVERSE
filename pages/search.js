@@ -62,13 +62,13 @@ export default function Search() {
 
   return (
     <div className={styles.searchContainer}>
-      <h1>Search User</h1>
+      <h1>Поиск пользователя</h1>
       <div className={styles.searchBox}>
         <input
           type="text"
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
-          placeholder="Enter Twitch username"
+          placeholder="Введите никнейм Twitch"
           className={styles.input}
           onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
         />
@@ -77,7 +77,7 @@ export default function Search() {
           onClick={handleSearch}
           disabled={loading}
         >
-          {loading ? 'Searching...' : 'Search'}
+          {loading ? 'Поиск...' : 'Найти'}
         </button>
       </div>
       
@@ -86,16 +86,22 @@ export default function Search() {
           {results.error && <p className={styles.error}>{results.error}</p>}
           {results.twitchData && (
             <>
-              <p>Username: {results.twitchData.display_name}</p>
-              <p>Registered in app: {results.isRegistered ? 'Yes' : 'No'}</p>
-              <p>Followers: {results.followers}</p>
-              <p>Common streamers: {results.commonStreamers?.length > 0 ? 
-                results.commonStreamers.join(', ') : 'None'}
+              <p>Никнейм: {results.twitchData.display_name}</p>
+              <p>Зарегистрирован в приложении: {results.isRegistered ? 'Да' : 'Нет'}</p>
+              <p>Подписчиков: {results.followers}</p>
+              <p>Общие стримеры: {results.commonStreamers?.length > 0 ? 
+                results.commonStreamers.join(', ') : 'Нет'}
               </p>
             </>
           )}
         </div>
       )}
+      
+      <div className={styles.actionButtons}>
+        <button className={styles.button} onClick={() => router.push('/menu')}>
+          Вернуться в меню
+        </button>
+      </div>
     </div>
   );
 }

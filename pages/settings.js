@@ -9,7 +9,7 @@ export default function Settings() {
   const router = useRouter();
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [userId, setUserId] = useState(null);
-  const [theme, setTheme] = useState('dark');
+  const [theme, setTheme] = useState('base');
   const [fontSize, setFontSize] = useState('normal');
   const [timezone, setTimezone] = useState('Europe/Moscow');
   const [language, setLanguage] = useState('ru');
@@ -28,7 +28,7 @@ export default function Settings() {
 
       // Загружаем сохраненные настройки
       const savedSettings = JSON.parse(localStorage.getItem(`settings_${userId}`)) || {};
-      setTheme(savedSettings.theme || 'dark');
+      setTheme(savedSettings.theme || 'base');
       setFontSize(savedSettings.fontSize || 'normal');
       setTimezone(savedSettings.timezone || 'Europe/Moscow');
       setLanguage(savedSettings.language || 'ru');
@@ -53,13 +53,8 @@ export default function Settings() {
 
   const applySettings = (settings = { theme, fontSize, timezone, language }) => {
     // Применяем тему
-    if (settings.theme === 'dark') {
-      document.documentElement.classList.add('dark-theme');
-      document.documentElement.classList.remove('light-theme');
-    } else {
-      document.documentElement.classList.add('light-theme');
-      document.documentElement.classList.remove('dark-theme');
-    }
+    document.documentElement.classList.remove('base-theme', 'dark-theme', 'light-theme');
+    document.documentElement.classList.add(`${settings.theme}-theme`);
     
     // Применяем размер шрифта
     let fontSizeValue = '16px';
@@ -73,6 +68,18 @@ export default function Settings() {
       const styleElement = document.createElement('style');
       styleElement.id = 'theme-styles';
       styleElement.innerHTML = `
+        :root {
+          --base-font-size: ${fontSizeValue};
+        }
+        
+        :root.base-theme {
+          --bg-color: #1a1a4a;
+          --text-color: #ffffff;
+          --primary-color: #9146FF;
+          --secondary-color: #7B41C9;
+          --accent-color: #9B6AE8;
+        }
+        
         :root.dark-theme {
           --bg-color: #121212;
           --text-color: #ffffff;
@@ -95,9 +102,120 @@ export default function Settings() {
           font-size: var(--base-font-size);
           transition: background-color 0.3s, color 0.3s, font-size 0.3s;
         }
+        
+        /* Глобальные стили для всех страниц */
+        .settingsContainer, .profileContainer, .menuContainer, 
+        .searchContainer, .followersContainer, .subscriptionsContainer {
+          background-color: var(--bg-color);
+          color: var(--text-color);
+        }
+        
+        h1, h2, h3 {
+          color: var(--primary-color);
+        }
+        
+        button {
+          background-color: var(--primary-color);
+          color: white;
+        }
+        
+        button:hover {
+          background-color: var(--secondary-color);
+        }
+        
+        input, select {
+          background-color: var(--bg-color);
+          color: var(--text-color);
+          border: 1px solid var(--secondary-color);
+        }
+        
+        a {
+          color: var(--primary-color);
+        }
+        
+        a:hover {
+          color: var(--secondary-color);
+        }
       `;
       document.head.appendChild(styleElement);
+    } else {
+      // Обновляем существующие стили
+      const styleElement = document.getElementById('theme-styles');
+      styleElement.innerHTML = `
+        :root {
+          --base-font-size: ${fontSizeValue};
+        }
+        
+        :root.base-theme {
+          --bg-color: #1a1a4a;
+          --text-color: #ffffff;
+          --primary-color: #9146FF;
+          --secondary-color: #7B41C9;
+          --accent-color: #9B6AE8;
+        }
+        
+        :root.dark-theme {
+          --bg-color: #121212;
+          --text-color: #ffffff;
+          --primary-color: #7B41C9;
+          --secondary-color: #5A2E94;
+          --accent-color: #9B6AE8;
+        }
+        
+        :root.light-theme {
+          --bg-color: #f5f5f5;
+          --text-color: #333333;
+          --primary-color: #7B41C9;
+          --secondary-color: #5A2E94;
+          --accent-color: #9B6AE8;
+        }
+        
+        body {
+          background-color: var(--bg-color);
+          color: var(--text-color);
+          font-size: var(--base-font-size);
+          transition: background-color 0.3s, color 0.3s, font-size 0.3s;
+        }
+        
+        /* Глобальные стили для всех страниц */
+        .settingsContainer, .profileContainer, .menuContainer, 
+        .searchContainer, .followersContainer, .subscriptionsContainer {
+          background-color: var(--bg-color);
+          color: var(--text-color);
+        }
+        
+        h1, h2, h3 {
+          color: var(--primary-color);
+        }
+        
+        button {
+          background-color: var(--primary-color);
+          color: white;
+        }
+        
+        button:hover {
+          background-color: var(--secondary-color);
+        }
+        
+        input, select {
+          background-color: var(--bg-color);
+          color: var(--text-color);
+          border: 1px solid var(--secondary-color);
+        }
+        
+        a {
+          color: var(--primary-color);
+        }
+        
+        a:hover {
+          color: var(--secondary-color);
+        }
+      `;
     }
+    
+    // Сохраняем настройки в localStorage для применения при загрузке других страниц
+    localStorage.setItem('global_theme', settings.theme);
+    localStorage.setItem('global_fontSize', settings.fontSize);
   };
 
   if (!isAuthenticated || loading) {
@@ -121,6 +239,7 @@ export default function Settings() {
           value={theme} 
           onChange={(e) => setTheme(e.target.value)}
         >
+          <option value="base">Базовая тема (Twitch)</option>
           <option value="dark">Тёмная тема</option>
           <option value="light">Светлая тема</option>
         </select>
@@ -179,7 +298,7 @@ export default function Settings() {
       <div className={styles.currentSettings}>
         <p>Текущие настройки:</p>
         <ul>
-          <li>Тема: {theme === 'dark' ? 'Тёмная' : 'Светлая'}</li>
+          <li>Тема: {theme === 'base' ? 'Базовая' : theme === 'dark' ? 'Тёмная' : 'Светлая'}</li>
           <li>Размер шрифта: {fontSize === 'small' ? 'Меньше' : fontSize === 'large' ? 'Больше' : 'Нормальный'}</li>
           <li>Часовой пояс: {timezone}</li>
           <li>Язык: {language === 'ru' ? 'Русский' : 'English'}</li>

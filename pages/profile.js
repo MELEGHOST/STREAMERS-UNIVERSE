@@ -42,6 +42,15 @@ export default function Profile() {
           if (storedUserData) {
             localStorageUserData = JSON.parse(storedUserData);
             console.log('Данные пользователя из localStorage:', localStorageUserData);
+            
+            // ВРЕМЕННОЕ РЕШЕНИЕ: Если у пользователя 150+ подписчиков, но статус не стример,
+            // принудительно устанавливаем статус стримера
+            if (localStorageUserData.followersCount >= 150 && !localStorageUserData.isStreamer) {
+              console.log('ИСПРАВЛЕНИЕ: Обнаружено 150+ подписчиков, но статус не стример. Исправляем...');
+              localStorageUserData.isStreamer = true;
+              localStorage.setItem('twitch_user', JSON.stringify(localStorageUserData));
+              console.log('Статус стримера принудительно установлен в localStorage');
+            }
           }
         } catch (e) {
           console.error('Ошибка при получении данных пользователя из localStorage:', e);
@@ -127,6 +136,11 @@ export default function Profile() {
               const followersData = await followersResponse.json();
               followersCount = followersData.total || 0;
               followers = followersData.data.map((f) => f.from_name);
+              console.log(`Получено ${followersCount} подписчиков от Twitch API`);
+              console.log('Данные о подписчиках:', followersData);
+            } else {
+              console.error('Ошибка при получении подписчиков:', followersResponse.status);
+              console.error('Текст ошибки:', await followersResponse.text().catch(() => 'Не удалось получить текст ошибки'));
             }
             
             // Получаем подписки
@@ -150,6 +164,7 @@ export default function Profile() {
             // Принудительно устанавливаем статус стримера, если количество подписчиков >= 150
             const isStreamer = followersCount >= 150;
             console.log(`Проверка статуса стримера: ${followersCount} подписчиков, статус: ${isStreamer ? 'стример' : 'зритель'}`);
+            console.log(`Условие followersCount >= 150: ${followersCount} >= 150 = ${followersCount >= 150}`);
             
             // Формируем данные профиля
             const profileData = {
@@ -184,7 +199,8 @@ export default function Profile() {
               // Принудительно устанавливаем статус стримера, если количество подписчиков >= 150
               const followersCount = localStorageUserData.followersCount || 0;
               const isStreamer = followersCount >= 150;
-              console.log(`Проверка статуса стримера: ${followersCount} подписчиков, статус: ${isStreamer ? 'стример' : 'зритель'}`);
+              console.log(`Проверка статуса стримера из localStorage: ${followersCount} подписчиков, статус: ${isStreamer ? 'стример' : 'зритель'}`);
+              console.log(`Условие followersCount >= 150: ${followersCount} >= 150 = ${followersCount >= 150}`);
               
               setProfileData({
                 twitchName: localStorageUserData.display_name || 'Unknown User',
@@ -268,6 +284,24 @@ export default function Profile() {
 
   useEffect(() => {
     loadUserData();
+    
+    // Проверяем данные в localStorage
+    if (typeof window !== 'undefined') {
+      try {
+        const storedUserData = localStorage.getItem('twitch_user');
+        if (storedUserData) {
+          const userData = JSON.parse(storedUserData);
+          console.log('Данные пользователя в localStorage при загрузке страницы:', userData);
+          console.log('Статус стримера в localStorage:', userData.isStreamer);
+          console.log('Количество подписчиков в localStorage:', userData.followersCount);
+          console.log('Условие followersCount >= 150:', userData.followersCount >= 150);
+        } else {
+          console.log('Данные пользователя в localStorage отсутствуют');
+        }
+      } catch (e) {
+        console.error('Ошибка при чтении данных из localStorage:', e);
+      }
+    }
   }, [router]);
 
   useEffect(() => {
@@ -408,6 +442,15 @@ export default function Profile() {
     );
   }
 
+  // ВРЕМЕННОЕ РЕШЕНИЕ: Проверяем и исправляем статус стримера перед отображением
+  if (profileData.followersCount >= 150 && !profileData.isStreamer) {
+    console.log('ИСПРАВЛЕНИЕ при отображении: Обнаружено 150+ подписчиков, но статус не стример. Исправляем...');
+    profileData.isStreamer = true;
+    // Также обновляем в localStorage
+    localStorage.setItem('twitch_user', JSON.stringify(profileData));
+    console.log('Статус стримера принудительно установлен перед отображением');
+  }
+
   return (
     <div className={styles.profileContainer}>
       <CookieChecker />
@@ -422,6 +465,11 @@ export default function Profile() {
         />
         <div className={styles.profileInfo}>
           <h1>{profileData.twitchName}</h1>
+          {console.log('Отображение статуса стримера:', {
+            isStreamer: profileData.isStreamer,
+            followersCount: profileData.followersCount,
+            condition: profileData.followersCount >= 150
+          })}
           <p>Статус: {profileData.isStreamer ? 'Стример' : 'Зритель'} (Подписчиков: {profileData.followersCount})</p>
           {socialLinks.description && (
             <div className={styles.description}>

@@ -1,6 +1,7 @@
 import React, { useEffect } from 'react';
 import '../styles/global.css'; // Относительный путь от pages/ к корню проекта
 import CookieChecker from '../components/CookieChecker';
+import ThemeProvider from '../components/ThemeProvider';
 import { useRouter } from 'next/router';
 
 export default function MyApp({ Component, pageProps }) {
@@ -51,9 +52,9 @@ export default function MyApp({ Component, pageProps }) {
   }, [router]);
 
   return (
-    <>
+    <ThemeProvider>
       <Component {...pageProps} />
       <CookieChecker />
-    </>
+    </ThemeProvider>
   );
 } 

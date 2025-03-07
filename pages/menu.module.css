@@ -51,13 +51,14 @@
   border-radius: 10px;
   padding: 20px;
   cursor: pointer;
-  transition: transform 0.3s, box-shadow 0.3s;
+  transition: transform 0.3s, box-shadow 0.3s, background-color 0.3s;
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
 }
 
 .menuItem:hover {
   transform: translateY(-5px);
   box-shadow: 0 10px 15px rgba(0, 0, 0, 0.1);
+  background-color: rgba(123, 65, 201, 0.2);
 }
 
 .menuIcon {
@@ -67,6 +68,8 @@
   align-items: center;
   justify-content: center;
   min-width: 60px;
+  border-radius: 50%;
+  transition: all 0.3s ease;
 }
 
 .menuContent {
@@ -165,7 +168,7 @@
 
 .menuItem:hover .menuIcon {
   animation: pulse 1s infinite;
-  background-color: #9146FF;
+  color: #9146FF;
 }
 
 /* Адаптивность для мобильных устройств */
