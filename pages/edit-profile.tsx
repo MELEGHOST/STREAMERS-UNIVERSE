@@ -29,7 +29,7 @@ export default function EditProfile() {
     const fetchSocialLinks = async () => {
       try {
         // Сначала пробуем новый API-эндпоинт в директории app
-        let response = await fetch('/api/socials', {
+        let response = await fetch('/api/user-socials', {
           method: 'GET',
           credentials: 'include',
           headers: {
@@ -75,7 +75,7 @@ export default function EditProfile() {
     e.preventDefault();
     try {
       // Сначала пробуем новый API-эндпоинт в директории app
-      let response = await fetch('/api/socials', {
+      let response = await fetch('/api/user-socials', {
         method: 'POST',
         credentials: 'include',
         headers: {

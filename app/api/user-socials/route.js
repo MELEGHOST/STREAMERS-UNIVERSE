@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { Pool } from '@vercel/postgres';
 
+// API-эндпоинт с путем /api/user-socials
 export async function GET(request) {
   try {
     // Получаем токен доступа из cookies
