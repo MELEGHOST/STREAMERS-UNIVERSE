@@ -1,6 +1,6 @@
-"use client";
+'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/router';
 import Cookies from 'js-cookie';
 import { getCookie, hasCookie, getCookieWithLocalStorage, setCookieWithLocalStorage } from '../utils/cookies';
@@ -8,8 +8,8 @@ import styles from './auth.module.css';
 
 export default function Auth() {
   const router = useRouter();
-  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const pressStartRef = useRef<number | null>(null);
+  const timeoutRef = useRef(null);
+  const pressStartRef = useRef(null);
   const [errorMessage, setErrorMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
@@ -80,7 +80,7 @@ export default function Auth() {
     }
   }, [router, router.query]);
 
-  const handleLoginPress = (e: React.MouseEvent<HTMLButtonElement> | React.TouchEvent<HTMLButtonElement>) => {
+  const handleLoginPress = (e) => {
     e.preventDefault();
     console.log('Button pressed at:', new Date().toISOString());
     pressStartRef.current = Date.now();
@@ -89,7 +89,7 @@ export default function Auth() {
     }, 1420); // 1.42 секунды
   };
 
-  const handleLoginRelease = (e: React.MouseEvent<HTMLButtonElement> | React.TouchEvent<HTMLButtonElement>) => {
+  const handleLoginRelease = (e) => {
     e.preventDefault();
     console.log('Button released at:', new Date().toISOString());
     const pressDuration = pressStartRef.current ? Date.now() - pressStartRef.current : 0;
@@ -146,7 +146,7 @@ export default function Auth() {
             className={styles.logo} 
             src="/logo.png" 
             alt="Streamers Universe Logo" 
-            onError={(e: React.SyntheticEvent<HTMLImageElement>) => {
+            onError={(e) => {
               console.error('Не удалось загрузить логотип, использую плейсхолдер');
               e.currentTarget.src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="200" height="200" viewBox="0 0 200 200"%3E%3Crect width="200" height="200" fill="%237B41C9"%3E%3C/rect%3E%3Ctext x="100" y="100" font-family="Arial" font-size="24" text-anchor="middle" fill="white"%3EStreamers Universe%3C/text%3E%3C/svg%3E';
             }}
@@ -209,4 +209,4 @@ export default function Auth() {
       </div>
     </div>
   );
-}
+} 
