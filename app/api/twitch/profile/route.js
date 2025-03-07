@@ -186,28 +186,72 @@ export async function GET(request) {
       const user = userResponse.data.data[0];
       const userId = user.id;
       const twitchName = user.display_name;
+      const login = user.login;
       const profileImageUrl = user.profile_image_url;
+      const email = user.email;
+      const description = user.description;
 
-      console.log('Profile API - Данные пользователя получены:', { userId, twitchName });
+      console.log('Profile API - Данные пользователя получены:', { userId, twitchName, login });
 
-      // Получаем подписчиков (с ограничением для производительности)
+      // Получаем подписчиков (с пагинацией для получения большего количества)
       let followers = [];
       let totalFollowersCount = 0;
 
       try {
         console.log(`Profile API - Запрос подписчиков...`);
         
-        const followersResponse = await axios.get(`https://api.twitch.tv/helix/users/follows?to_id=${userId}`, {
-          headers: {
-            'Client-ID': process.env.NEXT_PUBLIC_TWITCH_CLIENT_ID,
-            'Authorization': `Bearer ${accessToken}`,
-          },
-        });
-
-        totalFollowersCount = followersResponse.data.total || 0;
-        followers = followersResponse.data.data ? followersResponse.data.data.map((f) => f.from_name) : [];
-
-        console.log(`Profile API - Получено ${followers.length} подписчиков из ${totalFollowersCount}`);
+        // Получаем первую страницу подписчиков
+        let cursor = null;
+        let hasMorePages = true;
+        const maxPages = 3; // Ограничиваем количество страниц для производительности
+        let currentPage = 0;
+        
+        while (hasMorePages && currentPage < maxPages) {
+          const queryParams = new URLSearchParams({
+            to_id: userId,
+            first: 100 // Максимальное количество на страницу
+          });
+          
+          if (cursor) {
+            queryParams.append('after', cursor);
+          }
+          
+          const followersResponse = await axios.get(
+            `https://api.twitch.tv/helix/users/follows?${queryParams.toString()}`, 
+            {
+              headers: {
+                'Client-ID': process.env.NEXT_PUBLIC_TWITCH_CLIENT_ID,
+                'Authorization': `Bearer ${accessToken}`,
+              },
+            }
+          );
+          
+          if (!followersResponse.data.data || followersResponse.data.data.length === 0) {
+            break;
+          }
+          
+          // Получаем общее количество подписчиков
+          totalFollowersCount = followersResponse.data.total || 0;
+          
+          // Добавляем полученных подписчиков в общий массив
+          const pageFollowers = followersResponse.data.data.map(f => ({
+            from_id: f.from_id,
+            from_name: f.from_name,
+            from_login: f.from_login,
+            followed_at: f.followed_at
+          }));
+          
+          followers = [...followers, ...pageFollowers];
+          
+          // Проверяем, есть ли еще страницы
+          cursor = followersResponse.data.pagination?.cursor;
+          hasMorePages = !!cursor;
+          currentPage++;
+          
+          console.log(`Profile API - Получено ${pageFollowers.length} подписчиков на странице ${currentPage}`);
+        }
+        
+        console.log(`Profile API - Всего получено ${followers.length} подписчиков из ${totalFollowersCount}`);
       } catch (err) {
         console.error('Error fetching followers:', err.message);
         // Если произошла ошибка, устанавливаем пустой массив и 0 подписчиков
@@ -215,24 +259,65 @@ export async function GET(request) {
         totalFollowersCount = 0;
       }
 
-      // Получаем подписки пользователя (с ограничением для производительности)
+      // Получаем подписки пользователя (с пагинацией для получения большего количества)
       let followings = [];
       let totalFollowingsCount = 0;
 
       try {
         console.log(`Profile API - Запрос подписок...`);
         
-        const followingsResponse = await axios.get(`https://api.twitch.tv/helix/users/follows?from_id=${userId}`, {
-          headers: {
-            'Client-ID': process.env.NEXT_PUBLIC_TWITCH_CLIENT_ID,
-            'Authorization': `Bearer ${accessToken}`,
-          },
-        });
-
-        totalFollowingsCount = followingsResponse.data.total || 0;
-        followings = followingsResponse.data.data ? followingsResponse.data.data.map((f) => f.to_name) : [];
-
-        console.log(`Profile API - Получено ${followings.length} подписок из ${totalFollowingsCount}`);
+        // Получаем первую страницу подписок
+        let cursor = null;
+        let hasMorePages = true;
+        const maxPages = 3; // Ограничиваем количество страниц для производительности
+        let currentPage = 0;
+        
+        while (hasMorePages && currentPage < maxPages) {
+          const queryParams = new URLSearchParams({
+            from_id: userId,
+            first: 100 // Максимальное количество на страницу
+          });
+          
+          if (cursor) {
+            queryParams.append('after', cursor);
+          }
+          
+          const followingsResponse = await axios.get(
+            `https://api.twitch.tv/helix/users/follows?${queryParams.toString()}`, 
+            {
+              headers: {
+                'Client-ID': process.env.NEXT_PUBLIC_TWITCH_CLIENT_ID,
+                'Authorization': `Bearer ${accessToken}`,
+              },
+            }
+          );
+          
+          if (!followingsResponse.data.data || followingsResponse.data.data.length === 0) {
+            break;
+          }
+          
+          // Получаем общее количество подписок
+          totalFollowingsCount = followingsResponse.data.total || 0;
+          
+          // Добавляем полученные подписки в общий массив
+          const pageFollowings = followingsResponse.data.data.map(f => ({
+            to_id: f.to_id,
+            to_name: f.to_name,
+            to_login: f.to_login,
+            followed_at: f.followed_at
+          }));
+          
+          followings = [...followings, ...pageFollowings];
+          
+          // Проверяем, есть ли еще страницы
+          cursor = followingsResponse.data.pagination?.cursor;
+          hasMorePages = !!cursor;
+          currentPage++;
+          
+          console.log(`Profile API - Получено ${pageFollowings.length} подписок на странице ${currentPage}`);
+        }
+        
+        console.log(`Profile API - Всего получено ${followings.length} подписок из ${totalFollowingsCount}`);
       } catch (err) {
         console.error('Error fetching followings:', err.message);
         // Если произошла ошибка, устанавливаем пустой массив и 0 подписок
@@ -247,18 +332,33 @@ export async function GET(request) {
 
       // Формируем данные профиля
       const profileData = {
+        id: userId,
+        login: login,
         twitchName,
         followersCount: totalFollowersCount || followers.length,
-        followers,
+        followers: followers.map(f => ({
+          id: f.from_id,
+          name: f.from_name,
+          login: f.from_login,
+          followedAt: f.followed_at
+        })),
         followingsCount: totalFollowingsCount || followings.length,
-        followings,
-        id: userId,
+        followings: followings.map(f => ({
+          id: f.to_id,
+          name: f.to_name,
+          login: f.to_login,
+          followedAt: f.followed_at
+        })),
         profileImageUrl,
+        email: email || '',
+        description: description || '',
         isStreamer, // Добавляем статус стримера в данные профиля
       };
 
       // Логируем подробную информацию о данных профиля
       console.log('Возвращаемые данные профиля:', { 
+        id: userId,
+        login,
         twitchName,
         followersCount: totalFollowersCount,
         followersData: followers.length > 0 ? `${followers.length} подписчиков загружено` : 'нет данных',
@@ -270,14 +370,16 @@ export async function GET(request) {
       // Обновляем куку с данными пользователя
       const userDataForCookie = {
         id: userId,
-        login: user.login,
+        login: login,
         display_name: twitchName,
         profile_image_url: profileImageUrl,
       };
       
       const response = NextResponse.json(sanitizeObject(profileData));
       
-      response.cookies.set('twitch_user', JSON.stringify(userDataForCookie), {
+      // Устанавливаем куку с данными пользователя
+      const userDataString = JSON.stringify(userDataForCookie);
+      response.cookies.set('twitch_user', userDataString, {
         path: '/',
         httpOnly: false, // Нужен доступ из JavaScript
         secure: process.env.NODE_ENV === 'production',
@@ -285,9 +387,75 @@ export async function GET(request) {
         maxAge: 60 * 60 * 24 * 7, // 7 дней
       });
       
-      console.log('Profile API - Обновлена кука с данными пользователя');
-
-      return response;
+      // Добавляем скрипт для сохранения данных в localStorage
+      const script = `
+        <script>
+          try {
+            localStorage.setItem('twitch_user', '${userDataString.replace(/'/g, "\\'")}');
+            localStorage.setItem('cookie_twitch_user', '${userDataString.replace(/'/g, "\\'")}');
+            console.log('Данные пользователя сохранены в localStorage');
+          } catch (e) {
+            console.error('Ошибка при сохранении данных в localStorage:', e);
+          }
+        </script>
+      `;
+      
+      // Проверяем, является ли запрос AJAX или обычным запросом страницы
+      const isAjaxRequest = request.headers.get('X-Requested-With') === 'XMLHttpRequest' || 
+                           request.headers.get('Accept')?.includes('application/json');
+      
+      if (isAjaxRequest) {
+        // Для AJAX-запросов возвращаем JSON
+        console.log('Profile API - Возвращаем JSON-ответ для AJAX-запроса');
+        return response;
+      } else {
+        // Для обычных запросов возвращаем HTML с данными и скриптом
+        console.log('Profile API - Возвращаем HTML-ответ со скриптом для сохранения данных');
+        
+        const htmlResponse = new NextResponse(
+          `<!DOCTYPE html>
+          <html>
+          <head>
+            <title>Профиль пользователя</title>
+            <meta charset="utf-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1">
+            <style>
+              body { font-family: Arial, sans-serif; padding: 20px; line-height: 1.6; text-align: center; }
+              .success-container { max-width: 600px; margin: 0 auto; background: #d4edda; border: 1px solid #c3e6cb; padding: 20px; border-radius: 5px; }
+              h1 { color: #155724; }
+              .loader { border: 5px solid #f3f3f3; border-top: 5px solid #3498db; border-radius: 50%; width: 50px; height: 50px; animation: spin 2s linear infinite; margin: 20px auto; }
+              @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+            </style>
+          </head>
+          <body>
+            <div class="success-container">
+              <h1>Данные профиля получены!</h1>
+              <p>Перенаправление на главную страницу...</p>
+              <div class="loader"></div>
+            </div>
+            ${script}
+            <script>
+              setTimeout(() => {
+                window.location.href = '/menu';
+              }, 1000);
+            </script>
+          </body>
+          </html>`,
+          {
+            status: 200,
+            headers: {
+              'Content-Type': 'text/html; charset=utf-8',
+            },
+          }
+        );
+        
+        // Копируем куки из JSON-ответа в HTML-ответ
+        response.cookies.getAll().forEach(cookie => {
+          htmlResponse.cookies.set(cookie.name, cookie.value, cookie);
+        });
+        
+        return htmlResponse;
+      }
     } catch (apiError) {
       console.error('Ошибка при запросе к Twitch API:', apiError.message);
       

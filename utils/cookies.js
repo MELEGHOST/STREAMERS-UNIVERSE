@@ -256,4 +256,64 @@ export const refreshToken = async (refreshTokenValue) => {
     console.error('Ошибка при обновлении токена:', error);
     return null;
   }
+};
+
+// Функция для получения данных пользователя из разных источников
+export const getUserData = () => {
+  try {
+    let userData = null;
+    
+    // Проверяем куки
+    const userCookie = getCookie('twitch_user');
+    if (userCookie) {
+      try {
+        userData = JSON.parse(userCookie);
+        console.log('Данные пользователя получены из куки');
+      } catch (e) {
+        console.error('Ошибка при парсинге данных пользователя из куки:', e);
+      }
+    }
+    
+    // Если нет в куках, проверяем localStorage
+    if (!userData && typeof window !== 'undefined') {
+      const userLocalStorage = localStorage.getItem('twitch_user') || localStorage.getItem('cookie_twitch_user');
+      if (userLocalStorage) {
+        try {
+          userData = JSON.parse(userLocalStorage);
+          console.log('Данные пользователя получены из localStorage');
+          
+          // Восстанавливаем куку
+          if (userData) {
+            setCookie('twitch_user', JSON.stringify(userData), {
+              path: '/',
+              secure: window.location.protocol === 'https:',
+              sameSite: 'lax',
+              maxAge: 60 * 60 * 24 * 7 // 7 дней
+            });
+            console.log('Восстановлена кука с данными пользователя из localStorage');
+          }
+        } catch (e) {
+          console.error('Ошибка при парсинге данных пользователя из localStorage:', e);
+        }
+      }
+    }
+    
+    return userData;
+  } catch (error) {
+    console.error('Ошибка при получении данных пользователя:', error);
+    return null;
+  }
+};
+
+// Функция для проверки авторизации пользователя
+export const isAuthenticated = () => {
+  try {
+    const accessToken = getCookieWithLocalStorage('twitch_access_token');
+    const userData = getUserData();
+    
+    return !!(accessToken && userData);
+  } catch (error) {
+    console.error('Ошибка при проверке авторизации:', error);
+    return false;
+  }
 }; 

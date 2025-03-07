@@ -84,21 +84,25 @@ export function middleware(request) {
     const hasAuthHeader = request.headers.has('Authorization');
     const authHeader = request.headers.get('Authorization');
     
+    // Проверяем наличие токена в localStorage через куки
+    const hasLocalStorageToken = cookies.has('has_local_storage_token');
+    
     console.log('Middleware: проверка авторизации:', {
       twitch_access_token: hasTwitchAccessToken ? 'присутствует' : 'отсутствует',
       twitch_user: hasTwitchUser ? 'присутствует' : 'отсутствует',
       authorization_header: hasAuthHeader ? 'присутствует' : 'отсутствует',
       auth_header_value: authHeader ? authHeader.substring(0, 15) + '...' : 'отсутствует',
+      has_local_storage_token: hasLocalStorageToken ? 'присутствует' : 'отсутствует',
       domain: request.headers.get('host'),
       protocol: request.headers.get('x-forwarded-proto') || 'http'
     });
     
-    // Если это запрос к API профиля и нет токена доступа, проверяем заголовок Authorization
+    // Если это запрос к API профиля
     if (pathname === '/api/twitch/profile') {
       console.log('Middleware: обработка запроса к API профиля');
       
       // Если нет ни куки, ни заголовка, перенаправляем на страницу авторизации
-      if (!hasTwitchAccessToken && !hasAuthHeader) {
+      if (!hasTwitchAccessToken && !hasAuthHeader && !hasLocalStorageToken) {
         console.log('Middleware: отсутствует токен доступа и заголовок Authorization, перенаправление на /auth');
         return NextResponse.redirect(new URL('/auth?clear_auth=true', request.url));
       }
@@ -113,7 +117,26 @@ export function middleware(request) {
           
           // Добавляем токен в заголовок ответа для безопасной обработки на клиенте
           response.headers.set('X-Auth-Token', token);
+          
+          // Устанавливаем куку для отслеживания наличия токена
+          response.cookies.set('has_auth_header', 'true', {
+            path: '/',
+            httpOnly: true,
+            secure: process.env.NODE_ENV === 'production',
+            sameSite: 'lax',
+            maxAge: 60 * 60 * 24 // 1 день
+          });
         }
+      }
+      
+      // Добавляем заголовок для указания типа запроса (AJAX или обычный)
+      const isAjaxRequest = request.headers.get('X-Requested-With') === 'XMLHttpRequest' || 
+                           request.headers.get('Accept')?.includes('application/json');
+      
+      if (isAjaxRequest) {
+        response.headers.set('X-Request-Type', 'ajax');
+      } else {
+        response.headers.set('X-Request-Type', 'regular');
       }
     }
   }

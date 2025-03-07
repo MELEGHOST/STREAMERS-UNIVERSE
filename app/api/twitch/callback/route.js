@@ -185,7 +185,10 @@ export async function GET(request) {
       profile_image_url: user.profile_image_url,
     };
     
-    response.cookies.set('twitch_user', JSON.stringify(userDataForCookie), {
+    // Сохраняем данные пользователя в куки и localStorage для надежности
+    const userDataString = JSON.stringify(userDataForCookie);
+    
+    response.cookies.set('twitch_user', userDataString, {
       path: '/',
       httpOnly: false, // Нужен доступ из JavaScript
       secure: process.env.NODE_ENV === 'production',
@@ -193,12 +196,61 @@ export async function GET(request) {
       maxAge: 60 * 60 * 24 * 7, // 7 дней
     });
     
+    // Добавляем скрипт для сохранения данных в localStorage
+    const script = `
+      <script>
+        try {
+          localStorage.setItem('twitch_user', '${userDataString.replace(/'/g, "\\'")}');
+          localStorage.setItem('cookie_twitch_user', '${userDataString.replace(/'/g, "\\'")}');
+          localStorage.setItem('cookie_twitch_access_token', '${accessToken}');
+          ${refreshToken ? `localStorage.setItem('cookie_twitch_refresh_token', '${refreshToken}');` : ''}
+          console.log('Данные пользователя и токены сохранены в localStorage');
+        } catch (e) {
+          console.error('Ошибка при сохранении данных в localStorage:', e);
+        }
+        window.location.href = '/menu';
+      </script>
+    `;
+    
+    // Создаем HTML-ответ с редиректом и скриптом для сохранения данных
+    const htmlResponse = new NextResponse(
+      `<!DOCTYPE html>
+      <html>
+      <head>
+        <title>Авторизация успешна</title>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <style>
+          body { font-family: Arial, sans-serif; padding: 20px; line-height: 1.6; text-align: center; }
+          .success-container { max-width: 600px; margin: 0 auto; background: #d4edda; border: 1px solid #c3e6cb; padding: 20px; border-radius: 5px; }
+          h1 { color: #155724; }
+          .loader { border: 5px solid #f3f3f3; border-top: 5px solid #3498db; border-radius: 50%; width: 50px; height: 50px; animation: spin 2s linear infinite; margin: 20px auto; }
+          @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        </style>
+      </head>
+      <body>
+        <div class="success-container">
+          <h1>Авторизация успешна!</h1>
+          <p>Перенаправление на главную страницу...</p>
+          <div class="loader"></div>
+        </div>
+        ${script}
+      </body>
+      </html>`,
+      {
+        status: 200,
+        headers: {
+          'Content-Type': 'text/html; charset=utf-8',
+        },
+      }
+    );
+    
     // Удаляем состояние CSRF после использования
-    response.cookies.delete('twitch_auth_state');
+    htmlResponse.cookies.delete('twitch_auth_state');
     
-    console.log('Авторизация успешно завершена, перенаправление на /menu');
+    console.log('Авторизация успешно завершена, отправка HTML-ответа с редиректом');
     
-    return response;
+    return htmlResponse;
   } catch (error) {
     console.error('Ошибка при обработке callback от Twitch:', error);
     return NextResponse.redirect(new URL(`/auth?error=server_error&message=${encodeURIComponent(error.message || 'Внутренняя ошибка сервера')}`, request.url));

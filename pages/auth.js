@@ -59,7 +59,44 @@ export default function Auth() {
       
       // Проверяем, авторизован ли пользователь уже
       const accessToken = getCookieWithLocalStorage('twitch_access_token');
-      const userData = getCookieWithLocalStorage('twitch_user');
+      
+      // Пытаемся получить данные пользователя из разных источников
+      let userData = null;
+      
+      // Проверяем куки
+      const userCookie = getCookie('twitch_user');
+      if (userCookie) {
+        try {
+          userData = JSON.parse(userCookie);
+          console.log('Данные пользователя получены из куки');
+        } catch (e) {
+          console.error('Ошибка при парсинге данных пользователя из куки:', e);
+        }
+      }
+      
+      // Если нет в куках, проверяем localStorage
+      if (!userData) {
+        const userLocalStorage = localStorage.getItem('twitch_user') || localStorage.getItem('cookie_twitch_user');
+        if (userLocalStorage) {
+          try {
+            userData = JSON.parse(userLocalStorage);
+            console.log('Данные пользователя получены из localStorage');
+            
+            // Восстанавливаем куку
+            if (userData) {
+              Cookies.set('twitch_user', JSON.stringify(userData), {
+                path: '/',
+                secure: window.location.protocol === 'https:',
+                sameSite: 'lax',
+                maxAge: 60 * 60 * 24 * 7 // 7 дней
+              });
+              console.log('Восстановлена кука с данными пользователя из localStorage');
+            }
+          } catch (e) {
+            console.error('Ошибка при парсинге данных пользователя из localStorage:', e);
+          }
+        }
+      }
       
       if (accessToken && userData) {
         console.log('Обнаружен токен доступа и данные пользователя, перенаправление на /menu');
@@ -70,6 +107,10 @@ export default function Auth() {
           
           // Также сохраняем токен в localStorage для надежности
           localStorage.setItem('cookie_twitch_access_token', accessToken);
+          
+          // Сохраняем данные пользователя в localStorage
+          localStorage.setItem('twitch_user', JSON.stringify(userData));
+          localStorage.setItem('cookie_twitch_user', JSON.stringify(userData));
         }
         
         // Добавляем плавный переход перед редиректом
@@ -90,6 +131,7 @@ export default function Auth() {
       } else if (accessToken && !userData) {
         // Есть токен, но нет данных пользователя - пробуем получить данные
         console.log('Обнаружен токен доступа, но нет данных пользователя. Пробуем получить данные профиля.');
+        setIsLoading(true);
         
         fetch('/api/twitch/profile', {
           headers: {
@@ -103,7 +145,28 @@ export default function Auth() {
           throw new Error('Не удалось получить данные профиля');
         })
         .then(data => {
-          console.log('Данные профиля получены, перенаправление на /menu');
+          console.log('Данные профиля получены:', data);
+          
+          // Создаем объект с данными пользователя
+          const userDataObj = {
+            id: data.id,
+            login: data.login || data.twitchName.toLowerCase(),
+            display_name: data.twitchName,
+            profile_image_url: data.profileImageUrl
+          };
+          
+          // Сохраняем данные пользователя в куки и localStorage
+          Cookies.set('twitch_user', JSON.stringify(userDataObj), {
+            path: '/',
+            secure: window.location.protocol === 'https:',
+            sameSite: 'lax',
+            maxAge: 60 * 60 * 24 * 7 // 7 дней
+          });
+          
+          localStorage.setItem('twitch_user', JSON.stringify(userDataObj));
+          localStorage.setItem('cookie_twitch_user', JSON.stringify(userDataObj));
+          
+          console.log('Данные пользователя сохранены, перенаправление на /menu');
           
           // Сохраняем текущий домен перед редиректом
           if (typeof window !== 'undefined') {
@@ -134,6 +197,7 @@ export default function Auth() {
           localStorage.removeItem('cookie_twitch_refresh_token');
           
           setErrorMessage('Данные пользователя не найдены. Пожалуйста, авторизуйтесь снова.');
+          setIsLoading(false);
         });
       }
     };
@@ -200,6 +264,15 @@ export default function Auth() {
     
     setIsLoading(true);
     console.log('Начинаем авторизацию через Twitch...');
+    
+    // Очищаем все куки и localStorage перед авторизацией
+    Cookies.remove('twitch_access_token');
+    Cookies.remove('twitch_refresh_token');
+    Cookies.remove('twitch_user');
+    localStorage.removeItem('twitch_user');
+    localStorage.removeItem('cookie_twitch_access_token');
+    localStorage.removeItem('cookie_twitch_refresh_token');
+    localStorage.removeItem('cookie_twitch_user');
     
     // Сохраняем текущий домен перед редиректом
     if (typeof window !== 'undefined') {
