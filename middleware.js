@@ -12,7 +12,11 @@ export function middleware(request) {
   
   // Добавляем заголовки для разрешения куков
   response.headers.set('Access-Control-Allow-Credentials', 'true');
-  response.headers.set('Access-Control-Allow-Origin', request.headers.get('origin') || '*');
+  
+  // Используем origin запроса или '*' если его нет
+  const origin = request.headers.get('origin');
+  response.headers.set('Access-Control-Allow-Origin', origin || '*');
+  
   response.headers.set('Access-Control-Allow-Methods', 'GET,OPTIONS,PATCH,DELETE,POST,PUT');
   response.headers.set('Access-Control-Allow-Headers', 'X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version');
   
@@ -24,6 +28,16 @@ export function middleware(request) {
     if (request.method === 'OPTIONS') {
       return response;
     }
+    
+    // Проверяем наличие куков для отладки
+    const cookies = request.cookies;
+    const hasTwitchAccessToken = cookies.has('twitch_access_token');
+    const hasTwitchUser = cookies.has('twitch_user');
+    
+    console.log('Middleware: проверка куков:', {
+      twitch_access_token: hasTwitchAccessToken ? 'присутствует' : 'отсутствует',
+      twitch_user: hasTwitchUser ? 'присутствует' : 'отсутствует'
+    });
   }
   
   return response;

@@ -5,13 +5,32 @@ export const setCookie = (name, value, options = {}) => {
   try {
     const defaultOptions = {
       path: '/',
-      secure: false, // Для локальной разработки
+      secure: window.location.protocol === 'https:', // Автоматически определяем по протоколу
       sameSite: 'lax',
     };
     
     const cookieOptions = { ...defaultOptions, ...options };
     Cookies.set(name, value, cookieOptions);
     console.log(`Кука ${name} успешно установлена`);
+    
+    // Проверяем, установилась ли кука
+    const cookieExists = Cookies.get(name);
+    if (!cookieExists) {
+      console.warn(`Кука ${name} не была установлена, пробуем альтернативный метод`);
+      // Пробуем установить через document.cookie
+      try {
+        const expires = cookieOptions.expires ? `; expires=${cookieOptions.expires}` : '';
+        const maxAge = cookieOptions.maxAge ? `; max-age=${cookieOptions.maxAge}` : '';
+        const secure = cookieOptions.secure ? '; secure' : '';
+        const sameSite = cookieOptions.sameSite ? `; samesite=${cookieOptions.sameSite}` : '';
+        
+        document.cookie = `${name}=${encodeURIComponent(value)}; path=${cookieOptions.path}${expires}${maxAge}${secure}${sameSite}`;
+        console.log(`Кука ${name} установлена через document.cookie`);
+      } catch (docCookieError) {
+        console.error(`Ошибка при установке куки ${name} через document.cookie:`, docCookieError);
+      }
+    }
+    
     return true;
   } catch (error) {
     console.error(`Ошибка при установке куки ${name}:`, error);
@@ -22,7 +41,21 @@ export const setCookie = (name, value, options = {}) => {
 // Функция для получения куки
 export const getCookie = (name) => {
   try {
-    const value = Cookies.get(name);
+    // Сначала пробуем через js-cookie
+    let value = Cookies.get(name);
+    
+    // Если не получилось, пробуем через document.cookie
+    if (!value && typeof document !== 'undefined') {
+      const cookies = document.cookie.split(';');
+      for (let i = 0; i < cookies.length; i++) {
+        const cookie = cookies[i].trim();
+        if (cookie.startsWith(name + '=')) {
+          value = decodeURIComponent(cookie.substring(name.length + 1));
+          break;
+        }
+      }
+    }
+    
     console.log(`Получение куки ${name}:`, value ? 'найдена' : 'не найдена');
     return value;
   } catch (error) {
@@ -97,9 +130,25 @@ export const getCookieWithLocalStorage = (name) => {
     
     // Если куки нет, пытаемся получить из localStorage
     if (!cookieValue && typeof window !== 'undefined') {
-      const localStorageValue = localStorage.getItem(`cookie_${name}`);
+      // Сначала проверяем прямое соответствие в localStorage
+      let localStorageValue = localStorage.getItem(name);
+      
+      // Если не нашли, проверяем с префиксом cookie_
+      if (!localStorageValue) {
+        localStorageValue = localStorage.getItem(`cookie_${name}`);
+      }
+      
       if (localStorageValue) {
         console.log(`Данные ${name} получены из localStorage`);
+        
+        // Если нашли в localStorage, пытаемся восстановить куку
+        try {
+          setCookie(name, localStorageValue);
+          console.log(`Восстановлена кука ${name} из localStorage`);
+        } catch (restoreError) {
+          console.error(`Ошибка при восстановлении куки ${name} из localStorage:`, restoreError);
+        }
+        
         return localStorageValue;
       }
     }

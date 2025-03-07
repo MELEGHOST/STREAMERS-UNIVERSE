@@ -123,14 +123,14 @@ export async function GET(request) {
     });
     
     // Сохраняем минимум данных пользователя в доступном для клиента cookie
-    const userInfo = {
+    const profileData = {
       id: user.id,
       login: user.login,
       display_name: user.display_name,
       profile_image_url: user.profile_image_url,
     };
     
-    response.cookies.set('twitch_user', JSON.stringify(userInfo), {
+    response.cookies.set('twitch_user', JSON.stringify(profileData), {
       httpOnly: false, // Доступно для JS на клиенте
       secure: false,
       sameSite: 'lax',
@@ -140,7 +140,7 @@ export async function GET(request) {
     
     // Также добавляем данные пользователя в URL для резервного варианта
     const redirectUrl = new URL(`${url.origin}/profile`);
-    redirectUrl.searchParams.set('user', JSON.stringify(userInfo));
+    redirectUrl.searchParams.set('user', JSON.stringify(profileData));
     
     // Удаляем временную cookie state
     response.cookies.delete('twitch_state');
@@ -152,9 +152,36 @@ export async function GET(request) {
     const script = `
       <script>
         try {
-          localStorage.setItem('twitch_user', '${JSON.stringify(userInfo).replace(/'/g, "\\'")}');
+          // Сохраняем данные пользователя
+          localStorage.setItem('twitch_user', '${JSON.stringify(profileData).replace(/'/g, "\\'")}');
+          
+          // Сохраняем токены как резервные копии
           localStorage.setItem('cookie_twitch_access_token', '${tokenData.access_token.replace(/'/g, "\\'")}');
+          localStorage.setItem('cookie_twitch_refresh_token', '${tokenData.refresh_token.replace(/'/g, "\\'")}');
+          localStorage.setItem('cookie_twitch_user', '${JSON.stringify(profileData).replace(/'/g, "\\'")}');
+          
           console.log('Данные пользователя сохранены в localStorage');
+          
+          // Добавляем проверку куков перед редиректом
+          const checkCookies = () => {
+            const hasCookie = document.cookie.split(';').some(item => item.trim().startsWith('twitch_user='));
+            console.log('Проверка наличия куки twitch_user:', hasCookie ? 'найдена' : 'не найдена');
+            return hasCookie;
+          };
+          
+          // Если куки не установлены, пытаемся установить их через JavaScript
+          if (!checkCookies()) {
+            console.log('Куки не обнаружены, пытаемся установить через JavaScript');
+            try {
+              document.cookie = "twitch_user=" + encodeURIComponent(JSON.stringify(profileData)) + 
+                "; path=/; max-age=" + ${tokenData.expires_in} + 
+                "; samesite=lax" + 
+                (window.location.protocol === 'https:' ? '; secure' : '');
+            } catch (e) {
+              console.error('Ошибка при установке куки через JavaScript:', e);
+            }
+          }
+          
           window.location.href = '${redirectUrl.toString()}';
         } catch (e) {
           console.error('Ошибка при сохранении данных в localStorage:', e);

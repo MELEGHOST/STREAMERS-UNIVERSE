@@ -5,6 +5,7 @@ import Cookies from 'js-cookie';
 import { getCookie, setCookie } from '../utils/cookies';
 import styles from './profile.module.css';
 import { useRouter } from 'next/router';
+import CookieChecker from '../components/CookieChecker';
 
 interface TwitchProfile {
   twitchName: string;
@@ -26,19 +27,32 @@ export default function Profile() {
   useEffect(() => {
     const checkAuthAndLoadProfile = async () => {
       if (typeof window !== 'undefined') {
-        const accessToken = getCookie('twitch_access_token');
+        // Проверяем наличие токена доступа в куках или localStorage
+        const accessToken = getCookie('twitch_access_token') || localStorage.getItem('cookie_twitch_access_token');
         const urlParams = new URLSearchParams(window.location.search);
         const userDataParam = urlParams.get('user');
 
         console.log('Проверка авторизации - accessToken:', accessToken ? 'присутствует' : 'отсутствует');
         console.log('Данные пользователя из URL:', userDataParam);
 
+        // Проверяем наличие данных пользователя в localStorage
+        let localStorageUserData = null;
+        try {
+          const storedUserData = localStorage.getItem('twitch_user');
+          if (storedUserData) {
+            localStorageUserData = JSON.parse(storedUserData);
+            console.log('Данные пользователя из localStorage:', localStorageUserData);
+          }
+        } catch (e) {
+          console.error('Ошибка при получении данных пользователя из localStorage:', e);
+        }
+
         // Parse user data from URL if available
         let userData: any = null;
         if (userDataParam) {
           try {
             userData = JSON.parse(decodeURIComponent(userDataParam));
-            console.log('Разобранные данные пользователя:', userData);
+            console.log('Разобранные данные пользователя из URL:', userData);
             
             // Всегда проверяем статус стримера на основе количества подписчиков
             // и устанавливаем правильное значение
@@ -46,39 +60,43 @@ export default function Profile() {
             userData.isStreamer = isStreamer;
             console.log(`Проверка статуса стримера: ${userData.followersCount} подписчиков, статус: ${isStreamer}`);
             
+            // Сохраняем данные в localStorage и куки
             localStorage.setItem('twitch_user', JSON.stringify(userData));
             setCookie('twitch_user', JSON.stringify(userData));
             
             // Remove parameters from URL
             window.history.replaceState({}, document.title, '/profile');
-            
-            // If we have user data from URL but no auth token, the user might need to be redirected
-            if (!accessToken) {
-              console.log('No access token but we have user data - using fallback data');
-              // Use userData as fallback
-              const profileImageUrl = userData.profileImageUrl ||
-                `https://static-cdn.jtvnw.net/jtv_user_pictures/${userData.id}-profile_image-300x300.jpg`;
-              
-              setProfileData({
-                twitchName: userData.name || 'Unknown User',
-                followersCount: userData.followersCount || 0,
-                followers: [],
-                followingsCount: 0,
-                followings: [],
-                profileImageUrl,
-                id: userData.id,
-                isStreamer: isStreamer // Используем корректно рассчитанное значение
-              });
-              setLoading(false);
-              return;
-            }
           } catch (e) {
-            console.error('Ошибка парсинга данных пользователя:', e);
+            console.error('Ошибка парсинга данных пользователя из URL:', e);
           }
         }
 
+        // Используем данные в порядке приоритета: URL > localStorage > куки
+        const finalUserData = userData || localStorageUserData;
+
+        // If we have user data but no auth token, the user might need to be redirected
+        if (finalUserData && !accessToken) {
+          console.log('No access token but we have user data - using fallback data');
+          // Use userData as fallback
+          const profileImageUrl = finalUserData.profileImageUrl ||
+            `https://static-cdn.jtvnw.net/jtv_user_pictures/${finalUserData.id}-profile_image-300x300.jpg`;
+          
+          setProfileData({
+            twitchName: finalUserData.twitchName || finalUserData.display_name || 'Unknown User',
+            followersCount: finalUserData.followersCount || 0,
+            followers: finalUserData.followers || [],
+            followingsCount: finalUserData.followingsCount || 0,
+            followings: finalUserData.followings || [],
+            profileImageUrl,
+            id: finalUserData.id,
+            isStreamer: finalUserData.isStreamer || false
+          });
+          setLoading(false);
+          return;
+        }
+
         // If no auth token and no user data, redirect to auth
-        if (!accessToken && !userData) {
+        if (!accessToken && !finalUserData) {
           console.log('No auth token and no user data, redirecting to auth');
           setError('Пожалуйста, войдите через Twitch.');
           setLoading(false);
@@ -203,16 +221,25 @@ export default function Profile() {
   };
 
   if (loading) {
-    return <div className={styles.loading}>Загрузка...</div>;
+    return (
+      <div className={styles.container}>
+        <CookieChecker />
+        <div className={styles.loading}>
+          <div className={styles.spinner}></div>
+          <p>Загрузка профиля...</p>
+        </div>
+      </div>
+    );
   }
 
   if (error && !profileData) {
     return (
-      <div className={styles.profileContainer}>
+      <div className={styles.container}>
+        <CookieChecker />
         <div className={styles.error}>
-          {error}
-          <button className={styles.button} onClick={() => router.push('/auth')}>
-            Перейти к входу
+          <p>{error}</p>
+          <button onClick={() => router.push('/auth')} className={styles.authButton}>
+            Войти через Twitch
           </button>
         </div>
       </div>
@@ -221,7 +248,8 @@ export default function Profile() {
 
   if (!profileData) {
     return (
-      <div className={styles.profileContainer}>
+      <div className={styles.container}>
+        <CookieChecker />
         <div className={styles.error}>
           Ошибка загрузки данных профиля.
           <button className={styles.button} onClick={() => window.location.reload()}>
@@ -233,7 +261,8 @@ export default function Profile() {
   }
 
   return (
-    <div className={styles.profileContainer}>
+    <div className={styles.container}>
+      <CookieChecker />
       <h1>Профиль Twitch</h1>
       {profileData.profileImageUrl && (
         <img src={profileData.profileImageUrl} alt={`${profileData.twitchName} аватарка`} className={styles.avatar} />
