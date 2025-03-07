@@ -3,6 +3,11 @@ import Cookies from 'js-cookie';
 // Функция для установки куки
 export const setCookie = (name, value, options = {}) => {
   try {
+    if (!value) {
+      console.warn(`Попытка установить пустое значение для куки ${name}`);
+      return false;
+    }
+    
     const defaultOptions = {
       path: '/',
       secure: window.location.protocol === 'https:', // Автоматически определяем по протоколу
@@ -12,6 +17,17 @@ export const setCookie = (name, value, options = {}) => {
     };
     
     const cookieOptions = { ...defaultOptions, ...options };
+    
+    // Логируем установку куки
+    console.log(`Установка куки ${name} с опциями:`, {
+      path: cookieOptions.path,
+      secure: cookieOptions.secure,
+      sameSite: cookieOptions.sameSite,
+      httpOnly: cookieOptions.httpOnly,
+      expires: cookieOptions.expires ? 'установлено' : 'не установлено',
+      maxAge: cookieOptions.maxAge || 'не установлено'
+    });
+    
     Cookies.set(name, value, cookieOptions);
     console.log(`Кука ${name} успешно установлена`);
     
@@ -50,22 +66,8 @@ export const setCookie = (name, value, options = {}) => {
 // Функция для получения куки
 export const getCookie = (name) => {
   try {
-    // Сначала пробуем через js-cookie
-    let value = Cookies.get(name);
-    
-    // Если не получилось, пробуем через document.cookie
-    if (!value && typeof document !== 'undefined') {
-      const cookies = document.cookie.split(';');
-      for (let i = 0; i < cookies.length; i++) {
-        const cookie = cookies[i].trim();
-        if (cookie.startsWith(name + '=')) {
-          value = decodeURIComponent(cookie.substring(name.length + 1));
-          break;
-        }
-      }
-    }
-    
-    console.log(`Получение куки ${name}:`, value ? 'найдена' : 'не найдена');
+    const value = Cookies.get(name);
+    console.log(`Получение куки ${name}:`, value ? 'присутствует' : 'отсутствует');
     return value;
   } catch (error) {
     console.error(`Ошибка при получении куки ${name}:`, error);
@@ -78,6 +80,12 @@ export const removeCookie = (name) => {
   try {
     Cookies.remove(name, { path: '/' });
     console.log(`Кука ${name} успешно удалена`);
+    
+    // Также удаляем из localStorage, если есть
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem(`cookie_${name}`);
+    }
+    
     return true;
   } catch (error) {
     console.error(`Ошибка при удалении куки ${name}:`, error);
@@ -89,7 +97,6 @@ export const removeCookie = (name) => {
 export const hasCookie = (name) => {
   try {
     const exists = !!Cookies.get(name);
-    console.log(`Проверка наличия куки ${name}:`, exists ? 'существует' : 'не существует');
     return exists;
   } catch (error) {
     console.error(`Ошибка при проверке наличия куки ${name}:`, error);
@@ -112,51 +119,52 @@ export const setClientCookiesFromServer = (userData) => {
   }
 };
 
-// Функция для установки куки с использованием localStorage в качестве резервного варианта
+// Функция для установки куки с резервным копированием в localStorage
 export const setCookieWithLocalStorage = (name, value, options = {}) => {
   try {
-    // Сначала пытаемся установить куку
+    // Устанавливаем куку
     const cookieSet = setCookie(name, value, options);
     
-    // Если не удалось установить куку, используем localStorage
-    if (!cookieSet && typeof window !== 'undefined') {
+    // Сохраняем в localStorage только нечувствительные данные
+    if (cookieSet && !name.includes('token') && !name.includes('access') && typeof window !== 'undefined') {
       localStorage.setItem(`cookie_${name}`, value);
-      console.log(`Данные ${name} сохранены в localStorage`);
+      console.log(`Резервная копия куки ${name} сохранена в localStorage`);
     }
     
-    return true;
+    return cookieSet;
   } catch (error) {
-    console.error(`Ошибка при установке куки/localStorage ${name}:`, error);
+    console.error(`Ошибка при установке куки ${name} с резервным копированием:`, error);
     return false;
   }
 };
 
-// Функция для получения куки с проверкой localStorage
+// Функция для получения куки с проверкой в localStorage
 export const getCookieWithLocalStorage = (name) => {
   try {
-    // Сначала пытаемся получить из куки
-    let cookieValue = Cookies.get(name);
+    // Пробуем получить из куки
+    let cookieValue = getCookie(name);
     
-    // Если не нашли в куках, пытаемся получить из localStorage
-    // Но только для нечувствительных данных (не токенов)
-    if (!cookieValue && !name.includes('token')) {
+    // Если не нашли в куках, пробуем получить из localStorage
+    if (!cookieValue && typeof window !== 'undefined') {
       cookieValue = localStorage.getItem(`cookie_${name}`);
+      
       if (cookieValue) {
-        console.log(`Значение для ${name} получено из localStorage`);
+        console.log(`Кука ${name} получена из localStorage`);
         
-        // Восстанавливаем куку
+        // Восстанавливаем куку из localStorage
         setCookie(name, cookieValue);
       }
     }
     
-    // Для токенов доступа не используем sessionStorage
+    // Если не нашли ни в куках, ни в localStorage, но это токен доступа,
+    // пробуем получить его из заголовка Authorization
     if (!cookieValue && name === 'twitch_access_token' && typeof window !== 'undefined') {
       // Проверяем, есть ли токен в sessionStorage (мог быть сохранен из заголовка)
       const sessionToken = sessionStorage.getItem('auth_header_token');
       if (sessionToken) {
         console.log('Токен доступа получен из sessionStorage (заголовок Authorization)');
         
-        // Восстанавливаем куку, но не localStorage
+        // Восстанавливаем куку и localStorage
         setCookie(name, sessionToken);
         
         return sessionToken;
@@ -166,6 +174,86 @@ export const getCookieWithLocalStorage = (name) => {
     return cookieValue;
   } catch (error) {
     console.error(`Ошибка при получении куки/localStorage ${name}:`, error);
+    return null;
+  }
+};
+
+// Функция для проверки валидности токена
+export const validateToken = async (token) => {
+  if (!token) return false;
+  
+  try {
+    const response = await fetch('https://id.twitch.tv/oauth2/validate', {
+      headers: {
+        'Authorization': `OAuth ${token}`
+      }
+    });
+    
+    return response.ok;
+  } catch (error) {
+    console.error('Ошибка при проверке токена:', error);
+    return false;
+  }
+};
+
+// Функция для обновления токена
+export const refreshToken = async (refreshTokenValue) => {
+  if (!refreshTokenValue) return null;
+  
+  try {
+    const clientId = process.env.NEXT_PUBLIC_TWITCH_CLIENT_ID;
+    const clientSecret = process.env.TWITCH_CLIENT_SECRET;
+    
+    if (!clientId || !clientSecret) {
+      console.error('Отсутствуют необходимые параметры для обновления токена');
+      return null;
+    }
+    
+    const response = await fetch('https://id.twitch.tv/oauth2/token', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded'
+      },
+      body: new URLSearchParams({
+        grant_type: 'refresh_token',
+        refresh_token: refreshTokenValue,
+        client_id: clientId,
+        client_secret: clientSecret
+      }).toString()
+    });
+    
+    if (!response.ok) {
+      throw new Error(`Ошибка обновления токена: ${response.status}`);
+    }
+    
+    const data = await response.json();
+    
+    if (data.access_token) {
+      // Обновляем куки с новыми токенами
+      setCookie('twitch_access_token', data.access_token, {
+        path: '/',
+        httpOnly: true,
+        secure: window.location.protocol === 'https:',
+        sameSite: 'lax',
+        maxAge: 60 * 60 * 24 * 7 // 7 дней
+      });
+      
+      if (data.refresh_token) {
+        setCookie('twitch_refresh_token', data.refresh_token, {
+          path: '/',
+          httpOnly: true,
+          secure: window.location.protocol === 'https:',
+          sameSite: 'lax',
+          maxAge: 60 * 60 * 24 * 30 // 30 дней
+        });
+      }
+      
+      return data.access_token;
+    }
+    
+    return null;
+  } catch (error) {
+    console.error('Ошибка при обновлении токена:', error);
     return null;
   }
 }; 

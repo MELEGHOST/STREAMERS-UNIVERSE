@@ -7,9 +7,9 @@ export function middleware(request) {
   
   console.log('Middleware обрабатывает запрос:', pathname);
   
-  // Пропускаем запросы к /api/twitch/login без изменений
-  if (pathname === '/api/twitch/login') {
-    console.log('Middleware: пропускаем запрос к /api/twitch/login без изменений');
+  // Пропускаем запросы к API авторизации без изменений
+  if (pathname === '/api/twitch/login' || pathname === '/api/twitch/callback') {
+    console.log('Middleware: пропускаем запрос к API авторизации без изменений');
     return NextResponse.next();
   }
   
@@ -49,6 +49,9 @@ export function middleware(request) {
     'https://streamers-universe.vercel.app',
     'https://streamers-universe.com',
     'https://streamers-universe-meleghost-meleghosts-projects.vercel.app',
+    // Локальные домены для разработки
+    'http://localhost:3000',
+    'http://127.0.0.1:3000',
     // Добавьте другие разрешенные домены
   ];
   

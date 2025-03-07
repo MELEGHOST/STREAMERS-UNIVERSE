@@ -6,7 +6,10 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
-    "start": "next start"
+    "start": "next start",
+    "security-check": "npm audit",
+    "update-deps": "npm update",
+    "lint": "next lint"
   },
   "dependencies": {
     "@swc-node/core": "1.13.3",

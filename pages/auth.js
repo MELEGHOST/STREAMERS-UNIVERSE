@@ -12,60 +12,134 @@ export default function Auth() {
   const pressStartRef = useRef(null);
   const [errorMessage, setErrorMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [debugInfo, setDebugInfo] = useState(null);
 
   useEffect(() => {
-    // Очищаем устаревшие токены при загрузке страницы авторизации
-    if (typeof window !== 'undefined') {
-      // Проверяем, есть ли параметр clear_auth в URL
-      const urlParams = new URLSearchParams(window.location.search);
-      const clearAuth = urlParams.get('clear_auth') === 'true';
+    // Функция для проверки состояния авторизации
+    const checkAuthStatus = () => {
+      // Собираем отладочную информацию
+      const debug = {
+        cookies: {
+          twitch_access_token: hasCookie('twitch_access_token'),
+          twitch_refresh_token: hasCookie('twitch_refresh_token'),
+          twitch_user: hasCookie('twitch_user'),
+        },
+        localStorage: {
+          cookie_twitch_access_token: !!localStorage.getItem('cookie_twitch_access_token'),
+          cookie_twitch_refresh_token: !!localStorage.getItem('cookie_twitch_refresh_token'),
+          cookie_twitch_user: !!localStorage.getItem('cookie_twitch_user'),
+          twitch_user: !!localStorage.getItem('twitch_user'),
+        }
+      };
       
-      if (clearAuth) {
-        console.log('Очищаем данные авторизации по запросу');
-        Cookies.remove('twitch_access_token');
-        Cookies.remove('twitch_refresh_token');
-        Cookies.remove('twitch_user');
-        localStorage.removeItem('twitch_user');
-        localStorage.removeItem('cookie_twitch_access_token');
-        localStorage.removeItem('cookie_twitch_refresh_token');
-        localStorage.removeItem('cookie_twitch_user');
-        
-        // Удаляем параметр из URL
-        const newUrl = new URL(window.location.href);
-        newUrl.searchParams.delete('clear_auth');
-        window.history.replaceState({}, document.title, newUrl.toString());
-      }
-    }
-    
-    // Проверяем, авторизован ли пользователь уже
-    const accessToken = getCookieWithLocalStorage('twitch_access_token');
-    if (accessToken) {
-      console.log('Обнаружен токен доступа, перенаправление на /menu');
+      setDebugInfo(debug);
       
-      // Сохраняем текущий домен перед редиректом
+      // Очищаем устаревшие токены при загрузке страницы авторизации
       if (typeof window !== 'undefined') {
-        localStorage.setItem('current_domain', window.location.origin);
+        // Проверяем, есть ли параметр clear_auth в URL
+        const urlParams = new URLSearchParams(window.location.search);
+        const clearAuth = urlParams.get('clear_auth') === 'true';
         
-        // Также сохраняем токен в localStorage для надежности
-        localStorage.setItem('cookie_twitch_access_token', accessToken);
+        if (clearAuth) {
+          console.log('Очищаем данные авторизации по запросу');
+          Cookies.remove('twitch_access_token');
+          Cookies.remove('twitch_refresh_token');
+          Cookies.remove('twitch_user');
+          localStorage.removeItem('twitch_user');
+          localStorage.removeItem('cookie_twitch_access_token');
+          localStorage.removeItem('cookie_twitch_refresh_token');
+          localStorage.removeItem('cookie_twitch_user');
+          
+          // Удаляем параметр из URL
+          const newUrl = new URL(window.location.href);
+          newUrl.searchParams.delete('clear_auth');
+          window.history.replaceState({}, document.title, newUrl.toString());
+        }
       }
       
-      // Добавляем плавный переход перед редиректом
-      document.body.style.opacity = '0';
-      document.body.style.transition = 'opacity 0.3s ease';
+      // Проверяем, авторизован ли пользователь уже
+      const accessToken = getCookieWithLocalStorage('twitch_access_token');
+      const userData = getCookieWithLocalStorage('twitch_user');
       
-      // Используем абсолютный URL для редиректа
-      setTimeout(() => {
-        const currentOrigin = window.location.origin;
-        const targetUrl = new URL('/menu', currentOrigin);
+      if (accessToken && userData) {
+        console.log('Обнаружен токен доступа и данные пользователя, перенаправление на /menu');
         
-        // Добавляем параметр для плавного перехода
-        targetUrl.searchParams.set('smooth', 'true');
+        // Сохраняем текущий домен перед редиректом
+        if (typeof window !== 'undefined') {
+          localStorage.setItem('current_domain', window.location.origin);
+          
+          // Также сохраняем токен в localStorage для надежности
+          localStorage.setItem('cookie_twitch_access_token', accessToken);
+        }
         
-        window.location.href = targetUrl.toString();
-      }, 300);
-      return;
-    }
+        // Добавляем плавный переход перед редиректом
+        document.body.style.opacity = '0';
+        document.body.style.transition = 'opacity 0.3s ease';
+        
+        // Используем абсолютный URL для редиректа
+        setTimeout(() => {
+          const currentOrigin = window.location.origin;
+          const targetUrl = new URL('/menu', currentOrigin);
+          
+          // Добавляем параметр для плавного перехода
+          targetUrl.searchParams.set('smooth', 'true');
+          
+          window.location.href = targetUrl.toString();
+        }, 300);
+        return;
+      } else if (accessToken && !userData) {
+        // Есть токен, но нет данных пользователя - пробуем получить данные
+        console.log('Обнаружен токен доступа, но нет данных пользователя. Пробуем получить данные профиля.');
+        
+        fetch('/api/twitch/profile', {
+          headers: {
+            'Authorization': `Bearer ${accessToken}`
+          }
+        })
+        .then(response => {
+          if (response.ok) {
+            return response.json();
+          }
+          throw new Error('Не удалось получить данные профиля');
+        })
+        .then(data => {
+          console.log('Данные профиля получены, перенаправление на /menu');
+          
+          // Сохраняем текущий домен перед редиректом
+          if (typeof window !== 'undefined') {
+            localStorage.setItem('current_domain', window.location.origin);
+          }
+          
+          // Добавляем плавный переход перед редиректом
+          document.body.style.opacity = '0';
+          document.body.style.transition = 'opacity 0.3s ease';
+          
+          // Используем абсолютный URL для редиректа
+          setTimeout(() => {
+            const currentOrigin = window.location.origin;
+            const targetUrl = new URL('/menu', currentOrigin);
+            
+            // Добавляем параметр для плавного перехода
+            targetUrl.searchParams.set('smooth', 'true');
+            
+            window.location.href = targetUrl.toString();
+          }, 300);
+        })
+        .catch(error => {
+          console.error('Ошибка при получении данных профиля:', error);
+          // Очищаем токены, так как они, вероятно, недействительны
+          Cookies.remove('twitch_access_token');
+          Cookies.remove('twitch_refresh_token');
+          localStorage.removeItem('cookie_twitch_access_token');
+          localStorage.removeItem('cookie_twitch_refresh_token');
+          
+          setErrorMessage('Данные пользователя не найдены. Пожалуйста, авторизуйтесь снова.');
+        });
+      }
+    };
+    
+    // Проверяем состояние авторизации при загрузке страницы
+    checkAuthStatus();
 
     // Проверяем наличие ошибки авторизации
     const { error, message } = router.query;
@@ -155,7 +229,7 @@ export default function Auth() {
         
         <h1 className={styles.welcomeTitle}>Добро пожаловать в Streamers Universe</h1>
         
-        <div className={styles.welcomeText}>
+        <div>
           <p>Здесь вы сможете погрузиться в мир стриминга, найти своих любимых стримеров и стать частью сообщества.</p>
           <p>Присоединяйтесь к нам и откройте для себя новые возможности!</p>
         </div>
@@ -190,23 +264,25 @@ export default function Auth() {
         <div className={styles.pulseAnimation}></div>
       </div>
       
-      <div className={styles.features}>
-        <div className={styles.featureItem}>
-          <div className={styles.featureIcon}>🔍</div>
-          <h3>Поиск стримеров</h3>
-          <p>Находите новых и интересных стримеров</p>
+      {process.env.NODE_ENV === 'development' && debugInfo && (
+        <div className={styles.debugInfo}>
+          <h3>Отладочная информация</h3>
+          <div>
+            <h4>Cookies:</h4>
+            <ul>
+              {Object.entries(debugInfo.cookies).map(([key, value]) => (
+                <li key={key}>{key}: {value ? 'Да' : 'Нет'}</li>
+              ))}
+            </ul>
+            <h4>LocalStorage:</h4>
+            <ul>
+              {Object.entries(debugInfo.localStorage).map(([key, value]) => (
+                <li key={key}>{key}: {value ? 'Да' : 'Нет'}</li>
+              ))}
+            </ul>
+          </div>
         </div>
-        <div className={styles.featureItem}>
-          <div className={styles.featureIcon}>👥</div>
-          <h3>Сообщество</h3>
-          <p>Станьте частью растущего сообщества</p>
-        </div>
-        <div className={styles.featureItem}>
-          <div className={styles.featureIcon}>🚀</div>
-          <h3>Возможности</h3>
-          <p>Откройте для себя новые возможности</p>
-        </div>
-      </div>
+      )}
     </div>
   );
 } 
