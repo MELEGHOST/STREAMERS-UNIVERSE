@@ -18,7 +18,12 @@ export default function Auth() {
     const accessToken = getCookieWithLocalStorage('twitch_access_token');
     if (accessToken) {
       console.log('Обнаружен токен доступа, перенаправление на /profile');
-      router.push('/profile');
+      // Добавляем плавный переход перед редиректом
+      document.body.style.opacity = '0';
+      document.body.style.transition = 'opacity 0.3s ease';
+      setTimeout(() => {
+        router.push('/profile');
+      }, 300);
       return;
     }
 

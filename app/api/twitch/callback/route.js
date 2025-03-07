@@ -185,12 +185,74 @@ export async function GET(request) {
           // Сохраняем информацию о текущем домене
           localStorage.setItem('current_domain', window.location.origin);
           
-          window.location.href = '${redirectUrl.toString()}';
+          // Добавляем плавный переход для предотвращения мерцания
+          document.body.style.opacity = '0';
+          document.body.style.transition = 'opacity 0.3s ease';
+          
+          // Добавляем небольшую задержку перед редиректом, чтобы дать время для сохранения данных
+          setTimeout(() => {
+            // Проверяем, что все данные сохранены перед редиректом
+            const checkDataSaved = () => {
+              try {
+                const userDataSaved = localStorage.getItem('twitch_user');
+                const accessTokenSaved = localStorage.getItem('cookie_twitch_access_token');
+                
+                if (userDataSaved && accessTokenSaved) {
+                  console.log('Все данные успешно сохранены, выполняем редирект');
+                  window.location.href = '${redirectUrl.toString()}';
+                } else {
+                  console.log('Не все данные сохранены, повторяем попытку...');
+                  // Если данные не сохранены, пробуем еще раз
+                  setTimeout(checkDataSaved, 100);
+                }
+              } catch (e) {
+                console.error('Ошибка при проверке сохраненных данных:', e);
+                window.location.href = '${redirectUrl.toString()}';
+              }
+            };
+            
+            checkDataSaved();
+          }, 300);
         } catch (e) {
           console.error('Ошибка при сохранении данных в localStorage:', e);
           window.location.href = '${redirectUrl.toString()}';
         }
       </script>
+      <style>
+        body {
+          opacity: 1;
+          transition: opacity 0.3s ease;
+          background-color: #121212;
+          margin: 0;
+          padding: 0;
+          display: flex;
+          justify-content: center;
+          align-items: center;
+          height: 100vh;
+          color: white;
+          font-family: Arial, sans-serif;
+        }
+        .loading {
+          text-align: center;
+        }
+        .spinner {
+          border: 4px solid rgba(255, 255, 255, 0.3);
+          border-radius: 50%;
+          border-top: 4px solid #7B41C9;
+          width: 40px;
+          height: 40px;
+          margin: 0 auto 20px;
+          animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+          0% { transform: rotate(0deg); }
+          100% { transform: rotate(360deg); }
+        }
+      </style>
+      <div class="loading">
+        <div class="spinner"></div>
+        <p>Завершение авторизации...</p>
+      </div>
     `;
     
     // Возвращаем HTML с скриптом для сохранения данных в localStorage
