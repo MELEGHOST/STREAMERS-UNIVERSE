@@ -47,10 +47,10 @@ export default function Profile() {
             localStorageUserData = JSON.parse(storedUserData);
             console.log('Данные пользователя из localStorage:', localStorageUserData);
             
-            // ИСПРАВЛЕНИЕ: Если у пользователя 150+ подписчиков, но статус не стример,
+            // ИСПРАВЛЕНИЕ: Если у пользователя 265+ подписчиков, но статус не стример,
             // принудительно устанавливаем статус стримера
-            if (localStorageUserData.followersCount >= 150 && !localStorageUserData.isStreamer) {
-              console.log('ИСПРАВЛЕНИЕ: Обнаружено 150+ подписчиков, но статус не стример. Исправляем...');
+            if (localStorageUserData.followersCount >= 265 && !localStorageUserData.isStreamer) {
+              console.log('ИСПРАВЛЕНИЕ: Обнаружено 265+ подписчиков, но статус не стример. Исправляем...');
               localStorageUserData.isStreamer = true;
               localStorage.setItem('twitch_user', JSON.stringify(localStorageUserData));
               console.log('Статус стримера принудительно установлен в localStorage');
@@ -185,10 +185,10 @@ export default function Profile() {
               followings = followingsData.data.map((f) => f.to_name);
             }
             
-            // Принудительно устанавливаем статус стримера, если количество подписчиков >= 150
-            const isStreamer = followersCount >= 150;
+            // Принудительно устанавливаем статус стримера, если количество подписчиков >= 265
+            const isStreamer = followersCount >= 265;
             console.log(`Проверка статуса стримера: ${followersCount} подписчиков, статус: ${isStreamer ? 'стример' : 'зритель'}`);
-            console.log(`Условие followersCount >= 150: ${followersCount} >= 150 = ${followersCount >= 150}`);
+            console.log(`Условие followersCount >= 265: ${followersCount} >= 265 = ${followersCount >= 265}`);
             
             // Формируем данные профиля
             const profileData = {
@@ -220,11 +220,11 @@ export default function Profile() {
                 localStorageUserData.profile_image_url ||
                 `https://static-cdn.jtvnw.net/jtv_user_pictures/${localStorageUserData.id}-profile_image-300x300.jpg`;
               
-              // Принудительно устанавливаем статус стримера, если количество подписчиков >= 150
+              // Принудительно устанавливаем статус стримера, если количество подписчиков >= 265
               const followersCount = localStorageUserData.followersCount || 0;
-              const isStreamer = followersCount >= 150;
+              const isStreamer = followersCount >= 265;
               console.log(`Проверка статуса стримера из localStorage: ${followersCount} подписчиков, статус: ${isStreamer ? 'стример' : 'зритель'}`);
-              console.log(`Условие followersCount >= 150: ${followersCount} >= 150 = ${followersCount >= 150}`);
+              console.log(`Условие followersCount >= 265: ${followersCount} >= 265 = ${followersCount >= 265}`);
               
               setProfileData({
                 twitchName: localStorageUserData.display_name || 'Unknown User',
@@ -280,6 +280,7 @@ export default function Profile() {
         credentials: 'include',
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': `Bearer ${getCookieWithLocalStorage('twitch_access_token')}`
         },
       });
 
@@ -291,18 +292,52 @@ export default function Profile() {
           credentials: 'include',
           headers: {
             'Content-Type': 'application/json',
+            'Authorization': `Bearer ${getCookieWithLocalStorage('twitch_access_token')}`
           },
         });
       }
 
       if (!response.ok) {
+        // Если оба API-эндпоинта недоступны, используем локальные данные
+        console.log(`Не удалось получить социальные ссылки: ${response.status}`);
+        
+        // Пробуем получить данные из localStorage
+        const userId = profileData?.id;
+        if (userId) {
+          const localSocialLinks = localStorage.getItem(`social_links_${userId}`);
+          if (localSocialLinks) {
+            setSocialLinks(JSON.parse(localSocialLinks));
+            return;
+          }
+        }
+        
         throw new Error(`Failed to fetch social links: ${response.status}`);
       }
 
       const data = await response.json();
       setSocialLinks(data);
+      
+      // Сохраняем данные в localStorage для резервного использования
+      const userId = profileData?.id;
+      if (userId) {
+        localStorage.setItem(`social_links_${userId}`, JSON.stringify(data));
+      }
     } catch (error) {
       console.error('Error fetching social links:', error);
+      
+      // Пробуем получить данные из localStorage
+      try {
+        const userId = profileData?.id;
+        if (userId) {
+          const localSocialLinks = localStorage.getItem(`social_links_${userId}`);
+          if (localSocialLinks) {
+            setSocialLinks(JSON.parse(localSocialLinks));
+            return;
+          }
+        }
+      } catch (e) {
+        console.error('Ошибка при получении данных из localStorage:', e);
+      }
     }
   };
 
@@ -318,7 +353,7 @@ export default function Profile() {
           console.log('Данные пользователя в localStorage при загрузке страницы:', userData);
           console.log('Статус стримера в localStorage:', userData.isStreamer);
           console.log('Количество подписчиков в localStorage:', userData.followersCount);
-          console.log('Условие followersCount >= 150:', userData.followersCount >= 150);
+          console.log('Условие followersCount >= 265:', userData.followersCount >= 265);
         } else {
           console.log('Данные пользователя в localStorage отсутствуют');
         }
@@ -451,8 +486,8 @@ export default function Profile() {
   }
 
   // ВРЕМЕННОЕ РЕШЕНИЕ: Проверяем и исправляем статус стримера перед отображением
-  if (profileData.followersCount >= 150 && !profileData.isStreamer) {
-    console.log('ИСПРАВЛЕНИЕ при отображении: Обнаружено 150+ подписчиков, но статус не стример. Исправляем...');
+  if (profileData.followersCount >= 265 && !profileData.isStreamer) {
+    console.log('ИСПРАВЛЕНИЕ при отображении: Обнаружено 265+ подписчиков, но статус не стример. Исправляем...');
     profileData.isStreamer = true;
     // Также обновляем в localStorage
     localStorage.setItem('twitch_user', JSON.stringify(profileData));
@@ -473,12 +508,19 @@ export default function Profile() {
         />
         <div className={styles.profileInfo}>
           <h1>{profileData.twitchName}</h1>
-          {console.log('Отображение статуса стримера:', {
-            isStreamer: profileData.isStreamer,
-            followersCount: profileData.followersCount,
-            condition: profileData.followersCount >= 150
-          })}
-          <p>Статус: {profileData.isStreamer ? 'Стример' : 'Зритель'} (Подписчиков: {profileData.followersCount})</p>
+          <div className={styles.statusContainer}>
+            <p className={styles.statusText}>
+              Статус: <span className={styles.statusValue}>{profileData.isStreamer ? 'Стример' : 'Зритель'}</span>
+              <span className={styles.followersCount}>(Фолловеров: {profileData.followersCount})</span>
+            </p>
+            <button 
+              className={styles.achievementsButton} 
+              onClick={toggleAchievements}
+              title="Достижения"
+            >
+              🏆 Достижения
+            </button>
+          </div>
           {socialLinks.description && (
             <div className={styles.description}>
               <p>{socialLinks.description}</p>
@@ -488,55 +530,17 @@ export default function Profile() {
         </div>
       </div>
 
-      <div className={styles.section}>
-        <h2>Подписчики ({profileData.followersCount})</h2>
-        <ul>
-          {profileData.followers && profileData.followers.length > 0 ? (
-            profileData.followers.map((follower, index) => (
-              <li key={index}>{follower}</li>
-            ))
-          ) : (
-            <li>Нет подписчиков</li>
-          )}
-        </ul>
-      </div>
-
-      <div className={styles.section}>
-        <h2>На кого подписан ({profileData.followingsCount})</h2>
-        <ul>
-          {profileData.followings && profileData.followings.length > 0 ? (
-            profileData.followings.map((following, index) => (
-              <li key={index}>{following}</li>
-            ))
-          ) : (
-            <li>Нет подписок</li>
-          )}
-        </ul>
-      </div>
-
-      <div className={styles.profileActions}>
-        <button className={styles.button} onClick={() => router.push('/edit-profile')}>
-          Редактировать профиль
-        </button>
-        <button className={styles.button} onClick={() => router.push('/followers')}>
-          Подписчики
-        </button>
-        <button className={styles.button} onClick={() => router.push('/subscriptions')}>
-          Подписки
-        </button>
-        <button className={styles.button} onClick={() => router.push('/menu')}>
-          Вернуться в меню
-        </button>
-        <button className={styles.button} onClick={toggleAchievements}>
-          {showAchievements ? 'Скрыть достижения' : 'Показать достижения'}
-        </button>
-        <button className={styles.logoutButton} onClick={handleLogout}>
-          Выйти
-        </button>
-      </div>
-      
-      {showAchievements && (
+      {showAchievements ? (
         <div className={styles.achievementsSection}>
+          <div className={styles.achievementsHeader}>
+            <h2>Достижения и прогресс</h2>
+            <button 
+              className={styles.backToProfileButton}
+              onClick={toggleAchievements}
+            >
+              Вернуться в профиль
+            </button>
+          </div>
           <AchievementsSystem 
             user={profileData}
             followerCount={profileData.followersCount || 0}
@@ -545,6 +549,46 @@ export default function Profile() {
             hasCollaborations={hasCollaborations}
           />
         </div>
+      ) : (
+        <>
+          <div className={styles.section}>
+            <h2>Фолловеры ({profileData.followersCount})</h2>
+            <ul>
+              {profileData.followers && profileData.followers.length > 0 ? (
+                profileData.followers.map((follower, index) => (
+                  <li key={index}>{follower}</li>
+                ))
+              ) : (
+                <li>Нет фолловеров</li>
+              )}
+            </ul>
+          </div>
+
+          <div className={styles.section}>
+            <h2>Фолловинги ({profileData.followingsCount})</h2>
+            <ul>
+              {profileData.followings && profileData.followings.length > 0 ? (
+                profileData.followings.map((following, index) => (
+                  <li key={index}>{following}</li>
+                ))
+              ) : (
+                <li>Нет фолловингов</li>
+              )}
+            </ul>
+          </div>
+
+          <div className={styles.profileActions}>
+            <button className={styles.button} onClick={() => router.push('/edit-profile')}>
+              Редактировать профиль
+            </button>
+            <button className={styles.button} onClick={() => router.push('/menu')}>
+              Вернуться в меню
+            </button>
+            <button className={styles.logoutButton} onClick={handleLogout}>
+              Выйти
+            </button>
+          </div>
+        </>
       )}
     </div>
   );

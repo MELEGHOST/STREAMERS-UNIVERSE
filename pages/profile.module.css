@@ -233,9 +233,82 @@
 }
 
 .profileInfo h1 {
+  margin: 0 0 15px 0;
   color: #7B41C9;
-  margin-top: 0;
-  margin-bottom: 10px;
+  font-size: 28px;
+}
+
+.statusContainer {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 15px;
+  margin-bottom: 15px;
+  flex-wrap: wrap;
+}
+
+.statusText {
+  margin: 0;
+  font-size: 18px;
+}
+
+.statusValue {
+  font-weight: bold;
+  color: #7B41C9;
+}
+
+.followersCount {
+  margin-left: 5px;
+  font-size: 16px;
+  opacity: 0.8;
+}
+
+.achievementsButton {
+  background-color: rgba(123, 65, 201, 0.2);
+  color: #7B41C9;
+  border: 1px solid #7B41C9;
+  border-radius: 20px;
+  padding: 5px 12px;
+  font-size: 16px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.achievementsButton:hover {
+  background-color: rgba(123, 65, 201, 0.3);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(123, 65, 201, 0.3);
+}
+
+.achievementsHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.achievementsHeader h2 {
+  margin: 0;
+  color: #7B41C9;
+}
+
+.backToProfileButton {
+  background-color: rgba(123, 65, 201, 0.2);
+  color: #7B41C9;
+  border: 1px solid #7B41C9;
+  border-radius: 5px;
+  padding: 8px 15px;
+  font-size: 16px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.backToProfileButton:hover {
+  background-color: rgba(123, 65, 201, 0.3);
+  transform: translateY(-2px);
 }
 
 .description {
