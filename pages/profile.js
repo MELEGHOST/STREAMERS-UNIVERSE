@@ -1,4 +1,4 @@
-"use client";
+'use client';
 
 import React, { useEffect, useState } from 'react';
 import Cookies from 'js-cookie';
@@ -7,21 +7,10 @@ import styles from './profile.module.css';
 import { useRouter } from 'next/router';
 import CookieChecker from '../components/CookieChecker';
 
-interface TwitchProfile {
-  twitchName: string;
-  followersCount: number;
-  followers: string[];
-  followingsCount: number;
-  followings: string[];
-  profileImageUrl: string;
-  id: string;
-  isStreamer?: boolean;
-}
-
 export default function Profile() {
-  const [profileData, setProfileData] = useState<TwitchProfile | null>(null);
+  const [profileData, setProfileData] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState(null);
   const router = useRouter();
   const [socialLinks, setSocialLinks] = useState({
     description: '',
@@ -130,13 +119,13 @@ export default function Profile() {
               }
             });
             
-            let followers: string[] = [];
+            let followers = [];
             let followersCount = 0;
             
             if (followersResponse.ok) {
               const followersData = await followersResponse.json();
               followersCount = followersData.total || 0;
-              followers = followersData.data.map((f: any) => f.from_name);
+              followers = followersData.data.map((f) => f.from_name);
             }
             
             // Получаем подписки
@@ -148,13 +137,13 @@ export default function Profile() {
               }
             });
             
-            let followings: string[] = [];
+            let followings = [];
             let followingsCount = 0;
             
             if (followingsResponse.ok) {
               const followingsData = await followingsResponse.json();
               followingsCount = followingsData.total || 0;
-              followings = followingsData.data.map((f: any) => f.to_name);
+              followings = followingsData.data.map((f) => f.to_name);
             }
             
             // Принудительно устанавливаем статус стримера, если количество подписчиков >= 150
@@ -181,7 +170,7 @@ export default function Profile() {
             // Обновляем локальное хранилище с правильным статусом стримера
             localStorage.setItem('twitch_user', JSON.stringify(profileData));
             
-          } catch (error: any) {
+          } catch (error) {
             console.error('Ошибка загрузки профиля:', error);
             
             // If we have userData but the API call failed, use userData as fallback
@@ -277,61 +266,6 @@ export default function Profile() {
   };
 
   useEffect(() => {
-    // Проверяем наличие параметра smooth в URL
-    const urlParams = new URLSearchParams(window.location.search);
-    const isSmooth = urlParams.get('smooth') === 'true';
-    
-    // Если есть параметр smooth, добавляем плавный переход
-    if (isSmooth) {
-      document.body.style.opacity = '0';
-      document.body.style.transition = 'opacity 0.5s ease';
-      
-      // Плавно показываем страницу после загрузки
-      setTimeout(() => {
-        document.body.style.opacity = '1';
-      }, 100);
-    }
-    
-    // Проверяем наличие данных пользователя в URL
-    const userParam = urlParams.get('user');
-    if (userParam) {
-      try {
-        const userData = JSON.parse(userParam);
-        console.log('Получены данные пользователя из URL:', userData);
-        
-        // Сохраняем данные пользователя в localStorage и куки
-        localStorage.setItem('twitch_user', JSON.stringify(userData));
-        setCookieWithLocalStorage('twitch_user', JSON.stringify(userData));
-        
-        // Устанавливаем данные пользователя в состояние
-        setProfileData(userData);
-      } catch (e) {
-        console.error('Ошибка при обработке данных пользователя из URL:', e);
-      }
-    }
-    
-    // Проверяем наличие токена доступа
-    const accessToken = getCookieWithLocalStorage('twitch_access_token');
-    
-    // Проверяем, что токен не пустой и не undefined
-    if (!accessToken || accessToken === 'undefined' || accessToken === 'null') {
-      console.log('Токен доступа не найден или недействителен, перенаправление на страницу авторизации');
-      setError('Необходима авторизация. Пожалуйста, войдите через Twitch.');
-      
-      // Очищаем куки и localStorage
-      Cookies.remove('twitch_access_token');
-      Cookies.remove('twitch_refresh_token');
-      localStorage.removeItem('cookie_twitch_access_token');
-      localStorage.removeItem('cookie_twitch_refresh_token');
-      
-      // Задержка перед редиректом, чтобы пользователь увидел сообщение
-      setTimeout(() => {
-        router.push('/auth?clear_auth=true');
-      }, 2000);
-      return;
-    }
-    
-    // Продолжаем обычную загрузку данных пользователя
     loadUserData();
   }, [router]);
 
@@ -343,20 +277,20 @@ export default function Profile() {
 
   const handleLogout = async () => {
     try {
-      await fetch('/api/twitch/logout', {
-        method: 'POST',
-        credentials: 'include',
-      });
-
-      // Clear cookies and local storage
+      // Очищаем куки и localStorage
       Cookies.remove('twitch_access_token');
       Cookies.remove('twitch_refresh_token');
-      Cookies.remove('twitch_expires_at');
+      Cookies.remove('twitch_user');
       localStorage.removeItem('twitch_user');
-
-      router.push('/auth');
+      localStorage.removeItem('cookie_twitch_access_token');
+      localStorage.removeItem('cookie_twitch_refresh_token');
+      localStorage.removeItem('cookie_twitch_user');
+      
+      // Перенаправляем на страницу авторизации
+      router.push('/auth?clear_auth=true');
     } catch (error) {
-      console.error('Ошибка выхода:', error);
+      console.error('Ошибка при выходе:', error);
+      setError('Произошла ошибка при выходе. Пожалуйста, попробуйте позже.');
     }
   };
 
@@ -427,30 +361,21 @@ export default function Profile() {
 
   if (loading) {
     return (
-      <div className={styles.profileContainer}>
-        <CookieChecker />
-        <div className={styles.loading}>
-          <div className={styles.spinner}></div>
-          <p>Загрузка профиля...</p>
-        </div>
+      <div className={styles.loading}>
+        <div className={styles.spinner}></div>
+        <p>Загрузка профиля...</p>
       </div>
     );
   }
 
-  if (error && !profileData) {
+  if (error) {
     return (
       <div className={styles.profileContainer}>
-        <CookieChecker />
         <div className={styles.error}>
-          <p>{error}</p>
-          <div className={styles.buttonContainer}>
-            <button onClick={() => router.push('/auth?clear_auth=true')} className={styles.button}>
-              Войти через Twitch
-            </button>
-            <button onClick={() => window.location.reload()} className={styles.button}>
-              Повторить загрузку
-            </button>
-          </div>
+          {error}
+          <button className={styles.button} onClick={() => router.push('/auth')}>
+            Вернуться на страницу авторизации
+          </button>
         </div>
       </div>
     );
@@ -459,17 +384,11 @@ export default function Profile() {
   if (!profileData) {
     return (
       <div className={styles.profileContainer}>
-        <CookieChecker />
         <div className={styles.error}>
-          Ошибка загрузки данных профиля.
-          <div className={styles.buttonContainer}>
-            <button className={styles.button} onClick={() => window.location.reload()}>
-              Повторить
-            </button>
-            <button className={styles.button} onClick={() => router.push('/auth?clear_auth=true')}>
-              Войти заново
-            </button>
-          </div>
+          Не удалось загрузить данные профиля
+          <button className={styles.button} onClick={() => router.push('/auth')}>
+            Вернуться на страницу авторизации
+          </button>
         </div>
       </div>
     );
@@ -503,7 +422,7 @@ export default function Profile() {
         <h2>Подписчики ({profileData.followersCount})</h2>
         <ul>
           {profileData.followers && profileData.followers.length > 0 ? (
-            profileData.followers.map((follower: string, index: number) => (
+            profileData.followers.map((follower, index) => (
               <li key={index}>{follower}</li>
             ))
           ) : (
@@ -516,7 +435,7 @@ export default function Profile() {
         <h2>На кого подписан ({profileData.followingsCount})</h2>
         <ul>
           {profileData.followings && profileData.followings.length > 0 ? (
-            profileData.followings.map((following: string, index: number) => (
+            profileData.followings.map((following, index) => (
               <li key={index}>{following}</li>
             ))
           ) : (
@@ -544,4 +463,4 @@ export default function Profile() {
       </div>
     </div>
   );
-}
+} 

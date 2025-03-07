@@ -1,6 +1,6 @@
-"use client";
+'use client';
 
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import Cookies from 'js-cookie';
 import styles from './profile.module.css';
 import { useRouter } from 'next/router';
@@ -17,7 +17,7 @@ export default function EditProfile() {
     isMusician: false
   });
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState(null);
   const router = useRouter();
 
   useEffect(() => {
@@ -59,9 +59,9 @@ export default function EditProfile() {
 
         const data = await response.json();
         setSocialLinks(data);
-      } catch (error: any) { // Явно указываем тип any или Error
+      } catch (error) {
         console.error('Error fetching social links:', error);
-        setError(error.message || 'Failed to load social links'); // Безопасный доступ через || для fallback
+        setError(error.message || 'Failed to load social links');
       } finally {
         setLoading(false);
       }
@@ -70,12 +70,12 @@ export default function EditProfile() {
     fetchSocialLinks();
   }, [router]);
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+  const handleChange = (e) => {
     const { name, value } = e.target;
     setSocialLinks((prev) => ({ ...prev, [name]: value }));
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     try {
       // Сначала пробуем новый API-эндпоинт в директории app
@@ -107,7 +107,7 @@ export default function EditProfile() {
 
       alert('Profile updated successfully!');
       router.push('/profile');
-    } catch (error: any) { // Явно указываем тип any или Error
+    } catch (error) {
       console.error('Error updating social links:', error);
       setError(error.message || 'Failed to update profile');
     }
@@ -254,4 +254,4 @@ export default function EditProfile() {
       </form>
     </div>
   );
-}
+} 
