@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from 'react';
 import Cookies from 'js-cookie';
-import { getCookie, setCookie, setCookieWithLocalStorage } from '../utils/cookies';
+import { getCookie, setCookie, setCookieWithLocalStorage, getCookieWithLocalStorage } from '../utils/cookies';
 import styles from './profile.module.css';
 import { useRouter } from 'next/router';
 import CookieChecker from '../components/CookieChecker';
