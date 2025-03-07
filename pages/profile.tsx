@@ -73,9 +73,12 @@ export default function Profile() {
         try {
           console.log('Отправка запроса к API с токеном:', accessToken.substring(0, 10) + '...');
           
+          // Добавляем токен доступа в куки перед запросом
+          Cookies.set('twitch_access_token', accessToken, { path: '/' });
+          
           const response = await fetch('/api/twitch/profile', {
             method: 'GET',
-            credentials: 'include',
+            credentials: 'include', // Важно для передачи куков
             headers: {
               'Authorization': `Bearer ${accessToken}`,
               'Content-Type': 'application/json'
@@ -108,7 +111,13 @@ export default function Profile() {
             }
           } else {
             // API call failed, use userData as fallback if available
-            const errorData = await response.json().catch(() => ({ error: 'Ошибка при получении данных' }));
+            let errorData;
+            try {
+              errorData = await response.json();
+            } catch (e) {
+              errorData = { error: 'Ошибка при получении данных' };
+            }
+            
             console.error('Ошибка API:', response.status, errorData);
             
             if (response.status === 401) {

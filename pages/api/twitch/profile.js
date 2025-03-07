@@ -23,6 +23,7 @@ export default async function handler(req, res) {
     let accessToken = cookies.twitch_access_token;
 
     console.log('Profile API - accessToken из cookies:', accessToken ? 'присутствует' : 'отсутствует');
+    console.log('Profile API - все куки:', req.headers.cookie);
     
     // Если токен не найден в cookies, проверяем заголовок Authorization
     if (!accessToken && req.headers.authorization) {
@@ -48,19 +49,21 @@ export default async function handler(req, res) {
       });
     }
 
+    // Логируем токен для отладки (только первые 10 символов)
+    console.log('Profile API - Используемый токен:', accessToken.substring(0, 10) + '...');
+
     // Проверяем валидность токена
     try {
       console.log('Profile API - Проверка валидности токена...');
       
       // Делаем тестовый запрос к Twitch API для проверки токена
-      await axios.get('https://api.twitch.tv/helix/users', {
+      const validateResponse = await axios.get('https://id.twitch.tv/oauth2/validate', {
         headers: {
-          'Client-ID': process.env.TWITCH_CLIENT_ID,
-          'Authorization': `Bearer ${accessToken}`,
-        },
+          'Authorization': `OAuth ${accessToken}`
+        }
       });
       
-      console.log('Profile API - Токен валиден');
+      console.log('Profile API - Токен валиден, информация:', validateResponse.data);
     } catch (tokenError) {
       console.error('Profile API - Ошибка проверки токена:', tokenError.message);
       
@@ -71,7 +74,8 @@ export default async function handler(req, res) {
         });
       }
       
-      throw tokenError;
+      // Продолжаем выполнение, даже если проверка не удалась
+      console.log('Profile API - Продолжаем выполнение, несмотря на ошибку проверки токена');
     }
 
     // Получаем данные пользователя

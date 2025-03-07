@@ -169,17 +169,12 @@ export default function Auth() {
           onTouchEnd={handleLoginRelease}
           disabled={isLoading}
         >
-          <div className={styles.galaxy}>
-            <div className={styles.stars}></div>
-            <div className={styles.stars}></div>
-            <div className={styles.stars}></div>
-            <div className={styles.meteor}></div>
-          </div>
-          <span className={styles.text}>
+          <span className={styles.backdrop}></span>
+          <span className={styles.galaxy}></span>
+          <label className={styles.text}>
             {isLoading ? 'Подключение...' : 'Войти через Twitch'}
-          </span>
+          </label>
         </button>
-        <div className={styles.backdrop}></div>
         <div className={styles.bodydrop}></div>
       </div>
       

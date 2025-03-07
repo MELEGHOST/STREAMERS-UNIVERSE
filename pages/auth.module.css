@@ -147,26 +147,18 @@
   border-radius: 50%;
   opacity: 1;
   box-shadow:
-    10vw 5vh #fff,
-    25vw 10vh #fff,
-    40vw 20vh #fff,
-    5vw 30vh #fff,
-    15vw 15vh #fff,
-    50vw 25vh #fff,
-    60vw 40vh #fff,
-    70vw 35vh #fff,
-    35vw 50vh #fff,
-    80vw 15vh #fff,
-    90vw 10vh #fff,
-    95vw 5vh #fff,
-    5vw 60vh #fff,
-    20vw 65vh #fff,
-    30vw 70vh #fff,
-    45vw 55vh #fff,
-    55vw 45vh #fff,
-    65vw 35vh #fff,
-    75vw 25vh #fff,
-    85vw 15vh #fff;
+    140px 20px #fff,
+    425px 20px #fff,
+    70px 120px #fff,
+    20px 130px #fff,
+    110px 80px #fff,
+    280px 80px #fff,
+    250px 350px #fff,
+    280px 230px #fff,
+    220px 190px #fff,
+    450px 100px #fff,
+    380px 80px #fff,
+    520px 50px #fff;
   z-index: -1;
   transition: all 1.5s ease-in-out;
   animation: 1s glowing-stars linear alternate infinite;
@@ -176,33 +168,27 @@
 .galaxy::after {
   content: "";
   position: absolute;
-  top: 0;
-  left: 0;
+  top: -150px;
+  left: -65px;
   width: 2px;
   height: 2px;
   border-radius: 50%;
   opacity: 1;
   box-shadow:
-    20vw 60vh #fff,
-    30vw 55vh #fff,
-    45vw 50vh #fff,
-    55vw 65vh #fff,
-    65vw 30vh #fff,
-    75vw 40vh #fff,
-    85vw 25vh #fff,
-    10vw 45vh #fff,
-    15vw 5vh #fff,
-    35vw 10vh #fff,
-    50vw 5vh #fff,
-    25vw 35vh #fff,
-    60vw 0vh #fff,
-    40vw 70vh #fff,
-    70vw 15vh #fff,
-    80vw 20vh #fff,
-    90vw 30vh #fff,
-    5vw 25vh #fff,
-    15vw 40vh #fff,
-    25vw 50vh #fff;
+    490px 330px #fff,
+    420px 300px #fff,
+    320px 280px #fff,
+    380px 350px #fff,
+    546px 170px #fff,
+    420px 180px #fff,
+    370px 150px #fff,
+    200px 250px #fff,
+    80px 20px #fff,
+    190px 50px #fff,
+    270px 20px #fff,
+    120px 230px #fff,
+    350px -1px #fff,
+    150px 369px #fff;
   z-index: -1;
   transition: all 2s ease-in-out;
   animation: 1s glowing-stars linear alternate infinite;
@@ -215,11 +201,11 @@
 
 .galaxy {
   position: absolute;
-  width: 100vw;
-  height: 100vh;
-  top: 0;
-  left: 0;
-  translate: none;
+  width: 100%;
+  aspect-ratio: 1;
+  top: 50%;
+  left: 50%;
+  translate: -50% -50%;
   overflow: hidden;
   opacity: var(--active);
   transition: opacity 0.25s;
@@ -257,10 +243,6 @@
   z-index: 999;
   padding: 0 34px;
   font-weight: 600;
-  user-select: none;
-  -webkit-user-select: none;
-  -moz-user-select: none;
-  -ms-user-select: none;
 }
 
 .text::before {

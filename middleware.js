@@ -21,7 +21,10 @@ export function middleware(request) {
   
   // Для OPTIONS запросов сразу возвращаем ответ с заголовками CORS
   if (request.method === 'OPTIONS') {
-    return response;
+    return new NextResponse(null, {
+      status: 200,
+      headers: response.headers,
+    });
   }
   
   // Если это запрос к API, проверяем наличие куков
@@ -35,26 +38,29 @@ export function middleware(request) {
     
     // Проверяем наличие заголовка Authorization
     const hasAuthHeader = request.headers.has('Authorization');
+    const authHeader = request.headers.get('Authorization');
     
     console.log('Middleware: проверка авторизации:', {
       twitch_access_token: hasTwitchAccessToken ? 'присутствует' : 'отсутствует',
       twitch_user: hasTwitchUser ? 'присутствует' : 'отсутствует',
       authorization_header: hasAuthHeader ? 'присутствует' : 'отсутствует',
+      auth_header_value: authHeader ? authHeader.substring(0, 15) + '...' : 'отсутствует',
       domain: request.headers.get('host'),
       protocol: request.headers.get('x-forwarded-proto') || 'http'
     });
     
     // Если это запрос к API профиля и нет токена доступа, проверяем заголовок Authorization
-    if (pathname === '/api/twitch/profile' && !hasTwitchAccessToken) {
-      console.log('Middleware: отсутствует токен доступа для запроса профиля');
+    if (pathname === '/api/twitch/profile') {
+      console.log('Middleware: обработка запроса к API профиля');
       
-      // Проверяем, есть ли заголовок Authorization
-      const authHeader = request.headers.get('Authorization');
-      if (!authHeader) {
-        console.log('Middleware: отсутствует заголовок Authorization, перенаправление на /auth');
-        // Если нет ни куки, ни заголовка, перенаправляем на страницу авторизации
+      // Если нет ни куки, ни заголовка, перенаправляем на страницу авторизации
+      if (!hasTwitchAccessToken && !hasAuthHeader) {
+        console.log('Middleware: отсутствует токен доступа и заголовок Authorization, перенаправление на /auth');
         return NextResponse.redirect(new URL('/auth?clear_auth=true', request.url));
-      } else {
+      }
+      
+      // Если есть заголовок Authorization, пропускаем запрос
+      if (hasAuthHeader) {
         console.log('Middleware: обнаружен заголовок Authorization, пропускаем запрос');
       }
     }
