@@ -16,9 +16,36 @@ function generateRandomString(length) {
 
 export async function GET(request) {
   try {
+    // Получаем текущий домен из запроса
+    const requestUrl = new URL(request.url);
+    const currentDomain = `${requestUrl.protocol}//${requestUrl.host}`;
+    
+    console.log('Login API - Текущий домен:', currentDomain);
+    
     // Получаем параметры для авторизации
     const clientId = process.env.NEXT_PUBLIC_TWITCH_CLIENT_ID;
-    const redirectUri = process.env.NEXT_PUBLIC_TWITCH_REDIRECT_URI || `${process.env.NEXT_PUBLIC_BASE_URL}/api/twitch/callback`;
+    
+    // Определяем правильный URI перенаправления в зависимости от домена
+    let redirectUri;
+    
+    // Проверяем, есть ли в переменных окружения URI для текущего домена
+    if (currentDomain.includes('localhost') || currentDomain.includes('127.0.0.1')) {
+      // Для локальной разработки
+      redirectUri = process.env.NEXT_PUBLIC_TWITCH_REDIRECT_URI_LOCAL || `${currentDomain}/api/twitch/callback`;
+      console.log('Login API - Используем локальный URI перенаправления:', redirectUri);
+    } else if (currentDomain.includes('streamers-universe-meleghost-meleghosts-projects.vercel.app')) {
+      // Для превью версии
+      redirectUri = process.env.NEXT_PUBLIC_TWITCH_REDIRECT_URI_PREVIEW || `${currentDomain}/api/twitch/callback`;
+      console.log('Login API - Используем URI перенаправления для превью:', redirectUri);
+    } else if (currentDomain.includes('streamers-universe.vercel.app') || currentDomain.includes('streamers-universe.com')) {
+      // Для продакшн версии - явно указываем полный URI
+      redirectUri = 'https://streamers-universe.vercel.app/api/twitch/callback';
+      console.log('Login API - Используем фиксированный URI перенаправления для продакшн:', redirectUri);
+    } else {
+      // Для других доменов или по умолчанию
+      redirectUri = process.env.NEXT_PUBLIC_TWITCH_REDIRECT_URI || `${currentDomain}/api/twitch/callback`;
+      console.log('Login API - Используем URI перенаправления по умолчанию:', redirectUri);
+    }
     
     // Отладочная информация
     console.log('Переменные окружения:');
@@ -62,7 +89,7 @@ export async function GET(request) {
     }
     
     if (!redirectUri) {
-      console.error('Отсутствует NEXT_PUBLIC_TWITCH_REDIRECT_URI в переменных окружения');
+      console.error('Отсутствует URI перенаправления');
       return new NextResponse(
         `<!DOCTYPE html>
         <html>
@@ -80,7 +107,7 @@ export async function GET(request) {
         <body>
           <div class="error-container">
             <h1>Ошибка конфигурации сервера</h1>
-            <p>Отсутствует NEXT_PUBLIC_TWITCH_REDIRECT_URI или NEXT_PUBLIC_BASE_URL в переменных окружения.</p>
+            <p>Отсутствует URI перенаправления для авторизации Twitch.</p>
             <p>Пожалуйста, убедитесь, что переменные окружения правильно настроены в Vercel.</p>
           </div>
         </body>
@@ -118,6 +145,15 @@ export async function GET(request) {
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'lax', 
       maxAge: 3600 
+    });
+    
+    // Сохраняем текущий домен в куки для использования в callback
+    cookieStore.set('current_domain', currentDomain, {
+      path: '/',
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      maxAge: 3600
     });
     
     // Логируем URL для отладки

@@ -59,10 +59,35 @@ export async function GET(request) {
       return NextResponse.redirect(new URL('/auth?error=state_mismatch&message=Ошибка безопасности при авторизации', request.url));
     }
     
+    // Получаем текущий домен из куки или из запроса
+    const currentDomain = cookieStore.get('current_domain')?.value || `${url.protocol}//${url.host}`;
+    console.log('Callback API - Текущий домен:', currentDomain);
+    
     // Получаем параметры для обмена кода на токен
     const clientId = process.env.NEXT_PUBLIC_TWITCH_CLIENT_ID;
     const clientSecret = process.env.TWITCH_CLIENT_SECRET;
-    const redirectUri = process.env.NEXT_PUBLIC_TWITCH_REDIRECT_URI || `${process.env.NEXT_PUBLIC_BASE_URL}/api/twitch/callback`;
+    
+    // Определяем правильный URI перенаправления в зависимости от домена
+    let redirectUri;
+    
+    // Проверяем, есть ли в переменных окружения URI для текущего домена
+    if (currentDomain.includes('localhost') || currentDomain.includes('127.0.0.1')) {
+      // Для локальной разработки
+      redirectUri = process.env.NEXT_PUBLIC_TWITCH_REDIRECT_URI_LOCAL || `${currentDomain}/api/twitch/callback`;
+      console.log('Callback API - Используем локальный URI перенаправления:', redirectUri);
+    } else if (currentDomain.includes('streamers-universe-meleghost-meleghosts-projects.vercel.app')) {
+      // Для превью версии
+      redirectUri = process.env.NEXT_PUBLIC_TWITCH_REDIRECT_URI_PREVIEW || `${currentDomain}/api/twitch/callback`;
+      console.log('Callback API - Используем URI перенаправления для превью:', redirectUri);
+    } else if (currentDomain.includes('streamers-universe.vercel.app') || currentDomain.includes('streamers-universe.com')) {
+      // Для продакшн версии - явно указываем полный URI
+      redirectUri = 'https://streamers-universe.vercel.app/api/twitch/callback';
+      console.log('Callback API - Используем фиксированный URI перенаправления для продакшн:', redirectUri);
+    } else {
+      // Для других доменов или по умолчанию
+      redirectUri = process.env.NEXT_PUBLIC_TWITCH_REDIRECT_URI || `${currentDomain}/api/twitch/callback`;
+      console.log('Callback API - Используем URI перенаправления по умолчанию:', redirectUri);
+    }
     
     console.log('Параметры для обмена кода на токен:', {
       clientId: clientId ? 'присутствует' : 'отсутствует',
@@ -247,6 +272,7 @@ export async function GET(request) {
     
     // Удаляем состояние CSRF после использования
     htmlResponse.cookies.delete('twitch_auth_state');
+    htmlResponse.cookies.delete('current_domain');
     
     console.log('Авторизация успешно завершена, отправка HTML-ответа с редиректом');
     
