@@ -4,6 +4,10 @@ import { cookies } from 'next/headers';
 export async function GET(request) {
   console.log('Login request started:', new Date().toISOString());
 
+  // Получаем URL запроса
+  const url = new URL(request.url);
+  console.log('Request URL:', url.toString());
+
   // Проверяем конфигурацию
   if (!process.env.TWITCH_CLIENT_ID) {
     console.error('Отсутствует TWITCH_CLIENT_ID в переменных окружения');
@@ -21,8 +25,9 @@ export async function GET(request) {
     );
   }
 
-  // Используем правильный URI без .js в конце
-  const redirectUri = process.env.TWITCH_REDIRECT_URI.replace(/\.js$/, '').replace(/\/route$/, '');
+  // Используем TWITCH_REDIRECT_URI как есть, без модификаций
+  const redirectUri = process.env.TWITCH_REDIRECT_URI;
+  console.log('Redirect URI:', redirectUri);
 
   // Создаем случайный state для CSRF-защиты - более надежный
   const state = Array.from(crypto.getRandomValues(new Uint8Array(24)))
@@ -30,7 +35,6 @@ export async function GET(request) {
     .join('');
 
   console.log('Generated state:', state);
-  console.log('Redirect URI:', redirectUri);
 
   // Определяем необходимые разрешения
   const scopes = 'user:read:email user:read:follows';

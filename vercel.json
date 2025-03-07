@@ -24,9 +24,5 @@
         }
       ]
     }
-  ],
-  "rewrites": [
-    { "source": "/api/twitch/callback/route", "destination": "/api/twitch/callback" },
-    { "source": "/api/twitch/login/route", "destination": "/api/twitch/login" }
   ]
 }

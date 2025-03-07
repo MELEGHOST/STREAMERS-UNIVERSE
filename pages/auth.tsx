@@ -82,7 +82,7 @@ export default function Auth() {
     setIsLoading(true);
     console.log('Начинаем авторизацию через Twitch...');
     
-    // Используем App Router API для авторизации
+    // Используем правильный URL для авторизации
     window.location.href = '/api/twitch/login';
   };
 

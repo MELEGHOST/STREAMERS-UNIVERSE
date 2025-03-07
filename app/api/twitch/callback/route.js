@@ -6,8 +6,12 @@ export async function GET(request) {
   
   // Получаем URL и параметры запроса
   const url = new URL(request.url);
+  console.log('Callback URL:', url.toString());
+  
   const code = url.searchParams.get('code');
   const state = url.searchParams.get('state');
+  
+  console.log('Параметры запроса:', { code: code ? 'присутствует' : 'отсутствует', state: state ? 'присутствует' : 'отсутствует' });
   
   // Проверяем наличие параметров
   if (!code) {
@@ -23,6 +27,8 @@ export async function GET(request) {
   // Получаем state из cookie
   const cookieStore = cookies();
   const storedState = cookieStore.get('twitch_state')?.value;
+  
+  console.log('Сравнение state:', { providedState: state, storedState });
   
   // Проверяем совпадение state для защиты от CSRF
   if (!storedState || state !== storedState) {
@@ -44,6 +50,10 @@ export async function GET(request) {
       throw new Error('Отсутствует TWITCH_REDIRECT_URI в переменных окружения');
     }
     
+    // Используем TWITCH_REDIRECT_URI как есть, без модификаций
+    const redirectUri = process.env.TWITCH_REDIRECT_URI;
+    console.log('Используем redirect_uri для получения токена:', redirectUri);
+    
     // Получаем токен доступа
     const tokenResponse = await fetch('https://id.twitch.tv/oauth2/token', {
       method: 'POST',
@@ -55,7 +65,7 @@ export async function GET(request) {
         client_secret: process.env.TWITCH_CLIENT_SECRET,
         code: code,
         grant_type: 'authorization_code',
-        redirect_uri: process.env.TWITCH_REDIRECT_URI,
+        redirect_uri: redirectUri,
       }),
     });
     
@@ -137,7 +147,32 @@ export async function GET(request) {
     
     console.log('Callback успешно завершен, перенаправление на /profile с данными пользователя');
     console.log('Redirect URL:', redirectUrl.toString());
-    return NextResponse.redirect(redirectUrl.toString());
+    
+    // Сохраняем данные пользователя в localStorage через скрипт
+    const script = `
+      <script>
+        try {
+          localStorage.setItem('twitch_user', '${JSON.stringify(userInfo).replace(/'/g, "\\'")}');
+          localStorage.setItem('cookie_twitch_access_token', '${tokenData.access_token.replace(/'/g, "\\'")}');
+          console.log('Данные пользователя сохранены в localStorage');
+          window.location.href = '${redirectUrl.toString()}';
+        } catch (e) {
+          console.error('Ошибка при сохранении данных в localStorage:', e);
+          window.location.href = '${redirectUrl.toString()}';
+        }
+      </script>
+    `;
+    
+    // Возвращаем HTML с скриптом для сохранения данных в localStorage
+    return new NextResponse(script, {
+      headers: {
+        'Content-Type': 'text/html; charset=utf-8',
+        'Access-Control-Allow-Credentials': 'true',
+        'Access-Control-Allow-Origin': url.origin,
+        'Access-Control-Allow-Methods': 'GET,OPTIONS,PATCH,DELETE,POST,PUT',
+        'Access-Control-Allow-Headers': 'X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version',
+      },
+    });
     
   } catch (error) {
     console.error('Ошибка авторизации:', error);
