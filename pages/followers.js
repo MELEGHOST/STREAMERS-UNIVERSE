@@ -17,11 +17,22 @@ export default function Followers() {
   useEffect(() => {
     const accessToken = Cookies.get('twitch_access_token');
     if (!accessToken) {
+      console.error('Отсутствует токен доступа, перенаправление на страницу авторизации');
       router.push('/auth');
-    } else {
+      return;
+    }
+    
+    try {
       setIsAuthenticated(true);
       // Получаем данные пользователя из localStorage
-      const storedUser = JSON.parse(localStorage.getItem('twitch_user') || '{}');
+      const storedUserData = localStorage.getItem('twitch_user');
+      if (!storedUserData) {
+        console.error('Отсутствуют данные пользователя');
+        setLoading(false);
+        return;
+      }
+      
+      const storedUser = JSON.parse(storedUserData);
       const userId = storedUser.id || 'unknown';
       setUserId(userId);
       setIsStreamer(storedUser.isStreamer || false);
@@ -41,6 +52,9 @@ export default function Followers() {
 
       const savedRoles = JSON.parse(localStorage.getItem(`roles_${userId}`)) || {};
       setRoles(savedRoles);
+      setLoading(false);
+    } catch (error) {
+      console.error('Ошибка при загрузке данных:', error);
       setLoading(false);
     }
   }, [router]);

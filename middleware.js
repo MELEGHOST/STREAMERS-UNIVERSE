@@ -49,6 +49,7 @@ export function middleware(request) {
     'https://streamers-universe.vercel.app',
     'https://streamers-universe.com',
     'https://streamers-universe-meleghost-meleghosts-projects.vercel.app',
+    'https://streamers-universe-meleghost-meleghosts-projects.vercel.app/auth',
     // Локальные домены для разработки
     'http://localhost:3000',
     'http://127.0.0.1:3000',

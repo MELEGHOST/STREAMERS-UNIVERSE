@@ -38,6 +38,13 @@
   object-fit: cover;
   border: 3px solid var(--primary-color, #7B41C9);
   background-color: var(--secondary-color, #5A2E94);
+  cursor: pointer;
+  transition: transform 0.3s, box-shadow 0.3s;
+}
+
+.avatar:hover {
+  transform: scale(1.05);
+  box-shadow: 0 0 15px rgba(123, 65, 201, 0.7);
 }
 
 .userDetails {
@@ -60,6 +67,14 @@
   padding: 4px 10px;
   border-radius: 20px;
   border: 1px solid var(--primary-color, #7B41C9);
+  cursor: pointer;
+  transition: transform 0.3s, background-color 0.3s, box-shadow 0.3s;
+}
+
+.coinsContainer:hover {
+  transform: scale(1.05);
+  background-color: rgba(123, 65, 201, 0.3);
+  box-shadow: 0 0 10px rgba(123, 65, 201, 0.5);
 }
 
 .coinIcon {

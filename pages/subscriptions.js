@@ -15,10 +15,21 @@ export default function Subscriptions() {
   useEffect(() => {
     const accessToken = Cookies.get('twitch_access_token');
     if (!accessToken) {
+      console.error('Отсутствует токен доступа, перенаправление на страницу авторизации');
       router.push('/auth');
-    } else {
+      return;
+    }
+    
+    try {
       setIsAuthenticated(true);
-      const storedUser = JSON.parse(localStorage.getItem('twitch_user') || '{}');
+      const storedUserData = localStorage.getItem('twitch_user');
+      if (!storedUserData) {
+        console.error('Отсутствуют данные пользователя');
+        setLoading(false);
+        return;
+      }
+      
+      const storedUser = JSON.parse(storedUserData);
       const userId = storedUser.id || 'unknown';
       setUserId(userId);
 
@@ -34,6 +45,9 @@ export default function Subscriptions() {
         const subscriptionsData = JSON.parse(localStorage.getItem(`subscriptions_${userId}`)) || [];
         setSubscriptions(subscriptionsData);
       }
+      setLoading(false);
+    } catch (error) {
+      console.error('Ошибка при получении данных пользователя:', error);
       setLoading(false);
     }
   }, [router]);

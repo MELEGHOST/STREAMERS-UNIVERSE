@@ -236,13 +236,17 @@ export default function Menu() {
             src={userData.profileImageUrl} 
             alt={`${userData.twitchName || userData.display_name} аватар`} 
             className={styles.avatar}
+            onClick={() => handleMenuItemClick('/profile')}
             onError={(e) => {
               e.currentTarget.src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="200" height="200" viewBox="0 0 200 200"%3E%3Crect width="200" height="200" fill="%237B41C9"%3E%3C/rect%3E%3Ctext x="100" y="100" font-family="Arial" font-size="24" text-anchor="middle" fill="white"%3ENo Image%3C/text%3E%3C/svg%3E';
             }}
           />
           <div className={styles.userDetails}>
             <span>{userData.twitchName || userData.display_name}</span>
-            <div className={styles.coinsContainer}>
+            <div 
+              className={styles.coinsContainer}
+              onClick={() => handleMenuItemClick('/coins')}
+            >
               <img 
                 src="/images/stream-coin.svg" 
                 alt="Stream Coins" 
@@ -315,22 +319,11 @@ export default function Menu() {
 
         <div 
           className={styles.menuItem}
-          onClick={() => handleMenuItemClick('/profile')}
-        >
-          <div className={styles.menuIcon}>👤</div>
-          <div className={styles.menuContent}>
-            <h2>6. Профиль</h2>
-            <p>Ваша страница профиля</p>
-          </div>
-        </div>
-
-        <div 
-          className={styles.menuItem}
           onClick={() => handleMenuItemClick('/settings')}
         >
           <div className={styles.menuIcon}>⚙️</div>
           <div className={styles.menuContent}>
-            <h2>7. Настройки</h2>
+            <h2>6. Настройки</h2>
             <p>Возможность сменить тему (тёмная/светлая), поменять шрифт, часовой пояс, язык и другие настройки</p>
           </div>
         </div>

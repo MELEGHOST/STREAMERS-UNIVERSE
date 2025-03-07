@@ -111,6 +111,11 @@ export async function GET(request) {
       // Здесь можно добавить проверку в базе данных, если она есть
       // Пока просто считаем, что пользователь зарегистрирован, если его данные есть в Twitch
       isRegistered = true;
+      
+      // Добавляем дополнительную информацию для отладки
+      console.log('Пользователь найден на Twitch:', twitchUser.login);
+      console.log('ID пользователя:', twitchUser.id);
+      console.log('Имя пользователя:', twitchUser.display_name);
     } catch (error) {
       console.error('Error checking registration status:', error);
     }
@@ -131,6 +136,9 @@ export async function GET(request) {
       if (followingsResponse.ok) {
         const followingsData = await followingsResponse.json();
         userFollowings = followingsData.data.map(follow => follow.to_name);
+        console.log('Получены подписки пользователя:', userFollowings.length);
+      } else {
+        console.error('Ошибка при получении подписок пользователя:', followingsResponse.status);
       }
     } catch (error) {
       console.error('Error fetching user followings:', error);

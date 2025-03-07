@@ -15,16 +15,30 @@ export default function StreamersUniverseSubscriptions() {
   useEffect(() => {
     const accessToken = Cookies.get('twitch_access_token');
     if (!accessToken) {
+      console.error('Отсутствует токен доступа, перенаправление на страницу авторизации');
       router.push('/auth');
-    } else {
+      return;
+    }
+    
+    try {
       setIsAuthenticated(true);
-      const storedUser = JSON.parse(localStorage.getItem('twitch_user') || '{}');
+      const storedUserData = localStorage.getItem('twitch_user');
+      if (!storedUserData) {
+        console.error('Отсутствуют данные пользователя');
+        setLoading(false);
+        return;
+      }
+      
+      const storedUser = JSON.parse(storedUserData);
       const userId = storedUser.id || 'unknown';
       setUserId(userId);
 
       // Получаем подписки пользователя в Streamers Universe из localStorage
       const suSubscriptionsData = JSON.parse(localStorage.getItem(`su_subscriptions_${userId}`)) || [];
       setSubscriptions(suSubscriptionsData);
+      setLoading(false);
+    } catch (error) {
+      console.error('Ошибка при загрузке данных:', error);
       setLoading(false);
     }
   }, [router]);

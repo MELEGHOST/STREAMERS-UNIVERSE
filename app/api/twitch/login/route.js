@@ -33,10 +33,10 @@ export async function GET(request) {
       // Для локальной разработки
       redirectUri = process.env.NEXT_PUBLIC_TWITCH_REDIRECT_URI_LOCAL || `${currentDomain}/api/twitch/callback`;
       console.log('Login API - Используем локальный URI перенаправления:', redirectUri);
-    } else if (currentDomain.includes('streamers-universe-meleghost-meleghosts-projects.vercel.app')) {
-      // Для превью версии - явно указываем полный URI
-      redirectUri = 'https://streamers-universe-meleghost-meleghosts-projects.vercel.app/api/twitch/callback';
-      console.log('Login API - Используем фиксированный URI перенаправления для превью:', redirectUri);
+    } else if (currentDomain.includes('streamers-universe-git')) {
+      // Для превью версий на Vercel (все превью имеют в URL git)
+      redirectUri = `${currentDomain}/api/twitch/callback`;
+      console.log('Login API - Используем динамический URI перенаправления для превью:', redirectUri);
     } else if (currentDomain.includes('streamers-universe.vercel.app') || currentDomain.includes('streamers-universe.com')) {
       // Для продакшн версии - явно указываем полный URI
       redirectUri = 'https://streamers-universe.vercel.app/api/twitch/callback';
