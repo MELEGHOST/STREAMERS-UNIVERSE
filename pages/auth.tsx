@@ -160,9 +160,8 @@ export default function Auth() {
       )}
       
       <div className={styles.galaxyButton}>
-        <button
+        <button 
           className={styles.spaceButton}
-          style={{ '--active': isLoading ? '1' : '0' } as React.CSSProperties}
           onMouseDown={handleLoginPress}
           onMouseUp={handleLoginRelease}
           onTouchStart={handleLoginPress}
