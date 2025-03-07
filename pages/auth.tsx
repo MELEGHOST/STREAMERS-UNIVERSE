@@ -18,11 +18,25 @@ export default function Auth() {
     const accessToken = getCookieWithLocalStorage('twitch_access_token');
     if (accessToken) {
       console.log('Обнаружен токен доступа, перенаправление на /profile');
+      
+      // Сохраняем текущий домен перед редиректом
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('current_domain', window.location.origin);
+      }
+      
       // Добавляем плавный переход перед редиректом
       document.body.style.opacity = '0';
       document.body.style.transition = 'opacity 0.3s ease';
+      
+      // Используем абсолютный URL для редиректа
       setTimeout(() => {
-        router.push('/profile');
+        const currentOrigin = window.location.origin;
+        const targetUrl = new URL('/profile', currentOrigin);
+        
+        // Добавляем параметр для плавного перехода
+        targetUrl.searchParams.set('smooth', 'true');
+        
+        window.location.href = targetUrl.toString();
       }, 300);
       return;
     }

@@ -199,7 +199,17 @@ export async function GET(request) {
                 
                 if (userDataSaved && accessTokenSaved) {
                   console.log('Все данные успешно сохранены, выполняем редирект');
-                  window.location.href = '${redirectUrl.toString()}';
+                  // Используем абсолютный URL для редиректа, чтобы избежать проблем с разными доменами
+                  const currentOrigin = window.location.origin;
+                  const targetUrl = new URL('/profile', currentOrigin);
+                  
+                  // Добавляем параметр для предотвращения мерцания
+                  targetUrl.searchParams.set('smooth', 'true');
+                  
+                  // Добавляем данные пользователя в URL
+                  targetUrl.searchParams.set('user', JSON.stringify(profileData));
+                  
+                  window.location.href = targetUrl.toString();
                 } else {
                   console.log('Не все данные сохранены, повторяем попытку...');
                   // Если данные не сохранены, пробуем еще раз
@@ -207,7 +217,9 @@ export async function GET(request) {
                 }
               } catch (e) {
                 console.error('Ошибка при проверке сохраненных данных:', e);
-                window.location.href = '${redirectUrl.toString()}';
+                // В случае ошибки используем абсолютный URL
+                const currentOrigin = window.location.origin;
+                window.location.href = new URL('/profile', currentOrigin).toString();
               }
             };
             
@@ -215,7 +227,9 @@ export async function GET(request) {
           }, 300);
         } catch (e) {
           console.error('Ошибка при сохранении данных в localStorage:', e);
-          window.location.href = '${redirectUrl.toString()}';
+          // В случае ошибки используем абсолютный URL
+          const currentOrigin = window.location.origin;
+          window.location.href = new URL('/profile', currentOrigin).toString();
         }
       </script>
       <style>

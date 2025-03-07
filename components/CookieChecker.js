@@ -47,6 +47,29 @@ export default function CookieChecker() {
       };
       setLocalStorageStatus(localStorageItems);
       
+      // Проверяем, изменился ли домен
+      const currentDomain = window.location.origin;
+      const savedDomain = localStorage.getItem('current_domain');
+      
+      // Если домен изменился и у нас есть данные в localStorage, но нет в куках
+      if (savedDomain && currentDomain !== savedDomain) {
+        console.log('Обнаружено изменение домена:', { savedDomain, currentDomain });
+        
+        // Если в localStorage есть данные, но в куках нет, восстанавливаем куки
+        if (localStorageItems.twitch_user && !cookiesStatus.twitch_user) {
+          try {
+            const userData = localStorage.getItem('twitch_user');
+            document.cookie = `twitch_user=${encodeURIComponent(userData)}; path=/; max-age=86400; samesite=lax`;
+            console.log('Восстановлены куки twitch_user из localStorage');
+          } catch (e) {
+            console.error('Ошибка при восстановлении куки twitch_user:', e);
+          }
+        }
+        
+        // Обновляем сохраненный домен
+        localStorage.setItem('current_domain', currentDomain);
+      }
+      
       // Выводим информацию в консоль для отладки
       console.log('Статус куков:', cookiesStatus);
       console.log('Статус localStorage:', localStorageItems);

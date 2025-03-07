@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import Cookies from 'js-cookie';
-import { getCookie, setCookie } from '../utils/cookies';
+import { getCookie, setCookie, setCookieWithLocalStorage } from '../utils/cookies';
 import styles from './profile.module.css';
 import { useRouter } from 'next/router';
 import CookieChecker from '../components/CookieChecker';
@@ -24,183 +24,191 @@ export default function Profile() {
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
 
-  useEffect(() => {
-    const checkAuthAndLoadProfile = async () => {
-      if (typeof window !== 'undefined') {
-        // Проверяем наличие токена доступа в куках или localStorage
-        const accessToken = getCookie('twitch_access_token') || localStorage.getItem('cookie_twitch_access_token');
-        const urlParams = new URLSearchParams(window.location.search);
-        const userDataParam = urlParams.get('user');
-
-        console.log('Проверка авторизации - accessToken:', accessToken ? 'присутствует' : 'отсутствует');
-        console.log('Данные пользователя из URL:', userDataParam);
-        console.log('Текущий домен:', window.location.origin);
-        console.log('Сохраненный домен:', localStorage.getItem('current_domain'));
-
-        // Проверяем наличие данных пользователя в localStorage
-        let localStorageUserData = null;
+  // Функция для загрузки данных пользователя
+  const loadUserData = async () => {
+    if (typeof window !== 'undefined') {
+      // Проверяем наличие токена доступа в куках или localStorage
+      const accessToken = getCookie('twitch_access_token') || localStorage.getItem('cookie_twitch_access_token');
+      
+      console.log('Проверка авторизации - accessToken:', accessToken ? 'присутствует' : 'отсутствует');
+      console.log('Текущий домен:', window.location.origin);
+      console.log('Сохраненный домен:', localStorage.getItem('current_domain'));
+      
+      // Проверяем наличие данных пользователя в localStorage
+      let localStorageUserData = null;
+      try {
+        const storedUserData = localStorage.getItem('twitch_user');
+        if (storedUserData) {
+          localStorageUserData = JSON.parse(storedUserData);
+          console.log('Данные пользователя из localStorage:', localStorageUserData);
+        }
+      } catch (e) {
+        console.error('Ошибка при получении данных пользователя из localStorage:', e);
+      }
+      
+      // If no auth token and no user data, redirect to auth
+      if (!accessToken && !localStorageUserData) {
+        console.log('No auth token and no user data, redirecting to auth');
+        setError('Пожалуйста, войдите через Twitch.');
+        setLoading(false);
+        router.push('/auth');
+        return;
+      }
+      
+      // If we have user data but no auth token, the user might need to be redirected
+      if (localStorageUserData && !accessToken) {
+        console.log('No access token but we have user data - using fallback data');
+        // Use userData as fallback
+        const profileImageUrl = localStorageUserData.profileImageUrl ||
+          localStorageUserData.profile_image_url ||
+          `https://static-cdn.jtvnw.net/jtv_user_pictures/${localStorageUserData.id}-profile_image-300x300.jpg`;
+        
+        setProfileData({
+          twitchName: localStorageUserData.twitchName || localStorageUserData.display_name || 'Unknown User',
+          followersCount: localStorageUserData.followersCount || 0,
+          followers: localStorageUserData.followers || [],
+          followingsCount: localStorageUserData.followingsCount || 0,
+          followings: localStorageUserData.followings || [],
+          profileImageUrl,
+          id: localStorageUserData.id,
+          isStreamer: localStorageUserData.isStreamer || false
+        });
+        setLoading(false);
+        return;
+      }
+      
+      // Try to fetch profile data if we have an accessToken
+      if (accessToken) {
         try {
-          const storedUserData = localStorage.getItem('twitch_user');
-          if (storedUserData) {
-            localStorageUserData = JSON.parse(storedUserData);
-            console.log('Данные пользователя из localStorage:', localStorageUserData);
-          }
-        } catch (e) {
-          console.error('Ошибка при получении данных пользователя из localStorage:', e);
-        }
-
-        // Parse user data from URL if available
-        let userData: any = null;
-        if (userDataParam) {
-          try {
-            userData = JSON.parse(decodeURIComponent(userDataParam));
-            console.log('Разобранные данные пользователя из URL:', userData);
-            
-            // Всегда проверяем статус стримера на основе количества подписчиков
-            // и устанавливаем правильное значение
-            const isStreamer = userData.followersCount >= 150;
-            userData.isStreamer = isStreamer;
-            console.log(`Проверка статуса стримера: ${userData.followersCount} подписчиков, статус: ${isStreamer}`);
-            
-            // Сохраняем данные в localStorage и куки
-            localStorage.setItem('twitch_user', JSON.stringify(userData));
-            setCookie('twitch_user', JSON.stringify(userData));
-            
-            // Remove parameters from URL
-            window.history.replaceState({}, document.title, '/profile');
-          } catch (e) {
-            console.error('Ошибка парсинга данных пользователя из URL:', e);
-          }
-        }
-
-        // Используем данные в порядке приоритета: URL > localStorage > куки
-        const finalUserData = userData || localStorageUserData;
-
-        // If we have user data but no auth token, the user might need to be redirected
-        if (finalUserData && !accessToken) {
-          console.log('No access token but we have user data - using fallback data');
-          // Use userData as fallback
-          const profileImageUrl = finalUserData.profileImageUrl ||
-            `https://static-cdn.jtvnw.net/jtv_user_pictures/${finalUserData.id}-profile_image-300x300.jpg`;
-          
-          setProfileData({
-            twitchName: finalUserData.twitchName || finalUserData.display_name || 'Unknown User',
-            followersCount: finalUserData.followersCount || 0,
-            followers: finalUserData.followers || [],
-            followingsCount: finalUserData.followingsCount || 0,
-            followings: finalUserData.followings || [],
-            profileImageUrl,
-            id: finalUserData.id,
-            isStreamer: finalUserData.isStreamer || false
+          const response = await fetch('/api/twitch/profile', {
+            method: 'GET',
+            credentials: 'include',
           });
-          setLoading(false);
-          return;
-        }
 
-        // If no auth token and no user data, redirect to auth
-        if (!accessToken && !finalUserData) {
-          console.log('No auth token and no user data, redirecting to auth');
-          setError('Пожалуйста, войдите через Twitch.');
-          setLoading(false);
-          router.push('/auth');
-          return;
-        }
-
-        // Try to fetch profile data if we have an accessToken
-        if (accessToken) {
-          try {
-            const response = await fetch('/api/twitch/profile', {
-              method: 'GET',
-              credentials: 'include',
-            });
-
-            if (response.ok) {
-              const data = await response.json();
-              console.log('Полученные данные профиля:', data);
-              
-              // Проверяем статус стримера на основе количества подписчиков
-              const isStreamer = data.followersCount >= 150;
-              
-              // Update profile data
-              const profileImageUrl = data.profileImageUrl || 
-                `https://static-cdn.jtvnw.net/jtv_user_pictures/${data.id}-profile_image-300x300.jpg`;
-              
-              setProfileData({
-                ...data,
-                profileImageUrl,
-                isStreamer, // Всегда устанавливаем на основе количества подписчиков
-              });
-              
-              // Обновляем локальное хранилище с правильным статусом стримера
-              if (userData) {
-                userData.isStreamer = isStreamer;
-                localStorage.setItem('twitch_user', JSON.stringify(userData));
-              }
-            } else {
-              // API call failed, use userData as fallback if available
-              if (userData) {
-                console.log('API call failed, using fallback data');
-                const profileImageUrl = userData.profileImageUrl ||
-                  `https://static-cdn.jtvnw.net/jtv_user_pictures/${userData.id}-profile_image-300x300.jpg`;
-                
-                // Проверяем статус стримера на основе количества подписчиков
-                const isStreamer = userData.followersCount >= 150;
-                
-                setProfileData({
-                  twitchName: userData.name || 'Unknown User',
-                  followersCount: userData.followersCount || 0,
-                  followers: [],
-                  followingsCount: 0,
-                  followings: [],
-                  profileImageUrl,
-                  id: userData.id,
-                  isStreamer, // Всегда устанавливаем на основе количества подписчиков
-                });
-                
-                // Обновляем локальное хранилище с правильным статусом стримера
-                userData.isStreamer = isStreamer;
-                localStorage.setItem('twitch_user', JSON.stringify(userData));
-              } else {
-                throw new Error(`Не удалось загрузить профиль: ${response.status}`);
-              }
-            }
-          } catch (error: any) {
-            console.error('Ошибка загрузки профиля:', error);
+          if (response.ok) {
+            const data = await response.json();
+            console.log('Полученные данные профиля:', data);
             
-            // If we have userData but the API call failed, use userData as fallback
-            if (userData) {
-              console.log('Using fallback user data after error');
-              const profileImageUrl = userData.profileImageUrl ||
-                `https://static-cdn.jtvnw.net/jtv_user_pictures/${userData.id}-profile_image-300x300.jpg`;
+            // Проверяем статус стримера на основе количества подписчиков
+            const isStreamer = data.followersCount >= 150;
+            
+            // Update profile data
+            const profileImageUrl = data.profileImageUrl || 
+              `https://static-cdn.jtvnw.net/jtv_user_pictures/${data.id}-profile_image-300x300.jpg`;
+            
+            setProfileData({
+              ...data,
+              profileImageUrl,
+              isStreamer, // Всегда устанавливаем на основе количества подписчиков
+            });
+            
+            // Обновляем локальное хранилище с правильным статусом стримера
+            if (localStorageUserData) {
+              localStorageUserData.isStreamer = isStreamer;
+              localStorage.setItem('twitch_user', JSON.stringify(localStorageUserData));
+            }
+          } else {
+            // API call failed, use userData as fallback if available
+            if (localStorageUserData) {
+              console.log('API call failed, using fallback data');
+              const profileImageUrl = localStorageUserData.profileImageUrl ||
+                localStorageUserData.profile_image_url ||
+                `https://static-cdn.jtvnw.net/jtv_user_pictures/${localStorageUserData.id}-profile_image-300x300.jpg`;
               
               // Проверяем статус стримера на основе количества подписчиков
-              const isStreamer = userData.followersCount >= 150;
+              const isStreamer = localStorageUserData.followersCount >= 150;
               
               setProfileData({
-                twitchName: userData.name || 'Unknown User',
-                followersCount: userData.followersCount || 0,
+                twitchName: localStorageUserData.display_name || 'Unknown User',
+                followersCount: localStorageUserData.followersCount || 0,
                 followers: [],
                 followingsCount: 0,
                 followings: [],
                 profileImageUrl,
-                id: userData.id,
+                id: localStorageUserData.id,
                 isStreamer, // Всегда устанавливаем на основе количества подписчиков
               });
               
               // Обновляем локальное хранилище с правильным статусом стримера
-              userData.isStreamer = isStreamer;
-              localStorage.setItem('twitch_user', JSON.stringify(userData));
+              localStorageUserData.isStreamer = isStreamer;
+              localStorage.setItem('twitch_user', JSON.stringify(localStorageUserData));
             } else {
-              setError(error.message || 'Не удалось загрузить профиль');
+              throw new Error(`Не удалось загрузить профиль: ${response.status}`);
             }
           }
+        } catch (error: any) {
+          console.error('Ошибка загрузки профиля:', error);
+          
+          // If we have userData but the API call failed, use userData as fallback
+          if (localStorageUserData) {
+            console.log('Using fallback user data after error');
+            const profileImageUrl = localStorageUserData.profileImageUrl ||
+              localStorageUserData.profile_image_url ||
+              `https://static-cdn.jtvnw.net/jtv_user_pictures/${localStorageUserData.id}-profile_image-300x300.jpg`;
+            
+            // Проверяем статус стримера на основе количества подписчиков
+            const isStreamer = localStorageUserData.followersCount >= 150;
+            
+            setProfileData({
+              twitchName: localStorageUserData.display_name || 'Unknown User',
+              followersCount: localStorageUserData.followersCount || 0,
+              followers: [],
+              followingsCount: 0,
+              followings: [],
+              profileImageUrl,
+              id: localStorageUserData.id,
+              isStreamer, // Всегда устанавливаем на основе количества подписчиков
+            });
+            
+            // Обновляем локальное хранилище с правильным статусом стримера
+            localStorageUserData.isStreamer = isStreamer;
+            localStorage.setItem('twitch_user', JSON.stringify(localStorageUserData));
+          } else {
+            setError(error.message || 'Не удалось загрузить профиль');
+          }
         }
-        
-        setLoading(false);
       }
-    };
+      
+      setLoading(false);
+    }
+  };
 
-    checkAuthAndLoadProfile();
+  useEffect(() => {
+    // Проверяем наличие параметра smooth в URL
+    const urlParams = new URLSearchParams(window.location.search);
+    const isSmooth = urlParams.get('smooth') === 'true';
+    
+    // Если есть параметр smooth, добавляем плавный переход
+    if (isSmooth) {
+      document.body.style.opacity = '0';
+      document.body.style.transition = 'opacity 0.5s ease';
+      
+      // Плавно показываем страницу после загрузки
+      setTimeout(() => {
+        document.body.style.opacity = '1';
+      }, 100);
+    }
+    
+    // Проверяем наличие данных пользователя в URL
+    const userParam = urlParams.get('user');
+    if (userParam) {
+      try {
+        const userData = JSON.parse(userParam);
+        console.log('Получены данные пользователя из URL:', userData);
+        
+        // Сохраняем данные пользователя в localStorage и куки
+        localStorage.setItem('twitch_user', JSON.stringify(userData));
+        setCookieWithLocalStorage('twitch_user', JSON.stringify(userData));
+        
+        // Устанавливаем данные пользователя в состояние
+        setProfileData(userData);
+      } catch (e) {
+        console.error('Ошибка при обработке данных пользователя из URL:', e);
+      }
+    }
+    
+    // Продолжаем обычную загрузку данных пользователя
+    loadUserData();
   }, [router]);
 
   const handleLogout = async () => {

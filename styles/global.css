@@ -32,6 +32,8 @@ html, body {
   overflow-x: hidden;
   overscroll-behavior: none;
   -webkit-tap-highlight-color: transparent;
+  opacity: 1;
+  transition: opacity 0.5s ease-in-out;
 }
 
 #__next {
@@ -77,6 +79,32 @@ html, body {
 .page-transition {
   opacity: 0;
   transition: opacity var(--page-transition) ease-in-out;
+}
+
+/* Добавляем стили для плавного перехода между доменами */
+body {
+  opacity: 1;
+  transition: opacity 0.5s ease-in-out;
+}
+
+/* Стили для плавного появления контента */
+.fade-in {
+  animation: fadeIn 0.5s ease-in-out;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+/* Стили для плавного исчезновения контента */
+.fade-out {
+  animation: fadeOut 0.5s ease-in-out;
+}
+
+@keyframes fadeOut {
+  from { opacity: 1; }
+  to { opacity: 0; }
 }
 
 /* Стили для индикатора загрузки */
