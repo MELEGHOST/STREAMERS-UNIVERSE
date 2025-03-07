@@ -220,7 +220,7 @@
 
 .profileHeader {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   margin-bottom: 30px;
   padding: 20px;
   background-color: rgba(123, 65, 201, 0.1);
@@ -230,6 +230,8 @@
 
 .profileInfo {
   flex: 1;
+  margin-left: 20px;
+  text-align: left;
 }
 
 .profileInfo h1 {
@@ -314,16 +316,22 @@
 .description {
   margin: 15px 0;
   padding: 10px;
-  background-color: rgba(123, 65, 201, 0.05);
-  border-radius: 5px;
-  border-left: 3px solid #7B41C9;
+  background-color: rgba(0, 0, 0, 0.1);
+  border-radius: 8px;
+  text-align: left;
+  line-height: 1.5;
+  max-width: 100%;
 }
 
 .socialLinks {
   display: flex;
   flex-wrap: wrap;
-  margin-top: 20px;
   justify-content: center;
+  gap: 10px;
+  margin-top: 15px;
+  max-width: 400px;
+  margin-left: auto;
+  margin-right: auto;
 }
 
 .socialLink {
@@ -376,4 +384,79 @@
 .achievementsSection {
   margin-top: 30px;
   margin-bottom: 30px;
+}
+
+.editProfileTitle {
+  color: #7B41C9;
+  margin-bottom: 30px;
+  font-size: 28px;
+  text-align: center;
+  position: relative;
+}
+
+.editProfileTitle::after {
+  content: '';
+  position: absolute;
+  bottom: -10px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 100px;
+  height: 3px;
+  background: linear-gradient(to right, #7B41C9, #9146FF);
+  border-radius: 3px;
+}
+
+.inputWithIcon {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.inputIcon {
+  position: absolute;
+  left: 10px;
+  font-size: 16px;
+}
+
+.input {
+  width: 100%;
+  padding: 10px 10px 10px 35px;
+  border-radius: 5px;
+  border: 1px solid #333;
+  background-color: #1F1F23;
+  color: white;
+  transition: all 0.3s ease;
+}
+
+.input:focus {
+  outline: none;
+  border-color: #9146FF;
+  box-shadow: 0 0 0 2px rgba(145, 70, 255, 0.2);
+}
+
+.charCount {
+  text-align: right;
+  font-size: 12px;
+  color: #999;
+  margin-top: 5px;
+}
+
+.successMessage {
+  background-color: rgba(46, 204, 113, 0.2);
+  border-left: 4px solid #2ecc71;
+  padding: 15px;
+  margin-top: 20px;
+  border-radius: 5px;
+  color: #fff;
+  animation: fadeIn 0.5s ease-in-out;
+}
+
+.errorMessage {
+  background-color: rgba(231, 76, 60, 0.2);
+  border-left: 4px solid #e74c3c;
+  padding: 15px;
+  margin-top: 20px;
+  border-radius: 5px;
+  color: #fff;
+  animation: fadeIn 0.5s ease-in-out;
 }

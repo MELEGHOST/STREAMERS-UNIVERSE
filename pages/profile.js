@@ -145,7 +145,7 @@ export default function Profile() {
             const user = userData.data[0];
             
             // Получаем подписчиков
-            const followersResponse = await fetch(`https://api.twitch.tv/helix/users/follows?to_id=${user.id}`, {
+            const followersResponse = await fetch(`https://api.twitch.tv/helix/users/follows?to_id=${user.id}&first=100`, {
               method: 'GET',
               headers: {
                 'Client-ID': process.env.NEXT_PUBLIC_TWITCH_CLIENT_ID || '',
@@ -159,12 +159,34 @@ export default function Profile() {
             if (followersResponse.ok) {
               const followersData = await followersResponse.json();
               followersCount = followersData.total || 0;
-              followers = followersData.data.map((f) => f.from_name);
+              
               console.log(`Получено ${followersCount} подписчиков от Twitch API`);
-              console.log('Данные о подписчиках:', followersData);
+              console.log('Данные о подписчиках:', JSON.stringify(followersData, null, 2));
+              
+              if (followersData.data && Array.isArray(followersData.data)) {
+                followers = followersData.data.map((f) => f.from_name || f.from_login || 'Unknown');
+                console.log('Обработанный список подписчиков:', followers);
+              } else {
+                console.error('Ошибка структуры данных подписчиков:', followersData);
+              }
             } else {
               console.error('Ошибка при получении подписчиков:', followersResponse.status);
               console.error('Текст ошибки:', await followersResponse.text().catch(() => 'Не удалось получить текст ошибки'));
+              
+              // Пробуем получить данные из localStorage
+              try {
+                const storedUserData = localStorage.getItem('twitch_user');
+                if (storedUserData) {
+                  const userData = JSON.parse(storedUserData);
+                  if (userData.followers && Array.isArray(userData.followers)) {
+                    followers = userData.followers;
+                    followersCount = userData.followersCount || followers.length;
+                    console.log('Использованы данные о подписчиках из localStorage:', followers);
+                  }
+                }
+              } catch (e) {
+                console.error('Ошибка при получении данных о подписчиках из localStorage:', e);
+              }
             }
             
             // Получаем подписки

@@ -4,10 +4,10 @@
   position: relative;
   cursor: pointer;
   transition: all 0.2s;
-  font-size: 17px;
+  font-size: 14px;
   border-radius: 10px;
   display: inline-block;
-  margin: 10px;
+  margin: 5px;
   z-index: 1;
 }
 
@@ -54,8 +54,8 @@
 }
 
 .layer {
-  width: 70px;
-  height: 70px;
+  width: 55px;
+  height: 55px;
   transition: transform 0.3s;
 }
 
@@ -199,13 +199,13 @@
 
 @media (max-width: 768px) {
   .tooltipContainer {
-    margin: 5px;
-    font-size: 14px;
+    margin: 3px;
+    font-size: 12px;
   }
   
   .layer {
-    width: 60px;
-    height: 60px;
+    width: 45px;
+    height: 45px;
   }
   
   .svg {
