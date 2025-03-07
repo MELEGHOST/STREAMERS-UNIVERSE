@@ -240,27 +240,24 @@ export async function GET(request) {
           localStorage.setItem('cookie_twitch_access_token', '${accessToken}');
           ${refreshToken ? `localStorage.setItem('cookie_twitch_refresh_token', '${refreshToken}');` : ''}
           
-          // Для отладки выводим информацию в консоль
-          console.log('Данные пользователя:', userData);
-          console.log('Данные пользователя и токены сохранены в localStorage');
-          
-          // Проверяем, что данные сохранились
-          const savedUserData = localStorage.getItem('twitch_user');
-          console.log('Проверка сохраненных данных пользователя:', savedUserData ? 'данные сохранены' : 'данные не сохранены');
-          
           // Устанавливаем флаг авторизации
           localStorage.setItem('is_authenticated', 'true');
           
-          // Перенаправляем на главную страницу
+          // Для отладки выводим информацию в консоль
+          console.log('Данные пользователя и токены сохранены в localStorage');
+          
+          // Плавное перенаправление на главную страницу
+          document.body.style.opacity = '0';
+          document.body.style.transition = 'opacity 0.5s ease';
+          
+          // Перенаправляем на главную страницу без дополнительных проверок
           setTimeout(() => {
             window.location.href = '/menu';
-          }, 1000);
+          }, 500);
         } catch (e) {
           console.error('Ошибка при сохранении данных в localStorage:', e);
           // В случае ошибки все равно перенаправляем на главную страницу
-          setTimeout(() => {
-            window.location.href = '/menu';
-          }, 1000);
+          window.location.href = '/menu';
         }
       </script>
     `;

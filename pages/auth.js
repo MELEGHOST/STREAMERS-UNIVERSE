@@ -15,40 +15,7 @@ export default function Auth() {
   const [debugInfo, setDebugInfo] = useState(null);
 
   useEffect(() => {
-    // Проверяем, нужно ли выполнить проверку авторизации после редиректа
-    if (typeof window !== 'undefined' && sessionStorage.getItem('check_auth_after_redirect') === 'true') {
-      console.log('Выполняем проверку авторизации после редиректа...');
-      sessionStorage.removeItem('check_auth_after_redirect');
-      
-      // Даем время на установку куков
-      setTimeout(() => {
-        const accessToken = getCookieWithLocalStorage('twitch_access_token');
-        const userData = getCookieWithLocalStorage('twitch_user');
-        
-        console.log('Проверка после редиректа:', {
-          accessToken: accessToken ? 'присутствует' : 'отсутствует',
-          userData: userData ? 'присутствует' : 'отсутствует'
-        });
-        
-        if (accessToken && userData) {
-          console.log('Авторизация успешна, данные пользователя получены');
-          localStorage.setItem('is_authenticated', 'true');
-          
-          // Перенаправляем на главную страницу
-          const currentOrigin = window.location.origin;
-          const targetUrl = new URL('/menu', currentOrigin);
-          targetUrl.searchParams.set('smooth', 'true');
-          window.location.href = targetUrl.toString();
-        } else {
-          console.log('Авторизация не удалась или данные пользователя не получены');
-          localStorage.removeItem('is_authenticated');
-          setErrorMessage('Данные пользователя не найдены. Пожалуйста, авторизуйтесь снова.');
-          setIsLoading(false);
-        }
-      }, 1000);
-    }
-    
-    // Функция для проверки состояния авторизации
+    // Упрощенная проверка авторизации
     const checkAuthStatus = () => {
       // Собираем отладочную информацию
       const debug = {
@@ -62,6 +29,7 @@ export default function Auth() {
           cookie_twitch_refresh_token: !!localStorage.getItem('cookie_twitch_refresh_token'),
           cookie_twitch_user: !!localStorage.getItem('cookie_twitch_user'),
           twitch_user: !!localStorage.getItem('twitch_user'),
+          is_authenticated: !!localStorage.getItem('is_authenticated'),
         }
       };
       
@@ -82,6 +50,7 @@ export default function Auth() {
           localStorage.removeItem('cookie_twitch_access_token');
           localStorage.removeItem('cookie_twitch_refresh_token');
           localStorage.removeItem('cookie_twitch_user');
+          localStorage.removeItem('is_authenticated');
           
           // Удаляем параметр из URL
           const newUrl = new URL(window.location.href);
@@ -92,48 +61,7 @@ export default function Auth() {
       
       // Проверяем, авторизован ли пользователь уже
       const accessToken = getCookieWithLocalStorage('twitch_access_token');
-      
-      // Пытаемся получить данные пользователя из разных источников
-      let userData = null;
-      
-      // Проверяем куки
-      const userCookie = getCookie('twitch_user');
-      if (userCookie) {
-        try {
-          userData = JSON.parse(userCookie);
-          console.log('Данные пользователя получены из куки');
-        } catch (e) {
-          console.error('Ошибка при парсинге данных пользователя из куки:', e);
-        }
-      }
-      
-      // Если нет в куках, проверяем localStorage
-      if (!userData && typeof window !== 'undefined') {
-        const userLocalStorage = localStorage.getItem('twitch_user') || localStorage.getItem('cookie_twitch_user');
-        if (userLocalStorage) {
-          try {
-            userData = JSON.parse(userLocalStorage);
-            console.log('Данные пользователя получены из localStorage');
-            
-            // Восстанавливаем куку
-            if (userData) {
-              Cookies.set('twitch_user', JSON.stringify(userData), {
-                path: '/',
-                secure: window.location.protocol === 'https:',
-                sameSite: 'lax',
-                maxAge: 60 * 60 * 24 * 7 // 7 дней
-              });
-              console.log('Восстановлена кука с данными пользователя из localStorage');
-            }
-          } catch (e) {
-            console.error('Ошибка при парсинге данных пользователя из localStorage:', e);
-          }
-        }
-      }
-      
-      // Проверяем флаг авторизации в localStorage
-      const isAuthenticated = localStorage.getItem('is_authenticated') === 'true';
-      console.log('Флаг авторизации в localStorage:', isAuthenticated ? 'авторизован' : 'не авторизован');
+      const userData = getCookieWithLocalStorage('twitch_user');
       
       if (accessToken && userData) {
         console.log('Обнаружен токен доступа и данные пользователя, перенаправление на /menu');
@@ -141,116 +69,11 @@ export default function Auth() {
         // Сохраняем текущий домен перед редиректом
         if (typeof window !== 'undefined') {
           localStorage.setItem('current_domain', window.location.origin);
-          
-          // Также сохраняем токен в localStorage для надежности
-          localStorage.setItem('cookie_twitch_access_token', accessToken);
-          
-          // Сохраняем данные пользователя в localStorage
-          localStorage.setItem('twitch_user', JSON.stringify(userData));
-          localStorage.setItem('cookie_twitch_user', JSON.stringify(userData));
-          
-          // Устанавливаем флаг авторизации
-          localStorage.setItem('is_authenticated', 'true');
         }
         
-        // Добавляем плавный переход перед редиректом
-        document.body.style.opacity = '0';
-        document.body.style.transition = 'opacity 0.3s ease';
-        
-        // Используем абсолютный URL для редиректа
-        setTimeout(() => {
-          const currentOrigin = window.location.origin;
-          const targetUrl = new URL('/menu', currentOrigin);
-          
-          // Добавляем параметр для плавного перехода
-          targetUrl.searchParams.set('smooth', 'true');
-          
-          window.location.href = targetUrl.toString();
-        }, 300);
+        // Простое перенаправление без анимации
+        window.location.href = '/menu';
         return;
-      } else if (accessToken && !userData) {
-        // Есть токен, но нет данных пользователя - пробуем получить данные
-        console.log('Обнаружен токен доступа, но нет данных пользователя. Пробуем получить данные профиля.');
-        setIsLoading(true);
-        
-        // Добавляем дополнительное логирование для отладки
-        console.log('Отправка запроса к API профиля с токеном:', accessToken.substring(0, 10) + '...');
-        
-        fetch('/api/twitch/profile', {
-          headers: {
-            'Authorization': `Bearer ${accessToken}`
-          }
-        })
-        .then(response => {
-          console.log('Получен ответ от API профиля:', response.status);
-          if (response.ok) {
-            return response.json();
-          }
-          throw new Error(`Не удалось получить данные профиля: ${response.status}`);
-        })
-        .then(data => {
-          console.log('Данные профиля получены:', data);
-          
-          // Создаем объект с данными пользователя
-          const userDataObj = {
-            id: data.id,
-            login: data.login || data.twitchName.toLowerCase(),
-            display_name: data.twitchName,
-            profile_image_url: data.profileImageUrl
-          };
-          
-          // Сохраняем данные пользователя в куки и localStorage
-          Cookies.set('twitch_user', JSON.stringify(userDataObj), {
-            path: '/',
-            secure: window.location.protocol === 'https:',
-            sameSite: 'lax',
-            maxAge: 60 * 60 * 24 * 7 // 7 дней
-          });
-          
-          localStorage.setItem('twitch_user', JSON.stringify(userDataObj));
-          localStorage.setItem('cookie_twitch_user', JSON.stringify(userDataObj));
-          
-          // Устанавливаем флаг авторизации
-          localStorage.setItem('is_authenticated', 'true');
-          
-          console.log('Данные пользователя сохранены, перенаправление на /menu');
-          
-          // Сохраняем текущий домен перед редиректом
-          if (typeof window !== 'undefined') {
-            localStorage.setItem('current_domain', window.location.origin);
-          }
-          
-          // Добавляем плавный переход перед редиректом
-          document.body.style.opacity = '0';
-          document.body.style.transition = 'opacity 0.3s ease';
-          
-          // Используем абсолютный URL для редиректа
-          setTimeout(() => {
-            const currentOrigin = window.location.origin;
-            const targetUrl = new URL('/menu', currentOrigin);
-            
-            // Добавляем параметр для плавного перехода
-            targetUrl.searchParams.set('smooth', 'true');
-            
-            window.location.href = targetUrl.toString();
-          }, 300);
-        })
-        .catch(error => {
-          console.error('Ошибка при получении данных профиля:', error);
-          // Очищаем токены, так как они, вероятно, недействительны
-          Cookies.remove('twitch_access_token');
-          Cookies.remove('twitch_refresh_token');
-          localStorage.removeItem('cookie_twitch_access_token');
-          localStorage.removeItem('cookie_twitch_refresh_token');
-          localStorage.removeItem('is_authenticated');
-          
-          setErrorMessage('Данные пользователя не найдены. Пожалуйста, авторизуйтесь снова.');
-          setIsLoading(false);
-        });
-      } else if (isAuthenticated) {
-        // Есть флаг авторизации, но нет токена или данных пользователя
-        console.log('Обнаружен флаг авторизации, но нет токена или данных пользователя. Очищаем флаг.');
-        localStorage.removeItem('is_authenticated');
       }
     };
     
@@ -330,24 +153,6 @@ export default function Auth() {
     // Сохраняем текущий домен перед редиректом
     if (typeof window !== 'undefined') {
       localStorage.setItem('current_domain', window.location.origin);
-      
-      // Добавляем обработчик для проверки авторизации после возврата
-      const checkAuthAfterRedirect = () => {
-        console.log('Проверка авторизации после возврата...');
-        const accessToken = getCookieWithLocalStorage('twitch_access_token');
-        const userData = getCookieWithLocalStorage('twitch_user');
-        
-        if (accessToken && userData) {
-          console.log('Авторизация успешна, данные пользователя получены');
-          localStorage.setItem('is_authenticated', 'true');
-        } else {
-          console.log('Авторизация не удалась или данные пользователя не получены');
-          localStorage.removeItem('is_authenticated');
-        }
-      };
-      
-      // Сохраняем функцию проверки в sessionStorage
-      sessionStorage.setItem('check_auth_after_redirect', 'true');
     }
     
     // Используем правильный URL для авторизации
