@@ -9,6 +9,7 @@ export default function Menu() {
   const [isStreamer, setIsStreamer] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [streamCoins, setStreamCoins] = useState(0);
 
   useEffect(() => {
     // Проверяем авторизацию
@@ -72,6 +73,10 @@ export default function Menu() {
         });
         
         setIsStreamer(userDataObj.isStreamer || false);
+        
+        // Загружаем стример-коины пользователя
+        loadStreamCoins(userDataObj.id);
+        
         setLoading(false);
       } else {
         // Если данные пользователя не найдены, пробуем получить их из API
@@ -100,11 +105,8 @@ export default function Menu() {
             isStreamer: data.isStreamer
           };
           
-          // Сохраняем данные пользователя
-          setUserData(userData);
-          setIsStreamer(data.isStreamer || false);
-          
-          // Сохраняем данные пользователя в куки и localStorage
+          // Сохраняем данные пользователя в localStorage и куки
+          localStorage.setItem('twitch_user', JSON.stringify(userData));
           Cookies.set('twitch_user', JSON.stringify(userData), {
             path: '/',
             secure: window.location.protocol === 'https:',
@@ -112,23 +114,78 @@ export default function Menu() {
             maxAge: 60 * 60 * 24 * 7 // 7 дней
           });
           
-          localStorage.setItem('twitch_user', JSON.stringify(userData));
-          localStorage.setItem('cookie_twitch_user', JSON.stringify(userData));
+          setUserData(userData);
+          setIsStreamer(data.isStreamer || false);
+          
+          // Загружаем стример-коины пользователя
+          loadStreamCoins(data.id);
           
           setLoading(false);
         })
         .catch(error => {
           console.error('Ошибка при получении данных профиля:', error);
-          setError('Данные пользователя не найдены. Пожалуйста, авторизуйтесь снова.');
+          setError('Не удалось получить данные профиля. Пожалуйста, попробуйте еще раз.');
           setLoading(false);
         });
       }
-    } catch (e) {
-      console.error('Ошибка при проверке авторизации:', e);
-      setError('Ошибка при проверке авторизации. Пожалуйста, обновите страницу или авторизуйтесь снова.');
+    } catch (error) {
+      console.error('Ошибка при проверке авторизации:', error);
+      setError('Произошла ошибка при проверке авторизации. Пожалуйста, попробуйте еще раз.');
       setLoading(false);
     }
   }, [router]);
+  
+  // Функция для загрузки стример-коинов пользователя
+  const loadStreamCoins = (userId) => {
+    try {
+      // Проверяем наличие данных о коинах в localStorage
+      const coinsData = localStorage.getItem(`streamcoins_${userId}`);
+      if (coinsData) {
+        try {
+          const parsedData = JSON.parse(coinsData);
+          setStreamCoins(parsedData.balance || 0);
+        } catch (e) {
+          console.error('Ошибка при парсинге данных о коинах:', e);
+          setStreamCoins(0);
+        }
+      } else {
+        // Если данных нет, устанавливаем начальное значение
+        const initialCoins = 100; // Начальное количество коинов для новых пользователей
+        setStreamCoins(initialCoins);
+        
+        // Сохраняем начальные данные в localStorage
+        const initialData = {
+          userId: userId,
+          balance: initialCoins,
+          totalEarned: initialCoins,
+          totalSpent: 0,
+          transactions: [{
+            id: `init-${Date.now()}`,
+            type: 'earn',
+            amount: initialCoins,
+            reason: 'initial',
+            timestamp: new Date().toISOString(),
+            metadata: { note: 'Начальные коины при регистрации' }
+          }],
+          lastAdWatch: new Date(0).toISOString(),
+          referralCode: generateReferralCode(userId),
+          referredBy: null
+        };
+        
+        localStorage.setItem(`streamcoins_${userId}`, JSON.stringify(initialData));
+      }
+    } catch (error) {
+      console.error('Ошибка при загрузке стример-коинов:', error);
+      setStreamCoins(0);
+    }
+  };
+  
+  // Функция для генерации реферального кода
+  const generateReferralCode = (userId) => {
+    const base = userId.substring(0, 5);
+    const randomPart = Math.random().toString(36).substring(2, 6);
+    return `${base}-${randomPart}`.toUpperCase();
+  };
 
   const handleMenuItemClick = (path) => {
     try {
@@ -183,7 +240,17 @@ export default function Menu() {
               e.currentTarget.src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="200" height="200" viewBox="0 0 200 200"%3E%3Crect width="200" height="200" fill="%237B41C9"%3E%3C/rect%3E%3Ctext x="100" y="100" font-family="Arial" font-size="24" text-anchor="middle" fill="white"%3ENo Image%3C/text%3E%3C/svg%3E';
             }}
           />
-          <span>{userData.twitchName || userData.display_name}</span>
+          <div className={styles.userDetails}>
+            <span>{userData.twitchName || userData.display_name}</span>
+            <div className={styles.coinsContainer}>
+              <img 
+                src="/images/stream-coin.svg" 
+                alt="Stream Coins" 
+                className={styles.coinIcon} 
+              />
+              <span className={styles.coinsAmount}>{streamCoins}</span>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -205,8 +272,8 @@ export default function Menu() {
         >
           <div className={styles.menuIcon}>📋</div>
           <div className={styles.menuContent}>
-            <h2>2. Подписки</h2>
-            <p>Посмотреть на каких стримеров ты подписан на Twitch/в приложении Streamers Universe</p>
+            <h2>2. Фолловинги Twitch</h2>
+            <p>Посмотреть на каких стримеров вы подписаны на Twitch (фолловите)</p>
           </div>
         </div>
 
@@ -216,11 +283,33 @@ export default function Menu() {
         >
           <div className={styles.menuIcon}>👥</div>
           <div className={styles.menuContent}>
-            <h2>3. Подписчики</h2>
-            <p>Посмотреть кто подписан на тебя в Streamers Universe</p>
+            <h2>3. Фолловеры Twitch</h2>
+            <p>Посмотреть кто подписан на вас на Twitch (фолловеры)</p>
             {isStreamer && (
-              <p className={styles.streamerNote}>Как стример, ты можешь назначать роли подписчикам: модератор, доверенный подписчик</p>
+              <p className={styles.streamerNote}>Как стример, вы можете назначать роли фолловерам: модератор, VIP, постоянный зритель</p>
             )}
+          </div>
+        </div>
+        
+        <div 
+          className={styles.menuItem}
+          onClick={() => handleMenuItemClick('/su-subscriptions')}
+        >
+          <div className={styles.menuIcon}>🌟</div>
+          <div className={styles.menuContent}>
+            <h2>4. Подписки в Streamers Universe</h2>
+            <p>Посмотреть на каких создателей контента вы подписаны в Streamers Universe</p>
+          </div>
+        </div>
+
+        <div 
+          className={styles.menuItem}
+          onClick={() => handleMenuItemClick('/su-subscribers')}
+        >
+          <div className={styles.menuIcon}>🎭</div>
+          <div className={styles.menuContent}>
+            <h2>5. Подписчики в Streamers Universe</h2>
+            <p>Посмотреть кто подписан на вас в Streamers Universe</p>
           </div>
         </div>
 
@@ -230,8 +319,8 @@ export default function Menu() {
         >
           <div className={styles.menuIcon}>👤</div>
           <div className={styles.menuContent}>
-            <h2>4. Профиль</h2>
-            <p>Твоя страница профиля</p>
+            <h2>6. Профиль</h2>
+            <p>Ваша страница профиля</p>
           </div>
         </div>
 
@@ -241,7 +330,7 @@ export default function Menu() {
         >
           <div className={styles.menuIcon}>⚙️</div>
           <div className={styles.menuContent}>
-            <h2>5. Настройки</h2>
+            <h2>7. Настройки</h2>
             <p>Возможность сменить тему (тёмная/светлая), поменять шрифт, часовой пояс, язык и другие настройки</p>
           </div>
         </div>

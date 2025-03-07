@@ -65,12 +65,75 @@
 .error {
   color: #e74c3c;
   font-weight: bold;
+  text-align: center;
+  font-size: 18px;
+  padding: 15px;
 }
 
 .actionButtons {
   display: flex;
   justify-content: center;
   margin-top: 30px;
+}
+
+/* Стили для карточки пользователя */
+.userCard {
+  display: flex;
+  flex-direction: column;
+  background-color: rgba(255, 255, 255, 0.05);
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+}
+
+.userHeader {
+  display: flex;
+  align-items: center;
+  padding: 15px;
+  background-color: rgba(123, 65, 201, 0.1);
+}
+
+.userAvatar {
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  margin-right: 15px;
+  object-fit: cover;
+  border: 2px solid #7B41C9;
+}
+
+.userHeader h2 {
+  margin: 0;
+  color: #7B41C9;
+  font-size: 22px;
+}
+
+.userInfo {
+  padding: 15px;
+}
+
+.userInfo p {
+  margin: 10px 0;
+  font-size: 16px;
+}
+
+.userInfo strong {
+  color: #7B41C9;
+}
+
+.commonStreamersList {
+  list-style-type: none;
+  padding-left: 10px;
+  margin-top: 5px;
+}
+
+.commonStreamersList li {
+  padding: 5px 0;
+  border-bottom: 1px solid rgba(123, 65, 201, 0.1);
+}
+
+.commonStreamersList li:last-child {
+  border-bottom: none;
 }
 
 /* Адаптивность для мобильных устройств */
@@ -82,5 +145,15 @@
   .button {
     width: 100%;
     margin-top: 10px;
+  }
+  
+  .userHeader {
+    flex-direction: column;
+    text-align: center;
+  }
+  
+  .userAvatar {
+    margin-right: 0;
+    margin-bottom: 10px;
   }
 }

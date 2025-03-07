@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <radialGradient id="bgGradient" cx="50%" cy="50%" r="50%" fx="50%" fy="50%">
+      <stop offset="0%" stop-color="#1a1a4a" stop-opacity="0" />
+      <stop offset="100%" stop-color="#1a1a4a" stop-opacity="0" />
+    </radialGradient>
+    <linearGradient id="goldGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#ffd700" />
+      <stop offset="50%" stop-color="#f5a742" />
+      <stop offset="100%" stop-color="#ffd700" />
+    </linearGradient>
+    <radialGradient id="spaceGradient" cx="50%" cy="50%" r="50%" fx="50%" fy="50%">
+      <stop offset="0%" stop-color="#1e3b70" />
+      <stop offset="50%" stop-color="#090979" />
+      <stop offset="100%" stop-color="#020024" />
+    </radialGradient>
+    <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="8" result="blur" />
+      <feComposite in="SourceGraphic" in2="blur" operator="over" />
+    </filter>
+  </defs>
+  
+  <!-- Круглый фон -->
+  <circle cx="256" cy="256" r="250" fill="url(#bgGradient)" />
+  
+  <!-- Внешнее кольцо -->
+  <circle cx="256" cy="256" r="240" stroke="url(#goldGradient)" stroke-width="10" fill="none" filter="url(#glow)" />
+  
+  <!-- Космический фон внутри буквы S -->
+  <path d="M256,96 C223,96 174,116 174,160 C174,204 223,224 256,224 C289,224 338,244 338,288 C338,332 289,352 256,352 C223,352 174,332 174,288 M256,96 C289,96 338,116 338,160" 
+        fill="url(#spaceGradient)" stroke="url(#goldGradient)" stroke-width="24" stroke-linecap="round" />
+  
+  <!-- Звезды внутри S -->
+  <g fill="#ffffff" filter="url(#glow)">
+    <circle cx="220" cy="140" r="2" />
+    <circle cx="280" cy="180" r="3" />
+    <circle cx="240" cy="220" r="2" />
+    <circle cx="300" cy="260" r="3" />
+    <circle cx="260" cy="300" r="2" />
+    <circle cx="220" cy="320" r="3" />
+    <circle cx="290" cy="130" r="2" />
+    <circle cx="210" cy="240" r="3" />
+  </g>
+  
+  <!-- Яркие точки на букве S -->
+  <g fill="#ffffff" filter="url(#glow)">
+    <circle cx="174" cy="160" r="5" />
+    <circle cx="174" cy="288" r="5" />
+    <circle cx="338" cy="160" r="5" />
+    <circle cx="338" cy="288" r="5" />
+  </g>
+</svg> 

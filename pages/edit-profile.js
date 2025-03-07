@@ -77,39 +77,61 @@ export default function EditProfile() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setLoading(true);
+    setError(null);
+    
     try {
+      console.log('Отправка данных профиля:', socialLinks);
+      
+      // Получаем токен доступа
+      const accessToken = Cookies.get('twitch_access_token') || localStorage.getItem('cookie_twitch_access_token');
+      if (!accessToken) {
+        throw new Error('Not authenticated');
+      }
+      
       // Сначала пробуем новый API-эндпоинт в директории app
+      console.log('Пробуем отправить данные на /api/user-socials');
       let response = await fetch('/api/user-socials', {
         method: 'POST',
         credentials: 'include',
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': `Bearer ${accessToken}`
         },
         body: JSON.stringify({ socialLinks }),
       });
 
-      // Если новый API-эндпоинт недоступен, пробуем старый в директории pages
-      if (!response.ok && response.status === 404) {
-        console.log('Новый API-эндпоинт недоступен, пробуем старый');
+      // Если новый API-эндпоинт недоступен или вернул ошибку, пробуем старый в директории pages
+      if (!response.ok) {
+        console.log(`Ошибка при отправке на /api/user-socials: ${response.status}. Пробуем /api/socials`);
+        
         response = await fetch('/api/socials', {
           method: 'POST',
           credentials: 'include',
           headers: {
             'Content-Type': 'application/json',
+            'Authorization': `Bearer ${accessToken}`
           },
-          body: JSON.stringify({ socialLinks }),
+          body: JSON.stringify(socialLinks),
         });
       }
 
       if (!response.ok) {
-        throw new Error(`Failed to update social links: ${response.status}`);
+        const errorData = await response.json().catch(() => ({}));
+        console.error('Ошибка при обновлении профиля:', response.status, errorData);
+        throw new Error(`Failed to update social links: ${response.status} - ${errorData.message || 'Unknown error'}`);
       }
 
-      alert('Profile updated successfully!');
+      const data = await response.json();
+      console.log('Профиль успешно обновлен:', data);
+      
+      alert('Профиль успешно обновлен!');
       router.push('/profile');
     } catch (error) {
-      console.error('Error updating social links:', error);
+      console.error('Ошибка при обновлении профиля:', error);
       setError(error.message || 'Failed to update profile');
+    } finally {
+      setLoading(false);
     }
   };
 

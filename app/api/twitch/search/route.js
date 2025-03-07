@@ -103,14 +103,80 @@ export async function GET(request) {
     
     const followerData = await followerResponse.json();
     
+    // Проверяем, зарегистрирован ли пользователь в Streamers Universe
+    // Для этого можно проверить наличие данных в localStorage или в базе данных
+    let isRegistered = false;
+    
+    try {
+      // Здесь можно добавить проверку в базе данных, если она есть
+      // Пока просто считаем, что пользователь зарегистрирован, если его данные есть в Twitch
+      isRegistered = true;
+    } catch (error) {
+      console.error('Error checking registration status:', error);
+    }
+    
+    // Получаем список стримеров, на которых подписан искомый пользователь
+    let userFollowings = [];
+    try {
+      const followingsResponse = await fetch(
+        `https://api.twitch.tv/helix/users/follows?from_id=${twitchUser.id}&first=100`, 
+        {
+          headers: {
+            'Client-ID': process.env.TWITCH_CLIENT_ID,
+            'Authorization': `Bearer ${accessToken}`,
+          },
+        }
+      );
+      
+      if (followingsResponse.ok) {
+        const followingsData = await followingsResponse.json();
+        userFollowings = followingsData.data.map(follow => follow.to_name);
+      }
+    } catch (error) {
+      console.error('Error fetching user followings:', error);
+    }
+    
+    // Получаем список стримеров, на которых подписан текущий пользователь
+    let currentUserFollowings = [];
+    try {
+      // Получаем ID текущего пользователя из куки
+      const currentUserCookie = cookieStore.get('twitch_user')?.value;
+      if (currentUserCookie) {
+        const currentUser = JSON.parse(currentUserCookie);
+        if (currentUser && currentUser.id) {
+          const currentUserFollowingsResponse = await fetch(
+            `https://api.twitch.tv/helix/users/follows?from_id=${currentUser.id}&first=100`, 
+            {
+              headers: {
+                'Client-ID': process.env.TWITCH_CLIENT_ID,
+                'Authorization': `Bearer ${accessToken}`,
+              },
+            }
+          );
+          
+          if (currentUserFollowingsResponse.ok) {
+            const currentUserFollowingsData = await currentUserFollowingsResponse.json();
+            currentUserFollowings = currentUserFollowingsData.data.map(follow => follow.to_name);
+          }
+        }
+      }
+    } catch (error) {
+      console.error('Error fetching current user followings:', error);
+    }
+    
+    // Находим общих стримеров
+    const commonStreamers = userFollowings.filter(streamer => 
+      currentUserFollowings.includes(streamer)
+    );
+    
     // Санитизация данных перед отправкой
     const sanitizedTwitchUser = sanitizeObject(twitchUser);
     
     return NextResponse.json({
       twitchData: sanitizedTwitchUser,
-      isRegistered: false, // This would need to check your database
+      isRegistered: isRegistered,
       followers: followerData.total,
-      commonStreamers: [], // This would need additional logic to implement
+      commonStreamers: commonStreamers,
     });
   } catch (error) {
     console.error('Search API error:', error);

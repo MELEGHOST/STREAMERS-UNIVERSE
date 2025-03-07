@@ -3,9 +3,9 @@
 import React, { useState, useEffect } from 'react';
 import Cookies from 'js-cookie';
 import { useRouter } from 'next/router';
-import styles from './subscriptions.module.css';
+import styles from './subscriptions.module.css'; // Используем те же стили
 
-export default function Subscriptions() {
+export default function StreamersUniverseSubscriptions() {
   const router = useRouter();
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [userId, setUserId] = useState(null);
@@ -22,27 +22,18 @@ export default function Subscriptions() {
       const userId = storedUser.id || 'unknown';
       setUserId(userId);
 
-      // Получаем каналы, на которые пользователь подписан на Twitch (фолловит)
-      if (storedUser.followings && Array.isArray(storedUser.followings)) {
-        const formattedSubscriptions = storedUser.followings.map((name, index) => ({
-          id: `subscription-${index}`,
-          name: name
-        }));
-        setSubscriptions(formattedSubscriptions);
-      } else {
-        // Если нет данных в профиле, пробуем получить из localStorage
-        const subscriptionsData = JSON.parse(localStorage.getItem(`subscriptions_${userId}`)) || [];
-        setSubscriptions(subscriptionsData);
-      }
+      // Получаем подписки пользователя в Streamers Universe из localStorage
+      const suSubscriptionsData = JSON.parse(localStorage.getItem(`su_subscriptions_${userId}`)) || [];
+      setSubscriptions(suSubscriptionsData);
       setLoading(false);
     }
   }, [router]);
 
-  const handleUnsubscribe = (streamerId) => {
-    const updatedSubscriptions = subscriptions.filter(sub => sub.id !== streamerId);
+  const handleUnsubscribe = (creatorId) => {
+    const updatedSubscriptions = subscriptions.filter(sub => sub.id !== creatorId);
     setSubscriptions(updatedSubscriptions);
-    localStorage.setItem(`subscriptions_${userId}`, JSON.stringify(updatedSubscriptions));
-    console.log(`Отписался от ${streamerId} на Twitch`);
+    localStorage.setItem(`su_subscriptions_${userId}`, JSON.stringify(updatedSubscriptions));
+    console.log(`Отписался от ${creatorId} в Streamers Universe`);
   };
 
   if (!isAuthenticated || loading) {
@@ -56,9 +47,9 @@ export default function Subscriptions() {
 
   return (
     <div className={styles.subscriptionsContainer}>
-      <h1>Мои фолловинги на Twitch</h1>
+      <h1>Мои подписки в Streamers Universe</h1>
       <p className={styles.description}>
-        Здесь отображаются каналы на Twitch, на которые вы подписаны (фолловите).
+        Здесь отображаются создатели контента, на которых вы подписаны в Streamers Universe.
       </p>
       
       {subscriptions.length > 0 ? (
@@ -67,6 +58,7 @@ export default function Subscriptions() {
             <div key={subscription.id} className={styles.subscriptionCard}>
               <div className={styles.subscriptionInfo}>
                 <h3>{subscription.name}</h3>
+                <p>Подписан с: {subscription.subscribedDate || 'Неизвестно'}</p>
               </div>
               <div className={styles.subscriptionActions}>
                 <button 
@@ -81,7 +73,7 @@ export default function Subscriptions() {
         </div>
       ) : (
         <div className={styles.emptyState}>
-          <p>Вы не подписаны ни на один канал на Twitch.</p>
+          <p>Вы не подписаны ни на одного создателя контента в Streamers Universe.</p>
         </div>
       )}
       
@@ -96,4 +88,4 @@ export async function getStaticProps() {
   return {
     props: {}, // Нет данных для prerendering, всё загружается на клиенте
   };
-}
+} 

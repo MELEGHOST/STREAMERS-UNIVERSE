@@ -113,6 +113,15 @@ export default function Settings() {
       if (settings.fontSize === 'large') fontSizeValue = '18px';
       
       document.documentElement.style.setProperty('--base-font-size', fontSizeValue);
+      
+      // Применяем язык интерфейса
+      document.documentElement.lang = settings.language;
+      localStorage.setItem('app_language', settings.language);
+      
+      // Создаем событие для обновления языка на всех страницах
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new Event('languageChange'));
+      }
     } catch (error) {
       console.error('Ошибка при применении настроек:', error);
     }
@@ -193,16 +202,6 @@ export default function Settings() {
         <button className={styles.button} onClick={() => router.push('/menu')}>
           Вернуться в меню
         </button>
-      </div>
-      
-      <div className={styles.currentSettings}>
-        <p>Текущие настройки:</p>
-        <ul>
-          <li>Тема: {theme === 'base' ? 'Базовая' : theme === 'dark' ? 'Тёмная' : 'Светлая'}</li>
-          <li>Размер шрифта: {fontSize === 'small' ? 'Меньше' : fontSize === 'large' ? 'Больше' : 'Нормальный'}</li>
-          <li>Часовой пояс: {timezone}</li>
-          <li>Язык: {language === 'ru' ? 'Русский' : 'English'}</li>
-        </ul>
       </div>
     </div>
   );

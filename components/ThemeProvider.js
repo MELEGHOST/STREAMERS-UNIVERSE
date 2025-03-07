@@ -34,10 +34,12 @@ const ThemeProvider = ({ children }) => {
         // Если пользовательских настроек нет, используем глобальные
         const theme = userSettings.theme || localStorage.getItem('global_theme') || 'base';
         const fontSize = userSettings.fontSize || localStorage.getItem('global_fontSize') || 'normal';
+        const language = userSettings.language || localStorage.getItem('app_language') || 'ru';
         
         // Сохраняем настройки глобально для использования на других страницах
         localStorage.setItem('global_theme', theme);
         localStorage.setItem('global_fontSize', fontSize);
+        localStorage.setItem('app_language', language);
         
         // Применяем тему
         document.documentElement.classList.remove('base-theme', 'dark-theme', 'light-theme');
@@ -49,6 +51,9 @@ const ThemeProvider = ({ children }) => {
         if (fontSize === 'large') fontSizeValue = '18px';
         
         document.documentElement.style.setProperty('--base-font-size', fontSizeValue);
+        
+        // Применяем язык
+        document.documentElement.lang = language;
         
         // Добавляем CSS переменные для темы, если их еще нет
         if (!document.getElementById('theme-styles')) {
@@ -210,16 +215,21 @@ const ThemeProvider = ({ children }) => {
       
       // Добавляем слушатель события для обновления темы при изменении localStorage
       window.addEventListener('storage', (event) => {
-        if (event.key === 'global_theme' || event.key === 'global_fontSize' || event.key?.startsWith('settings_')) {
+        if (event.key === 'global_theme' || event.key === 'global_fontSize' || 
+            event.key === 'app_language' || event.key?.startsWith('settings_')) {
           applyGlobalTheme();
         }
       });
+      
+      // Добавляем слушатель для события изменения языка
+      window.addEventListener('languageChange', applyGlobalTheme);
     }
     
     // Очистка при размонтировании
     return () => {
       if (typeof window !== 'undefined') {
         window.removeEventListener('storage', applyGlobalTheme);
+        window.removeEventListener('languageChange', applyGlobalTheme);
       }
     };
   }, []);

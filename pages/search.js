@@ -32,6 +32,8 @@ export default function Search() {
     if (!searchTerm) return;
     
     setLoading(true);
+    setResults(null);
+    
     try {
       const accessToken = Cookies.get('twitch_access_token');
       
@@ -44,15 +46,22 @@ export default function Search() {
         }
       });
       
-      if (!response.ok) {
-        throw new Error('Search failed');
-      }
-      
       const data = await response.json();
-      setResults(data);
+      
+      if (!response.ok) {
+        if (response.status === 404) {
+          setResults({ error: 'Пользователь не найден на Twitch' });
+        } else {
+          throw new Error(data.error || 'Ошибка поиска');
+        }
+      } else if (!data.twitchData) {
+        setResults({ error: 'Пользователь не найден на Twitch' });
+      } else {
+        setResults(data);
+      }
     } catch (error) {
       console.error('Search error:', error);
-      setResults({ error: 'Could not find user' });
+      setResults({ error: error.message || 'Произошла ошибка при поиске пользователя' });
     } finally {
       setLoading(false);
     }
@@ -85,14 +94,36 @@ export default function Search() {
         <div className={styles.result}>
           {results.error && <p className={styles.error}>{results.error}</p>}
           {results.twitchData && (
-            <>
-              <p>Никнейм: {results.twitchData.display_name}</p>
-              <p>Зарегистрирован в приложении: {results.isRegistered ? 'Да' : 'Нет'}</p>
-              <p>Подписчиков: {results.followers}</p>
-              <p>Общие стримеры: {results.commonStreamers?.length > 0 ? 
-                results.commonStreamers.join(', ') : 'Нет'}
-              </p>
-            </>
+            <div className={styles.userCard}>
+              <div className={styles.userHeader}>
+                {results.twitchData.profile_image_url && (
+                  <img 
+                    src={results.twitchData.profile_image_url} 
+                    alt={`${results.twitchData.display_name} аватар`} 
+                    className={styles.userAvatar}
+                    onError={(e) => {
+                      e.currentTarget.src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="200" height="200" viewBox="0 0 200 200"%3E%3Crect width="200" height="200" fill="%237B41C9"%3E%3C/rect%3E%3Ctext x="100" y="100" font-family="Arial" font-size="24" text-anchor="middle" fill="white"%3ENo Image%3C/text%3E%3C/svg%3E';
+                    }}
+                  />
+                )}
+                <h2>{results.twitchData.display_name}</h2>
+              </div>
+              
+              <div className={styles.userInfo}>
+                <p><strong>Зарегистрирован в Streamers Universe:</strong> {results.isRegistered ? 'Да' : 'Нет'}</p>
+                <p><strong>Фолловеров на Twitch:</strong> {results.followers}</p>
+                {results.commonStreamers?.length > 0 && (
+                  <div>
+                    <p><strong>Общие стримеры:</strong></p>
+                    <ul className={styles.commonStreamersList}>
+                      {results.commonStreamers.map((streamer, index) => (
+                        <li key={index}>{streamer}</li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+              </div>
+            </div>
           )}
         </div>
       )}

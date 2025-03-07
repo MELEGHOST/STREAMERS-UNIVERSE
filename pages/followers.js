@@ -26,7 +26,7 @@ export default function Followers() {
       setUserId(userId);
       setIsStreamer(storedUser.isStreamer || false);
 
-      // Получаем подписчиков из профиля пользователя
+      // Получаем фолловеров Twitch из профиля пользователя
       if (storedUser.followers && Array.isArray(storedUser.followers)) {
         const formattedFollowers = storedUser.followers.map((name, index) => ({
           id: `follower-${index}`,
@@ -63,35 +63,43 @@ export default function Followers() {
 
   return (
     <div className={styles.followersContainer}>
-      <h1>Мои подписчики</h1>
+      <h1>Фолловеры Twitch</h1>
+      <p className={styles.description}>
+        Здесь отображаются пользователи, которые подписаны на ваш канал на Twitch (фолловеры).
+      </p>
+      
       {followers.length > 0 ? (
         <div className={styles.followersList}>
-          {followers.map((follower) => (
-            <div key={follower.id} className={styles.followerItem}>
-              <div className={styles.followerName}>{follower.name}</div>
-              {isStreamer && (
-                <div className={styles.roleButtons}>
-                  <button className={styles.roleButton} onClick={() => handleAssignRole(follower.id, 'moderator')}>
-                    Назначить модератором
-                  </button>
-                  <button className={styles.roleButton} onClick={() => handleAssignRole(follower.id, 'trusted')}>
-                    Назначить доверенным
-                  </button>
-                  {roles[follower.id] && <span className={styles.roleTag}> Роль: {roles[follower.id]}</span>}
-                </div>
-              )}
+          {followers.map(follower => (
+            <div key={follower.id} className={styles.followerCard}>
+              <div className={styles.followerInfo}>
+                <h3>{follower.name}</h3>
+                <p>Роль: {roles[follower.id] || 'Не назначена'}</p>
+              </div>
+              <div className={styles.followerActions}>
+                <select 
+                  className={styles.roleSelect}
+                  value={roles[follower.id] || ''}
+                  onChange={(e) => handleAssignRole(follower.id, e.target.value)}
+                >
+                  <option value="">Выберите роль</option>
+                  <option value="mod">Модератор</option>
+                  <option value="vip">VIP</option>
+                  <option value="regular">Постоянный зритель</option>
+                </select>
+              </div>
             </div>
           ))}
         </div>
       ) : (
-        <p className={styles.noFollowers}>У вас нет подписчиков</p>
+        <div className={styles.emptyState}>
+          <p>У вас пока нет фолловеров на Twitch.</p>
+        </div>
       )}
       
-      <div className={styles.actionButtons}>
-        <button className={styles.button} onClick={() => router.push('/menu')}>
-          Вернуться в меню
-        </button>
-      </div>
+      <button className={styles.button} onClick={() => router.push('/menu')}>
+        Вернуться в меню
+      </button>
     </div>
   );
 }
