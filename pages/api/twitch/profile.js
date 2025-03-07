@@ -39,11 +39,12 @@ export default async function handler(req, res) {
       console.log('Profile API - accessToken из query параметров:', 'присутствует');
     }
 
-    if (!accessToken) {
-      console.error('Profile API - Токен доступа не найден');
+    // Проверяем, что токен не пустой и не undefined
+    if (!accessToken || accessToken === 'undefined' || accessToken === 'null') {
+      console.error('Profile API - Токен доступа не найден или недействителен');
       return res.status(401).json({ 
         error: 'Не авторизован', 
-        message: 'Токен доступа не найден. Пожалуйста, войдите снова.' 
+        message: 'Токен доступа не найден или недействителен. Пожалуйста, войдите снова.' 
       });
     }
 

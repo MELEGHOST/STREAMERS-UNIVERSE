@@ -132,16 +132,25 @@ export default function Auth() {
     <div className={styles.container}>
       <div className={styles.stars} />
       
-      <div className={styles.logoContainer}>
-        <img 
-          className={styles.logo} 
-          src="/logo.png" 
-          alt="Streamers Universe Logo" 
-          onError={(e) => {
-            console.error('Не удалось загрузить логотип, использую плейсхолдер');
-            e.currentTarget.src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="200" height="200" viewBox="0 0 200 200"%3E%3Crect width="200" height="200" fill="%237B41C9"%3E%3C/rect%3E%3Ctext x="100" y="100" font-family="Arial" font-size="24" text-anchor="middle" fill="white"%3EStreamers Universe%3C/text%3E%3C/svg%3E';
-          }}
-        />
+      <div className={styles.welcomeSection}>
+        <div className={styles.logoContainer}>
+          <img 
+            className={styles.logo} 
+            src="/logo.png" 
+            alt="Streamers Universe Logo" 
+            onError={(e) => {
+              console.error('Не удалось загрузить логотип, использую плейсхолдер');
+              e.currentTarget.src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="200" height="200" viewBox="0 0 200 200"%3E%3Crect width="200" height="200" fill="%237B41C9"%3E%3C/rect%3E%3Ctext x="100" y="100" font-family="Arial" font-size="24" text-anchor="middle" fill="white"%3EStreamers Universe%3C/text%3E%3C/svg%3E';
+            }}
+          />
+        </div>
+        
+        <h1 className={styles.welcomeTitle}>Добро пожаловать в Streamers Universe</h1>
+        
+        <div className={styles.welcomeText}>
+          <p>Здесь вы сможете погрузиться в мир стриминга, найти своих любимых стримеров и стать частью сообщества.</p>
+          <p>Присоединяйтесь к нам и откройте для себя новые возможности!</p>
+        </div>
       </div>
       
       {errorMessage && (
@@ -152,29 +161,50 @@ export default function Auth() {
       
       <div className={styles.galaxyButton}>
         <button
-          className={`${styles.spaceButton} ${isLoading ? styles.loading : ''}`}
+          className={styles.spaceButton}
+          style={{ '--active': isLoading ? '1' : '0' } as React.CSSProperties}
           onMouseDown={handleLoginPress}
           onMouseUp={handleLoginRelease}
-          onMouseLeave={handleLoginRelease}
           onTouchStart={handleLoginPress}
           onTouchEnd={handleLoginRelease}
-          onClick={(e) => e.preventDefault()} // Блокируем простое нажатие
           disabled={isLoading}
         >
-          <span className={styles.backdrop}></span>
-          <span className={styles.galaxy}></span>
-          <label className={styles.text}>
-            {isLoading ? 'Загрузка...' : 'Войти через Twitch'}
-          </label>
+          <div className={styles.galaxy}>
+            <div className={styles.stars}></div>
+            <div className={styles.stars}></div>
+            <div className={styles.stars}></div>
+            <div className={styles.meteor}></div>
+          </div>
+          <span className={styles.text}>
+            {isLoading ? 'Подключение...' : 'Войти через Twitch'}
+          </span>
         </button>
+        <div className={styles.backdrop}></div>
         <div className={styles.bodydrop}></div>
       </div>
       
-      {isLoading && (
-        <div className={styles.loadingText}>
-          Переход на авторизацию Twitch...
+      <div className={styles.instructions}>
+        <p>Нажмите и удерживайте кнопку для входа</p>
+        <div className={styles.pulseAnimation}></div>
+      </div>
+      
+      <div className={styles.features}>
+        <div className={styles.featureItem}>
+          <div className={styles.featureIcon}>🔍</div>
+          <h3>Поиск стримеров</h3>
+          <p>Находите новых и интересных стримеров</p>
         </div>
-      )}
+        <div className={styles.featureItem}>
+          <div className={styles.featureIcon}>👥</div>
+          <h3>Сообщество</h3>
+          <p>Станьте частью растущего сообщества</p>
+        </div>
+        <div className={styles.featureItem}>
+          <div className={styles.featureIcon}>🚀</div>
+          <h3>Возможности</h3>
+          <p>Откройте для себя новые возможности</p>
+        </div>
+      </div>
     </div>
   );
 }

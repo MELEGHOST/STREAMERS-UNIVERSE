@@ -245,9 +245,17 @@ export default function Profile() {
     
     // Проверяем наличие токена доступа
     const accessToken = getCookieWithLocalStorage('twitch_access_token');
-    if (!accessToken) {
-      console.log('Токен доступа не найден, перенаправление на страницу авторизации');
+    
+    // Проверяем, что токен не пустой и не undefined
+    if (!accessToken || accessToken === 'undefined' || accessToken === 'null') {
+      console.log('Токен доступа не найден или недействителен, перенаправление на страницу авторизации');
       setError('Необходима авторизация. Пожалуйста, войдите через Twitch.');
+      
+      // Очищаем куки и localStorage
+      Cookies.remove('twitch_access_token');
+      Cookies.remove('twitch_refresh_token');
+      localStorage.removeItem('cookie_twitch_access_token');
+      localStorage.removeItem('cookie_twitch_refresh_token');
       
       // Задержка перед редиректом, чтобы пользователь увидел сообщение
       setTimeout(() => {
