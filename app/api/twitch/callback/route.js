@@ -37,55 +37,13 @@ export async function GET(request) {
     const clientSecret = process.env.TWITCH_CLIENT_SECRET;
     const redirectUri = process.env.NEXT_PUBLIC_TWITCH_REDIRECT_URI || `${process.env.NEXT_PUBLIC_BASE_URL}/api/twitch/callback`;
     
-    // Отладочная информация
-    console.log('Переменные окружения в callback:');
-    console.log('NEXT_PUBLIC_TWITCH_CLIENT_ID:', process.env.NEXT_PUBLIC_TWITCH_CLIENT_ID);
-    console.log('TWITCH_CLIENT_SECRET:', process.env.TWITCH_CLIENT_SECRET ? 'Установлен' : 'Не установлен');
-    console.log('NEXT_PUBLIC_TWITCH_REDIRECT_URI:', process.env.NEXT_PUBLIC_TWITCH_REDIRECT_URI);
-    console.log('NEXT_PUBLIC_BASE_URL:', process.env.NEXT_PUBLIC_BASE_URL);
-    
     // Проверяем наличие необходимых параметров
     if (!clientId || !clientSecret) {
-      console.error('Отсутствуют необходимые параметры в переменных окружения');
-      console.error('NEXT_PUBLIC_TWITCH_CLIENT_ID:', clientId || 'не установлен');
-      console.error('TWITCH_CLIENT_SECRET:', clientSecret ? 'установлен' : 'не установлен');
-      
-      return new NextResponse(
-        `<!DOCTYPE html>
-        <html>
-        <head>
-          <title>Ошибка конфигурации</title>
-          <meta charset="utf-8">
-          <meta name="viewport" content="width=device-width, initial-scale=1">
-          <style>
-            body { font-family: Arial, sans-serif; padding: 20px; line-height: 1.6; }
-            .error-container { max-width: 600px; margin: 0 auto; background: #f8d7da; border: 1px solid #f5c6cb; padding: 20px; border-radius: 5px; }
-            h1 { color: #721c24; }
-            pre { background: #f8f9fa; padding: 10px; border-radius: 5px; overflow: auto; }
-          </style>
-        </head>
-        <body>
-          <div class="error-container">
-            <h1>Ошибка конфигурации сервера</h1>
-            <p>Отсутствуют необходимые параметры в переменных окружения:</p>
-            <ul>
-              ${!clientId ? '<li>NEXT_PUBLIC_TWITCH_CLIENT_ID</li>' : ''}
-              ${!clientSecret ? '<li>TWITCH_CLIENT_SECRET</li>' : ''}
-            </ul>
-            <p>Пожалуйста, убедитесь, что переменные окружения правильно настроены в Vercel.</p>
-          </div>
-        </body>
-        </html>`,
-        {
-          status: 500,
-          headers: {
-            'Content-Type': 'text/html; charset=utf-8',
-          },
-        }
-      );
+      console.error('Отсутствуют необходимые параметры для обмена кода на токен');
+      return NextResponse.redirect(new URL('/auth?error=config_error&message=Ошибка конфигурации сервера', request.url));
     }
     
-    // Формируем запрос для обмена кода на токен
+    // Обмениваем код на токен доступа
     const tokenResponse = await fetch('https://id.twitch.tv/oauth2/token', {
       method: 'POST',
       headers: {
@@ -100,151 +58,83 @@ export async function GET(request) {
       }),
     });
     
-    // Проверяем успешность запроса
     if (!tokenResponse.ok) {
       const errorData = await tokenResponse.json().catch(() => ({}));
-      console.error('Ошибка получения токена от Twitch:', tokenResponse.status, errorData);
-      return NextResponse.redirect(new URL(`/auth?error=token_error&message=Ошибка получения токена (${tokenResponse.status})`, request.url));
+      console.error('Ошибка при обмене кода на токен:', tokenResponse.status, errorData);
+      return NextResponse.redirect(new URL(`/auth?error=token_error&message=Ошибка получения токена: ${errorData.message || tokenResponse.status}`, request.url));
     }
     
-    // Получаем данные токена
     const tokenData = await tokenResponse.json();
-    const { access_token, refresh_token, expires_in } = tokenData;
+    const accessToken = tokenData.access_token;
+    const refreshToken = tokenData.refresh_token;
     
-    // Проверяем наличие токена доступа
-    if (!access_token) {
-      console.error('Отсутствует токен доступа в ответе Twitch');
-      return NextResponse.redirect(new URL('/auth?error=no_token&message=Не получен токен доступа от Twitch', request.url));
-    }
-    
-    // Получаем данные пользователя с использованием токена
-    const userResponse = await fetch('https://api.twitch.tv/helix/users', {
-      headers: {
-        'Authorization': `Bearer ${access_token}`,
-        'Client-ID': clientId,
-      },
-    });
-    
-    // Проверяем успешность запроса
-    if (!userResponse.ok) {
-      console.error('Ошибка получения данных пользователя от Twitch:', userResponse.status);
-      return NextResponse.redirect(new URL(`/auth?error=user_error&message=Ошибка получения данных пользователя (${userResponse.status})`, request.url));
+    if (!accessToken) {
+      console.error('Токен доступа отсутствует в ответе');
+      return NextResponse.redirect(new URL('/auth?error=no_token&message=Не удалось получить токен доступа', request.url));
     }
     
     // Получаем данные пользователя
-    const userData = await userResponse.json();
+    const userResponse = await fetch('https://api.twitch.tv/helix/users', {
+      headers: {
+        'Authorization': `Bearer ${accessToken}`,
+        'Client-ID': clientId,
+      },
+    });
     
-    // Проверяем наличие данных пользователя
-    if (!userData.data || userData.data.length === 0) {
-      console.error('Отсутствуют данные пользователя в ответе Twitch');
-      return NextResponse.redirect(new URL('/auth?error=no_user_data&message=Не получены данные пользователя от Twitch', request.url));
+    if (!userResponse.ok) {
+      console.error('Ошибка при получении данных пользователя:', userResponse.status);
+      return NextResponse.redirect(new URL('/auth?error=user_error&message=Ошибка получения данных пользователя', request.url));
     }
     
+    const userData = await userResponse.json();
     const user = userData.data[0];
     
-    // Получаем подписчиков пользователя
-    const followersResponse = await fetch(`https://api.twitch.tv/helix/users/follows?to_id=${user.id}`, {
-      headers: {
-        'Authorization': `Bearer ${access_token}`,
-        'Client-ID': clientId,
-      },
-    });
-    
-    let followersCount = 0;
-    let followers = [];
-    
-    if (followersResponse.ok) {
-      const followersData = await followersResponse.json();
-      followersCount = followersData.total || 0;
-      followers = followersData.data.map(f => f.from_name);
-    }
-    
-    // Получаем подписки пользователя
-    const followingsResponse = await fetch(`https://api.twitch.tv/helix/users/follows?from_id=${user.id}`, {
-      headers: {
-        'Authorization': `Bearer ${access_token}`,
-        'Client-ID': clientId,
-      },
-    });
-    
-    let followingsCount = 0;
-    let followings = [];
-    
-    if (followingsResponse.ok) {
-      const followingsData = await followingsResponse.json();
-      followingsCount = followingsData.total || 0;
-      followings = followingsData.data.map(f => f.to_name);
-    }
-    
-    // Определяем статус стримера (150+ подписчиков)
-    const isStreamer = followersCount >= 150;
-    
-    // Формируем данные профиля
-    const profileData = {
-      twitchName: user.display_name,
-      followersCount,
-      followers,
-      followingsCount,
-      followings,
-      id: user.id,
-      profileImageUrl: user.profile_image_url,
-      isStreamer
-    };
-    
-    // Создаем новый объект Response для установки куки
+    // Создаем ответ с перенаправлением на главную страницу
     const response = NextResponse.redirect(new URL('/menu', request.url));
     
     // Устанавливаем куки с токенами и данными пользователя
-    response.cookies.set('twitch_access_token', access_token, { 
-      path: '/', 
-      httpOnly: true, 
-      sameSite: 'lax', 
-      maxAge: expires_in 
+    // Используем более безопасные настройки для куков
+    response.cookies.set('twitch_access_token', accessToken, {
+      path: '/',
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      maxAge: 60 * 60 * 24 * 7, // 7 дней
     });
     
-    response.cookies.set('twitch_refresh_token', refresh_token, { 
-      path: '/', 
-      httpOnly: true, 
-      sameSite: 'lax', 
-      maxAge: 31536000 // 1 год
+    if (refreshToken) {
+      response.cookies.set('twitch_refresh_token', refreshToken, {
+        path: '/',
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'lax',
+        maxAge: 60 * 60 * 24 * 30, // 30 дней
+      });
+    }
+    
+    // Сохраняем только необходимые данные пользователя в куки
+    // Не сохраняем чувствительные данные
+    const userDataForCookie = {
+      id: user.id,
+      login: user.login,
+      display_name: user.display_name,
+      profile_image_url: user.profile_image_url,
+    };
+    
+    response.cookies.set('twitch_user', JSON.stringify(userDataForCookie), {
+      path: '/',
+      httpOnly: false, // Нужен доступ из JavaScript
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      maxAge: 60 * 60 * 24 * 7, // 7 дней
     });
+    
+    // Удаляем состояние CSRF после использования
+    response.cookies.delete('twitch_auth_state');
     
     return response;
   } catch (error) {
-    console.error('Ошибка при обработке обратного вызова от Twitch:', error);
-    
-    return new NextResponse(
-      `<!DOCTYPE html>
-      <html>
-      <head>
-        <title>Ошибка сервера</title>
-        <meta charset="utf-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1">
-        <style>
-          body { font-family: Arial, sans-serif; padding: 20px; line-height: 1.6; }
-          .error-container { max-width: 600px; margin: 0 auto; background: #f8d7da; border: 1px solid #f5c6cb; padding: 20px; border-radius: 5px; }
-          h1 { color: #721c24; }
-          pre { background: #f8f9fa; padding: 10px; border-radius: 5px; overflow: auto; }
-          .btn { display: inline-block; padding: 10px 15px; background: #007bff; color: white; text-decoration: none; border-radius: 5px; margin-top: 20px; }
-          .btn:hover { background: #0069d9; }
-        </style>
-      </head>
-      <body>
-        <div class="error-container">
-          <h1>Ошибка при авторизации через Twitch</h1>
-          <p>При обработке запроса произошла ошибка.</p>
-          <p>Детали ошибки:</p>
-          <pre>${error.message || 'Неизвестная ошибка'}</pre>
-          <a href="/auth" class="btn">Вернуться на страницу авторизации</a>
-        </div>
-      </body>
-      </html>`,
-      {
-        status: 500,
-        headers: {
-          'Content-Type': 'text/html; charset=utf-8',
-        },
-      }
-    );
+    console.error('Ошибка при обработке callback от Twitch:', error);
+    return NextResponse.redirect(new URL(`/auth?error=server_error&message=${encodeURIComponent(error.message || 'Внутренняя ошибка сервера')}`, request.url));
   }
 } 

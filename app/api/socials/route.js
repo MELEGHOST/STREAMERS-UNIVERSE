@@ -2,6 +2,52 @@ import { createPool } from '@vercel/postgres';
 import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 
+// Функция для экранирования HTML-тегов
+function escapeHtml(text) {
+  if (typeof text !== 'string') return text;
+  return text
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
+}
+
+// Функция для очистки объекта от потенциально опасных данных
+function sanitizeObject(obj) {
+  if (!obj || typeof obj !== 'object') return obj;
+  
+  const result = Array.isArray(obj) ? [] : {};
+  
+  for (const key in obj) {
+    if (Object.prototype.hasOwnProperty.call(obj, key)) {
+      const value = obj[key];
+      
+      if (typeof value === 'string') {
+        result[key] = escapeHtml(value);
+      } else if (typeof value === 'object' && value !== null) {
+        result[key] = sanitizeObject(value);
+      } else {
+        result[key] = value;
+      }
+    }
+  }
+  
+  return result;
+}
+
+// Функция для валидации URL
+function isValidUrl(url) {
+  if (!url || url === '') return true; // Пустая строка допустима
+  
+  try {
+    const parsedUrl = new URL(url);
+    return ['http:', 'https:'].includes(parsedUrl.protocol);
+  } catch (e) {
+    return false;
+  }
+}
+
 export async function GET(request) {
   try {
     // Получаем токен доступа из куки
@@ -74,22 +120,19 @@ export async function GET(request) {
 
 export async function POST(request) {
   try {
+    // Проверяем CSRF-токен
+    const cookieStore = cookies();
+    const csrfToken = cookieStore.get('csrf_token')?.value;
+    const requestCsrfToken = request.headers.get('x-csrf-token');
+    
+    if (!csrfToken || !requestCsrfToken || csrfToken !== requestCsrfToken) {
+      console.error('CSRF token validation failed');
+      return NextResponse.json({ error: 'CSRF token validation failed' }, { status: 403 });
+    }
+    
     const body = await request.json();
     
-    // Валидация входных данных
-    const validatedData = {
-      description: typeof body.description === 'string' ? body.description.slice(0, 500) : '',
-      twitch: typeof body.twitch === 'string' ? body.twitch.slice(0, 100) : '',
-      youtube: typeof body.youtube === 'string' ? body.youtube.slice(0, 100) : '',
-      discord: typeof body.discord === 'string' ? body.discord.slice(0, 100) : '',
-      telegram: typeof body.telegram === 'string' ? body.telegram.slice(0, 100) : '',
-      vk: typeof body.vk === 'string' ? body.vk.slice(0, 100) : '',
-      yandexMusic: typeof body.yandexMusic === 'string' ? body.yandexMusic.slice(0, 100) : '',
-      isMusician: Boolean(body.isMusician)
-    };
-    
     // Получаем токен доступа из куки
-    const cookieStore = cookies();
     const accessToken = cookieStore.get('twitch_access_token')?.value;
     
     if (!accessToken) {
@@ -103,7 +146,7 @@ export async function POST(request) {
         'Client-ID': process.env.NEXT_PUBLIC_TWITCH_CLIENT_ID,
       },
     });
-    
+ 
     if (!userResponse.ok) {
       return NextResponse.json({ error: 'Failed to fetch user data' }, { status: userResponse.status });
     }
@@ -115,6 +158,20 @@ export async function POST(request) {
     }
     
     const userId = userData.data[0].id;
+    
+    // Валидация URL-адресов
+    const urlFields = ['twitch', 'youtube', 'discord', 'telegram', 'vk', 'yandexMusic'];
+    for (const field of urlFields) {
+      if (body[field] && !isValidUrl(body[field])) {
+        return NextResponse.json({ 
+          error: 'Invalid URL', 
+          message: `Field ${field} contains an invalid URL` 
+        }, { status: 400 });
+      }
+    }
+    
+    // Санитизация данных перед сохранением в базу данных
+    const sanitizedData = sanitizeObject(body);
     
     // Подключаемся к базе данных
     const pool = createPool();
@@ -135,14 +192,14 @@ export async function POST(request) {
          is_musician = $9`,
       [
         userId,
-        validatedData.description,
-        validatedData.twitch,
-        validatedData.youtube,
-        validatedData.discord,
-        validatedData.telegram,
-        validatedData.vk,
-        validatedData.yandexMusic,
-        validatedData.isMusician
+        sanitizedData.description || '',
+        sanitizedData.twitch || '',
+        sanitizedData.youtube || '',
+        sanitizedData.discord || '',
+        sanitizedData.telegram || '',
+        sanitizedData.vk || '',
+        sanitizedData.yandexMusic || '',
+        sanitizedData.isMusician || false
       ]
     );
     

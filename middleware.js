@@ -8,6 +8,12 @@ export function middleware(request) {
   
   console.log('Middleware обрабатывает запрос:', pathname);
   
+  // Пропускаем запросы к /api/twitch/login без изменений
+  if (pathname === '/api/twitch/login') {
+    console.log('Middleware: пропускаем запрос к /api/twitch/login без изменений');
+    return NextResponse.next();
+  }
+  
   // Клонируем текущий ответ
   const response = NextResponse.next();
   
@@ -34,7 +40,7 @@ export function middleware(request) {
   response.headers.set('X-Frame-Options', 'DENY');
   response.headers.set('X-XSS-Protection', '1; mode=block');
   response.headers.set('Referrer-Policy', 'strict-origin-when-cross-origin');
-  response.headers.set('Content-Security-Policy', "default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https://*.twitch.tv https://*.jtvnw.net; connect-src 'self' https://api.twitch.tv https://id.twitch.tv; frame-ancestors 'none';");
+  response.headers.set('Content-Security-Policy', "default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https://*.twitch.tv https://*.jtvnw.net; connect-src 'self' https://api.twitch.tv https://id.twitch.tv; frame-ancestors 'none'; form-action 'self'; base-uri 'self'; object-src 'none';");
   
   // Получаем origin запроса
   const origin = request.headers.get('origin');
@@ -65,11 +71,10 @@ export function middleware(request) {
   }
   
   // Если это запрос к API, проверяем наличие куков
-  if (pathname.startsWith('/api/')) {
+  if (pathname.startsWith('/api/') && !pathname.startsWith('/api/twitch/login') && !pathname.startsWith('/api/twitch/callback')) {
     console.log('Обработка API запроса в middleware:', pathname);
     
     // Проверяем наличие куков для отладки
-    const cookies = request.cookies;
     const hasTwitchAccessToken = cookies.has('twitch_access_token');
     const hasTwitchUser = cookies.has('twitch_user');
     
@@ -96,7 +101,7 @@ export function middleware(request) {
         return NextResponse.redirect(new URL('/auth?clear_auth=true', request.url));
       }
       
-      // Если есть заголовок Authorization, пропускаем запрос и добавляем скрипт для сохранения токена
+      // Если есть заголовок Authorization, пропускаем запрос и добавляем заголовок для безопасной передачи токена
       if (hasAuthHeader) {
         console.log('Middleware: обнаружен заголовок Authorization, пропускаем запрос');
         
@@ -106,9 +111,6 @@ export function middleware(request) {
           
           // Добавляем токен в заголовок ответа для безопасной обработки на клиенте
           response.headers.set('X-Auth-Token', token);
-          
-          // Безопасно передаем токен через заголовок вместо внедрения скрипта
-          // Клиент должен обрабатывать этот заголовок безопасным способом
         }
       }
     }
