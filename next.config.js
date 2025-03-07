@@ -3,8 +3,10 @@ const nextConfig = {
   reactStrictMode: true,
   output: 'standalone',
   env: {
-    // Не устанавливаем жестко TWITCH_REDIRECT_URI, будем определять его динамически
-    // в зависимости от окружения (Production или Preview)
+    // Явно указываем переменные окружения, которые должны быть доступны на клиенте и сервере
+    NEXT_PUBLIC_TWITCH_CLIENT_ID: process.env.NEXT_PUBLIC_TWITCH_CLIENT_ID,
+    NEXT_PUBLIC_BASE_URL: process.env.NEXT_PUBLIC_BASE_URL,
+    NEXT_PUBLIC_TWITCH_REDIRECT_URI: process.env.NEXT_PUBLIC_TWITCH_REDIRECT_URI,
   },
   images: {
     domains: ['id.twitch.tv', 'api.twitch.tv', 'static-cdn.jtvnw.net'],
@@ -14,10 +16,6 @@ const nextConfig = {
     config.resolve.fallback = { fs: false, path: false };
     return config;
   },
-  // Add public runtimes for client-side code
-  publicRuntimeConfig: {
-    NEXT_PUBLIC_TWITCH_CLIENT_ID: process.env.TWITCH_CLIENT_ID,
-  },
   // Добавляем настройки для куков
   serverRuntimeConfig: {
     cookieOptions: {
@@ -26,6 +24,8 @@ const nextConfig = {
       sameSite: 'lax',
       path: '/',
     },
+    // Добавляем серверные переменные окружения
+    TWITCH_CLIENT_SECRET: process.env.TWITCH_CLIENT_SECRET,
   },
   // Добавляем настройки для CORS
   async headers() {
