@@ -28,7 +28,7 @@ export default function Profile() {
   const loadUserData = async () => {
     if (typeof window !== 'undefined') {
       // Проверяем наличие токена доступа в куках или localStorage
-      const accessToken = getCookie('twitch_access_token') || localStorage.getItem('cookie_twitch_access_token');
+      const accessToken = getCookieWithLocalStorage('twitch_access_token');
       
       console.log('Проверка авторизации - accessToken:', accessToken ? 'присутствует' : 'отсутствует');
       console.log('Текущий домен:', window.location.origin);
@@ -51,50 +51,34 @@ export default function Profile() {
         console.log('No auth token and no user data, redirecting to auth');
         setError('Пожалуйста, войдите через Twitch.');
         setLoading(false);
-        router.push('/auth');
+        router.push('/auth?clear_auth=true');
         return;
       }
       
       // If we have user data but no auth token, the user might need to be redirected
       if (localStorageUserData && !accessToken) {
-        console.log('No access token but we have user data - using fallback data');
-        // Use userData as fallback
-        const profileImageUrl = localStorageUserData.profileImageUrl ||
-          localStorageUserData.profile_image_url ||
-          `https://static-cdn.jtvnw.net/jtv_user_pictures/${localStorageUserData.id}-profile_image-300x300.jpg`;
-        
-        // Принудительно устанавливаем статус стримера, если количество подписчиков >= 150
-        const followersCount = localStorageUserData.followersCount || 0;
-        const isStreamer = followersCount >= 150;
-        console.log(`Проверка статуса стримера: ${followersCount} подписчиков, статус: ${isStreamer ? 'стример' : 'зритель'}`);
-        
-        setProfileData({
-          twitchName: localStorageUserData.twitchName || localStorageUserData.display_name || 'Unknown User',
-          followersCount: followersCount,
-          followers: localStorageUserData.followers || [],
-          followingsCount: localStorageUserData.followingsCount || 0,
-          followings: localStorageUserData.followings || [],
-          profileImageUrl,
-          id: localStorageUserData.id,
-          isStreamer: isStreamer // Принудительно устанавливаем на основе количества подписчиков
-        });
-        
-        // Обновляем локальное хранилище с правильным статусом стримера
-        localStorageUserData.isStreamer = isStreamer;
-        localStorage.setItem('twitch_user', JSON.stringify(localStorageUserData));
-        
+        console.log('No access token but we have user data - redirecting to auth for re-login');
+        setError('Срок действия авторизации истек. Пожалуйста, войдите снова.');
         setLoading(false);
+        
+        // Задержка перед редиректом, чтобы пользователь увидел сообщение
+        setTimeout(() => {
+          router.push('/auth?clear_auth=true');
+        }, 2000);
         return;
       }
       
       // Try to fetch profile data if we have an accessToken
       if (accessToken) {
         try {
+          console.log('Отправка запроса к API с токеном:', accessToken.substring(0, 10) + '...');
+          
           const response = await fetch('/api/twitch/profile', {
             method: 'GET',
             credentials: 'include',
             headers: {
-              'Authorization': `Bearer ${accessToken}`
+              'Authorization': `Bearer ${accessToken}`,
+              'Content-Type': 'application/json'
             }
           });
 
@@ -124,7 +108,7 @@ export default function Profile() {
             }
           } else {
             // API call failed, use userData as fallback if available
-            const errorData = await response.json();
+            const errorData = await response.json().catch(() => ({ error: 'Ошибка при получении данных' }));
             console.error('Ошибка API:', response.status, errorData);
             
             if (response.status === 401) {
@@ -142,7 +126,7 @@ export default function Profile() {
               
               // Задержка перед редиректом, чтобы пользователь увидел сообщение
               setTimeout(() => {
-                router.push('/auth');
+                router.push('/auth?clear_auth=true');
               }, 2000);
               return;
             }
@@ -207,6 +191,16 @@ export default function Profile() {
             localStorage.setItem('twitch_user', JSON.stringify(localStorageUserData));
           } else {
             setError(error.message || 'Не удалось загрузить профиль');
+            
+            // Если ошибка связана с авторизацией, перенаправляем на страницу авторизации
+            if (error.message && error.message.includes('401')) {
+              console.log('Ошибка авторизации, перенаправление на страницу авторизации');
+              
+              // Задержка перед редиректом, чтобы пользователь увидел сообщение
+              setTimeout(() => {
+                router.push('/auth?clear_auth=true');
+              }, 2000);
+            }
           }
         }
       }

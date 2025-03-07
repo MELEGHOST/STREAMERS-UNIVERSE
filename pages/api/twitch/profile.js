@@ -6,6 +6,17 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: 'Метод не разрешен' });
   }
 
+  // Добавляем CORS-заголовки
+  res.setHeader('Access-Control-Allow-Credentials', 'true');
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS,PATCH,DELETE,POST,PUT');
+  res.setHeader('Access-Control-Allow-Headers', 'X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version, Authorization');
+
+  // Для OPTIONS запросов сразу возвращаем ответ с заголовками CORS
+  if (req.method === 'OPTIONS') {
+    return res.status(200).end();
+  }
+
   try {
     // Получаем токен доступа из cookies
     const cookies = parse(req.headers.cookie || '');
@@ -38,6 +49,8 @@ export default async function handler(req, res) {
 
     // Проверяем валидность токена
     try {
+      console.log('Profile API - Проверка валидности токена...');
+      
       // Делаем тестовый запрос к Twitch API для проверки токена
       await axios.get('https://api.twitch.tv/helix/users', {
         headers: {
@@ -45,6 +58,8 @@ export default async function handler(req, res) {
           'Authorization': `Bearer ${accessToken}`,
         },
       });
+      
+      console.log('Profile API - Токен валиден');
     } catch (tokenError) {
       console.error('Profile API - Ошибка проверки токена:', tokenError.message);
       
@@ -60,6 +75,8 @@ export default async function handler(req, res) {
 
     // Получаем данные пользователя
     try {
+      console.log('Profile API - Запрос данных пользователя...');
+      
       const userResponse = await axios.get('https://api.twitch.tv/helix/users', {
         headers: {
           'Client-ID': process.env.TWITCH_CLIENT_ID,
@@ -77,6 +94,8 @@ export default async function handler(req, res) {
       const twitchName = user.display_name;
       const profileImageUrl = user.profile_image_url;
 
+      console.log('Profile API - Данные пользователя получены:', { userId, twitchName });
+
       // Получаем подписчиков (с ограничением для производительности)
       let followers = [];
       let cursor = null;
@@ -92,6 +111,8 @@ export default async function handler(req, res) {
           : `https://api.twitch.tv/helix/users/follows?to_id=${userId}`;
 
         try {
+          console.log(`Profile API - Запрос подписчиков (попытка ${followerFetchAttempts})...`);
+          
           const followersResponse = await axios.get(url, {
             headers: {
               'Client-ID': process.env.TWITCH_CLIENT_ID,
@@ -101,6 +122,8 @@ export default async function handler(req, res) {
 
           totalFollowersCount = followersResponse.data.total;
           followers = [...followers, ...followersResponse.data.data.map((f) => f.from_name)];
+
+          console.log(`Profile API - Получено ${followers.length} подписчиков из ${totalFollowersCount}`);
 
           if (followersResponse.data.pagination && followersResponse.data.pagination.cursor) {
             cursor = followersResponse.data.pagination.cursor;
@@ -132,6 +155,8 @@ export default async function handler(req, res) {
           : `https://api.twitch.tv/helix/users/follows?from_id=${userId}`;
 
         try {
+          console.log(`Profile API - Запрос подписок (попытка ${followingFetchAttempts})...`);
+          
           const followingsResponse = await axios.get(url, {
             headers: {
               'Client-ID': process.env.TWITCH_CLIENT_ID,
@@ -141,6 +166,8 @@ export default async function handler(req, res) {
 
           totalFollowingsCount = followingsResponse.data.total;
           followings = [...followings, ...followingsResponse.data.data.map((f) => f.to_name)];
+
+          console.log(`Profile API - Получено ${followings.length} подписок из ${totalFollowingsCount}`);
 
           if (followingsResponse.data.pagination && followingsResponse.data.pagination.cursor) {
             cursor = followingsResponse.data.pagination.cursor;
