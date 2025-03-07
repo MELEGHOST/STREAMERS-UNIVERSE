@@ -18,6 +18,10 @@ const nextConfig = {
   publicRuntimeConfig: {
     NEXT_PUBLIC_TWITCH_CLIENT_ID: process.env.TWITCH_CLIENT_ID,
   },
+  // Включаем поддержку Pages Router вместе с App Router
+  experimental: {
+    pagesDir: true,
+  },
 };
 
 export default nextConfig;
