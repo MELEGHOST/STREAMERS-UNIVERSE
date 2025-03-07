@@ -1,41 +1,42 @@
 .menuContainer {
-  max-width: 1200px;
+  max-width: 1000px;
   margin: 0 auto;
   padding: 20px;
-  background-color: #121212;
-  color: #ffffff;
-  min-height: 100vh;
+  font-family: 'Arial', sans-serif;
 }
 
 .header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 30px;
-  padding-bottom: 15px;
-  border-bottom: 1px solid #333;
+  margin-bottom: 40px;
+  padding-bottom: 20px;
+  border-bottom: 2px solid rgba(123, 65, 201, 0.2);
 }
 
 .header h1 {
-  font-size: 2.5rem;
-  background: linear-gradient(90deg, #9146FF, #7B41C9);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
+  color: #7B41C9;
   margin: 0;
+  font-size: 28px;
 }
 
 .userInfo {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 15px;
 }
 
 .avatar {
-  width: 50px;
-  height: 50px;
+  width: 60px;
+  height: 60px;
   border-radius: 50%;
   object-fit: cover;
-  border: 2px solid #9146FF;
+  border: 3px solid #7B41C9;
+}
+
+.userInfo span {
+  font-weight: bold;
+  font-size: 18px;
 }
 
 .menuItems {
@@ -46,48 +47,26 @@
 
 .menuItem {
   display: flex;
-  background-color: #1F1F23;
+  background-color: rgba(123, 65, 201, 0.1);
   border-radius: 10px;
   padding: 20px;
   cursor: pointer;
-  transition: all 0.3s ease;
-  border: 1px solid #333;
-  position: relative;
-  overflow: hidden;
+  transition: transform 0.3s, box-shadow 0.3s;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
 }
 
 .menuItem:hover {
   transform: translateY(-5px);
-  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.3);
-  border-color: #9146FF;
-}
-
-.menuItem::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background: linear-gradient(45deg, rgba(145, 70, 255, 0.1), transparent);
-  opacity: 0;
-  transition: opacity 0.3s ease;
-}
-
-.menuItem:hover::before {
-  opacity: 1;
+  box-shadow: 0 10px 15px rgba(0, 0, 0, 0.1);
 }
 
 .menuIcon {
-  font-size: 2.5rem;
+  font-size: 36px;
   margin-right: 20px;
   display: flex;
   align-items: center;
   justify-content: center;
   min-width: 60px;
-  height: 60px;
-  background-color: #2F2F35;
-  border-radius: 50%;
 }
 
 .menuContent {
@@ -95,32 +74,80 @@
 }
 
 .menuContent h2 {
-  margin: 0 0 10px 0;
-  color: #9146FF;
-  font-size: 1.5rem;
+  color: #7B41C9;
+  margin-top: 0;
+  margin-bottom: 10px;
 }
 
 .menuContent p {
   margin: 0;
-  color: #ccc;
+  color: #555;
   line-height: 1.5;
 }
 
 .streamerNote {
-  margin-top: 10px !important;
+  margin-top: 10px;
   padding: 10px;
-  background-color: rgba(145, 70, 255, 0.1);
-  border-left: 3px solid #9146FF;
-  border-radius: 0 5px 5px 0;
+  background-color: rgba(123, 65, 201, 0.2);
+  border-radius: 5px;
+  font-style: italic;
 }
 
 .loading {
   display: flex;
-  justify-content: center;
+  flex-direction: column;
   align-items: center;
+  justify-content: center;
   height: 100vh;
-  font-size: 1.5rem;
-  color: #9146FF;
+}
+
+.spinner {
+  border: 4px solid rgba(0, 0, 0, 0.1);
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border-left-color: #7B41C9;
+  animation: spin 1s linear infinite;
+  margin-bottom: 20px;
+}
+
+@keyframes spin {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+.error {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100vh;
+  text-align: center;
+}
+
+.error p {
+  margin-bottom: 20px;
+  font-size: 18px;
+  color: #e74c3c;
+}
+
+.button {
+  background-color: #7B41C9;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  padding: 12px 24px;
+  cursor: pointer;
+  font-size: 16px;
+  transition: background-color 0.3s;
+}
+
+.button:hover {
+  background-color: #5A2E94;
 }
 
 /* Анимация для иконок */

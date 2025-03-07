@@ -6,6 +6,7 @@ import { getCookie, setCookie, setCookieWithLocalStorage, getCookieWithLocalStor
 import styles from './profile.module.css';
 import { useRouter } from 'next/router';
 import CookieChecker from '../components/CookieChecker';
+import SocialButton from '../components/SocialButton';
 
 export default function Profile() {
   const [profileData, setProfileData] = useState(null);
@@ -300,55 +301,68 @@ export default function Profile() {
     
     if (socialLinks.twitch) {
       links.push(
-        <a href={socialLinks.twitch} target="_blank" rel="noopener noreferrer" className={styles.socialLink} key="twitch">
-          <div className={styles.socialIcon}>🎮</div>
-          <span>Twitch</span>
-        </a>
+        <SocialButton 
+          key="twitch" 
+          type="Twitch" 
+          url={socialLinks.twitch} 
+          username={profileData?.twitchName} 
+          subscribers={profileData?.followersCount}
+        />
       );
     }
     
     if (socialLinks.youtube) {
       links.push(
-        <a href={socialLinks.youtube} target="_blank" rel="noopener noreferrer" className={styles.socialLink} key="youtube">
-          <div className={styles.socialIcon}>📺</div>
-          <span>YouTube</span>
-        </a>
+        <SocialButton 
+          key="youtube" 
+          type="YouTube" 
+          url={socialLinks.youtube} 
+          username={profileData?.twitchName}
+        />
       );
     }
     
     if (socialLinks.discord) {
       links.push(
-        <a href={socialLinks.discord} target="_blank" rel="noopener noreferrer" className={styles.socialLink} key="discord">
-          <div className={styles.socialIcon}>💬</div>
-          <span>Discord</span>
-        </a>
+        <SocialButton 
+          key="discord" 
+          type="Discord" 
+          url={socialLinks.discord} 
+          username={profileData?.twitchName}
+        />
       );
     }
     
     if (socialLinks.telegram) {
       links.push(
-        <a href={socialLinks.telegram} target="_blank" rel="noopener noreferrer" className={styles.socialLink} key="telegram">
-          <div className={styles.socialIcon}>📱</div>
-          <span>Telegram</span>
-        </a>
+        <SocialButton 
+          key="telegram" 
+          type="Telegram" 
+          url={socialLinks.telegram} 
+          username={profileData?.twitchName}
+        />
       );
     }
     
     if (socialLinks.vk) {
       links.push(
-        <a href={socialLinks.vk} target="_blank" rel="noopener noreferrer" className={styles.socialLink} key="vk">
-          <div className={styles.socialIcon}>👥</div>
-          <span>ВКонтакте</span>
-        </a>
+        <SocialButton 
+          key="vk" 
+          type="VK" 
+          url={socialLinks.vk} 
+          username={profileData?.twitchName}
+        />
       );
     }
     
     if (socialLinks.isMusician && socialLinks.yandexMusic) {
       links.push(
-        <a href={socialLinks.yandexMusic} target="_blank" rel="noopener noreferrer" className={styles.socialLink} key="yandexMusic">
-          <div className={styles.socialIcon}>🎵</div>
-          <span>Яндекс Музыка</span>
-        </a>
+        <SocialButton 
+          key="yandexMusic" 
+          type="YandexMusic" 
+          url={socialLinks.yandexMusic} 
+          username={profileData?.twitchName}
+        />
       );
     }
     

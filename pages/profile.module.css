@@ -16,6 +16,9 @@
   align-items: center;
   text-align: center;
   animation: fadeIn 0.5s ease-in-out;
+  max-width: 1000px;
+  margin: 0 auto;
+  font-family: 'Arial', sans-serif;
 }
 
 @keyframes fadeIn {
@@ -65,18 +68,22 @@
 }
 
 .spinner {
-  border: 4px solid rgba(255, 255, 255, 0.3);
+  border: 4px solid rgba(0, 0, 0, 0.1);
+  width: 36px;
+  height: 36px;
   border-radius: 50%;
-  border-top: 4px solid #7B41C9;
-  width: 40px;
-  height: 40px;
-  margin: 0 auto 20px;
+  border-left-color: #7B41C9;
   animation: spin 1s linear infinite;
+  margin-bottom: 20px;
 }
 
 @keyframes spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
 }
 
 .error {
@@ -97,33 +104,33 @@
 }
 
 .button {
-  background-color: #9146FF;
+  background-color: #7B41C9;
   color: white;
   border: none;
   border-radius: 5px;
-  padding: 10px 20px;
-  font-size: 16px;
+  padding: 12px 20px;
   cursor: pointer;
-  transition: background-color 0.3s ease;
+  font-size: 16px;
+  transition: background-color 0.3s;
 }
 
 .button:hover {
-  background-color: #7B41C9;
+  background-color: #5A2E94;
 }
 
 .logoutButton {
-  background-color: #f44336;
+  background-color: #e74c3c;
   color: white;
   border: none;
   border-radius: 5px;
-  padding: 10px 20px;
-  font-size: 16px;
+  padding: 12px 20px;
   cursor: pointer;
-  transition: background-color 0.3s ease;
+  font-size: 16px;
+  transition: background-color 0.3s;
 }
 
 .logoutButton:hover {
-  background-color: #d32f2f;
+  background-color: #c0392b;
 }
 
 .editForm {
@@ -214,48 +221,37 @@
 
 .profileHeader {
   display: flex;
-  flex-direction: column;
   align-items: center;
   margin-bottom: 30px;
   padding: 20px;
-  background-color: rgba(0, 0, 0, 0.2);
+  background-color: rgba(123, 65, 201, 0.1);
   border-radius: 10px;
-  text-align: center;
-}
-
-@media (min-width: 768px) {
-  .profileHeader {
-    flex-direction: row;
-    text-align: left;
-  }
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
 }
 
 .profileInfo {
   flex: 1;
-  margin-left: 0;
-  margin-top: 20px;
 }
 
-@media (min-width: 768px) {
-  .profileInfo {
-    margin-left: 30px;
-    margin-top: 0;
-  }
+.profileInfo h1 {
+  color: #7B41C9;
+  margin-top: 0;
+  margin-bottom: 10px;
 }
 
 .description {
   margin: 15px 0;
-  padding: 15px;
-  background-color: rgba(0, 0, 0, 0.3);
-  border-radius: 8px;
-  border-left: 3px solid #9146FF;
+  padding: 10px;
+  background-color: rgba(123, 65, 201, 0.05);
+  border-radius: 5px;
+  border-left: 3px solid #7B41C9;
 }
 
 .socialLinks {
   display: flex;
   flex-wrap: wrap;
-  gap: 10px;
-  margin-top: 15px;
+  margin-top: 20px;
+  justify-content: center;
 }
 
 .socialLink {
@@ -278,4 +274,29 @@
 .socialIcon {
   margin-right: 8px;
   font-size: 1.2rem;
+}
+
+/* Адаптивность для мобильных устройств */
+@media (max-width: 768px) {
+  .profileHeader {
+    flex-direction: column;
+    text-align: center;
+  }
+
+  .avatar {
+    margin-right: 0;
+    margin-bottom: 20px;
+  }
+
+  .section ul {
+    grid-template-columns: 1fr;
+  }
+
+  .profileActions {
+    flex-direction: column;
+  }
+
+  .button, .logoutButton {
+    width: 100%;
+  }
 }

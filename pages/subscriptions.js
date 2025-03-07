@@ -2,50 +2,79 @@
 
 import React, { useState, useEffect } from 'react';
 import Cookies from 'js-cookie';
+import { useRouter } from 'next/router';
 import styles from './subscriptions.module.css';
 
 export default function Subscriptions() {
+  const router = useRouter();
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [userId, setUserId] = useState(null);
   const [subscriptions, setSubscriptions] = useState([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const accessToken = Cookies.get('twitch_access_token');
     if (!accessToken) {
-      window.location.href = '/auth';
+      router.push('/auth');
     } else {
       setIsAuthenticated(true);
       const storedUser = JSON.parse(localStorage.getItem('twitch_user') || '{}');
-      const userId = storedUser.id || 'unknown'; // ID из localStorage
+      const userId = storedUser.id || 'unknown';
       setUserId(userId);
 
-      const subscriptionsData = JSON.parse(localStorage.getItem(`subscriptions_${userId}`)) || [];
-      setSubscriptions(subscriptionsData);
+      // Получаем подписки из профиля пользователя
+      if (storedUser.followings && Array.isArray(storedUser.followings)) {
+        const formattedSubscriptions = storedUser.followings.map((name, index) => ({
+          id: `subscription-${index}`,
+          name: name
+        }));
+        setSubscriptions(formattedSubscriptions);
+      } else {
+        // Если нет данных в профиле, пробуем получить из localStorage
+        const subscriptionsData = JSON.parse(localStorage.getItem(`subscriptions_${userId}`)) || [];
+        setSubscriptions(subscriptionsData);
+      }
+      setLoading(false);
     }
-  }, []);
+  }, [router]);
 
   const handleUnsubscribe = (streamerId) => {
-    const updatedSubscriptions = subscriptions.filter(id => id !== streamerId);
+    const updatedSubscriptions = subscriptions.filter(sub => sub.id !== streamerId);
     setSubscriptions(updatedSubscriptions);
     localStorage.setItem(`subscriptions_${userId}`, JSON.stringify(updatedSubscriptions));
     console.log(`Unsubscribed from ${streamerId}`);
   };
 
-  if (!isAuthenticated) return null;
+  if (!isAuthenticated || loading) {
+    return (
+      <div className={styles.loading}>
+        <div className={styles.spinner}></div>
+        <p>Загрузка...</p>
+      </div>
+    );
+  }
 
   return (
     <div className={styles.subscriptionsContainer}>
       <h1>Мои подписки</h1>
       {subscriptions.length > 0 ? (
-        subscriptions.map((streamerId) => (
-          <div className={styles.subscription} key={streamerId}>
-            <p>Streamer ID: {streamerId}</p>
-            <button className={styles.button} onClick={() => handleUnsubscribe(streamerId)}>Отписаться</button>
-          </div>
-        ))
+        <div className={styles.subscriptionsList}>
+          {subscriptions.map((subscription) => (
+            <div className={styles.subscriptionItem} key={subscription.id}>
+              <div className={styles.subscriptionName}>{subscription.name}</div>
+              <button className={styles.button} onClick={() => handleUnsubscribe(subscription.id)}>Отписаться</button>
+            </div>
+          ))}
+        </div>
       ) : (
-        <p>У вас нет подписок</p>
+        <p className={styles.noSubscriptions}>У вас нет подписок</p>
       )}
+      
+      <div className={styles.actionButtons}>
+        <button className={styles.button} onClick={() => router.push('/menu')}>
+          Вернуться в меню
+        </button>
+      </div>
     </div>
   );
 }

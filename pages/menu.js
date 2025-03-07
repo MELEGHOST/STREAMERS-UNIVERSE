@@ -7,6 +7,7 @@ export default function Menu() {
   const router = useRouter();
   const [userData, setUserData] = useState(null);
   const [isStreamer, setIsStreamer] = useState(false);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     // Проверяем авторизацию
@@ -24,8 +25,10 @@ export default function Menu() {
         setUserData(parsedData);
         setIsStreamer(parsedData.isStreamer || false);
       }
+      setLoading(false);
     } catch (e) {
       console.error('Ошибка при получении данных пользователя:', e);
+      setLoading(false);
     }
   }, [router]);
 
@@ -33,24 +36,41 @@ export default function Menu() {
     router.push(path);
   };
 
+  if (loading) {
+    return (
+      <div className={styles.loading}>
+        <div className={styles.spinner}></div>
+        <p>Загрузка...</p>
+      </div>
+    );
+  }
+
   if (!userData) {
-    return <div className={styles.loading}>Загрузка...</div>;
+    return (
+      <div className={styles.error}>
+        <p>Не удалось загрузить данные пользователя</p>
+        <button className={styles.button} onClick={() => router.push('/auth')}>
+          Вернуться на страницу авторизации
+        </button>
+      </div>
+    );
   }
 
   return (
     <div className={styles.menuContainer}>
       <div className={styles.header}>
         <h1>Streamers Universe</h1>
-        {userData && (
-          <div className={styles.userInfo}>
-            <img 
-              src={userData.profileImageUrl || '/default-avatar.png'} 
-              alt="Аватар" 
-              className={styles.avatar}
-            />
-            <span>{userData.twitchName || userData.display_name}</span>
-          </div>
-        )}
+        <div className={styles.userInfo}>
+          <img 
+            src={userData.profileImageUrl} 
+            alt={`${userData.twitchName || userData.display_name} аватар`} 
+            className={styles.avatar}
+            onError={(e) => {
+              e.currentTarget.src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="200" height="200" viewBox="0 0 200 200"%3E%3Crect width="200" height="200" fill="%237B41C9"%3E%3C/rect%3E%3Ctext x="100" y="100" font-family="Arial" font-size="24" text-anchor="middle" fill="white"%3ENo Image%3C/text%3E%3C/svg%3E';
+            }}
+          />
+          <span>{userData.twitchName || userData.display_name}</span>
+        </div>
       </div>
 
       <div className={styles.menuItems}>
