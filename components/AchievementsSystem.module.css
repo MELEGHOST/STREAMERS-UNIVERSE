@@ -1,0 +1,260 @@
+.achievementsContainer {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 20px;
+  background-color: rgba(26, 26, 74, 0.3);
+  border-radius: 15px;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+  border: 1px solid var(--primary-color, #7B41C9);
+}
+
+.achievementsContainer h2 {
+  text-align: center;
+  color: var(--primary-color, #7B41C9);
+  margin-bottom: 25px;
+  font-size: 28px;
+}
+
+.achievementsContainer h3 {
+  color: var(--primary-color, #7B41C9);
+  margin: 25px 0 15px;
+  font-size: 22px;
+  border-bottom: 1px solid rgba(123, 65, 201, 0.3);
+  padding-bottom: 8px;
+}
+
+.achievementsContainer h4 {
+  margin: 10px 0;
+  color: var(--text-color, #ffffff);
+  font-size: 18px;
+}
+
+.achievementsSummary {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 30px;
+  background-color: rgba(123, 65, 201, 0.1);
+  padding: 15px;
+  border-radius: 10px;
+  flex-wrap: wrap;
+  gap: 15px;
+}
+
+.xpCounter {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background-color: rgba(123, 65, 201, 0.2);
+  padding: 10px 20px;
+  border-radius: 30px;
+  border: 1px solid var(--primary-color, #7B41C9);
+}
+
+.xpIcon {
+  font-size: 24px;
+  animation: pulse 2s infinite;
+}
+
+.xpAmount {
+  font-size: 22px;
+  font-weight: bold;
+  color: var(--primary-color, #7B41C9);
+}
+
+.overallProgress {
+  flex: 1;
+  min-width: 200px;
+}
+
+.overallProgress p {
+  margin-bottom: 8px;
+  font-weight: bold;
+}
+
+.progressBar {
+  height: 15px;
+  background-color: rgba(123, 65, 201, 0.1);
+  border-radius: 10px;
+  overflow: hidden;
+  border: 1px solid rgba(123, 65, 201, 0.3);
+}
+
+.progressFill {
+  height: 100%;
+  background: linear-gradient(90deg, #7B41C9 0%, #9B6AE8 100%);
+  border-radius: 10px;
+  transition: width 0.5s ease-in-out;
+}
+
+.streamerStatus {
+  background-color: rgba(123, 65, 201, 0.2);
+  padding: 20px;
+  border-radius: 10px;
+  text-align: center;
+  margin-bottom: 30px;
+  border: 1px solid var(--primary-color, #7B41C9);
+}
+
+.streamerStatus h3 {
+  color: gold;
+  margin-top: 0;
+  border-bottom: none;
+}
+
+.streamerProgressContainer {
+  background-color: rgba(123, 65, 201, 0.1);
+  padding: 20px;
+  border-radius: 10px;
+  margin-bottom: 30px;
+  border: 1px solid rgba(123, 65, 201, 0.3);
+}
+
+.streamerProgressContainer h3 {
+  text-align: center;
+  margin-top: 0;
+  border-bottom: none;
+}
+
+.streamerTips {
+  margin-top: 20px;
+}
+
+.streamerTips ul {
+  padding-left: 20px;
+}
+
+.streamerTips li {
+  margin-bottom: 8px;
+}
+
+.unlockedTip {
+  background-color: rgba(123, 65, 201, 0.2);
+  padding: 10px 15px;
+  border-radius: 8px;
+  margin-top: 15px;
+  border-left: 3px solid var(--primary-color, #7B41C9);
+}
+
+.unlockedTip h4 {
+  margin: 0 0 5px;
+  color: var(--primary-color, #7B41C9);
+}
+
+.unlockedTip p {
+  margin: 0;
+}
+
+.achievementsList {
+  margin-top: 20px;
+}
+
+.achievementsGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+  gap: 20px;
+  margin-bottom: 30px;
+}
+
+.achievementCard {
+  background-color: rgba(123, 65, 201, 0.1);
+  border-radius: 10px;
+  padding: 15px;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  transition: transform 0.3s, box-shadow 0.3s;
+  height: 100%;
+  min-height: 180px;
+}
+
+.achievementCard.unlocked {
+  border: 1px solid var(--primary-color, #7B41C9);
+  background-color: rgba(123, 65, 201, 0.2);
+}
+
+.achievementCard.locked {
+  border: 1px solid rgba(123, 65, 201, 0.3);
+  filter: grayscale(0.7);
+  opacity: 0.7;
+}
+
+.achievementCard.secret {
+  background-color: rgba(255, 215, 0, 0.1);
+  border: 1px solid gold;
+}
+
+.achievementCard:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 5px 15px rgba(123, 65, 201, 0.3);
+}
+
+.achievementIcon {
+  font-size: 32px;
+  margin-bottom: 10px;
+  text-align: center;
+}
+
+.achievementIcon.faded {
+  opacity: 0.5;
+}
+
+.achievementCard h4 {
+  margin: 0 0 10px;
+  color: var(--primary-color, #7B41C9);
+}
+
+.achievementCard p {
+  margin: 0 0 15px;
+  flex-grow: 1;
+}
+
+.achievementXp {
+  font-weight: bold;
+  color: var(--primary-color, #7B41C9);
+  align-self: flex-end;
+}
+
+.achievementReward {
+  margin-top: 10px;
+  font-size: 14px;
+  background-color: rgba(255, 215, 0, 0.1);
+  padding: 5px 10px;
+  border-radius: 5px;
+  border-left: 3px solid gold;
+}
+
+.achievementReward span {
+  font-weight: bold;
+  color: gold;
+}
+
+.easterEggArea {
+  cursor: default;
+  height: 20px;
+  margin: 30px 0;
+  opacity: 0;
+}
+
+@keyframes pulse {
+  0% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.1);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+@media (max-width: 768px) {
+  .achievementsSummary {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  
+  .achievementsGrid {
+    grid-template-columns: 1fr;
+  }
+} 

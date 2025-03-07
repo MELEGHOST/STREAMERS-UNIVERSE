@@ -7,6 +7,7 @@ import styles from './profile.module.css';
 import { useRouter } from 'next/router';
 import CookieChecker from '../components/CookieChecker';
 import SocialButton from '../components/SocialButton';
+import AchievementsSystem from '../components/AchievementsSystem';
 
 export default function Profile() {
   const [profileData, setProfileData] = useState(null);
@@ -23,6 +24,9 @@ export default function Profile() {
     yandexMusic: '',
     isMusician: false
   });
+  const [showAchievements, setShowAchievements] = useState(false);
+  const [streamsCompleted, setStreamsCompleted] = useState(0);
+  const [hasCollaborations, setHasCollaborations] = useState(false);
 
   // Функция для загрузки данных пользователя
   const loadUserData = async () => {
@@ -43,13 +47,33 @@ export default function Profile() {
             localStorageUserData = JSON.parse(storedUserData);
             console.log('Данные пользователя из localStorage:', localStorageUserData);
             
-            // ВРЕМЕННОЕ РЕШЕНИЕ: Если у пользователя 150+ подписчиков, но статус не стример,
+            // ИСПРАВЛЕНИЕ: Если у пользователя 150+ подписчиков, но статус не стример,
             // принудительно устанавливаем статус стримера
             if (localStorageUserData.followersCount >= 150 && !localStorageUserData.isStreamer) {
               console.log('ИСПРАВЛЕНИЕ: Обнаружено 150+ подписчиков, но статус не стример. Исправляем...');
               localStorageUserData.isStreamer = true;
               localStorage.setItem('twitch_user', JSON.stringify(localStorageUserData));
               console.log('Статус стримера принудительно установлен в localStorage');
+            }
+            
+            // Загружаем данные о стримах и коллаборациях из localStorage
+            try {
+              const streamsData = localStorage.getItem(`streams_${localStorageUserData.id}`);
+              if (streamsData) {
+                const parsedStreamsData = JSON.parse(streamsData);
+                setStreamsCompleted(parsedStreamsData.completed || 0);
+                setHasCollaborations(parsedStreamsData.hasCollaborations || false);
+              } else {
+                // Создаем начальные данные
+                const initialStreamsData = {
+                  completed: 0,
+                  hasCollaborations: false,
+                  lastStream: null
+                };
+                localStorage.setItem(`streams_${localStorageUserData.id}`, JSON.stringify(initialStreamsData));
+              }
+            } catch (e) {
+              console.error('Ошибка при загрузке данных о стримах:', e);
             }
           }
         } catch (e) {
@@ -331,80 +355,64 @@ export default function Profile() {
 
   // Функция для отображения социальных ссылок
   const renderSocialLinks = () => {
-    const links = [];
+    if (!socialLinks) return null;
     
-    if (socialLinks.twitch) {
-      links.push(
-        <SocialButton 
-          key="twitch" 
-          type="Twitch" 
-          url={socialLinks.twitch} 
-          username={profileData?.twitchName} 
-          subscribers={profileData?.followersCount}
-        />
-      );
-    }
-    
-    if (socialLinks.youtube) {
-      links.push(
-        <SocialButton 
-          key="youtube" 
-          type="YouTube" 
-          url={socialLinks.youtube} 
-          username={profileData?.twitchName}
-        />
-      );
-    }
-    
-    if (socialLinks.discord) {
-      links.push(
-        <SocialButton 
-          key="discord" 
-          type="Discord" 
-          url={socialLinks.discord} 
-          username={profileData?.twitchName}
-        />
-      );
-    }
-    
-    if (socialLinks.telegram) {
-      links.push(
-        <SocialButton 
-          key="telegram" 
-          type="Telegram" 
-          url={socialLinks.telegram} 
-          username={profileData?.twitchName}
-        />
-      );
-    }
-    
-    if (socialLinks.vk) {
-      links.push(
-        <SocialButton 
-          key="vk" 
-          type="VK" 
-          url={socialLinks.vk} 
-          username={profileData?.twitchName}
-        />
-      );
-    }
-    
-    if (socialLinks.isMusician && socialLinks.yandexMusic) {
-      links.push(
-        <SocialButton 
-          key="yandexMusic" 
-          type="YandexMusic" 
-          url={socialLinks.yandexMusic} 
-          username={profileData?.twitchName}
-        />
-      );
-    }
-    
-    return links.length > 0 ? (
+    return (
       <div className={styles.socialLinks}>
-        {links}
+        {socialLinks.twitch && (
+          <SocialButton 
+            type="twitch" 
+            url={socialLinks.twitch} 
+            username={socialLinks.twitch.split('/').pop()} 
+          />
+        )}
+        
+        {socialLinks.youtube && (
+          <SocialButton 
+            type="youtube" 
+            url={socialLinks.youtube} 
+            username={socialLinks.youtube.split('/').pop()} 
+          />
+        )}
+        
+        {socialLinks.discord && (
+          <SocialButton 
+            type="discord" 
+            url={socialLinks.discord} 
+            username={socialLinks.discord.split('/').pop()} 
+          />
+        )}
+        
+        {socialLinks.telegram && (
+          <SocialButton 
+            type="telegram" 
+            url={socialLinks.telegram} 
+            username={socialLinks.telegram.split('/').pop()} 
+          />
+        )}
+        
+        {socialLinks.vk && (
+          <SocialButton 
+            type="vk" 
+            url={socialLinks.vk} 
+            username={socialLinks.vk.split('/').pop()} 
+          />
+        )}
+        
+        {socialLinks.isMusician && socialLinks.yandexMusic && (
+          <SocialButton 
+            type="yandexMusic" 
+            url={socialLinks.yandexMusic} 
+            username={socialLinks.yandexMusic.split('/').pop()} 
+          />
+        )}
       </div>
-    ) : null;
+    );
+  };
+
+  // Переключение отображения достижений
+  const toggleAchievements = () => {
+    setShowAchievements(!showAchievements);
   };
 
   if (loading) {
@@ -519,10 +527,25 @@ export default function Profile() {
         <button className={styles.button} onClick={() => router.push('/menu')}>
           Вернуться в меню
         </button>
+        <button className={styles.button} onClick={toggleAchievements}>
+          {showAchievements ? 'Скрыть достижения' : 'Показать достижения'}
+        </button>
         <button className={styles.logoutButton} onClick={handleLogout}>
           Выйти
         </button>
       </div>
+      
+      {showAchievements && (
+        <div className={styles.achievementsSection}>
+          <AchievementsSystem 
+            user={profileData}
+            followerCount={profileData.followersCount || 0}
+            isStreamer={profileData.isStreamer || false}
+            streamsCompleted={streamsCompleted}
+            hasCollaborations={hasCollaborations}
+          />
+        </div>
+      )}
     </div>
   );
 } 

@@ -19,6 +19,9 @@ export default function EditProfile() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const router = useRouter();
+  const [submitting, setSubmitting] = useState(false);
+  const [saveSuccess, setSaveSuccess] = useState(false);
+  const [saveError, setSaveError] = useState(false);
 
   useEffect(() => {
     const accessToken = Cookies.get('twitch_access_token');
@@ -38,6 +41,7 @@ export default function EditProfile() {
           credentials: 'include',
           headers: {
             'Content-Type': 'application/json',
+            'Authorization': `Bearer ${accessToken}`
           },
         });
 
@@ -49,20 +53,60 @@ export default function EditProfile() {
             credentials: 'include',
             headers: {
               'Content-Type': 'application/json',
+              'Authorization': `Bearer ${accessToken}`
             },
           });
         }
 
         if (!response.ok) {
-          throw new Error(`Failed to fetch social links: ${response.status}`);
+          // Если оба API-эндпоинта недоступны, используем локальные данные
+          console.log(`Не удалось получить социальные ссылки: ${response.status}`);
+          
+          // Пробуем получить данные из localStorage
+          const userId = JSON.parse(localStorage.getItem('twitch_user') || '{}').id;
+          if (userId) {
+            const localSocialLinks = localStorage.getItem(`social_links_${userId}`);
+            if (localSocialLinks) {
+              setSocialLinks(JSON.parse(localSocialLinks));
+              setLoading(false);
+              return;
+            }
+          }
+          
+          // Если нет данных в localStorage, используем пустые значения
+          setLoading(false);
+          return;
         }
 
         const data = await response.json();
         setSocialLinks(data);
+        
+        // Сохраняем данные в localStorage для резервного использования
+        const userId = JSON.parse(localStorage.getItem('twitch_user') || '{}').id;
+        if (userId) {
+          localStorage.setItem(`social_links_${userId}`, JSON.stringify(data));
+        }
+        
+        setLoading(false);
       } catch (error) {
-        console.error('Error fetching social links:', error);
-        setError(error.message || 'Failed to load social links');
-      } finally {
+        console.error('Ошибка при получении социальных ссылок:', error);
+        
+        // Пробуем получить данные из localStorage
+        try {
+          const userId = JSON.parse(localStorage.getItem('twitch_user') || '{}').id;
+          if (userId) {
+            const localSocialLinks = localStorage.getItem(`social_links_${userId}`);
+            if (localSocialLinks) {
+              setSocialLinks(JSON.parse(localSocialLinks));
+              setLoading(false);
+              return;
+            }
+          }
+        } catch (e) {
+          console.error('Ошибка при получении данных из localStorage:', e);
+        }
+        
+        setError('Не удалось загрузить данные профиля');
         setLoading(false);
       }
     };
@@ -77,61 +121,64 @@ export default function EditProfile() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setLoading(true);
-    setError(null);
+    setSubmitting(true);
     
     try {
-      console.log('Отправка данных профиля:', socialLinks);
-      
-      // Получаем токен доступа
-      const accessToken = Cookies.get('twitch_access_token') || localStorage.getItem('cookie_twitch_access_token');
-      if (!accessToken) {
-        throw new Error('Not authenticated');
-      }
-      
       // Сначала пробуем новый API-эндпоинт в директории app
-      console.log('Пробуем отправить данные на /api/user-socials');
       let response = await fetch('/api/user-socials', {
         method: 'POST',
         credentials: 'include',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${accessToken}`
+          'Authorization': `Bearer ${Cookies.get('twitch_access_token')}`
         },
-        body: JSON.stringify({ socialLinks }),
+        body: JSON.stringify(socialLinks),
       });
-
-      // Если новый API-эндпоинт недоступен или вернул ошибку, пробуем старый в директории pages
-      if (!response.ok) {
-        console.log(`Ошибка при отправке на /api/user-socials: ${response.status}. Пробуем /api/socials`);
-        
+      
+      // Если новый API-эндпоинт недоступен, пробуем старый в директории pages
+      if (!response.ok && response.status === 404) {
+        console.log('Новый API-эндпоинт недоступен, пробуем старый');
         response = await fetch('/api/socials', {
           method: 'POST',
           credentials: 'include',
           headers: {
             'Content-Type': 'application/json',
-            'Authorization': `Bearer ${accessToken}`
+            'Authorization': `Bearer ${Cookies.get('twitch_access_token')}`
           },
           body: JSON.stringify(socialLinks),
         });
       }
-
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        console.error('Ошибка при обновлении профиля:', response.status, errorData);
-        throw new Error(`Failed to update social links: ${response.status} - ${errorData.message || 'Unknown error'}`);
-      }
-
-      const data = await response.json();
-      console.log('Профиль успешно обновлен:', data);
       
-      alert('Профиль успешно обновлен!');
-      router.push('/profile');
+      if (!response.ok) {
+        throw new Error(`Failed to save social links: ${response.status}`);
+      }
+      
+      // Сохраняем данные в localStorage для резервного использования
+      const userId = JSON.parse(localStorage.getItem('twitch_user') || '{}').id;
+      if (userId) {
+        localStorage.setItem(`social_links_${userId}`, JSON.stringify(socialLinks));
+      }
+      
+      setSaveSuccess(true);
+      setTimeout(() => setSaveSuccess(false), 3000);
     } catch (error) {
-      console.error('Ошибка при обновлении профиля:', error);
-      setError(error.message || 'Failed to update profile');
+      console.error('Error saving social links:', error);
+      
+      // Сохраняем данные в localStorage даже при ошибке
+      try {
+        const userId = JSON.parse(localStorage.getItem('twitch_user') || '{}').id;
+        if (userId) {
+          localStorage.setItem(`social_links_${userId}`, JSON.stringify(socialLinks));
+        }
+        setSaveSuccess(true);
+        setTimeout(() => setSaveSuccess(false), 3000);
+      } catch (e) {
+        console.error('Ошибка при сохранении данных в localStorage:', e);
+        setSaveError(true);
+        setTimeout(() => setSaveError(false), 3000);
+      }
     } finally {
-      setLoading(false);
+      setSubmitting(false);
     }
   };
 

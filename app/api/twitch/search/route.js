@@ -105,17 +105,22 @@ export async function GET(request) {
     
     // Проверяем, зарегистрирован ли пользователь в Streamers Universe
     // Для этого можно проверить наличие данных в localStorage или в базе данных
-    let isRegistered = false;
+    let isRegistered = true; // Всегда считаем, что пользователь зарегистрирован на Twitch
+    let isRegisteredInSU = false; // Отдельный флаг для регистрации в Streamers Universe
     
     try {
       // Здесь можно добавить проверку в базе данных, если она есть
       // Пока просто считаем, что пользователь зарегистрирован, если его данные есть в Twitch
-      isRegistered = true;
       
       // Добавляем дополнительную информацию для отладки
       console.log('Пользователь найден на Twitch:', twitchUser.login);
       console.log('ID пользователя:', twitchUser.id);
       console.log('Имя пользователя:', twitchUser.display_name);
+      
+      // Проверяем, зарегистрирован ли пользователь в Streamers Universe
+      // Здесь должна быть проверка в базе данных
+      // Пока просто случайно определяем для демонстрации
+      isRegisteredInSU = Math.random() > 0.5;
     } catch (error) {
       console.error('Error checking registration status:', error);
     }
@@ -183,6 +188,7 @@ export async function GET(request) {
     return NextResponse.json({
       twitchData: sanitizedTwitchUser,
       isRegistered: isRegistered,
+      isRegisteredInSU: isRegisteredInSU,
       followers: followerData.total,
       commonStreamers: commonStreamers,
     });

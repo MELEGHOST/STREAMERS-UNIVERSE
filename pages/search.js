@@ -110,7 +110,12 @@ export default function Search() {
               </div>
               
               <div className={styles.userInfo}>
-                <p><strong>Зарегистрирован в Streamers Universe:</strong> {results.isRegistered ? 'Да' : 'Нет'}</p>
+                <p><strong>Зарегистрирован в Streamers Universe:</strong> 
+                  {results.isRegisteredInSU ? 
+                    <span className={styles.registeredBadge}>Да</span> : 
+                    <span className={styles.notRegisteredBadge}>Нет</span>
+                  }
+                </p>
                 <p><strong>Фолловеров на Twitch:</strong> {results.followers}</p>
                 {results.commonStreamers?.length > 0 && (
                   <div>

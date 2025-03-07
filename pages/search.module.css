@@ -118,7 +118,29 @@
 }
 
 .userInfo strong {
-  color: #7B41C9;
+  color: var(--primary-color, #7B41C9);
+}
+
+.registeredBadge {
+  display: inline-block;
+  background-color: rgba(40, 167, 69, 0.2);
+  color: #28a745;
+  padding: 2px 8px;
+  border-radius: 4px;
+  margin-left: 5px;
+  font-weight: bold;
+  border: 1px solid rgba(40, 167, 69, 0.5);
+}
+
+.notRegisteredBadge {
+  display: inline-block;
+  background-color: rgba(220, 53, 69, 0.1);
+  color: #dc3545;
+  padding: 2px 8px;
+  border-radius: 4px;
+  margin-left: 5px;
+  font-weight: bold;
+  border: 1px solid rgba(220, 53, 69, 0.3);
 }
 
 .commonStreamersList {
