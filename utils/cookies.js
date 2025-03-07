@@ -68,4 +68,45 @@ export const setClientCookiesFromServer = (userData) => {
     console.error('Ошибка при установке куки на стороне клиента:', error);
     return false;
   }
+};
+
+// Функция для установки куки с использованием localStorage в качестве резервного варианта
+export const setCookieWithLocalStorage = (name, value, options = {}) => {
+  try {
+    // Сначала пытаемся установить куку
+    const cookieSet = setCookie(name, value, options);
+    
+    // Если не удалось установить куку, используем localStorage
+    if (!cookieSet && typeof window !== 'undefined') {
+      localStorage.setItem(`cookie_${name}`, value);
+      console.log(`Данные ${name} сохранены в localStorage`);
+    }
+    
+    return true;
+  } catch (error) {
+    console.error(`Ошибка при установке куки/localStorage ${name}:`, error);
+    return false;
+  }
+};
+
+// Функция для получения куки с использованием localStorage в качестве резервного варианта
+export const getCookieWithLocalStorage = (name) => {
+  try {
+    // Сначала пытаемся получить куку
+    const cookieValue = getCookie(name);
+    
+    // Если куки нет, пытаемся получить из localStorage
+    if (!cookieValue && typeof window !== 'undefined') {
+      const localStorageValue = localStorage.getItem(`cookie_${name}`);
+      if (localStorageValue) {
+        console.log(`Данные ${name} получены из localStorage`);
+        return localStorageValue;
+      }
+    }
+    
+    return cookieValue;
+  } catch (error) {
+    console.error(`Ошибка при получении куки/localStorage ${name}:`, error);
+    return null;
+  }
 }; 

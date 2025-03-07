@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/router';
 import Cookies from 'js-cookie';
-import { getCookie, hasCookie } from '../utils/cookies';
+import { getCookie, hasCookie, getCookieWithLocalStorage } from '../utils/cookies';
 import styles from './auth.module.css';
 
 export default function Auth() {
@@ -15,7 +15,7 @@ export default function Auth() {
 
   useEffect(() => {
     // Проверяем, авторизован ли пользователь уже
-    const accessToken = getCookie('twitch_access_token');
+    const accessToken = getCookieWithLocalStorage('twitch_access_token');
     if (accessToken) {
       console.log('Обнаружен токен доступа, перенаправление на /profile');
       router.push('/profile');
@@ -61,7 +61,7 @@ export default function Auth() {
         setIsLoading(true); // Показываем индикатор загрузки
         // Очищаем предыдущие сообщения об ошибках
         setErrorMessage('');
-        window.location.href = '/api/twitch/login';
+        handleLoginComplete();
       } catch (error) {
         console.error('Ошибка редиректа в handleLoginRelease:', error);
         setErrorMessage('Не удалось перейти на страницу авторизации');
@@ -71,6 +71,19 @@ export default function Auth() {
       console.log('Press too short, no redirect');
     }
     pressStartRef.current = null;
+  };
+
+  const handleLoginComplete = () => {
+    if (timeoutRef.current) {
+      clearTimeout(timeoutRef.current);
+      timeoutRef.current = null;
+    }
+    
+    setIsLoading(true);
+    console.log('Начинаем авторизацию через Twitch...');
+    
+    // Используем Pages Router API для авторизации
+    window.location.href = '/api/twitch/login';
   };
 
   return (

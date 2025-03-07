@@ -10,11 +10,28 @@ export default function CookieChecker() {
     twitch_user: false,
     twitch_state: false
   });
+  const [isVisible, setIsVisible] = useState(false);
 
   useEffect(() => {
+    // Проверяем, нужно ли отображать компонент
+    // Отображаем только в режиме разработки или если в URL есть параметр debug=true
+    const isDev = process.env.NODE_ENV === 'development';
+    const urlParams = new URLSearchParams(window.location.search);
+    const debugMode = urlParams.get('debug') === 'true';
+    
+    setIsVisible(isDev || debugMode);
+
     // Проверяем наличие куков
     const checkCookies = () => {
       setCookieStatus({
+        twitch_access_token: hasCookie('twitch_access_token'),
+        twitch_refresh_token: hasCookie('twitch_refresh_token'),
+        twitch_user: hasCookie('twitch_user'),
+        twitch_state: hasCookie('twitch_state')
+      });
+      
+      // Выводим информацию в консоль для отладки
+      console.log('Статус куков:', {
         twitch_access_token: hasCookie('twitch_access_token'),
         twitch_refresh_token: hasCookie('twitch_refresh_token'),
         twitch_user: hasCookie('twitch_user'),
@@ -31,6 +48,9 @@ export default function CookieChecker() {
     // Очищаем интервал при размонтировании компонента
     return () => clearInterval(interval);
   }, []);
+
+  // Если компонент не должен быть видимым, возвращаем null
+  if (!isVisible) return null;
 
   return (
     <div style={{ 
