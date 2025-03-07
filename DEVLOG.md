@@ -6,13 +6,14 @@
   - Созданы новые API-эндпоинты в директории app/api/twitch с использованием route.js
   - Удалены старые API-эндпоинты из директории pages/api/twitch для предотвращения конфликтов
   - Добавлены файлы app/layout.js и app/page.js для поддержки App Router
+  - Удален файл pages/index.js для устранения конфликта с app/page.js
 - Исправлены проблемы совместимости:
   - Обновлен компонент PageTransition.js для работы с App Router (next/navigation вместо next/router)
   - Исправлены синтаксические ошибки в middleware.js
+  - Добавлено свойство "type": "module" в package.json для корректной обработки next.config.js
 - Улучшена обработка куков и авторизации:
   - Обновлены API-эндпоинты для работы с cookies из next/headers
   - Улучшена обработка токенов и состояния авторизации
-- Удалено свойство "type": "module" из package.json для устранения конфликтов с CommonJS модулями
 - Добавлена поддержка шрифта Inter с кириллицей в app/layout.js
 
 ## Версия: PRE-ALFA 0.0.1.2
