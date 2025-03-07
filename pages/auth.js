@@ -75,7 +75,7 @@ export default function Auth() {
       }
       
       // Если нет в куках, проверяем localStorage
-      if (!userData) {
+      if (!userData && typeof window !== 'undefined') {
         const userLocalStorage = localStorage.getItem('twitch_user') || localStorage.getItem('cookie_twitch_user');
         if (userLocalStorage) {
           try {
@@ -98,6 +98,10 @@ export default function Auth() {
         }
       }
       
+      // Проверяем флаг авторизации в localStorage
+      const isAuthenticated = localStorage.getItem('is_authenticated') === 'true';
+      console.log('Флаг авторизации в localStorage:', isAuthenticated ? 'авторизован' : 'не авторизован');
+      
       if (accessToken && userData) {
         console.log('Обнаружен токен доступа и данные пользователя, перенаправление на /menu');
         
@@ -111,6 +115,9 @@ export default function Auth() {
           // Сохраняем данные пользователя в localStorage
           localStorage.setItem('twitch_user', JSON.stringify(userData));
           localStorage.setItem('cookie_twitch_user', JSON.stringify(userData));
+          
+          // Устанавливаем флаг авторизации
+          localStorage.setItem('is_authenticated', 'true');
         }
         
         // Добавляем плавный переход перед редиректом
@@ -133,16 +140,20 @@ export default function Auth() {
         console.log('Обнаружен токен доступа, но нет данных пользователя. Пробуем получить данные профиля.');
         setIsLoading(true);
         
+        // Добавляем дополнительное логирование для отладки
+        console.log('Отправка запроса к API профиля с токеном:', accessToken.substring(0, 10) + '...');
+        
         fetch('/api/twitch/profile', {
           headers: {
             'Authorization': `Bearer ${accessToken}`
           }
         })
         .then(response => {
+          console.log('Получен ответ от API профиля:', response.status);
           if (response.ok) {
             return response.json();
           }
-          throw new Error('Не удалось получить данные профиля');
+          throw new Error(`Не удалось получить данные профиля: ${response.status}`);
         })
         .then(data => {
           console.log('Данные профиля получены:', data);
@@ -165,6 +176,9 @@ export default function Auth() {
           
           localStorage.setItem('twitch_user', JSON.stringify(userDataObj));
           localStorage.setItem('cookie_twitch_user', JSON.stringify(userDataObj));
+          
+          // Устанавливаем флаг авторизации
+          localStorage.setItem('is_authenticated', 'true');
           
           console.log('Данные пользователя сохранены, перенаправление на /menu');
           
@@ -195,10 +209,15 @@ export default function Auth() {
           Cookies.remove('twitch_refresh_token');
           localStorage.removeItem('cookie_twitch_access_token');
           localStorage.removeItem('cookie_twitch_refresh_token');
+          localStorage.removeItem('is_authenticated');
           
           setErrorMessage('Данные пользователя не найдены. Пожалуйста, авторизуйтесь снова.');
           setIsLoading(false);
         });
+      } else if (isAuthenticated) {
+        // Есть флаг авторизации, но нет токена или данных пользователя
+        console.log('Обнаружен флаг авторизации, но нет токена или данных пользователя. Очищаем флаг.');
+        localStorage.removeItem('is_authenticated');
       }
     };
     

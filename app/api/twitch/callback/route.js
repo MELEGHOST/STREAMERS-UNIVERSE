@@ -76,9 +76,9 @@ export async function GET(request) {
       redirectUri = process.env.NEXT_PUBLIC_TWITCH_REDIRECT_URI_LOCAL || `${currentDomain}/api/twitch/callback`;
       console.log('Callback API - Используем локальный URI перенаправления:', redirectUri);
     } else if (currentDomain.includes('streamers-universe-meleghost-meleghosts-projects.vercel.app')) {
-      // Для превью версии
-      redirectUri = process.env.NEXT_PUBLIC_TWITCH_REDIRECT_URI_PREVIEW || `${currentDomain}/api/twitch/callback`;
-      console.log('Callback API - Используем URI перенаправления для превью:', redirectUri);
+      // Для превью версии - явно указываем полный URI
+      redirectUri = 'https://streamers-universe-meleghost-meleghosts-projects.vercel.app/api/twitch/callback';
+      console.log('Callback API - Используем фиксированный URI перенаправления для превью:', redirectUri);
     } else if (currentDomain.includes('streamers-universe.vercel.app') || currentDomain.includes('streamers-universe.com')) {
       // Для продакшн версии - явно указываем полный URI
       redirectUri = 'https://streamers-universe.vercel.app/api/twitch/callback';
@@ -213,6 +213,12 @@ export async function GET(request) {
     // Сохраняем данные пользователя в куки и localStorage для надежности
     const userDataString = JSON.stringify(userDataForCookie);
     
+    // Для превью-версии добавляем дополнительное логирование
+    const isPreviewVersion = currentDomain.includes('streamers-universe-meleghost-meleghosts-projects.vercel.app');
+    if (isPreviewVersion) {
+      console.log('Callback API - Превью-версия: сохраняем данные пользователя:', userDataForCookie);
+    }
+    
     response.cookies.set('twitch_user', userDataString, {
       path: '/',
       httpOnly: false, // Нужен доступ из JavaScript
@@ -225,15 +231,37 @@ export async function GET(request) {
     const script = `
       <script>
         try {
-          localStorage.setItem('twitch_user', '${userDataString.replace(/'/g, "\\'")}');
-          localStorage.setItem('cookie_twitch_user', '${userDataString.replace(/'/g, "\\'")}');
+          // Сохраняем данные пользователя в localStorage
+          const userData = ${JSON.stringify(userDataForCookie)};
+          localStorage.setItem('twitch_user', JSON.stringify(userData));
+          localStorage.setItem('cookie_twitch_user', JSON.stringify(userData));
+          
+          // Сохраняем токены в localStorage
           localStorage.setItem('cookie_twitch_access_token', '${accessToken}');
           ${refreshToken ? `localStorage.setItem('cookie_twitch_refresh_token', '${refreshToken}');` : ''}
+          
+          // Для отладки выводим информацию в консоль
+          console.log('Данные пользователя:', userData);
           console.log('Данные пользователя и токены сохранены в localStorage');
+          
+          // Проверяем, что данные сохранились
+          const savedUserData = localStorage.getItem('twitch_user');
+          console.log('Проверка сохраненных данных пользователя:', savedUserData ? 'данные сохранены' : 'данные не сохранены');
+          
+          // Устанавливаем флаг авторизации
+          localStorage.setItem('is_authenticated', 'true');
+          
+          // Перенаправляем на главную страницу
+          setTimeout(() => {
+            window.location.href = '/menu';
+          }, 1000);
         } catch (e) {
           console.error('Ошибка при сохранении данных в localStorage:', e);
+          // В случае ошибки все равно перенаправляем на главную страницу
+          setTimeout(() => {
+            window.location.href = '/menu';
+          }, 1000);
         }
-        window.location.href = '/menu';
       </script>
     `;
     

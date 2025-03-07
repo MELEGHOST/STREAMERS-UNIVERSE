@@ -40,6 +40,15 @@ export async function GET(request) {
   try {
     console.log('Profile API - Начало обработки запроса');
     
+    // Получаем текущий домен из запроса
+    const url = new URL(request.url);
+    const currentDomain = `${url.protocol}//${url.host}`;
+    const isPreviewVersion = currentDomain.includes('streamers-universe-meleghost-meleghosts-projects.vercel.app');
+
+    if (isPreviewVersion) {
+      console.log('Profile API - Превью-версия: текущий домен:', currentDomain);
+    }
+
     // Получаем токен доступа из cookies
     const cookieStore = cookies();
     let accessToken = cookieStore.get('twitch_access_token')?.value;
@@ -56,9 +65,9 @@ export async function GET(request) {
     }
     
     // Если токен все еще не найден, проверяем параметры запроса
-    const url = new URL(request.url);
-    if (!accessToken && url.searchParams.get('access_token')) {
-      accessToken = url.searchParams.get('access_token');
+    const urlParams = new URL(request.url);
+    if (!accessToken && urlParams.searchParams.get('access_token')) {
+      accessToken = urlParams.searchParams.get('access_token');
       console.log('Profile API - accessToken из query параметров:', 'присутствует');
     }
 
@@ -375,6 +384,10 @@ export async function GET(request) {
         profile_image_url: profileImageUrl,
       };
       
+      if (isPreviewVersion) {
+        console.log('Profile API - Превью-версия: данные пользователя для куки:', userDataForCookie);
+      }
+      
       const response = NextResponse.json(sanitizeObject(profileData));
       
       // Устанавливаем куку с данными пользователя
@@ -387,23 +400,18 @@ export async function GET(request) {
         maxAge: 60 * 60 * 24 * 7, // 7 дней
       });
       
-      // Добавляем скрипт для сохранения данных в localStorage
-      const script = `
-        <script>
-          try {
-            localStorage.setItem('twitch_user', '${userDataString.replace(/'/g, "\\'")}');
-            localStorage.setItem('cookie_twitch_user', '${userDataString.replace(/'/g, "\\'")}');
-            console.log('Данные пользователя сохранены в localStorage');
-          } catch (e) {
-            console.error('Ошибка при сохранении данных в localStorage:', e);
-          }
-        </script>
-      `;
+      if (isPreviewVersion) {
+        console.log('Profile API - Превью-версия: кука twitch_user установлена');
+      }
       
       // Проверяем, является ли запрос AJAX или обычным запросом страницы
       const isAjaxRequest = request.headers.get('X-Requested-With') === 'XMLHttpRequest' || 
                            request.headers.get('Accept')?.includes('application/json');
-      
+
+      if (isPreviewVersion) {
+        console.log('Profile API - Превью-версия: тип запроса:', isAjaxRequest ? 'AJAX' : 'обычный');
+      }
+
       if (isAjaxRequest) {
         // Для AJAX-запросов возвращаем JSON
         console.log('Profile API - Возвращаем JSON-ответ для AJAX-запроса');
@@ -411,6 +419,40 @@ export async function GET(request) {
       } else {
         // Для обычных запросов возвращаем HTML с данными и скриптом
         console.log('Profile API - Возвращаем HTML-ответ со скриптом для сохранения данных');
+        
+        // Добавляем скрипт для сохранения данных в localStorage
+        const script = `
+          <script>
+            try {
+              // Сохраняем данные пользователя в localStorage
+              const userData = ${JSON.stringify(userDataForCookie)};
+              localStorage.setItem('twitch_user', JSON.stringify(userData));
+              localStorage.setItem('cookie_twitch_user', JSON.stringify(userData));
+              
+              // Устанавливаем флаг авторизации
+              localStorage.setItem('is_authenticated', 'true');
+              
+              // Для отладки выводим информацию в консоль
+              console.log('Данные пользователя:', userData);
+              console.log('Данные пользователя сохранены в localStorage');
+              
+              // Проверяем, что данные сохранились
+              const savedUserData = localStorage.getItem('twitch_user');
+              console.log('Проверка сохраненных данных пользователя:', savedUserData ? 'данные сохранены' : 'данные не сохранены');
+              
+              // Перенаправляем на главную страницу
+              setTimeout(() => {
+                window.location.href = '/menu';
+              }, 1000);
+            } catch (e) {
+              console.error('Ошибка при сохранении данных в localStorage:', e);
+              // В случае ошибки все равно перенаправляем на главную страницу
+              setTimeout(() => {
+                window.location.href = '/menu';
+              }, 1000);
+            }
+          </script>
+        `;
         
         const htmlResponse = new NextResponse(
           `<!DOCTYPE html>
@@ -425,20 +467,21 @@ export async function GET(request) {
               h1 { color: #155724; }
               .loader { border: 5px solid #f3f3f3; border-top: 5px solid #3498db; border-radius: 50%; width: 50px; height: 50px; animation: spin 2s linear infinite; margin: 20px auto; }
               @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+              pre { background: #f8f9fa; padding: 10px; border-radius: 5px; text-align: left; overflow: auto; max-height: 200px; }
             </style>
           </head>
           <body>
             <div class="success-container">
               <h1>Данные профиля получены!</h1>
+              <p>Пользователь: <strong>${twitchName}</strong></p>
+              <p>ID: <strong>${userId}</strong></p>
+              <p>Login: <strong>${login}</strong></p>
+              ${isPreviewVersion ? `<p>Превью-версия: <strong>Да</strong></p>` : ''}
               <p>Перенаправление на главную страницу...</p>
               <div class="loader"></div>
+              ${isPreviewVersion ? `<pre>Данные пользователя: ${JSON.stringify(userDataForCookie, null, 2)}</pre>` : ''}
             </div>
             ${script}
-            <script>
-              setTimeout(() => {
-                window.location.href = '/menu';
-              }, 1000);
-            </script>
           </body>
           </html>`,
           {
@@ -453,6 +496,10 @@ export async function GET(request) {
         response.cookies.getAll().forEach(cookie => {
           htmlResponse.cookies.set(cookie.name, cookie.value, cookie);
         });
+        
+        if (isPreviewVersion) {
+          console.log('Profile API - Превью-версия: HTML-ответ подготовлен');
+        }
         
         return htmlResponse;
       }
