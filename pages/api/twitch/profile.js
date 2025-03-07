@@ -117,6 +117,8 @@ export default async function handler(req, res) {
 
     // Определяем статус стримера (подписчиков >= 150)
     const isStreamer = totalFollowersCount >= 150;
+    
+    console.log(`Проверка статуса стримера: ${totalFollowersCount} подписчиков, статус: ${isStreamer ? 'стример' : 'зритель'}`);
 
     // Формируем данные профиля
     const profileData = {
@@ -130,11 +132,14 @@ export default async function handler(req, res) {
       isStreamer, // Добавляем статус стримера в данные профиля
     };
 
+    // Логируем подробную информацию о данных профиля
     console.log('Возвращаемые данные профиля:', { 
-      ...profileData, 
-      isStreamer, // Логируем статус стримера
-      followers: profileData.followers.length > 0 ? `${profileData.followers.length} подписчиков` : 'нет',
-      followings: profileData.followings.length > 0 ? `${profileData.followings.length} подписок` : 'нет',
+      twitchName,
+      followersCount: totalFollowersCount,
+      followersData: followers.length > 0 ? `${followers.length} подписчиков загружено` : 'нет данных',
+      followingsCount: totalFollowingsCount,
+      followingsData: followings.length > 0 ? `${followings.length} подписок загружено` : 'нет данных',
+      isStreamer,
     });
 
     res.status(200).json(profileData);

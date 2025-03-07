@@ -63,16 +63,26 @@ export default function Profile() {
           localStorageUserData.profile_image_url ||
           `https://static-cdn.jtvnw.net/jtv_user_pictures/${localStorageUserData.id}-profile_image-300x300.jpg`;
         
+        // Принудительно устанавливаем статус стримера, если количество подписчиков >= 150
+        const followersCount = localStorageUserData.followersCount || 0;
+        const isStreamer = followersCount >= 150;
+        console.log(`Проверка статуса стримера: ${followersCount} подписчиков, статус: ${isStreamer ? 'стример' : 'зритель'}`);
+        
         setProfileData({
           twitchName: localStorageUserData.twitchName || localStorageUserData.display_name || 'Unknown User',
-          followersCount: localStorageUserData.followersCount || 0,
+          followersCount: followersCount,
           followers: localStorageUserData.followers || [],
           followingsCount: localStorageUserData.followingsCount || 0,
           followings: localStorageUserData.followings || [],
           profileImageUrl,
           id: localStorageUserData.id,
-          isStreamer: localStorageUserData.isStreamer || false
+          isStreamer: isStreamer // Принудительно устанавливаем на основе количества подписчиков
         });
+        
+        // Обновляем локальное хранилище с правильным статусом стримера
+        localStorageUserData.isStreamer = isStreamer;
+        localStorage.setItem('twitch_user', JSON.stringify(localStorageUserData));
+        
         setLoading(false);
         return;
       }
@@ -89,8 +99,10 @@ export default function Profile() {
             const data = await response.json();
             console.log('Полученные данные профиля:', data);
             
-            // Проверяем статус стримера на основе количества подписчиков
-            const isStreamer = data.followersCount >= 150;
+            // Принудительно устанавливаем статус стримера, если количество подписчиков >= 150
+            const followersCount = data.followersCount || 0;
+            const isStreamer = followersCount >= 150;
+            console.log(`Проверка статуса стримера: ${followersCount} подписчиков, статус: ${isStreamer ? 'стример' : 'зритель'}`);
             
             // Update profile data
             const profileImageUrl = data.profileImageUrl || 
@@ -99,7 +111,7 @@ export default function Profile() {
             setProfileData({
               ...data,
               profileImageUrl,
-              isStreamer, // Всегда устанавливаем на основе количества подписчиков
+              isStreamer: isStreamer, // Принудительно устанавливаем на основе количества подписчиков
             });
             
             // Обновляем локальное хранилище с правильным статусом стримера
@@ -115,18 +127,20 @@ export default function Profile() {
                 localStorageUserData.profile_image_url ||
                 `https://static-cdn.jtvnw.net/jtv_user_pictures/${localStorageUserData.id}-profile_image-300x300.jpg`;
               
-              // Проверяем статус стримера на основе количества подписчиков
-              const isStreamer = localStorageUserData.followersCount >= 150;
+              // Принудительно устанавливаем статус стримера, если количество подписчиков >= 150
+              const followersCount = localStorageUserData.followersCount || 0;
+              const isStreamer = followersCount >= 150;
+              console.log(`Проверка статуса стримера: ${followersCount} подписчиков, статус: ${isStreamer ? 'стример' : 'зритель'}`);
               
               setProfileData({
                 twitchName: localStorageUserData.display_name || 'Unknown User',
-                followersCount: localStorageUserData.followersCount || 0,
-                followers: [],
-                followingsCount: 0,
-                followings: [],
+                followersCount: followersCount,
+                followers: localStorageUserData.followers || [],
+                followingsCount: localStorageUserData.followingsCount || 0,
+                followings: localStorageUserData.followings || [],
                 profileImageUrl,
                 id: localStorageUserData.id,
-                isStreamer, // Всегда устанавливаем на основе количества подписчиков
+                isStreamer: isStreamer, // Принудительно устанавливаем на основе количества подписчиков
               });
               
               // Обновляем локальное хранилище с правильным статусом стримера
@@ -146,18 +160,20 @@ export default function Profile() {
               localStorageUserData.profile_image_url ||
               `https://static-cdn.jtvnw.net/jtv_user_pictures/${localStorageUserData.id}-profile_image-300x300.jpg`;
             
-            // Проверяем статус стримера на основе количества подписчиков
-            const isStreamer = localStorageUserData.followersCount >= 150;
+            // Принудительно устанавливаем статус стримера, если количество подписчиков >= 150
+            const followersCount = localStorageUserData.followersCount || 0;
+            const isStreamer = followersCount >= 150;
+            console.log(`Проверка статуса стримера: ${followersCount} подписчиков, статус: ${isStreamer ? 'стример' : 'зритель'}`);
             
             setProfileData({
               twitchName: localStorageUserData.display_name || 'Unknown User',
-              followersCount: localStorageUserData.followersCount || 0,
-              followers: [],
-              followingsCount: 0,
-              followings: [],
+              followersCount: followersCount,
+              followers: localStorageUserData.followers || [],
+              followingsCount: localStorageUserData.followingsCount || 0,
+              followings: localStorageUserData.followings || [],
               profileImageUrl,
               id: localStorageUserData.id,
-              isStreamer, // Всегда устанавливаем на основе количества подписчиков
+              isStreamer: isStreamer, // Принудительно устанавливаем на основе количества подписчиков
             });
             
             // Обновляем локальное хранилище с правильным статусом стримера
@@ -232,7 +248,7 @@ export default function Profile() {
 
   if (loading) {
     return (
-      <div className={styles.container}>
+      <div className={styles.profileContainer}>
         <CookieChecker />
         <div className={styles.loading}>
           <div className={styles.spinner}></div>
@@ -244,11 +260,11 @@ export default function Profile() {
 
   if (error && !profileData) {
     return (
-      <div className={styles.container}>
+      <div className={styles.profileContainer}>
         <CookieChecker />
         <div className={styles.error}>
           <p>{error}</p>
-          <button onClick={() => router.push('/auth')} className={styles.authButton}>
+          <button onClick={() => router.push('/auth')} className={styles.button}>
             Войти через Twitch
           </button>
         </div>
@@ -258,7 +274,7 @@ export default function Profile() {
 
   if (!profileData) {
     return (
-      <div className={styles.container}>
+      <div className={styles.profileContainer}>
         <CookieChecker />
         <div className={styles.error}>
           Ошибка загрузки данных профиля.
@@ -271,7 +287,7 @@ export default function Profile() {
   }
 
   return (
-    <div className={styles.container}>
+    <div className={styles.profileContainer}>
       <CookieChecker />
       <h1>Профиль Twitch</h1>
       {profileData.profileImageUrl && (
@@ -306,18 +322,25 @@ export default function Profile() {
         </ul>
       </div>
 
-      {profileData.isStreamer && (
-        <button className={styles.button} onClick={() => router.push('/followers')}>
-          Управление подписчиками
+      <div className={styles.buttonContainer}>
+        <button className={styles.button} onClick={() => router.push('/')}>
+          Вернуться в меню
         </button>
-      )}
+        
+        {profileData.isStreamer && (
+          <button className={styles.button} onClick={() => router.push('/followers')}>
+            Управление подписчиками
+          </button>
+        )}
 
-      <button className={styles.button} onClick={() => router.push('/edit-profile')}>
-        Редактировать профиль
-      </button>
-      <button className={styles.button} onClick={handleLogout}>
-        Выйти
-      </button>
+        <button className={styles.button} onClick={() => router.push('/edit-profile')}>
+          Редактировать профиль
+        </button>
+        
+        <button className={styles.button} onClick={handleLogout}>
+          Выйти
+        </button>
+      </div>
     </div>
   );
 }

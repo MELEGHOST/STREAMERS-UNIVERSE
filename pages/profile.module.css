@@ -14,6 +14,7 @@
   display: flex;
   flex-direction: column;
   align-items: center;
+  text-align: center;
   animation: fadeIn 0.5s ease-in-out;
 }
 
@@ -26,6 +27,29 @@
   margin: 20px 0;
   width: 100%;
   max-width: 600px;
+  text-align: center;
+}
+
+.section ul {
+  list-style-type: none;
+  padding: 0;
+  margin: 0;
+  text-align: center;
+}
+
+.section li {
+  padding: 5px 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.buttonContainer {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 20px;
+  width: 100%;
+  max-width: 300px;
+  align-items: center;
 }
 
 .loading {
