@@ -26,6 +26,10 @@ export const setCookie = (name, value, options = {}) => {
         
         document.cookie = `${name}=${encodeURIComponent(value)}; path=${cookieOptions.path}${expires}${maxAge}${secure}${sameSite}`;
         console.log(`Кука ${name} установлена через document.cookie`);
+        
+        // Сохраняем в localStorage как резервную копию
+        localStorage.setItem(`cookie_${name}`, value);
+        console.log(`Резервная копия куки ${name} сохранена в localStorage`);
       } catch (docCookieError) {
         console.error(`Ошибка при установке куки ${name} через document.cookie:`, docCookieError);
       }

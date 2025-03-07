@@ -3,8 +3,8 @@ const nextConfig = {
   reactStrictMode: true,
   output: 'standalone',
   env: {
-    // Make sure this matches EXACTLY what is registered in Twitch Developer Console
-    TWITCH_REDIRECT_URI: process.env.TWITCH_REDIRECT_URI || 'https://streamers-universe.vercel.app/api/twitch/callback',
+    // Не устанавливаем жестко TWITCH_REDIRECT_URI, будем определять его динамически
+    // в зависимости от окружения (Production или Preview)
   },
   images: {
     domains: ['id.twitch.tv', 'api.twitch.tv', 'static-cdn.jtvnw.net'],
@@ -21,7 +21,7 @@ const nextConfig = {
   // Добавляем настройки для куков
   serverRuntimeConfig: {
     cookieOptions: {
-      secure: false,
+      secure: process.env.NODE_ENV === 'production',
       httpOnly: true,
       sameSite: 'lax',
       path: '/',

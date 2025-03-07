@@ -17,17 +17,19 @@ export async function GET(request) {
     );
   }
 
-  if (!process.env.TWITCH_REDIRECT_URI) {
-    console.error('Отсутствует TWITCH_REDIRECT_URI в переменных окружения');
-    return NextResponse.json(
-      { error: 'Отсутствует переменная окружения TWITCH_REDIRECT_URI' }, 
-      { status: 500 }
-    );
-  }
+  // Динамически определяем URL обратного вызова на основе текущего домена
+  const dynamicRedirectUri = `${url.origin}/api/twitch/callback`;
+  console.log('Динамический Redirect URI:', dynamicRedirectUri);
 
-  // Используем TWITCH_REDIRECT_URI как есть, без модификаций
-  const redirectUri = process.env.TWITCH_REDIRECT_URI;
-  console.log('Redirect URI:', redirectUri);
+  // Сохраняем динамический URL в cookie для использования в callback
+  const cookieStore = cookies();
+  cookieStore.set('dynamic_redirect_uri', dynamicRedirectUri, {
+    httpOnly: true,
+    secure: url.protocol === 'https:',
+    sameSite: 'lax',
+    maxAge: 600, // 10 минут
+    path: '/'
+  });
 
   // Создаем случайный state для CSRF-защиты - более надежный
   const state = Array.from(crypto.getRandomValues(new Uint8Array(24)))
@@ -39,11 +41,11 @@ export async function GET(request) {
   // Определяем необходимые разрешения
   const scopes = 'user:read:email user:read:follows';
 
-  // Формируем URL для авторизации
+  // Формируем URL для авторизации с динамическим URL обратного вызова
   const twitchAuthUrl = `https://id.twitch.tv/oauth2/authorize?client_id=${
     process.env.TWITCH_CLIENT_ID
   }&redirect_uri=${
-    encodeURIComponent(redirectUri)
+    encodeURIComponent(dynamicRedirectUri)
   }&response_type=code&scope=${
     encodeURIComponent(scopes)
   }&state=${state}`;
@@ -62,7 +64,7 @@ export async function GET(request) {
   // Устанавливаем state в cookie для последующей проверки
   response.cookies.set('twitch_state', state, {
     httpOnly: true,
-    secure: false,
+    secure: url.protocol === 'https:',
     sameSite: 'lax',
     maxAge: 600, // 10 минут
     path: '/'

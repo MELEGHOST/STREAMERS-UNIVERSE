@@ -46,12 +46,11 @@ export async function GET(request) {
       throw new Error('Отсутствует TWITCH_CLIENT_SECRET в переменных окружения');
     }
     
-    if (!process.env.TWITCH_REDIRECT_URI) {
-      throw new Error('Отсутствует TWITCH_REDIRECT_URI в переменных окружения');
-    }
+    // Получаем динамический URL обратного вызова из cookie
+    const dynamicRedirectUri = cookieStore.get('dynamic_redirect_uri')?.value;
     
-    // Используем TWITCH_REDIRECT_URI как есть, без модификаций
-    const redirectUri = process.env.TWITCH_REDIRECT_URI;
+    // Если динамический URL не найден, используем текущий URL
+    const redirectUri = dynamicRedirectUri || `${url.origin}/api/twitch/callback`;
     console.log('Используем redirect_uri для получения токена:', redirectUri);
     
     // Получаем токен доступа
@@ -105,23 +104,6 @@ export async function GET(request) {
     response.headers.set('Access-Control-Allow-Methods', 'GET,OPTIONS,PATCH,DELETE,POST,PUT');
     response.headers.set('Access-Control-Allow-Headers', 'X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version');
     
-    // Устанавливаем cookies с токенами
-    response.cookies.set('twitch_access_token', tokenData.access_token, {
-      httpOnly: true,
-      secure: false,
-      sameSite: 'lax',
-      maxAge: tokenData.expires_in,
-      path: '/',
-    });
-    
-    response.cookies.set('twitch_refresh_token', tokenData.refresh_token, {
-      httpOnly: true,
-      secure: false,
-      sameSite: 'lax',
-      // Без maxAge, чтобы cookie была сессионной
-      path: '/',
-    });
-    
     // Сохраняем минимум данных пользователя в доступном для клиента cookie
     const profileData = {
       id: user.id,
@@ -130,9 +112,27 @@ export async function GET(request) {
       profile_image_url: user.profile_image_url,
     };
     
+    // Устанавливаем cookies с токенами
+    response.cookies.set('twitch_access_token', tokenData.access_token, {
+      httpOnly: true,
+      secure: url.protocol === 'https:',
+      sameSite: 'lax',
+      maxAge: tokenData.expires_in,
+      path: '/',
+    });
+    
+    response.cookies.set('twitch_refresh_token', tokenData.refresh_token, {
+      httpOnly: true,
+      secure: url.protocol === 'https:',
+      sameSite: 'lax',
+      // Без maxAge, чтобы cookie была сессионной
+      path: '/',
+    });
+    
+    // Сохраняем данные пользователя в доступном для клиента cookie
     response.cookies.set('twitch_user', JSON.stringify(profileData), {
       httpOnly: false, // Доступно для JS на клиенте
-      secure: false,
+      secure: url.protocol === 'https:',
       sameSite: 'lax',
       maxAge: tokenData.expires_in,
       path: '/',
@@ -181,6 +181,9 @@ export async function GET(request) {
               console.error('Ошибка при установке куки через JavaScript:', e);
             }
           }
+          
+          // Сохраняем информацию о текущем домене
+          localStorage.setItem('current_domain', window.location.origin);
           
           window.location.href = '${redirectUrl.toString()}';
         } catch (e) {

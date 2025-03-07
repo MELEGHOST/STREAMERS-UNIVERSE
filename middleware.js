@@ -36,7 +36,9 @@ export function middleware(request) {
     
     console.log('Middleware: проверка куков:', {
       twitch_access_token: hasTwitchAccessToken ? 'присутствует' : 'отсутствует',
-      twitch_user: hasTwitchUser ? 'присутствует' : 'отсутствует'
+      twitch_user: hasTwitchUser ? 'присутствует' : 'отсутствует',
+      domain: request.headers.get('host'),
+      protocol: request.headers.get('x-forwarded-proto') || 'http'
     });
   }
   

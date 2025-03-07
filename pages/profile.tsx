@@ -34,6 +34,8 @@ export default function Profile() {
 
         console.log('Проверка авторизации - accessToken:', accessToken ? 'присутствует' : 'отсутствует');
         console.log('Данные пользователя из URL:', userDataParam);
+        console.log('Текущий домен:', window.location.origin);
+        console.log('Сохраненный домен:', localStorage.getItem('current_domain'));
 
         // Проверяем наличие данных пользователя в localStorage
         let localStorageUserData = null;
