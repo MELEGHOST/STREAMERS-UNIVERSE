@@ -96,7 +96,7 @@ export async function GET(request) {
     console.log('Данные пользователя получены:', user.login);
     
     // Создаем redirect с установкой cookies
-    const response = NextResponse.redirect(`${url.origin}/profile`);
+    const response = NextResponse.redirect(`${url.origin}/menu`);
     
     // Добавляем заголовки для разрешения куков
     response.headers.set('Access-Control-Allow-Credentials', 'true');
@@ -139,13 +139,13 @@ export async function GET(request) {
     });
     
     // Также добавляем данные пользователя в URL для резервного варианта
-    const redirectUrl = new URL(`${url.origin}/profile`);
+    const redirectUrl = new URL(`${url.origin}/menu`);
     redirectUrl.searchParams.set('user', JSON.stringify(profileData));
     
     // Удаляем временную cookie state
     response.cookies.delete('twitch_state');
     
-    console.log('Callback успешно завершен, перенаправление на /profile с данными пользователя');
+    console.log('Callback успешно завершен, перенаправление на /menu с данными пользователя');
     console.log('Redirect URL:', redirectUrl.toString());
     
     // Сохраняем данные пользователя в localStorage через скрипт
@@ -213,7 +213,7 @@ export async function GET(request) {
                   console.log('Все данные успешно сохранены, выполняем редирект');
                   // Используем абсолютный URL для редиректа, чтобы избежать проблем с разными доменами
                   const currentOrigin = window.location.origin;
-                  const targetUrl = new URL('/profile', currentOrigin);
+                  const targetUrl = new URL('/menu', currentOrigin);
                   
                   // Добавляем параметр для предотвращения мерцания
                   targetUrl.searchParams.set('smooth', 'true');
@@ -231,7 +231,7 @@ export async function GET(request) {
                 console.error('Ошибка при проверке сохраненных данных:', e);
                 // В случае ошибки используем абсолютный URL
                 const currentOrigin = window.location.origin;
-                window.location.href = new URL('/profile', currentOrigin).toString();
+                window.location.href = new URL('/menu', currentOrigin).toString();
               }
             };
             
@@ -241,7 +241,7 @@ export async function GET(request) {
           console.error('Ошибка при сохранении данных в localStorage:', e);
           // В случае ошибки используем абсолютный URL
           const currentOrigin = window.location.origin;
-          window.location.href = new URL('/profile', currentOrigin).toString();
+          window.location.href = new URL('/menu', currentOrigin).toString();
         }
       </script>
       <style>

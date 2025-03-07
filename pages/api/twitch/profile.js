@@ -109,85 +109,50 @@ export default async function handler(req, res) {
       let followerFetchAttempts = 0;
       const MAX_FETCH_ATTEMPTS = 3; // Limit pagination attempts for performance
 
-      while (hasMoreFollowers && followerFetchAttempts < MAX_FETCH_ATTEMPTS) {
-        followerFetchAttempts++;
-        const url = cursor
-          ? `https://api.twitch.tv/helix/users/follows?to_id=${userId}&after=${cursor}`
-          : `https://api.twitch.tv/helix/users/follows?to_id=${userId}`;
+      try {
+        console.log(`Profile API - Запрос подписчиков...`);
+        
+        const followersResponse = await axios.get(`https://api.twitch.tv/helix/users/follows?to_id=${userId}`, {
+          headers: {
+            'Client-ID': process.env.TWITCH_CLIENT_ID,
+            'Authorization': `Bearer ${accessToken}`,
+          },
+        });
 
-        try {
-          console.log(`Profile API - Запрос подписчиков (попытка ${followerFetchAttempts})...`);
-          
-          const followersResponse = await axios.get(url, {
-            headers: {
-              'Client-ID': process.env.TWITCH_CLIENT_ID,
-              'Authorization': `Bearer ${accessToken}`,
-            },
-          });
+        totalFollowersCount = followersResponse.data.total || 0;
+        followers = followersResponse.data.data ? followersResponse.data.data.map((f) => f.from_name) : [];
 
-          totalFollowersCount = followersResponse.data.total;
-          followers = [...followers, ...followersResponse.data.data.map((f) => f.from_name)];
-
-          console.log(`Profile API - Получено ${followers.length} подписчиков из ${totalFollowersCount}`);
-
-          if (followersResponse.data.pagination && followersResponse.data.pagination.cursor) {
-            cursor = followersResponse.data.pagination.cursor;
-          } else {
-            hasMoreFollowers = false;
-          }
-
-          // Ограничиваем до 100 подписчиков для производительности
-          if (followers.length >= 100) {
-            hasMoreFollowers = false;
-          }
-        } catch (err) {
-          console.error('Error fetching followers:', err.message);
-          hasMoreFollowers = false;
-        }
+        console.log(`Profile API - Получено ${followers.length} подписчиков из ${totalFollowersCount}`);
+      } catch (err) {
+        console.error('Error fetching followers:', err.message);
+        // Если произошла ошибка, устанавливаем пустой массив и 0 подписчиков
+        followers = [];
+        totalFollowersCount = 0;
       }
 
       // Получаем подписки пользователя (с ограничением для производительности)
       let followings = [];
-      cursor = null;
-      let hasMoreFollowings = true;
       let totalFollowingsCount = 0;
-      let followingFetchAttempts = 0;
 
-      while (hasMoreFollowings && followingFetchAttempts < MAX_FETCH_ATTEMPTS) {
-        followingFetchAttempts++;
-        const url = cursor
-          ? `https://api.twitch.tv/helix/users/follows?from_id=${userId}&after=${cursor}`
-          : `https://api.twitch.tv/helix/users/follows?from_id=${userId}`;
+      try {
+        console.log(`Profile API - Запрос подписок...`);
+        
+        const followingsResponse = await axios.get(`https://api.twitch.tv/helix/users/follows?from_id=${userId}`, {
+          headers: {
+            'Client-ID': process.env.TWITCH_CLIENT_ID,
+            'Authorization': `Bearer ${accessToken}`,
+          },
+        });
 
-        try {
-          console.log(`Profile API - Запрос подписок (попытка ${followingFetchAttempts})...`);
-          
-          const followingsResponse = await axios.get(url, {
-            headers: {
-              'Client-ID': process.env.TWITCH_CLIENT_ID,
-              'Authorization': `Bearer ${accessToken}`,
-            },
-          });
+        totalFollowingsCount = followingsResponse.data.total || 0;
+        followings = followingsResponse.data.data ? followingsResponse.data.data.map((f) => f.to_name) : [];
 
-          totalFollowingsCount = followingsResponse.data.total;
-          followings = [...followings, ...followingsResponse.data.data.map((f) => f.to_name)];
-
-          console.log(`Profile API - Получено ${followings.length} подписок из ${totalFollowingsCount}`);
-
-          if (followingsResponse.data.pagination && followingsResponse.data.pagination.cursor) {
-            cursor = followingsResponse.data.pagination.cursor;
-          } else {
-            hasMoreFollowings = false;
-          }
-
-          // Ограничиваем до 100 подписок для производительности
-          if (followings.length >= 100) {
-            hasMoreFollowings = false;
-          }
-        } catch (err) {
-          console.error('Error fetching followings:', err.message);
-          hasMoreFollowings = false;
-        }
+        console.log(`Profile API - Получено ${followings.length} подписок из ${totalFollowingsCount}`);
+      } catch (err) {
+        console.error('Error fetching followings:', err.message);
+        // Если произошла ошибка, устанавливаем пустой массив и 0 подписок
+        followings = [];
+        totalFollowingsCount = 0;
       }
 
       // Определяем статус стримера (подписчиков >= 150)

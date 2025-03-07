@@ -28,13 +28,26 @@ export default function EditProfile() {
 
     const fetchSocialLinks = async () => {
       try {
-        const response = await fetch('/api/twitch/socials', {
+        // Сначала пробуем новый API-эндпоинт в директории app
+        let response = await fetch('/api/socials', {
           method: 'GET',
           credentials: 'include',
           headers: {
             'Content-Type': 'application/json',
           },
         });
+
+        // Если новый API-эндпоинт недоступен, пробуем старый в директории pages
+        if (!response.ok && response.status === 404) {
+          console.log('Новый API-эндпоинт недоступен, пробуем старый');
+          response = await fetch('/api/socials', {
+            method: 'GET',
+            credentials: 'include',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+          });
+        }
 
         if (!response.ok) {
           throw new Error(`Failed to fetch social links: ${response.status}`);
@@ -61,7 +74,8 @@ export default function EditProfile() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      const response = await fetch('/api/twitch/socials', {
+      // Сначала пробуем новый API-эндпоинт в директории app
+      let response = await fetch('/api/socials', {
         method: 'POST',
         credentials: 'include',
         headers: {
@@ -69,6 +83,19 @@ export default function EditProfile() {
         },
         body: JSON.stringify({ socialLinks }),
       });
+
+      // Если новый API-эндпоинт недоступен, пробуем старый в директории pages
+      if (!response.ok && response.status === 404) {
+        console.log('Новый API-эндпоинт недоступен, пробуем старый');
+        response = await fetch('/api/socials', {
+          method: 'POST',
+          credentials: 'include',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ socialLinks }),
+        });
+      }
 
       if (!response.ok) {
         throw new Error(`Failed to update social links: ${response.status}`);

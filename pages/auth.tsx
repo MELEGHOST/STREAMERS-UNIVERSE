@@ -40,7 +40,7 @@ export default function Auth() {
     // Проверяем, авторизован ли пользователь уже
     const accessToken = getCookieWithLocalStorage('twitch_access_token');
     if (accessToken) {
-      console.log('Обнаружен токен доступа, перенаправление на /profile');
+      console.log('Обнаружен токен доступа, перенаправление на /menu');
       
       // Сохраняем текущий домен перед редиректом
       if (typeof window !== 'undefined') {
@@ -57,7 +57,7 @@ export default function Auth() {
       // Используем абсолютный URL для редиректа
       setTimeout(() => {
         const currentOrigin = window.location.origin;
-        const targetUrl = new URL('/profile', currentOrigin);
+        const targetUrl = new URL('/menu', currentOrigin);
         
         // Добавляем параметр для плавного перехода
         targetUrl.searchParams.set('smooth', 'true');

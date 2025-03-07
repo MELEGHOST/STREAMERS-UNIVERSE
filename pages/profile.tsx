@@ -395,22 +395,20 @@ export default function Profile() {
         </ul>
       </div>
 
-      <div className={styles.buttonContainer}>
-        <button className={styles.button} onClick={() => router.push('/')}>
-          Вернуться в меню
-        </button>
-        
-        {profileData.isStreamer && (
-          <button className={styles.button} onClick={() => router.push('/followers')}>
-            Управление подписчиками
-          </button>
-        )}
-
+      <div className={styles.profileActions}>
         <button className={styles.button} onClick={() => router.push('/edit-profile')}>
           Редактировать профиль
         </button>
-        
-        <button className={styles.button} onClick={handleLogout}>
+        <button className={styles.button} onClick={() => router.push('/followers')}>
+          Подписчики
+        </button>
+        <button className={styles.button} onClick={() => router.push('/subscriptions')}>
+          Подписки
+        </button>
+        <button className={styles.button} onClick={() => router.push('/menu')}>
+          Вернуться в меню
+        </button>
+        <button className={styles.logoutButton} onClick={handleLogout}>
           Выйти
         </button>
       </div>
