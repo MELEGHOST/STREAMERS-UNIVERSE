@@ -18,7 +18,7 @@ export function middleware(request) {
   response.headers.set('Access-Control-Allow-Origin', origin || '*');
   
   response.headers.set('Access-Control-Allow-Methods', 'GET,OPTIONS,PATCH,DELETE,POST,PUT');
-  response.headers.set('Access-Control-Allow-Headers', 'X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version');
+  response.headers.set('Access-Control-Allow-Headers', 'X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version, Authorization');
   
   // Если это запрос к API, проверяем наличие куков
   if (pathname.startsWith('/api/')) {
@@ -40,6 +40,18 @@ export function middleware(request) {
       domain: request.headers.get('host'),
       protocol: request.headers.get('x-forwarded-proto') || 'http'
     });
+    
+    // Если это запрос к API профиля и нет токена доступа, перенаправляем на страницу авторизации
+    if (pathname === '/api/twitch/profile' && !hasTwitchAccessToken) {
+      console.log('Middleware: отсутствует токен доступа для запроса профиля, перенаправление на /auth');
+      
+      // Проверяем, есть ли заголовок Authorization
+      const authHeader = request.headers.get('Authorization');
+      if (!authHeader) {
+        // Если нет ни куки, ни заголовка, перенаправляем на страницу авторизации
+        return NextResponse.redirect(new URL('/auth?clear_auth=true', request.url));
+      }
+    }
   }
   
   return response;

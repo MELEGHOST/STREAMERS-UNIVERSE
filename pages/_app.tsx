@@ -54,16 +54,6 @@ export default function MyApp({ Component, pageProps }: AppProps) {
 
   return (
     <>
-      {router.pathname === '/auth' && (
-        <div style={{ 
-          position: 'fixed', 
-          top: '10px', 
-          left: '10px', 
-          zIndex: 1000 
-        }}>
-          <SimpleLogo size={40} />
-        </div>
-      )}
       <Component {...pageProps} />
       <CookieChecker />
     </>

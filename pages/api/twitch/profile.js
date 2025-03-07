@@ -36,6 +36,28 @@ export default async function handler(req, res) {
       });
     }
 
+    // Проверяем валидность токена
+    try {
+      // Делаем тестовый запрос к Twitch API для проверки токена
+      await axios.get('https://api.twitch.tv/helix/users', {
+        headers: {
+          'Client-ID': process.env.TWITCH_CLIENT_ID,
+          'Authorization': `Bearer ${accessToken}`,
+        },
+      });
+    } catch (tokenError) {
+      console.error('Profile API - Ошибка проверки токена:', tokenError.message);
+      
+      if (tokenError.response && tokenError.response.status === 401) {
+        return res.status(401).json({ 
+          error: 'Срок действия токена авторизации истёк', 
+          message: 'Пожалуйста, войдите снова.' 
+        });
+      }
+      
+      throw tokenError;
+    }
+
     // Получаем данные пользователя
     try {
       const userResponse = await axios.get('https://api.twitch.tv/helix/users', {

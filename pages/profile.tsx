@@ -249,6 +249,19 @@ export default function Profile() {
       }
     }
     
+    // Проверяем наличие токена доступа
+    const accessToken = getCookieWithLocalStorage('twitch_access_token');
+    if (!accessToken) {
+      console.log('Токен доступа не найден, перенаправление на страницу авторизации');
+      setError('Необходима авторизация. Пожалуйста, войдите через Twitch.');
+      
+      // Задержка перед редиректом, чтобы пользователь увидел сообщение
+      setTimeout(() => {
+        router.push('/auth?clear_auth=true');
+      }, 2000);
+      return;
+    }
+    
     // Продолжаем обычную загрузку данных пользователя
     loadUserData();
   }, [router]);
