@@ -10,6 +10,12 @@ export default function CookieChecker() {
     twitch_user: false,
     twitch_state: false
   });
+  const [localStorageStatus, setLocalStorageStatus] = useState({
+    cookie_twitch_access_token: false,
+    cookie_twitch_refresh_token: false,
+    cookie_twitch_user: false,
+    twitch_user: false
+  });
   const [isVisible, setIsVisible] = useState(false);
 
   useEffect(() => {
@@ -23,20 +29,27 @@ export default function CookieChecker() {
 
     // Проверяем наличие куков
     const checkCookies = () => {
-      setCookieStatus({
+      // Проверяем куки
+      const cookiesStatus = {
         twitch_access_token: hasCookie('twitch_access_token'),
         twitch_refresh_token: hasCookie('twitch_refresh_token'),
         twitch_user: hasCookie('twitch_user'),
         twitch_state: hasCookie('twitch_state')
-      });
+      };
+      setCookieStatus(cookiesStatus);
+      
+      // Проверяем localStorage
+      const localStorageItems = {
+        cookie_twitch_access_token: !!localStorage.getItem('cookie_twitch_access_token'),
+        cookie_twitch_refresh_token: !!localStorage.getItem('cookie_twitch_refresh_token'),
+        cookie_twitch_user: !!localStorage.getItem('cookie_twitch_user'),
+        twitch_user: !!localStorage.getItem('twitch_user')
+      };
+      setLocalStorageStatus(localStorageItems);
       
       // Выводим информацию в консоль для отладки
-      console.log('Статус куков:', {
-        twitch_access_token: hasCookie('twitch_access_token'),
-        twitch_refresh_token: hasCookie('twitch_refresh_token'),
-        twitch_user: hasCookie('twitch_user'),
-        twitch_state: hasCookie('twitch_state')
-      });
+      console.log('Статус куков:', cookiesStatus);
+      console.log('Статус localStorage:', localStorageItems);
     };
 
     // Проверяем куки при загрузке компонента
@@ -61,11 +74,21 @@ export default function CookieChecker() {
       color: 'white', 
       padding: '10px', 
       borderRadius: '5px',
-      zIndex: 9999
+      zIndex: 9999,
+      maxWidth: '300px',
+      fontSize: '12px'
     }}>
       <h4 style={{ margin: '0 0 5px 0' }}>Статус куков:</h4>
       <ul style={{ margin: 0, padding: '0 0 0 20px' }}>
         {Object.entries(cookieStatus).map(([name, exists]) => (
+          <li key={name} style={{ color: exists ? 'lightgreen' : 'red' }}>
+            {name}: {exists ? 'Есть' : 'Нет'}
+          </li>
+        ))}
+      </ul>
+      <h4 style={{ margin: '10px 0 5px 0' }}>Статус localStorage:</h4>
+      <ul style={{ margin: 0, padding: '0 0 0 20px' }}>
+        {Object.entries(localStorageStatus).map(([name, exists]) => (
           <li key={name} style={{ color: exists ? 'lightgreen' : 'red' }}>
             {name}: {exists ? 'Есть' : 'Нет'}
           </li>

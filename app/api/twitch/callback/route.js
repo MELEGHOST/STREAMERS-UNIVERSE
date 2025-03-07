@@ -113,12 +113,14 @@ export async function GET(request) {
     });
     
     // Сохраняем минимум данных пользователя в доступном для клиента cookie
-    response.cookies.set('twitch_user', JSON.stringify({
+    const userInfo = {
       id: user.id,
       login: user.login,
       display_name: user.display_name,
       profile_image_url: user.profile_image_url,
-    }), {
+    };
+    
+    response.cookies.set('twitch_user', JSON.stringify(userInfo), {
       httpOnly: false, // Доступно для JS на клиенте
       secure: false,
       sameSite: 'lax',
@@ -126,11 +128,15 @@ export async function GET(request) {
       path: '/',
     });
     
+    // Также добавляем данные пользователя в URL для резервного варианта
+    const redirectUrl = new URL(`${url.origin}/profile`);
+    redirectUrl.searchParams.set('user', JSON.stringify(userInfo));
+    
     // Удаляем временную cookie state
     response.cookies.delete('twitch_state');
     
-    console.log('Callback успешно завершен, перенаправление на /profile');
-    return response;
+    console.log('Callback успешно завершен, перенаправление на /profile с данными пользователя');
+    return NextResponse.redirect(redirectUrl.toString());
     
   } catch (error) {
     console.error('Ошибка авторизации:', error);
