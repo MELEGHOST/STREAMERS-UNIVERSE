@@ -47,8 +47,21 @@ export default function Profile() {
           console.error('Ошибка при получении данных пользователя из localStorage:', e);
         }
         
+        // Если нет токена доступа, пробуем получить его из localStorage
+        if (!accessToken) {
+          const localStorageToken = localStorage.getItem('cookie_twitch_access_token');
+          if (localStorageToken) {
+            console.log('Найден токен в localStorage, используем его');
+            // Устанавливаем токен в куки
+            setCookieWithLocalStorage('twitch_access_token', localStorageToken);
+          }
+        }
+        
+        // Повторно проверяем наличие токена доступа
+        const finalAccessToken = accessToken || localStorage.getItem('cookie_twitch_access_token');
+        
         // If no auth token and no user data, redirect to auth
-        if (!accessToken && !localStorageUserData) {
+        if (!finalAccessToken && !localStorageUserData) {
           console.log('No auth token and no user data, redirecting to auth');
           setError('Пожалуйста, войдите через Twitch.');
           setLoading(false);
@@ -57,7 +70,7 @@ export default function Profile() {
         }
         
         // If we have user data but no auth token, the user might need to be redirected
-        if (localStorageUserData && !accessToken) {
+        if (localStorageUserData && !finalAccessToken) {
           console.log('No access token but we have user data - redirecting to auth for re-login');
           setError('Срок действия авторизации истек. Пожалуйста, войдите снова.');
           setLoading(false);
@@ -70,19 +83,19 @@ export default function Profile() {
         }
         
         // Try to fetch profile data if we have an accessToken
-        if (accessToken) {
+        if (finalAccessToken) {
           try {
-            console.log('Отправка запроса к API с токеном:', accessToken.substring(0, 10) + '...');
+            console.log('Отправка запроса к API с токеном:', finalAccessToken.substring(0, 10) + '...');
             
             // Добавляем токен доступа в куки перед запросом
-            Cookies.set('twitch_access_token', accessToken, { path: '/' });
+            Cookies.set('twitch_access_token', finalAccessToken, { path: '/' });
             
             // Используем прямой запрос к Twitch API вместо нашего API
             const userResponse = await fetch('https://api.twitch.tv/helix/users', {
               method: 'GET',
               headers: {
                 'Client-ID': process.env.NEXT_PUBLIC_TWITCH_CLIENT_ID || '',
-                'Authorization': `Bearer ${accessToken}`
+                'Authorization': `Bearer ${finalAccessToken}`
               }
             });
             
@@ -103,11 +116,11 @@ export default function Profile() {
               method: 'GET',
               headers: {
                 'Client-ID': process.env.NEXT_PUBLIC_TWITCH_CLIENT_ID || '',
-                'Authorization': `Bearer ${accessToken}`
+                'Authorization': `Bearer ${finalAccessToken}`
               }
             });
             
-            let followers = [];
+            let followers: string[] = [];
             let followersCount = 0;
             
             if (followersResponse.ok) {
@@ -121,11 +134,11 @@ export default function Profile() {
               method: 'GET',
               headers: {
                 'Client-ID': process.env.NEXT_PUBLIC_TWITCH_CLIENT_ID || '',
-                'Authorization': `Bearer ${accessToken}`
+                'Authorization': `Bearer ${finalAccessToken}`
               }
             });
             
-            let followings = [];
+            let followings: string[] = [];
             let followingsCount = 0;
             
             if (followingsResponse.ok) {
@@ -360,11 +373,11 @@ export default function Profile() {
         <h2>Подписчики ({profileData.followersCount})</h2>
         <ul>
           {profileData.followers && profileData.followers.length > 0 ? (
-            profileData.followers.map((follower, index) => (
+            profileData.followers.map((follower: string, index: number) => (
               <li key={index}>{follower}</li>
             ))
           ) : (
-            <li>Нет данных о подписчиках</li>
+            <li>Нет подписчиков</li>
           )}
         </ul>
       </div>
@@ -373,11 +386,11 @@ export default function Profile() {
         <h2>На кого подписан ({profileData.followingsCount})</h2>
         <ul>
           {profileData.followings && profileData.followings.length > 0 ? (
-            profileData.followings.map((following, index) => (
+            profileData.followings.map((following: string, index: number) => (
               <li key={index}>{following}</li>
             ))
           ) : (
-            <li>Нет данных о подписках</li>
+            <li>Нет подписок</li>
           )}
         </ul>
       </div>

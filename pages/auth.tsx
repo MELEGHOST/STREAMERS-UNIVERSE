@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/router';
 import Cookies from 'js-cookie';
-import { getCookie, hasCookie, getCookieWithLocalStorage } from '../utils/cookies';
+import { getCookie, hasCookie, getCookieWithLocalStorage, setCookieWithLocalStorage } from '../utils/cookies';
 import styles from './auth.module.css';
 
 export default function Auth() {
@@ -45,6 +45,9 @@ export default function Auth() {
       // Сохраняем текущий домен перед редиректом
       if (typeof window !== 'undefined') {
         localStorage.setItem('current_domain', window.location.origin);
+        
+        // Также сохраняем токен в localStorage для надежности
+        localStorage.setItem('cookie_twitch_access_token', accessToken);
       }
       
       // Добавляем плавный переход перед редиректом
@@ -124,6 +127,11 @@ export default function Auth() {
     setIsLoading(true);
     console.log('Начинаем авторизацию через Twitch...');
     
+    // Сохраняем текущий домен перед редиректом
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('current_domain', window.location.origin);
+    }
+    
     // Используем правильный URL для авторизации
     window.location.href = '/api/twitch/login';
   };
@@ -138,7 +146,7 @@ export default function Auth() {
             className={styles.logo} 
             src="/logo.png" 
             alt="Streamers Universe Logo" 
-            onError={(e) => {
+            onError={(e: React.SyntheticEvent<HTMLImageElement>) => {
               console.error('Не удалось загрузить логотип, использую плейсхолдер');
               e.currentTarget.src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="200" height="200" viewBox="0 0 200 200"%3E%3Crect width="200" height="200" fill="%237B41C9"%3E%3C/rect%3E%3Ctext x="100" y="100" font-family="Arial" font-size="24" text-anchor="middle" fill="white"%3EStreamers Universe%3C/text%3E%3C/svg%3E';
             }}

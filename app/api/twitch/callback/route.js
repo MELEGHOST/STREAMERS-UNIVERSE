@@ -166,14 +166,26 @@ export async function GET(request) {
           const checkCookies = () => {
             const hasCookie = document.cookie.split(';').some(item => item.trim().startsWith('twitch_user='));
             console.log('Проверка наличия куки twitch_user:', hasCookie ? 'найдена' : 'не найдена');
-            return hasCookie;
+            
+            // Проверяем также наличие токена доступа
+            const hasAccessToken = document.cookie.split(';').some(item => item.trim().startsWith('twitch_access_token='));
+            console.log('Проверка наличия куки twitch_access_token:', hasAccessToken ? 'найдена' : 'не найдена');
+            
+            return hasCookie && hasAccessToken;
           };
           
           // Если куки не установлены, пытаемся установить их через JavaScript
           if (!checkCookies()) {
             console.log('Куки не обнаружены, пытаемся установить через JavaScript');
             try {
+              // Устанавливаем куки для данных пользователя
               document.cookie = "twitch_user=" + encodeURIComponent(JSON.stringify(profileData)) + 
+                "; path=/; max-age=" + ${tokenData.expires_in} + 
+                "; samesite=lax" + 
+                (window.location.protocol === 'https:' ? '; secure' : '');
+                
+              // Устанавливаем куки для токена доступа
+              document.cookie = "twitch_access_token=" + encodeURIComponent('${tokenData.access_token.replace(/'/g, "\\'")}') + 
                 "; path=/; max-age=" + ${tokenData.expires_in} + 
                 "; samesite=lax" + 
                 (window.location.protocol === 'https:' ? '; secure' : '');

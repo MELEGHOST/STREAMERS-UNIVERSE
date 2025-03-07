@@ -59,9 +59,39 @@ export function middleware(request) {
         return NextResponse.redirect(new URL('/auth?clear_auth=true', request.url));
       }
       
-      // Если есть заголовок Authorization, пропускаем запрос
+      // Если есть заголовок Authorization, пропускаем запрос и добавляем скрипт для сохранения токена
       if (hasAuthHeader) {
         console.log('Middleware: обнаружен заголовок Authorization, пропускаем запрос');
+        
+        // Извлекаем токен из заголовка
+        if (authHeader && authHeader.startsWith('Bearer ')) {
+          const token = authHeader.substring(7);
+          
+          // Добавляем скрипт для сохранения токена в sessionStorage
+          response.headers.set('X-Auth-Token', token);
+          
+          // Добавляем скрипт для сохранения токена в sessionStorage
+          const script = `
+            <script>
+              try {
+                // Сохраняем токен из заголовка в sessionStorage
+                sessionStorage.setItem('auth_header_token', '${token}');
+                console.log('Токен из заголовка Authorization сохранен в sessionStorage');
+                
+                // Пытаемся также сохранить в localStorage для долгосрочного хранения
+                localStorage.setItem('cookie_twitch_access_token', '${token}');
+                console.log('Токен из заголовка Authorization сохранен в localStorage');
+              } catch (e) {
+                console.error('Ошибка при сохранении токена из заголовка:', e);
+              }
+            </script>
+          `;
+          
+          // Добавляем скрипт в ответ
+          const originalHtml = response.body || '';
+          const newHtml = originalHtml + script;
+          response.body = newHtml;
+        }
       }
     }
   }

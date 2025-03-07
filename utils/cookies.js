@@ -157,6 +157,22 @@ export const getCookieWithLocalStorage = (name) => {
       }
     }
     
+    // Если не нашли ни в куках, ни в localStorage, но это токен доступа,
+    // пробуем получить его из заголовка Authorization
+    if (!cookieValue && name === 'twitch_access_token' && typeof window !== 'undefined') {
+      // Проверяем, есть ли токен в sessionStorage (мог быть сохранен из заголовка)
+      const sessionToken = sessionStorage.getItem('auth_header_token');
+      if (sessionToken) {
+        console.log('Токен доступа получен из sessionStorage (заголовок Authorization)');
+        
+        // Восстанавливаем куку и localStorage
+        setCookie(name, sessionToken);
+        localStorage.setItem(`cookie_${name}`, sessionToken);
+        
+        return sessionToken;
+      }
+    }
+    
     return cookieValue;
   } catch (error) {
     console.error(`Ошибка при получении куки/localStorage ${name}:`, error);
