@@ -14,6 +14,29 @@ export default function Auth() {
   const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
+    // Очищаем устаревшие токены при загрузке страницы авторизации
+    if (typeof window !== 'undefined') {
+      // Проверяем, есть ли параметр clear_auth в URL
+      const urlParams = new URLSearchParams(window.location.search);
+      const clearAuth = urlParams.get('clear_auth') === 'true';
+      
+      if (clearAuth) {
+        console.log('Очищаем данные авторизации по запросу');
+        Cookies.remove('twitch_access_token');
+        Cookies.remove('twitch_refresh_token');
+        Cookies.remove('twitch_user');
+        localStorage.removeItem('twitch_user');
+        localStorage.removeItem('cookie_twitch_access_token');
+        localStorage.removeItem('cookie_twitch_refresh_token');
+        localStorage.removeItem('cookie_twitch_user');
+        
+        // Удаляем параметр из URL
+        const newUrl = new URL(window.location.href);
+        newUrl.searchParams.delete('clear_auth');
+        window.history.replaceState({}, document.title, newUrl.toString());
+      }
+    }
+    
     // Проверяем, авторизован ли пользователь уже
     const accessToken = getCookieWithLocalStorage('twitch_access_token');
     if (accessToken) {

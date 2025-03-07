@@ -93,6 +93,9 @@ export default function Profile() {
           const response = await fetch('/api/twitch/profile', {
             method: 'GET',
             credentials: 'include',
+            headers: {
+              'Authorization': `Bearer ${accessToken}`
+            }
           });
 
           if (response.ok) {
@@ -121,6 +124,29 @@ export default function Profile() {
             }
           } else {
             // API call failed, use userData as fallback if available
+            const errorData = await response.json();
+            console.error('Ошибка API:', response.status, errorData);
+            
+            if (response.status === 401) {
+              // Токен истек, нужно перелогиниться
+              console.log('Токен авторизации истек, перенаправление на страницу авторизации');
+              
+              // Очищаем куки и localStorage
+              Cookies.remove('twitch_access_token');
+              Cookies.remove('twitch_refresh_token');
+              localStorage.removeItem('cookie_twitch_access_token');
+              localStorage.removeItem('cookie_twitch_refresh_token');
+              
+              setError('Срок действия авторизации истек. Пожалуйста, войдите снова.');
+              setLoading(false);
+              
+              // Задержка перед редиректом, чтобы пользователь увидел сообщение
+              setTimeout(() => {
+                router.push('/auth');
+              }, 2000);
+              return;
+            }
+            
             if (localStorageUserData) {
               console.log('API call failed, using fallback data');
               const profileImageUrl = localStorageUserData.profileImageUrl ||
@@ -147,7 +173,7 @@ export default function Profile() {
               localStorageUserData.isStreamer = isStreamer;
               localStorage.setItem('twitch_user', JSON.stringify(localStorageUserData));
             } else {
-              throw new Error(`Не удалось загрузить профиль: ${response.status}`);
+              throw new Error(errorData.message || `Не удалось загрузить профиль: ${response.status}`);
             }
           }
         } catch (error: any) {
@@ -264,9 +290,14 @@ export default function Profile() {
         <CookieChecker />
         <div className={styles.error}>
           <p>{error}</p>
-          <button onClick={() => router.push('/auth')} className={styles.button}>
-            Войти через Twitch
-          </button>
+          <div className={styles.buttonContainer}>
+            <button onClick={() => router.push('/auth?clear_auth=true')} className={styles.button}>
+              Войти через Twitch
+            </button>
+            <button onClick={() => window.location.reload()} className={styles.button}>
+              Повторить загрузку
+            </button>
+          </div>
         </div>
       </div>
     );
@@ -278,9 +309,14 @@ export default function Profile() {
         <CookieChecker />
         <div className={styles.error}>
           Ошибка загрузки данных профиля.
-          <button className={styles.button} onClick={() => window.location.reload()}>
-            Повторить
-          </button>
+          <div className={styles.buttonContainer}>
+            <button className={styles.button} onClick={() => window.location.reload()}>
+              Повторить
+            </button>
+            <button className={styles.button} onClick={() => router.push('/auth?clear_auth=true')}>
+              Войти заново
+            </button>
+          </div>
         </div>
       </div>
     );
