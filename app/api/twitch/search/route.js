@@ -1,6 +1,40 @@
 import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 
+// Функция для экранирования HTML-тегов
+function escapeHtml(text) {
+  if (typeof text !== 'string') return text;
+  return text
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
+}
+
+// Функция для очистки объекта от потенциально опасных данных
+function sanitizeObject(obj) {
+  if (!obj || typeof obj !== 'object') return obj;
+  
+  const result = Array.isArray(obj) ? [] : {};
+  
+  for (const key in obj) {
+    if (Object.prototype.hasOwnProperty.call(obj, key)) {
+      const value = obj[key];
+      
+      if (typeof value === 'string') {
+        result[key] = escapeHtml(value);
+      } else if (typeof value === 'object' && value !== null) {
+        result[key] = sanitizeObject(value);
+      } else {
+        result[key] = value;
+      }
+    }
+  }
+  
+  return result;
+}
+
 export async function GET(request) {
   try {
     // Получаем параметры запроса
@@ -9,6 +43,11 @@ export async function GET(request) {
     
     if (!login) {
       return NextResponse.json({ error: 'Missing login parameter' }, { status: 400 });
+    }
+    
+    // Валидация параметра login
+    if (!/^[a-zA-Z0-9_]{1,25}$/.test(login)) {
+      return NextResponse.json({ error: 'Invalid login parameter format' }, { status: 400 });
     }
     
     // Получаем токен доступа из cookies
@@ -31,6 +70,9 @@ export async function GET(request) {
     );
     
     if (!twitchResponse.ok) {
+      if (twitchResponse.status === 401) {
+        return NextResponse.json({ error: 'Authentication token expired' }, { status: 401 });
+      }
       throw new Error(`Twitch API error: ${twitchResponse.status}`);
     }
     
@@ -53,13 +95,19 @@ export async function GET(request) {
     );
     
     if (!followerResponse.ok) {
+      if (followerResponse.status === 401) {
+        return NextResponse.json({ error: 'Authentication token expired' }, { status: 401 });
+      }
       throw new Error(`Follower count error: ${followerResponse.status}`);
     }
     
     const followerData = await followerResponse.json();
     
+    // Санитизация данных перед отправкой
+    const sanitizedTwitchUser = sanitizeObject(twitchUser);
+    
     return NextResponse.json({
-      twitchData: twitchUser,
+      twitchData: sanitizedTwitchUser,
       isRegistered: false, // This would need to check your database
       followers: followerData.total,
       commonStreamers: [], // This would need additional logic to implement

@@ -27,7 +27,7 @@ export async function GET(request) {
     const cookieState = cookieStore.get('twitch_auth_state')?.value;
     
     // Проверяем соответствие состояния для защиты от CSRF
-    if (cookieState && state !== cookieState) {
+    if (!cookieState || !state || cookieState !== state) {
       console.error('Несоответствие состояния при авторизации Twitch');
       return NextResponse.redirect(new URL('/auth?error=state_mismatch&message=Ошибка безопасности при авторизации', request.url));
     }
@@ -87,6 +87,12 @@ export async function GET(request) {
     }
     
     const userData = await userResponse.json();
+    
+    if (!userData.data || userData.data.length === 0) {
+      console.error('Данные пользователя отсутствуют в ответе');
+      return NextResponse.redirect(new URL('/auth?error=no_user_data&message=Не удалось получить данные пользователя', request.url));
+    }
+    
     const user = userData.data[0];
     
     // Создаем ответ с перенаправлением на главную страницу

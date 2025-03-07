@@ -1,6 +1,19 @@
 import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 
+// Функция для генерации случайной строки
+function generateRandomString(length) {
+  let result = '';
+  const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+  const charactersLength = characters.length;
+  
+  for (let i = 0; i < length; i++) {
+    result += characters.charAt(Math.floor(Math.random() * charactersLength));
+  }
+  
+  return result;
+}
+
 export async function GET(request) {
   try {
     // Получаем параметры для авторизации
@@ -94,7 +107,7 @@ export async function GET(request) {
     authUrl.searchParams.append('force_verify', 'true'); // Всегда запрашивать подтверждение
     
     // Добавляем состояние для защиты от CSRF
-    const state = Math.random().toString(36).substring(2, 15);
+    const state = generateRandomString(32);
     authUrl.searchParams.append('state', state);
     
     // Сохраняем состояние в куки для проверки при возврате
@@ -102,6 +115,7 @@ export async function GET(request) {
     cookieStore.set('twitch_auth_state', state, { 
       path: '/', 
       httpOnly: true, 
+      secure: process.env.NODE_ENV === 'production',
       sameSite: 'lax', 
       maxAge: 3600 
     });

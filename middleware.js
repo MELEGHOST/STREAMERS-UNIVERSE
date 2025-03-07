@@ -1,5 +1,4 @@
 import { NextResponse } from 'next/server';
-import { randomBytes } from 'crypto';
 
 export function middleware(request) {
   // Получаем текущий URL
@@ -20,8 +19,8 @@ export function middleware(request) {
   // Генерируем CSRF-токен, если его нет в куках
   const cookies = request.cookies;
   if (!cookies.has('csrf_token')) {
-    // Генерируем случайный токен
-    const csrfToken = randomBytes(16).toString('hex');
+    // Генерируем случайный токен с использованием Web Crypto API вместо Node.js crypto
+    const csrfToken = generateRandomString(32);
     
     // Устанавливаем токен в куки
     response.cookies.set('csrf_token', csrfToken, {
@@ -117,6 +116,19 @@ export function middleware(request) {
   }
   
   return response;
+}
+
+// Функция для генерации случайной строки без использования crypto
+function generateRandomString(length) {
+  let result = '';
+  const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+  const charactersLength = characters.length;
+  
+  for (let i = 0; i < length; i++) {
+    result += characters.charAt(Math.floor(Math.random() * charactersLength));
+  }
+  
+  return result;
 }
 
 // Указываем, для каких путей применять middleware
