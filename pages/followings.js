@@ -3,7 +3,7 @@ import { useRouter } from 'next/router';
 import Head from 'next/head';
 import Link from 'next/link';
 import Image from 'next/image';
-import styles from '../styles/followers.module.css';
+import styles from './followers.module.css';
 import { useAuth } from '../contexts/AuthContext';
 
 export default function Followings() {
