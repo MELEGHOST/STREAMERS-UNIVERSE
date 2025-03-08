@@ -12,41 +12,19 @@ export default function Menu() {
   
   const [streamCoins, setStreamCoins] = useState(0);
   const [referralCode, setReferralCode] = useState('');
-  const [loading, setLoading] = useState(true);
   
   useEffect(() => {
-    // Проверяем наличие токена в cookies или localStorage
-    const twitchAccessToken = Cookies.get('twitch_access_token') || 
-                             localStorage.getItem('cookie_twitch_access_token') || 
-                             Cookies.get('twitch_token');
-                             
-    // Проверяем наличие данных пользователя
-    const twitchUser = Cookies.get('twitch_user') || 
-                      localStorage.getItem('cookie_twitch_user') || 
-                      localStorage.getItem('twitch_user');
-    
-    console.log('Проверка авторизации Twitch:', { 
-      hasTwitchAccessToken: !!twitchAccessToken, 
-      hasTwitchUser: !!twitchUser 
-    });
-    
-    // Завершаем загрузку
-    setLoading(false);
-    
-    // Если есть userId, загружаем стример-коины и генерируем реферальный код
-    if (userId) {
+    if (isAuthenticated && userId) {
       // Загружаем стример-коины
       loadStreamCoins(userId);
       
       // Генерируем реферальный код
       setReferralCode(generateReferralCode(userId));
     }
-  }, [userId]);
+  }, [isAuthenticated, userId]);
   
   // Загрузка стример-коинов из localStorage
   const loadStreamCoins = (userId) => {
-    if (!userId) return;
-    
     try {
       const storedCoins = localStorage.getItem(`streamcoins_${userId}`);
       if (storedCoins) {
@@ -63,7 +41,6 @@ export default function Menu() {
   
   // Генерация реферального кода
   const generateReferralCode = (userId) => {
-    if (!userId) return 'SU-000000';
     return `SU-${userId.substring(0, 6)}`;
   };
   
@@ -73,23 +50,10 @@ export default function Menu() {
     router.push('/auth');
   };
   
-  // Показываем индикатор загрузки, пока проверяем авторизацию
-  if (loading) {
-    return (
-      <div className={styles.container}>
-        <Head>
-          <title>Загрузка... | Streamers Universe</title>
-        </Head>
-        <div className={styles.loadingContainer}>
-          <div className={styles.loadingSpinner}></div>
-          <p>Загрузка...</p>
-        </div>
-      </div>
-    );
-  }
-  
-  // Получаем данные пользователя
-  const displayName = userLogin || 'Пользователь';
+  // Переход в профиль пользователя
+  const goToProfile = () => {
+    router.push('/profile');
+  };
   
   return (
     <div className={styles.container}>
@@ -102,12 +66,12 @@ export default function Menu() {
         <div className={styles.menuHeader}>
           <div className={styles.userInfo}>
             {userAvatar && (
-              <div className={styles.userAvatar}>
-                <img src={userAvatar} alt={displayName} />
+              <div className={styles.userAvatar} onClick={goToProfile} title="Перейти в профиль">
+                <img src={userAvatar} alt={userLogin} />
               </div>
             )}
             <div className={styles.userDetails}>
-              <h1>Привет, {displayName}!</h1>
+              <h1>Привет, {userLogin}!</h1>
               <div className={styles.coinsContainer}>
                 <div className={styles.coinIcon}>
                   <svg viewBox="0 0 24 24" width="24" height="24" fill="currentColor">
