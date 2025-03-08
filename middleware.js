@@ -142,6 +142,26 @@ export function middleware(request) {
     }
   }
   
+  // Проверяем доступ к защищенным страницам
+  if (pathname === '/menu' || 
+      pathname === '/profile' || 
+      pathname === '/search' || 
+      pathname === '/followings' || 
+      pathname === '/followers' || 
+      pathname === '/questions' || 
+      pathname === '/settings') {
+    
+    // Проверяем наличие токена доступа
+    const hasTwitchAccessToken = cookies.has('twitch_access_token');
+    const hasTwitchUser = cookies.has('twitch_user');
+    
+    // Если нет токена доступа, перенаправляем на страницу авторизации
+    if (!hasTwitchAccessToken && !hasTwitchUser) {
+      console.log(`Middleware: доступ к защищенной странице ${pathname} без авторизации, перенаправление на /auth`);
+      return NextResponse.redirect(new URL('/auth', request.url));
+    }
+  }
+  
   return response;
 }
 

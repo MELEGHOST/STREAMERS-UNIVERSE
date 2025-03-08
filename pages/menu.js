@@ -12,6 +12,37 @@ export default function Menu() {
   
   const [streamCoins, setStreamCoins] = useState(0);
   const [referralCode, setReferralCode] = useState('');
+  const [loading, setLoading] = useState(true);
+  
+  useEffect(() => {
+    // Проверяем авторизацию через Twitch
+    const checkTwitchAuth = async () => {
+      try {
+        // Проверяем наличие токена в cookies или localStorage
+        const twitchAccessToken = Cookies.get('twitch_access_token') || localStorage.getItem('cookie_twitch_access_token');
+        const twitchUser = Cookies.get('twitch_user') || localStorage.getItem('cookie_twitch_user') || localStorage.getItem('twitch_user');
+        
+        console.log('Проверка авторизации Twitch:', { 
+          hasTwitchAccessToken: !!twitchAccessToken, 
+          hasTwitchUser: !!twitchUser 
+        });
+        
+        if (twitchAccessToken && twitchUser) {
+          // Пользователь уже авторизован через Twitch
+          setLoading(false);
+        } else {
+          // Если нет авторизации через Twitch, перенаправляем на страницу авторизации
+          console.log('Нет авторизации через Twitch, перенаправление на /auth');
+          router.push('/auth');
+        }
+      } catch (error) {
+        console.error('Ошибка при проверке авторизации Twitch:', error);
+        setLoading(false);
+      }
+    };
+    
+    checkTwitchAuth();
+  }, [router]);
   
   useEffect(() => {
     if (isAuthenticated && userId) {
@@ -50,7 +81,27 @@ export default function Menu() {
     router.push('/auth');
   };
   
-  if (!isAuthenticated) {
+  // Показываем индикатор загрузки, пока проверяем авторизацию
+  if (loading) {
+    return (
+      <div className={styles.container}>
+        <Head>
+          <title>Загрузка... | Streamers Universe</title>
+        </Head>
+        <div className={styles.loadingContainer}>
+          <div className={styles.loadingSpinner}></div>
+          <p>Загрузка...</p>
+        </div>
+      </div>
+    );
+  }
+  
+  // Если пользователь не авторизован через контекст, но у нас есть токен Twitch,
+  // мы все равно показываем меню, так как авторизация через Twitch уже выполнена
+  const twitchAccessToken = Cookies.get('twitch_access_token') || localStorage.getItem('cookie_twitch_access_token');
+  const twitchUser = Cookies.get('twitch_user') || localStorage.getItem('cookie_twitch_user') || localStorage.getItem('twitch_user');
+  
+  if (!isAuthenticated && !twitchAccessToken && !twitchUser) {
     return (
       <div className={styles.container}>
         <Head>
@@ -67,6 +118,22 @@ export default function Menu() {
     );
   }
   
+  // Пытаемся получить данные пользователя из Twitch, если они не доступны через контекст
+  let displayName = userLogin;
+  let avatarUrl = userAvatar;
+  
+  if (!displayName || !avatarUrl) {
+    try {
+      const twitchUserData = twitchUser ? (typeof twitchUser === 'string' ? JSON.parse(twitchUser) : twitchUser) : null;
+      if (twitchUserData) {
+        displayName = displayName || twitchUserData.login || twitchUserData.display_name;
+        avatarUrl = avatarUrl || twitchUserData.profile_image_url;
+      }
+    } catch (error) {
+      console.error('Ошибка при парсинге данных пользователя Twitch:', error);
+    }
+  }
+  
   return (
     <div className={styles.container}>
       <Head>
@@ -77,13 +144,13 @@ export default function Menu() {
       <div className={styles.menuContainer}>
         <div className={styles.menuHeader}>
           <div className={styles.userInfo}>
-            {userAvatar && (
+            {avatarUrl && (
               <div className={styles.userAvatar}>
-                <img src={userAvatar} alt={userLogin} />
+                <img src={avatarUrl} alt={displayName || 'Пользователь'} />
               </div>
             )}
             <div className={styles.userDetails}>
-              <h1>Привет, {userLogin}!</h1>
+              <h1>Привет, {displayName || 'Пользователь'}!</h1>
               <div className={styles.coinsContainer}>
                 <div className={styles.coinIcon}>
                   <svg viewBox="0 0 24 24" width="24" height="24" fill="currentColor">

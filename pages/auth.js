@@ -46,6 +46,7 @@ export default function Auth() {
           Cookies.remove('twitch_access_token');
           Cookies.remove('twitch_refresh_token');
           Cookies.remove('twitch_user');
+          Cookies.remove('twitch_token');
           localStorage.removeItem('twitch_user');
           localStorage.removeItem('cookie_twitch_access_token');
           localStorage.removeItem('cookie_twitch_refresh_token');
@@ -60,8 +61,18 @@ export default function Auth() {
       }
       
       // Проверяем, авторизован ли пользователь уже
-      const accessToken = getCookieWithLocalStorage('twitch_access_token');
-      const userData = getCookieWithLocalStorage('twitch_user');
+      const accessToken = getCookieWithLocalStorage('twitch_access_token') || 
+                          localStorage.getItem('cookie_twitch_access_token') || 
+                          Cookies.get('twitch_token');
+                          
+      const userData = getCookieWithLocalStorage('twitch_user') || 
+                       localStorage.getItem('cookie_twitch_user') || 
+                       localStorage.getItem('twitch_user');
+      
+      console.log('Auth: Проверка авторизации', {
+        hasAccessToken: !!accessToken,
+        hasUserData: !!userData
+      });
       
       if (accessToken && userData) {
         console.log('Обнаружен токен доступа и данные пользователя, перенаправление на /menu');
@@ -70,6 +81,9 @@ export default function Auth() {
         if (typeof window !== 'undefined') {
           localStorage.setItem('current_domain', window.location.origin);
         }
+        
+        // Устанавливаем флаг авторизации
+        localStorage.setItem('is_authenticated', 'true');
         
         // Простое перенаправление без анимации
         window.location.href = '/menu';
@@ -145,6 +159,7 @@ export default function Auth() {
       Cookies.remove('twitch_access_token');
       Cookies.remove('twitch_refresh_token');
       Cookies.remove('twitch_user');
+      Cookies.remove('twitch_token');
       localStorage.removeItem('twitch_user');
       localStorage.removeItem('cookie_twitch_access_token');
       localStorage.removeItem('cookie_twitch_refresh_token');
