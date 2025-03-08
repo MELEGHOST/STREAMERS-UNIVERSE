@@ -598,6 +598,76 @@ export default function Profile() {
               )}
             </ul>
           </div>
+          
+          {/* Секция для медиа и тирлистов */}
+          {profileData.isStreamer && (
+            <div className={styles.mediaSection}>
+              <div className={styles.mediaSectionHeader}>
+                <h2>Медиа и тирлисты</h2>
+                <div className={styles.mediaSectionActions}>
+                  <button 
+                    className={styles.button}
+                    onClick={() => router.push('/media/add')}
+                  >
+                    Добавить медиа
+                  </button>
+                  <button 
+                    className={styles.button}
+                    onClick={() => router.push('/tierlists/create')}
+                  >
+                    Создать тирлист
+                  </button>
+                </div>
+              </div>
+              
+              <div className={styles.mediaCategories}>
+                <button 
+                  className={`${styles.categoryButton} ${styles.active}`}
+                  onClick={() => {/* Фильтрация по категории */}}
+                >
+                  Все
+                </button>
+                <button 
+                  className={styles.categoryButton}
+                  onClick={() => {/* Фильтрация по категории */}}
+                >
+                  Фильмы
+                </button>
+                <button 
+                  className={styles.categoryButton}
+                  onClick={() => {/* Фильтрация по категории */}}
+                >
+                  Сериалы
+                </button>
+                <button 
+                  className={styles.categoryButton}
+                  onClick={() => {/* Фильтрация по категории */}}
+                >
+                  Игры
+                </button>
+                <button 
+                  className={styles.categoryButton}
+                  onClick={() => {/* Фильтрация по категории */}}
+                >
+                  Книги
+                </button>
+              </div>
+              
+              <div className={styles.mediaContent}>
+                <div className={styles.mediaEmptyState}>
+                  <div className={styles.mediaEmptyIcon}>🎬</div>
+                  <h3>Нет добавленных медиа</h3>
+                  <p>Добавьте фильмы, сериалы, игры и другие медиа, чтобы делиться своими оценками и создавать тирлисты</p>
+                  <button 
+                    className={styles.button}
+                    onClick={() => router.push('/media/add')}
+                  >
+                    Добавить медиа
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
 
           <div className={styles.profileActions}>
             <button className={styles.button} onClick={() => router.push('/edit-profile')}>

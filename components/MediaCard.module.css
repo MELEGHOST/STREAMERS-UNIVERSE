@@ -1,0 +1,187 @@
+.mediaCard {
+  width: 220px;
+  height: 380px;
+  border-radius: 12px;
+  overflow: hidden;
+  background-color: rgba(20, 20, 40, 0.8);
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+  transition: all 0.3s ease;
+  cursor: pointer;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  margin: 15px;
+}
+
+.mediaCard:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 8px 25px rgba(123, 65, 201, 0.4);
+}
+
+.imageContainer {
+  position: relative;
+  width: 100%;
+  height: 280px;
+  overflow: hidden;
+}
+
+.image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.5s ease;
+}
+
+.mediaCard:hover .image {
+  transform: scale(1.05);
+}
+
+.noImage {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #2c2c54, #474787);
+  color: white;
+  font-size: 16px;
+  text-align: center;
+  padding: 20px;
+}
+
+.content {
+  padding: 15px;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.title {
+  margin: 0 0 5px 0;
+  font-size: 18px;
+  font-weight: 600;
+  color: white;
+  line-height: 1.3;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+
+.category {
+  font-size: 14px;
+  color: #9146FF;
+  margin-bottom: 8px;
+}
+
+.ratingBadge {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  background: rgba(0, 0, 0, 0.7);
+  border-radius: 8px;
+  padding: 5px;
+  color: white;
+  transition: all 0.3s ease;
+  opacity: 0.8;
+}
+
+.mediaCard:hover .ratingBadge {
+  opacity: 1;
+  background: rgba(0, 0, 0, 0.85);
+}
+
+.overallRating {
+  font-size: 24px;
+  font-weight: bold;
+  text-align: center;
+  color: #FFD700;
+  text-shadow: 0 0 5px rgba(255, 215, 0, 0.5);
+}
+
+.ratingDetails {
+  display: none;
+  padding: 5px;
+  font-size: 12px;
+}
+
+.mediaCard:hover .ratingDetails {
+  display: block;
+}
+
+.streamerRating, .viewersRating {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 3px;
+}
+
+.ratingLabel {
+  color: #ccc;
+}
+
+.ratingValue {
+  font-weight: bold;
+  color: white;
+}
+
+.streamerRating .ratingValue {
+  color: #9146FF;
+}
+
+.viewersRating .ratingValue {
+  color: #00AAFF;
+}
+
+.ratingStars {
+  margin-top: auto;
+}
+
+.stars {
+  display: flex;
+  align-items: center;
+}
+
+.star {
+  color: #FFD700;
+  font-size: 18px;
+  margin-right: 2px;
+}
+
+.emptyStar {
+  color: #555;
+  font-size: 18px;
+  margin-right: 2px;
+}
+
+@media (max-width: 768px) {
+  .mediaCard {
+    width: 160px;
+    height: 300px;
+    margin: 10px;
+  }
+  
+  .imageContainer {
+    height: 220px;
+  }
+  
+  .title {
+    font-size: 16px;
+  }
+  
+  .category {
+    font-size: 12px;
+  }
+  
+  .overallRating {
+    font-size: 20px;
+  }
+  
+  .ratingDetails {
+    font-size: 10px;
+  }
+  
+  .star, .emptyStar {
+    font-size: 16px;
+  }
+} 

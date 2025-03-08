@@ -182,7 +182,14 @@ export default function Search() {
                     }}
                   />
                 )}
-                <h2>{results.twitchData.display_name}</h2>
+                <div>
+                  <h2>
+                    {results.twitchData.display_name}
+                    <span className={`${styles.userStatus} ${results.isStreamer ? styles.streamerStatus : styles.viewerStatus}`}>
+                      {results.isStreamer ? 'Стример' : 'Зритель'}
+                    </span>
+                  </h2>
+                </div>
               </div>
               
               <div className={styles.userInfo}>
@@ -193,6 +200,81 @@ export default function Search() {
                   }
                 </p>
                 <p><strong>Фолловеров на Twitch:</strong> {results.followers}</p>
+                
+                {results.socialLinks && (
+                  <div className={styles.socialLinks}>
+                    {results.socialLinks.twitch && (
+                      <a 
+                        href={results.socialLinks.twitch} 
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                        className={styles.socialLink}
+                        title="Twitch"
+                      >
+                        <svg viewBox="0 0 24 24" width="24" height="24" fill="#9146FF">
+                          <path d="M11.571 4.714h1.715v5.143H11.57zm4.715 0H18v5.143h-1.714zM6 0L1.714 4.286v15.428h5.143V24l4.286-4.286h3.428L22.286 12V0zm14.571 11.143l-3.428 3.428h-3.429l-3 3v-3H6.857V1.714h13.714Z"/>
+                        </svg>
+                      </a>
+                    )}
+                    
+                    {results.socialLinks.youtube && (
+                      <a 
+                        href={results.socialLinks.youtube} 
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                        className={styles.socialLink}
+                        title="YouTube"
+                      >
+                        <svg viewBox="0 0 24 24" width="24" height="24" fill="#FF0000">
+                          <path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/>
+                        </svg>
+                      </a>
+                    )}
+                    
+                    {results.socialLinks.discord && (
+                      <a 
+                        href={results.socialLinks.discord} 
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                        className={styles.socialLink}
+                        title="Discord"
+                      >
+                        <svg viewBox="0 0 24 24" width="24" height="24" fill="#5865F2">
+                          <path d="M20.317 4.3698a19.7913 19.7913 0 00-4.8851-1.5152.0741.0741 0 00-.0785.0371c-.211.3753-.4447.8648-.6083 1.2495-1.8447-.2762-3.68-.2762-5.4868 0-.1636-.3933-.4058-.8742-.6177-1.2495a.077.077 0 00-.0785-.037 19.7363 19.7363 0 00-4.8852 1.515.0699.0699 0 00-.0321.0277C.5334 9.0458-.319 13.5799.0992 18.0578a.0824.0824 0 00.0312.0561c2.0528 1.5076 4.0413 2.4228 5.9929 3.0294a.0777.0777 0 00.0842-.0276c.4616-.6304.8731-1.2952 1.226-1.9942a.076.076 0 00-.0416-.1057c-.6528-.2476-1.2743-.5495-1.8722-.8923a.077.077 0 01-.0076-.1277c.1258-.0943.2517-.1923.3718-.2914a.0743.0743 0 01.0776-.0105c3.9278 1.7933 8.18 1.7933 12.0614 0a.0739.0739 0 01.0785.0095c.1202.099.246.1981.3728.2924a.077.077 0 01-.0066.1276 12.2986 12.2986 0 01-1.873.8914.0766.0766 0 00-.0407.1067c.3604.698.7719 1.3628 1.225 1.9932a.076.076 0 00.0842.0286c1.961-.6067 3.9495-1.5219 6.0023-3.0294a.077.077 0 00.0313-.0552c.5004-5.177-.8382-9.6739-3.5485-13.6604a.061.061 0 00-.0312-.0286zM8.02 15.3312c-1.1825 0-2.1569-1.0857-2.1569-2.419 0-1.3332.9555-2.4189 2.157-2.4189 1.2108 0 2.1757 1.0952 2.1568 2.419 0 1.3332-.9555 2.4189-2.1569 2.4189zm7.9748 0c-1.1825 0-2.1569-1.0857-2.1569-2.419 0-1.3332.9554-2.4189 2.1569-2.4189 1.2108 0 2.1757 1.0952 2.1568 2.419 0 1.3332-.946 2.4189-2.1568 2.4189Z"/>
+                        </svg>
+                      </a>
+                    )}
+                    
+                    {results.socialLinks.telegram && (
+                      <a 
+                        href={results.socialLinks.telegram} 
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                        className={styles.socialLink}
+                        title="Telegram"
+                      >
+                        <svg viewBox="0 0 24 24" width="24" height="24" fill="#0088cc">
+                          <path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.562 8.248l-1.97 9.269c-.145.658-.537.818-1.084.51l-3-2.21-1.446 1.394c-.14.18-.333.35-.683.35l.245-3.47 6.3-5.693c.275-.248-.06-.372-.42-.145l-7.733 4.868-3.33-1.05c-.724-.225-.736-.725.15-.975l12.99-5.008c.608-.222 1.122.14.98.975z"/>
+                        </svg>
+                      </a>
+                    )}
+                    
+                    {results.socialLinks.vk && (
+                      <a 
+                        href={results.socialLinks.vk} 
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                        className={styles.socialLink}
+                        title="ВКонтакте"
+                      >
+                        <svg viewBox="0 0 24 24" width="24" height="24" fill="#4C75A3">
+                          <path d="M21.547 7h-3.29a.743.743 0 0 0-.655.392s-1.312 2.416-1.734 3.23C14.734 12.813 14 12.126 14 11.11V7.603A1.104 1.104 0 0 0 12.896 6.5h-2.474a1.982 1.982 0 0 0-1.75.813s1.255-.204 1.255 1.49c0 .42.022 1.626.04 2.64a.73.73 0 0 1-1.272.503 21.54 21.54 0 0 1-2.498-4.543.693.693 0 0 0-.63-.403h-2.99a.508.508 0 0 0-.48.685C3.005 10.175 6.918 18 11.38 18h1.878a.742.742 0 0 0 .742-.742v-1.135a.73.73 0 0 1 1.23-.53l2.247 2.112a1.09 1.09 0 0 0 .746.295h2.953c1.424 0 1.424-.988.647-1.753-.546-.538-2.518-2.617-2.617-2.617a1.02 1.02 0 0 1-.078-1.323c.637-.84 1.68-2.212 2.122-2.8.603-.804 1.697-2.507.197-2.507z"/>
+                        </svg>
+                      </a>
+                    )}
+                  </div>
+                )}
+                
                 {results.commonStreamers?.length > 0 && (
                   <div>
                     <p><strong>Общие стримеры:</strong></p>
@@ -203,6 +285,58 @@ export default function Search() {
                     </ul>
                   </div>
                 )}
+                
+                <div className={styles.userActions}>
+                  {results.isRegisteredInSU && (
+                    <button 
+                      className={styles.viewProfileButton}
+                      onClick={() => router.push(`/user/${results.twitchData.login}`)}
+                    >
+                      <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor">
+                        <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 3c1.66 0 3 1.34 3 3s-1.34 3-3 3-3-1.34-3-3 1.34-3 3-3zm0 14.2c-2.5 0-4.71-1.28-6-3.22.03-1.99 4-3.08 6-3.08 1.99 0 5.97 1.09 6 3.08-1.29 1.94-3.5 3.22-6 3.22z"/>
+                      </svg>
+                      Просмотреть профиль
+                    </button>
+                  )}
+                  
+                  {results.isRegisteredInSU && !results.isFollowed && (
+                    <button className={styles["synthwave-btn"]} onClick={() => alert('Функция подписки будет доступна в следующей версии')}>
+                      <div className={styles["synthwave-btn-glitch-mask"]}>
+                        <span className={styles["synthwave-btn-text"]}>Подписаться</span>
+                        <span className={styles["synthwave-btn-text-glitch"]}>Подписаться</span>
+                      </div>
+                      <div className={styles["synthwave-btn-scanlines"]}></div>
+                      <div className={styles["synthwave-btn-glow"]}></div>
+                      <div className={styles["synthwave-btn-grid"]}></div>
+                      <div className={styles["synthwave-btn-borders"]}></div>
+                      <div className={styles["synthwave-stars"]}>
+                        <div className={styles.star}></div>
+                        <div className={styles.star}></div>
+                        <div className={styles.star}></div>
+                        <div className={styles.star}></div>
+                        <div className={styles.star}></div>
+                      </div>
+                      <div className={styles["synthwave-flare"]}></div>
+                      <div className={styles["synthwave-noise"]}></div>
+                      <div className={styles["synthwave-circles"]}></div>
+                    </button>
+                  )}
+                  
+                  {results.isRegisteredInSU && results.isFollowed && (
+                    <div className={styles.followedMessage}>
+                      <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor">
+                        <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z"/>
+                      </svg>
+                      Вы уже подписаны на этого пользователя
+                    </div>
+                  )}
+                  
+                  {!results.isRegisteredInSU && (
+                    <div className={styles.notRegisteredMessage}>
+                      Этот пользователь еще не зарегистрирован в Streamers Universe
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
           )}

@@ -1,0 +1,220 @@
+.reviewCard {
+  background-color: rgba(30, 30, 50, 0.7);
+  border-radius: 12px;
+  padding: 20px;
+  margin-bottom: 20px;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+  transition: all 0.3s ease;
+}
+
+.reviewCard:hover {
+  box-shadow: 0 6px 15px rgba(0, 0, 0, 0.3);
+  transform: translateY(-2px);
+}
+
+.streamerReview {
+  background: linear-gradient(135deg, rgba(30, 30, 50, 0.7), rgba(145, 70, 255, 0.1));
+  border-left: 4px solid #9146FF;
+}
+
+.newReview {
+  background-color: rgba(40, 40, 60, 0.7);
+  border: 1px dashed rgba(255, 255, 255, 0.2);
+}
+
+.newReviewTitle {
+  margin-top: 0;
+  margin-bottom: 15px;
+  color: white;
+  font-size: 20px;
+  font-weight: 600;
+}
+
+.reviewHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 15px;
+}
+
+.reviewAuthor {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.streamerBadge {
+  background-color: rgba(145, 70, 255, 0.2);
+  color: #9146FF;
+  padding: 3px 8px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.reviewDate {
+  color: #aaa;
+  font-size: 14px;
+}
+
+.reviewRating {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.ratingValue {
+  color: #FFD700;
+  font-weight: bold;
+  font-size: 18px;
+}
+
+.ratingContainer {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 15px;
+}
+
+.ratingLabel {
+  color: #ccc;
+  font-size: 14px;
+}
+
+.ratingSelector {
+  display: flex;
+  gap: 2px;
+}
+
+.ratingStar {
+  font-size: 20px;
+  cursor: pointer;
+  color: #555;
+  transition: all 0.2s ease;
+}
+
+.ratingStar:hover:not(.disabled) {
+  transform: scale(1.2);
+}
+
+.ratingStar.active {
+  color: #FFD700;
+  text-shadow: 0 0 5px rgba(255, 215, 0, 0.5);
+}
+
+.ratingStar.disabled {
+  cursor: default;
+}
+
+.reviewComment {
+  color: white;
+  line-height: 1.5;
+  margin-bottom: 15px;
+  white-space: pre-line;
+}
+
+.commentInput {
+  width: 100%;
+  background-color: rgba(20, 20, 40, 0.5);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  padding: 12px;
+  color: white;
+  font-size: 16px;
+  resize: vertical;
+  margin-bottom: 15px;
+  transition: all 0.3s ease;
+}
+
+.commentInput:focus {
+  outline: none;
+  border-color: #9146FF;
+  box-shadow: 0 0 0 2px rgba(145, 70, 255, 0.2);
+}
+
+.reviewActions {
+  display: flex;
+  gap: 10px;
+  justify-content: flex-end;
+}
+
+.saveButton, .cancelButton, .editButton, .deleteButton {
+  padding: 8px 16px;
+  border-radius: 5px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border: none;
+}
+
+.saveButton {
+  background-color: #4CAF50;
+  color: white;
+}
+
+.saveButton:hover:not(:disabled) {
+  background-color: #388E3C;
+}
+
+.saveButton:disabled {
+  background-color: #cccccc;
+  color: #666666;
+  cursor: not-allowed;
+}
+
+.cancelButton {
+  background-color: #607D8B;
+  color: white;
+}
+
+.cancelButton:hover {
+  background-color: #455A64;
+}
+
+.editButton {
+  background-color: #2196F3;
+  color: white;
+}
+
+.editButton:hover {
+  background-color: #1976D2;
+}
+
+.deleteButton {
+  background-color: #F44336;
+  color: white;
+}
+
+.deleteButton:hover {
+  background-color: #D32F2F;
+}
+
+@media (max-width: 768px) {
+  .reviewCard {
+    padding: 15px;
+  }
+  
+  .reviewHeader {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+  }
+  
+  .reviewRating {
+    width: 100%;
+  }
+  
+  .ratingStar {
+    font-size: 18px;
+  }
+  
+  .reviewActions {
+    flex-direction: column;
+    width: 100%;
+  }
+  
+  .saveButton, .cancelButton, .editButton, .deleteButton {
+    width: 100%;
+  }
+} 
