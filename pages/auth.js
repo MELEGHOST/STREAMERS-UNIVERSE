@@ -140,23 +140,29 @@ export default function Auth() {
     setIsLoading(true);
     console.log('Начинаем авторизацию через Twitch...');
     
-    // Очищаем все куки и localStorage перед авторизацией
-    Cookies.remove('twitch_access_token');
-    Cookies.remove('twitch_refresh_token');
-    Cookies.remove('twitch_user');
-    localStorage.removeItem('twitch_user');
-    localStorage.removeItem('cookie_twitch_access_token');
-    localStorage.removeItem('cookie_twitch_refresh_token');
-    localStorage.removeItem('cookie_twitch_user');
-    localStorage.removeItem('is_authenticated');
-    
-    // Сохраняем текущий домен перед редиректом
-    if (typeof window !== 'undefined') {
-      localStorage.setItem('current_domain', window.location.origin);
+    try {
+      // Очищаем все куки и localStorage перед авторизацией
+      Cookies.remove('twitch_access_token');
+      Cookies.remove('twitch_refresh_token');
+      Cookies.remove('twitch_user');
+      localStorage.removeItem('twitch_user');
+      localStorage.removeItem('cookie_twitch_access_token');
+      localStorage.removeItem('cookie_twitch_refresh_token');
+      localStorage.removeItem('cookie_twitch_user');
+      localStorage.removeItem('is_authenticated');
+      
+      // Сохраняем текущий домен перед редиректом
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('current_domain', window.location.origin);
+      }
+      
+      // Используем правильный URL для авторизации
+      window.location.href = '/api/twitch/login';
+    } catch (error) {
+      console.error('Ошибка при перенаправлении на страницу авторизации:', error);
+      setErrorMessage('Произошла ошибка при перенаправлении на страницу авторизации. Пожалуйста, попробуйте еще раз.');
+      setIsLoading(false);
     }
-    
-    // Используем правильный URL для авторизации
-    window.location.href = '/api/twitch/login';
   };
 
   return (

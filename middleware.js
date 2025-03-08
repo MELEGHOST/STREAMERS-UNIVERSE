@@ -145,14 +145,27 @@ export function middleware(request) {
   return response;
 }
 
-// Функция для генерации случайной строки без использования crypto
+// Функция для генерации случайной строки с использованием более безопасного метода
 function generateRandomString(length) {
   let result = '';
   const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
   const charactersLength = characters.length;
   
-  for (let i = 0; i < length; i++) {
-    result += characters.charAt(Math.floor(Math.random() * charactersLength));
+  // Используем crypto API для более безопасной генерации случайных чисел
+  const randomValues = new Uint32Array(length);
+  
+  // Используем crypto.getRandomValues если доступно, иначе используем Math.random
+  if (typeof crypto !== 'undefined' && crypto.getRandomValues) {
+    crypto.getRandomValues(randomValues);
+    
+    for (let i = 0; i < length; i++) {
+      result += characters.charAt(randomValues[i] % charactersLength);
+    }
+  } else {
+    // Запасной вариант, если crypto API недоступен
+    for (let i = 0; i < length; i++) {
+      result += characters.charAt(Math.floor(Math.random() * charactersLength));
+    }
   }
   
   return result;
