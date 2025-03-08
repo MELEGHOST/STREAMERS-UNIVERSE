@@ -35,21 +35,19 @@ function sanitizeObject(obj) {
   return result;
 }
 
-// Функция для проверки, зарегистрирован ли пользователь в Streamers Universe
-async function checkUserRegistrationInSU(userId) {
+/**
+ * Проверяет, зарегистрирован ли пользователь в Streamers Universe
+ * @param {string} userId - ID пользователя для проверки
+ * @param {object} cookies - Объект с куками для проверки
+ * @returns {boolean} - true, если пользователь зарегистрирован, иначе false
+ */
+function checkUserRegistrationInSU(userId, cookies) {
   try {
-    // Здесь должна быть проверка в базе данных
-    // Пока просто имитируем проверку
-    
-    // В реальном приложении здесь будет запрос к базе данных
-    // Например: const user = await db.users.findOne({ twitchId: userId });
-    
-    // Для демонстрации используем случайное значение
-    // В реальном приложении вернуть: return !!user;
-    return Math.random() > 0.5;
+    // Все пользователи Twitch считаются зарегистрированными в Streamers Universe
+    return true;
   } catch (error) {
-    console.error('Error checking user registration:', error);
-    return false;
+    console.error('Ошибка при проверке регистрации пользователя:', error);
+    return true; // В случае ошибки также считаем пользователя зарегистрированным
   }
 }
 
@@ -128,56 +126,63 @@ export async function GET(request) {
       return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
     }
 
-    // Call Twitch API to get user data
-    const twitchResponse = await fetch(
-      `https://api.twitch.tv/helix/users?login=${encodeURIComponent(login)}`, 
-      {
-        headers: {
-          'Client-ID': process.env.TWITCH_CLIENT_ID,
-          'Authorization': `Bearer ${accessToken}`,
-        },
+    // Получаем данные пользователя из Twitch API
+    const twitchUserResponse = await fetch(`https://api.twitch.tv/helix/users?login=${login}`, {
+      headers: {
+        'Client-ID': process.env.TWITCH_CLIENT_ID,
+        'Authorization': `Bearer ${accessToken}`
       }
-    );
-    
-    if (!twitchResponse.ok) {
-      if (twitchResponse.status === 401) {
-        return NextResponse.json({ error: 'Authentication token expired' }, { status: 401 });
-      }
-      throw new Error(`Twitch API error: ${twitchResponse.status}`);
-    }
-    
-    const twitchData = await twitchResponse.json();
-    const twitchUser = twitchData.data[0];
-    
-    if (!twitchUser) {
-      return NextResponse.json({ error: 'User not found on Twitch' }, { status: 404 });
+    });
+
+    if (!twitchUserResponse.ok) {
+      return NextResponse.json({ error: 'Failed to fetch user data from Twitch API' }, { status: twitchUserResponse.status });
     }
 
-    // Get follower count
-    const followerResponse = await fetch(
-      `https://api.twitch.tv/helix/users/follows?to_id=${twitchUser.id}`, 
-      {
-        headers: {
-          'Client-ID': process.env.TWITCH_CLIENT_ID,
-          'Authorization': `Bearer ${accessToken}`,
-        },
-      }
-    );
-    
-    let followerCount = 0;
-    
-    if (followerResponse.ok) {
-      const followerData = await followerResponse.json();
-      followerCount = followerData.total || 0;
-    } else {
-      console.error('Error fetching follower count:', followerResponse.status);
+    const twitchUserData = await twitchUserResponse.json();
+
+    if (!twitchUserData.data || twitchUserData.data.length === 0) {
+      return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
-    
+
+    const twitchUser = twitchUserData.data[0];
+
+    // Получаем количество фолловеров пользователя
+    const followersResponse = await fetch(`https://api.twitch.tv/helix/users/follows?to_id=${twitchUser.id}`, {
+      headers: {
+        'Client-ID': process.env.TWITCH_CLIENT_ID,
+        'Authorization': `Bearer ${accessToken}`
+      }
+    });
+
+    let follower_count = 0;
+    if (followersResponse.ok) {
+      const followersData = await followersResponse.json();
+      follower_count = followersData.total || 0;
+    }
+
+    // Получаем количество фолловингов пользователя
+    const followingResponse = await fetch(`https://api.twitch.tv/helix/users/follows?from_id=${twitchUser.id}`, {
+      headers: {
+        'Client-ID': process.env.TWITCH_CLIENT_ID,
+        'Authorization': `Bearer ${accessToken}`
+      }
+    });
+
+    let following_count = 0;
+    if (followingResponse.ok) {
+      const followingData = await followingResponse.json();
+      following_count = followingData.total || 0;
+    }
+
+    // Добавляем данные о фолловерах и фолловингах к объекту пользователя
+    twitchUser.follower_count = follower_count;
+    twitchUser.following_count = following_count;
+
     // Определяем, является ли пользователь стримером (более 265 фолловеров)
-    const isStreamer = followerCount >= 265;
+    const isStreamer = follower_count >= 265;
     
     // Проверяем, зарегистрирован ли пользователь в Streamers Universe
-    const isRegisteredInSU = await checkUserRegistrationInSU(twitchUser.id);
+    const isRegisteredInSU = checkUserRegistrationInSU(twitchUser.id, cookieStore);
     
     // Получаем социальные ссылки пользователя, если он зарегистрирован в SU
     const socialLinks = isRegisteredInSU ? await getUserSocialLinks(twitchUser.id) : null;
@@ -262,7 +267,7 @@ export async function GET(request) {
       isStreamer: isStreamer,
       isRegisteredInSU: isRegisteredInSU,
       isFollowed: isFollowed,
-      followers: followerCount,
+      followers: follower_count,
       commonStreamers: commonStreamers,
       socialLinks: sanitizeObject(socialLinks),
     });

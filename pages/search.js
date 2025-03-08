@@ -11,6 +11,11 @@ export default function Search() {
   const [searchTerm, setSearchTerm] = useState('');
   const [results, setResults] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [showFilters, setShowFilters] = useState(false);
+  const [filters, setFilters] = useState({
+    category: 'all',
+    status: 'all'
+  });
   const router = useRouter();
 
   useEffect(() => {
@@ -67,6 +72,10 @@ export default function Search() {
     }
   };
 
+  const toggleFilters = () => {
+    setShowFilters(!showFilters);
+  };
+
   if (!isAuthenticated) return null;
 
   return (
@@ -97,7 +106,7 @@ export default function Search() {
           <div id={styles.inputMask}></div>
           <div id={styles.pinkMask}></div>
           <div className={styles.filterBorder}></div>
-          <div id={styles.filterIcon}>
+          <div id={styles.filterIcon} onClick={toggleFilters}>
             <svg
               preserveAspectRatio="none"
               height="27"
@@ -108,10 +117,10 @@ export default function Search() {
               <path
                 d="M8.16 6.65002H15.83C16.47 6.65002 16.99 7.17002 16.99 7.81002V9.09002C16.99 9.56002 16.7 10.14 16.41 10.43L13.91 12.64C13.56 12.93 13.33 13.51 13.33 13.98V16.48C13.33 16.83 13.1 17.29 12.81 17.47L12 17.98C11.24 18.45 10.2 17.92 10.2 16.99V13.91C10.2 13.5 9.97 12.98 9.73 12.69L7.52 10.36C7.23 10.08 7 9.55002 7 9.20002V7.87002C7 7.17002 7.52 6.65002 8.16 6.65002Z"
                 stroke="#d6d6e6"
-                stroke-width="1"
-                stroke-miterlimit="10"
-                stroke-linecap="round"
-                stroke-linejoin="round"
+                strokeWidth="1"
+                strokeMiterlimit="10"
+                strokeLinecap="round"
+                strokeLinejoin="round"
               ></path>
             </svg>
           </div>
@@ -149,6 +158,104 @@ export default function Search() {
           </div>
         </div>
       </div>
+      
+      {/* Фильтры поиска */}
+      {showFilters && (
+        <div className={styles.filtersPanel}>
+          <div className={styles.filterGroup}>
+            <h3>Категория</h3>
+            <div className={styles.filterOptions}>
+              <label className={styles.filterOption}>
+                <input 
+                  type="radio" 
+                  name="category" 
+                  value="all" 
+                  checked={filters.category === 'all'} 
+                  onChange={() => setFilters({...filters, category: 'all'})}
+                />
+                <span>Все</span>
+              </label>
+              <label className={styles.filterOption}>
+                <input 
+                  type="radio" 
+                  name="category" 
+                  value="streamer" 
+                  checked={filters.category === 'streamer'} 
+                  onChange={() => setFilters({...filters, category: 'streamer'})}
+                />
+                <span>Стримеры</span>
+              </label>
+              <label className={styles.filterOption}>
+                <input 
+                  type="radio" 
+                  name="category" 
+                  value="viewer" 
+                  checked={filters.category === 'viewer'} 
+                  onChange={() => setFilters({...filters, category: 'viewer'})}
+                />
+                <span>Зрители</span>
+              </label>
+            </div>
+          </div>
+          
+          <div className={styles.filterGroup}>
+            <h3>Статус</h3>
+            <div className={styles.filterOptions}>
+              <label className={styles.filterOption}>
+                <input 
+                  type="radio" 
+                  name="status" 
+                  value="all" 
+                  checked={filters.status === 'all'} 
+                  onChange={() => setFilters({...filters, status: 'all'})}
+                />
+                <span>Все</span>
+              </label>
+              <label className={styles.filterOption}>
+                <input 
+                  type="radio" 
+                  name="status" 
+                  value="registered" 
+                  checked={filters.status === 'registered'} 
+                  onChange={() => setFilters({...filters, status: 'registered'})}
+                />
+                <span>Зарегистрированные</span>
+              </label>
+              <label className={styles.filterOption}>
+                <input 
+                  type="radio" 
+                  name="status" 
+                  value="not_registered" 
+                  checked={filters.status === 'not_registered'} 
+                  onChange={() => setFilters({...filters, status: 'not_registered'})}
+                />
+                <span>Не зарегистрированные</span>
+              </label>
+            </div>
+          </div>
+          
+          <div className={styles.filterActions}>
+            <button 
+              className={styles.applyFiltersButton}
+              onClick={() => {
+                // Применение фильтров
+                handleSearch();
+                setShowFilters(false);
+              }}
+            >
+              Применить фильтры
+            </button>
+            <button 
+              className={styles.resetFiltersButton}
+              onClick={() => {
+                setFilters({category: 'all', status: 'all'});
+              }}
+            >
+              Сбросить
+            </button>
+          </div>
+        </div>
+      )}
       
       {loading && (
         <div className={styles.loading}>
@@ -199,7 +306,22 @@ export default function Search() {
                     <span className={styles.notRegisteredBadge}>Нет</span>
                   }
                 </p>
-                <p><strong>Фолловеров на Twitch:</strong> {results.followers}</p>
+                <div className={styles.userStats}>
+                  <div className={styles.statItem}>
+                    <span className={styles.statValue}>{results.twitchData.follower_count || 0}</span>
+                    <span className={styles.statLabel}>Фолловеров Twitch</span>
+                  </div>
+                  <div className={styles.statItem}>
+                    <span className={styles.statValue}>{results.twitchData.following_count || 0}</span>
+                    <span className={styles.statLabel}>Фолловингов Twitch</span>
+                  </div>
+                  {results.twitchData.broadcaster_type && (
+                    <div className={styles.statItem}>
+                      <span className={styles.statValue}>{results.twitchData.view_count || 0}</span>
+                      <span className={styles.statLabel}>Просмотров</span>
+                    </div>
+                  )}
+                </div>
                 
                 {results.socialLinks && (
                   <div className={styles.socialLinks}>
@@ -287,18 +409,31 @@ export default function Search() {
                 )}
                 
                 <div className={styles.userActions}>
+                  {/* Кнопка для перехода на профиль пользователя */}
+                  <button 
+                    className={styles.viewProfileButton}
+                    onClick={() => router.push(`/user/${results.twitchData.login}`)}
+                  >
+                    <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor">
+                      <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 3c1.66 0 3 1.34 3 3s-1.34 3-3 3-3-1.34-3-3 1.34-3 3-3zm0 14.2c-2.5 0-4.71-1.28-6-3.22.03-1.99 4-3.08 6-3.08 1.99 0 5.97 1.09 6 3.08-1.29 1.94-3.5 3.22-6 3.22z"/>
+                    </svg>
+                    Просмотреть профиль
+                  </button>
+                  
+                  {/* Кнопка для добавления отзывов/фильмов */}
                   {results.isRegisteredInSU && (
                     <button 
-                      className={styles.viewProfileButton}
-                      onClick={() => router.push(`/user/${results.twitchData.login}`)}
+                      className={styles.addMediaButton}
+                      onClick={() => router.push('/media/add')}
                     >
                       <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor">
-                        <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 3c1.66 0 3 1.34 3 3s-1.34 3-3 3-3-1.34-3-3 1.34-3 3-3zm0 14.2c-2.5 0-4.71-1.28-6-3.22.03-1.99 4-3.08 6-3.08 1.99 0 5.97 1.09 6 3.08-1.29 1.94-3.5 3.22-6 3.22z"/>
+                        <path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/>
                       </svg>
-                      Просмотреть профиль
+                      Добавить отзыв/фильм
                     </button>
                   )}
                   
+                  {/* Кнопка "Подписаться" в стиле синтвейв */}
                   {results.isRegisteredInSU && !results.isFollowed && (
                     <button className={styles["synthwave-btn"]} onClick={() => alert('Функция подписки будет доступна в следующей версии')}>
                       <div className={styles["synthwave-btn-glitch-mask"]}>
