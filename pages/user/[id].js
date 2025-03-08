@@ -22,8 +22,12 @@ export default function UserProfile() {
   const [messageText, setMessageText] = useState('');
   const [isSendingMessage, setIsSendingMessage] = useState(false);
   
+  // Состояние для модального окна вопросов
+  const [isQuestionModalOpen, setIsQuestionModalOpen] = useState(false);
+  const [questionText, setQuestionText] = useState('');
+  
   useEffect(() => {
-    if (!id || !isAuthenticated) return;
+    if (!id) return;
     
     const fetchUserData = async () => {
       try {
@@ -79,43 +83,32 @@ export default function UserProfile() {
         }
         
         // Проверяем, подписан ли текущий пользователь на просматриваемого
-        const storedSubscriptions = localStorage.getItem('su_subscriptions');
         let isFollowed = false;
-        
-        if (storedSubscriptions && userId) {
-          try {
-            const subscriptions = JSON.parse(storedSubscriptions);
-            isFollowed = subscriptions.some(
-              sub => sub.subscriberId === userId && sub.targetUserId === data.twitchData.id
-            );
-          } catch (e) {
-            console.error('Ошибка при парсинге подписок из localStorage:', e);
-          }
-        }
-        
-        // Получаем количество подписчиков
         let subscribersCount = 0;
-        if (storedSubscriptions) {
-          try {
-            const subscriptions = JSON.parse(storedSubscriptions);
-            subscribersCount = subscriptions.filter(
-              sub => sub.targetUserId === data.twitchData.id
-            ).length;
-          } catch (e) {
-            console.error('Ошибка при парсинге подписок из localStorage:', e);
-          }
-        }
-        
-        // Получаем количество подписок
         let subscriptionsCount = 0;
-        if (storedSubscriptions) {
-          try {
-            const subscriptions = JSON.parse(storedSubscriptions);
-            subscriptionsCount = subscriptions.filter(
-              sub => sub.subscriberId === data.twitchData.id
-            ).length;
-          } catch (e) {
-            console.error('Ошибка при парсинге подписок из localStorage:', e);
+        
+        if (isAuthenticated && userId) {
+          const storedSubscriptions = localStorage.getItem('su_subscriptions');
+          
+          if (storedSubscriptions) {
+            try {
+              const subscriptions = JSON.parse(storedSubscriptions);
+              isFollowed = subscriptions.some(
+                sub => sub.subscriberId === userId && sub.targetUserId === data.twitchData.id
+              );
+              
+              // Получаем количество подписчиков
+              subscribersCount = subscriptions.filter(
+                sub => sub.targetUserId === data.twitchData.id
+              ).length;
+              
+              // Получаем количество подписок
+              subscriptionsCount = subscriptions.filter(
+                sub => sub.subscriberId === data.twitchData.id
+              ).length;
+            } catch (e) {
+              console.error('Ошибка при парсинге подписок из localStorage:', e);
+            }
           }
         }
         
@@ -137,165 +130,105 @@ export default function UserProfile() {
     fetchUserData();
   }, [id, isAuthenticated, userId]);
   
-  const handleFollow = async () => {
+  const handleSubscribe = () => {
+    if (!isAuthenticated) {
+      alert('Пожалуйста, войдите в систему, чтобы подписаться на пользователя');
+      return;
+    }
+
     try {
-      // Получаем ID текущего пользователя
-      const currentUserId = userId;
-      const targetUserId = userData.twitchData.id;
+      // Получаем текущие подписки из localStorage
+      const storedSubscriptions = localStorage.getItem('su_subscriptions') || '[]';
+      const subscriptions = JSON.parse(storedSubscriptions);
       
-      // Создаем новую подписку
-      const newSubscription = {
-        id: `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-        subscriberId: currentUserId,
-        targetUserId: targetUserId,
-        createdAt: new Date().toISOString()
-      };
-      
-      // Сохраняем подписку в localStorage
-      const storedSubscriptions = localStorage.getItem('su_subscriptions');
-      let subscriptions = [];
-      
-      if (storedSubscriptions) {
-        try {
-          subscriptions = JSON.parse(storedSubscriptions);
-        } catch (e) {
-          console.error('Ошибка при парсинге подписок из localStorage:', e);
-        }
+      if (isFollowing) {
+        // Отписка: удаляем подписку из массива
+        const updatedSubscriptions = subscriptions.filter(
+          sub => !(sub.subscriberId === userId && sub.targetUserId === userData.twitchData.id)
+        );
+        localStorage.setItem('su_subscriptions', JSON.stringify(updatedSubscriptions));
+        setIsFollowing(false);
+        
+        // Обновляем количество подписчиков
+        setUserData(prev => ({
+          ...prev,
+          subscribersCount: Math.max(0, prev.subscribersCount - 1)
+        }));
+        
+        alert('Вы успешно отписались от пользователя');
+      } else {
+        // Подписка: добавляем новую подписку в массив
+        const newSubscription = {
+          subscriberId: userId,
+          targetUserId: userData.twitchData.id,
+          targetUserName: userData.twitchData.display_name,
+          targetUserAvatar: userData.twitchData.profile_image_url,
+          subscriberName: localStorage.getItem('twitch_user_name') || 'Пользователь',
+          subscriberAvatar: localStorage.getItem('twitch_user_avatar') || '',
+          date: new Date().toISOString()
+        };
+        
+        subscriptions.push(newSubscription);
+        localStorage.setItem('su_subscriptions', JSON.stringify(subscriptions));
+        setIsFollowing(true);
+        
+        // Обновляем количество подписчиков
+        setUserData(prev => ({
+          ...prev,
+          subscribersCount: prev.subscribersCount + 1
+        }));
+        
+        alert('Вы успешно подписались на пользователя');
       }
-      
-      // Проверяем, существует ли уже такая подписка
-      const existingSubscription = subscriptions.find(
-        sub => sub.subscriberId === currentUserId && sub.targetUserId === targetUserId
-      );
-      
-      if (existingSubscription) {
-        alert('Вы уже подписаны на этого пользователя');
-        return;
-      }
-      
-      // Добавляем новую подписку
-      subscriptions.push(newSubscription);
-      localStorage.setItem('su_subscriptions', JSON.stringify(subscriptions));
-      
-      // Обновляем состояние подписки
-      setIsFollowing(true);
-      
-      // Обновляем счетчик подписчиков
-      const updatedUserData = { ...userData };
-      updatedUserData.subscribersCount = (updatedUserData.subscribersCount || 0) + 1;
-      setUserData(updatedUserData);
-      
-      // Показываем уведомление об успешной подписке
-      alert('Вы успешно подписались на пользователя!');
     } catch (err) {
-      console.error('Ошибка при подписке на пользователя:', err);
-      alert('Произошла ошибка при подписке. Пожалуйста, попробуйте позже.');
+      console.error('Ошибка при обновлении подписок:', err);
+      alert('Произошла ошибка при обновлении подписки. Пожалуйста, попробуйте позже.');
     }
   };
   
-  const handleUnfollow = async () => {
-    try {
-      // Получаем ID текущего пользователя
-      const currentUserId = userId;
-      const targetUserId = userData.twitchData.id;
-      
-      // Получаем подписки из localStorage
-      const storedSubscriptions = localStorage.getItem('su_subscriptions');
-      let subscriptions = [];
-      
-      if (storedSubscriptions) {
-        try {
-          subscriptions = JSON.parse(storedSubscriptions);
-        } catch (e) {
-          console.error('Ошибка при парсинге подписок из localStorage:', e);
-        }
-      }
-      
-      // Находим индекс подписки для удаления
-      const subscriptionIndex = subscriptions.findIndex(
-        sub => sub.subscriberId === currentUserId && sub.targetUserId === targetUserId
-      );
-      
-      if (subscriptionIndex === -1) {
-        alert('Вы не подписаны на этого пользователя');
-        return;
-      }
-      
-      // Удаляем подписку
-      subscriptions.splice(subscriptionIndex, 1);
-      localStorage.setItem('su_subscriptions', JSON.stringify(subscriptions));
-      
-      // Обновляем состояние подписки
-      setIsFollowing(false);
-      
-      // Обновляем счетчик подписчиков
-      const updatedUserData = { ...userData };
-      updatedUserData.subscribersCount = Math.max((updatedUserData.subscribersCount || 0) - 1, 0);
-      setUserData(updatedUserData);
-      
-      // Показываем уведомление об успешной отписке
-      alert('Вы успешно отписались от пользователя!');
-    } catch (err) {
-      console.error('Ошибка при отписке от пользователя:', err);
-      alert('Произошла ошибка при отписке. Пожалуйста, попробуйте позже.');
+  // Функция для отправки вопроса
+  const handleSendQuestion = () => {
+    if (!questionText.trim()) {
+      alert('Пожалуйста, введите текст вопроса');
+      return;
     }
-  };
-  
-  // Функция для отправки сообщения
-  const handleSendMessage = async () => {
-    if (!messageText.trim()) {
-      alert('Пожалуйста, введите текст сообщения');
+    
+    if (!isAuthenticated) {
+      alert('Пожалуйста, войдите в систему, чтобы отправить вопрос');
       return;
     }
     
     try {
-      setIsSendingMessage(true);
-      
-      // Получаем ID текущего пользователя
-      const currentUserId = userId;
-      const receiverId = userData.twitchData.id;
-      
-      // Создаем или получаем ID беседы
-      const participantIds = [currentUserId, receiverId].sort();
-      const conversationId = `conv-${participantIds.join('-')}`;
-      
-      // Создаем новое сообщение
-      const newMessage = {
+      // Создаем новый вопрос
+      const newQuestion = {
         id: `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-        conversationId,
-        senderId: currentUserId,
-        receiverId,
-        content: messageText,
-        createdAt: new Date().toISOString(),
+        senderId: userId,
+        senderName: localStorage.getItem('twitch_user_name') || 'Пользователь',
+        senderAvatar: localStorage.getItem('twitch_user_avatar') || '',
+        recipientId: userData.twitchData.id,
+        recipientName: userData.twitchData.display_name,
+        recipientAvatar: userData.twitchData.profile_image_url,
+        text: questionText,
+        date: new Date().toISOString(),
+        type: 'question',
         read: false
       };
       
-      // Сохраняем сообщение в localStorage
-      const storedMessages = localStorage.getItem('su_messages');
-      let messages = [];
-      
-      if (storedMessages) {
-        try {
-          messages = JSON.parse(storedMessages);
-        } catch (e) {
-          console.error('Ошибка при парсинге сообщений из localStorage:', e);
-        }
-      }
-      
-      messages.push(newMessage);
+      // Сохраняем вопрос в localStorage
+      const storedMessages = localStorage.getItem('su_messages') || '[]';
+      const messages = JSON.parse(storedMessages);
+      messages.push(newQuestion);
       localStorage.setItem('su_messages', JSON.stringify(messages));
       
-      // Очищаем поле ввода и закрываем модальное окно
-      setMessageText('');
-      setShowMessageModal(false);
+      // Закрываем модальное окно и очищаем поле ввода
+      setIsQuestionModalOpen(false);
+      setQuestionText('');
       
       // Показываем уведомление об успешной отправке
-      alert('Сообщение успешно отправлено!');
+      alert('Вопрос успешно отправлен!');
     } catch (err) {
-      console.error('Ошибка при отправке сообщения:', err);
-      alert('Произошла ошибка при отправке сообщения. Пожалуйста, попробуйте позже.');
-    } finally {
-      setIsSendingMessage(false);
+      console.error('Ошибка при отправке вопроса:', err);
+      alert('Произошла ошибка при отправке вопроса. Пожалуйста, попробуйте позже.');
     }
   };
   
@@ -469,36 +402,31 @@ export default function UserProfile() {
           {renderSocialLinks()}
           
           <div className={styles.actionButtons}>
-            {userId !== twitchData.id && (
+            {isAuthenticated && userData?.twitchData?.id !== userId && (
               <>
-                {!isFollowing ? (
-                  <button className={styles.followButton} onClick={handleFollow}>
-                    <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor">
-                      <path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z" />
-                    </svg>
-                    Подписаться
-                  </button>
-                ) : (
-                  <button className={styles.unfollowButton} onClick={handleUnfollow}>
-                    <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor">
-                      <path d="M19 13H5v-2h14v2z" />
-                    </svg>
-                    Отписаться
-                  </button>
-                )}
+                <button 
+                  className={styles.actionButton} 
+                  onClick={() => setIsQuestionModalOpen(true)}
+                >
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M12 22C17.5228 22 22 17.5228 22 12C22 6.47715 17.5228 2 12 2C6.47715 2 2 6.47715 2 12C2 13.5997 2.37562 15.1116 3.04346 16.4525C3.22094 16.8088 3.28001 17.2161 3.17712 17.6006L2.58151 19.8267C2.32295 20.793 3.20701 21.677 4.17335 21.4185L6.39939 20.8229C6.78393 20.72 7.19121 20.7791 7.54753 20.9565C8.88837 21.6244 10.4003 22 12 22Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                    <path d="M12 13.5V13.51" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                    <path d="M8.5 10.5C8.5 8.84315 10.0669 7.5 12 7.5C13.9331 7.5 15.5 8.84315 15.5 10.5C15.5 11.8038 14.5941 12.9201 13.3127 13.3511C12.7091 13.5428 12 13.9693 12 14.5V15" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                  </svg>
+                  <span>Задать вопрос</span>
+                </button>
+                
+                <button 
+                  className={`${styles.actionButton} ${isFollowing ? styles.activeButton : ''}`} 
+                  onClick={handleSubscribe}
+                >
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M4.5 12.75L10.5 18.75L19.5 5.25" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                  </svg>
+                  <span>{isFollowing ? 'Отписаться' : 'Подписаться'}</span>
+                </button>
               </>
             )}
-            
-            {/* Кнопка "Сообщение" */}
-            <button 
-              className={styles.messageButton} 
-              onClick={() => setShowMessageModal(true)}
-            >
-              <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor">
-                <path d="M20 2H4c-1.1 0-1.99.9-1.99 2L2 22l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm-2 12H6v-2h12v2zm0-3H6V9h12v2zm0-3H6V6h12v2z" />
-              </svg>
-              Сообщение
-            </button>
           </div>
         </div>
       </div>
@@ -585,35 +513,35 @@ export default function UserProfile() {
         )}
       </div>
       
-      {/* Модальное окно для отправки сообщения */}
-      {showMessageModal && (
+      {/* Модальное окно для отправки вопроса */}
+      {isQuestionModalOpen && (
         <div className={styles.modalOverlay}>
-          <div className={styles.modalContent}>
-            <h3 className={styles.modalTitle}>Отправить сообщение</h3>
-            <p className={styles.modalSubtitle}>Получатель: {userData.twitchData.display_name}</p>
+          <div className={styles.modal}>
+            <h3>Задать вопрос</h3>
+            <p>Получатель: {userData?.twitchData?.display_name}</p>
             
             <textarea
-              className={styles.messageTextarea}
-              placeholder="Введите ваше сообщение..."
-              value={messageText}
-              onChange={(e) => setMessageText(e.target.value)}
-              rows={5}
+              className={styles.messageInput}
+              placeholder="Введите ваш вопрос..."
+              value={questionText}
+              onChange={(e) => setQuestionText(e.target.value)}
             />
             
-            <div className={styles.modalActions}>
+            <div className={styles.modalButtons}>
               <button 
                 className={styles.cancelButton}
-                onClick={() => setShowMessageModal(false)}
-                disabled={isSendingMessage}
+                onClick={() => {
+                  setIsQuestionModalOpen(false);
+                  setQuestionText('');
+                }}
               >
                 Отмена
               </button>
               <button 
                 className={styles.sendButton}
-                onClick={handleSendMessage}
-                disabled={isSendingMessage || !messageText.trim()}
+                onClick={handleSendQuestion}
               >
-                {isSendingMessage ? 'Отправка...' : 'Отправить'}
+                Отправить
               </button>
             </div>
           </div>

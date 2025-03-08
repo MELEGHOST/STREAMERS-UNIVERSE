@@ -94,15 +94,15 @@ export default function Search() {
         <div className={styles.border}></div>
 
         <div id={styles.main}>
-          <input 
+        <input
             placeholder="Search..." 
-            type="text" 
+          type="text"
             name="text" 
             className={styles.input}
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
-          />
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
+        />
           <div id={styles.inputMask}></div>
           <div id={styles.pinkMask}></div>
           <div className={styles.filterBorder}></div>
