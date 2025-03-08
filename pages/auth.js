@@ -5,9 +5,11 @@ import { useRouter } from 'next/router';
 import Cookies from 'js-cookie';
 import { getCookie, hasCookie, getCookieWithLocalStorage, setCookieWithLocalStorage } from '../utils/cookies';
 import styles from './auth.module.css';
+import { useAuth } from '../contexts/AuthContext';
 
 export default function Auth() {
   const router = useRouter();
+  const { login } = useAuth();
   const timeoutRef = useRef(null);
   const pressStartRef = useRef(null);
   const [errorMessage, setErrorMessage] = useState('');
@@ -87,6 +89,16 @@ export default function Auth() {
         // Устанавливаем флаг авторизации
         localStorage.setItem('is_authenticated', 'true');
         
+        // Обновляем контекст авторизации
+        try {
+          const parsedUserData = typeof userData === 'string' ? JSON.parse(userData) : userData;
+          if (login) {
+            login(accessToken, parsedUserData);
+          }
+        } catch (error) {
+          console.error('Ошибка при обновлении контекста авторизации:', error);
+        }
+        
         // Устанавливаем флаг перенаправления
         setRedirecting(true);
         
@@ -110,7 +122,7 @@ export default function Auth() {
         setErrorMessage('Произошла ошибка при авторизации через Twitch');
       }
     }
-  }, [router, router.query]);
+  }, [router, router.query, login]);
 
   const handleLoginPress = (e) => {
     e.preventDefault();

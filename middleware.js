@@ -151,12 +151,13 @@ export function middleware(request) {
       pathname === '/questions' || 
       pathname === '/settings') {
     
-    // Проверяем наличие токена доступа
+    // Проверяем наличие токена доступа в cookies
     const hasTwitchAccessToken = cookies.has('twitch_access_token');
+    const hasTwitchToken = cookies.has('twitch_token');
     const hasTwitchUser = cookies.has('twitch_user');
     
     // Если нет токена доступа, перенаправляем на страницу авторизации
-    if (!hasTwitchAccessToken && !hasTwitchUser) {
+    if (!hasTwitchAccessToken && !hasTwitchToken && !hasTwitchUser) {
       console.log(`Middleware: доступ к защищенной странице ${pathname} без авторизации, перенаправление на /auth`);
       return NextResponse.redirect(new URL('/auth', request.url));
     }

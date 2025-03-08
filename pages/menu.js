@@ -8,65 +8,79 @@ import { useAuth } from '../contexts/AuthContext';
 
 export default function Menu() {
   const router = useRouter();
-  const { isAuthenticated, userId, userLogin, userAvatar, logout } = useAuth();
+  const { isAuthenticated, userId, userLogin, userAvatar, login, logout } = useAuth();
   
   const [streamCoins, setStreamCoins] = useState(0);
   const [referralCode, setReferralCode] = useState('');
   const [loading, setLoading] = useState(true);
   const [userData, setUserData] = useState(null);
   
-  useEffect(() => {
-    // Проверяем авторизацию через Twitch
-    const checkTwitchAuth = async () => {
-      try {
-        // Проверяем наличие токена в cookies или localStorage
-        const twitchAccessToken = Cookies.get('twitch_access_token') || 
-                                 localStorage.getItem('cookie_twitch_access_token') || 
-                                 Cookies.get('twitch_token');
-                                 
-        // Проверяем наличие данных пользователя
-        const twitchUserData = Cookies.get('twitch_user') || 
-                              localStorage.getItem('cookie_twitch_user') || 
-                              localStorage.getItem('twitch_user');
-        
-        console.log('Проверка авторизации Twitch:', { 
-          hasTwitchAccessToken: !!twitchAccessToken, 
-          hasTwitchUser: !!twitchUserData 
-        });
-        
-        if (twitchAccessToken && twitchUserData) {
-          // Пользователь уже авторизован через Twitch
-          try {
-            // Парсим данные пользователя
-            const parsedUserData = typeof twitchUserData === 'string' ? JSON.parse(twitchUserData) : twitchUserData;
-            setUserData(parsedUserData);
-            
-            // Загружаем стример-коины
-            if (parsedUserData && parsedUserData.id) {
-              loadStreamCoins(parsedUserData.id);
-              setReferralCode(generateReferralCode(parsedUserData.id));
-            }
-            
-            setLoading(false);
-          } catch (parseError) {
-            console.error('Ошибка при парсинге данных пользователя:', parseError);
-            // Перенаправляем на страницу авторизации при ошибке
-            router.push('/auth');
+  // Функция для проверки авторизации через Twitch
+  const checkTwitchAuth = async () => {
+    try {
+      // Проверяем наличие токена в cookies или localStorage
+      const twitchAccessToken = Cookies.get('twitch_access_token') || 
+                               localStorage.getItem('cookie_twitch_access_token') || 
+                               Cookies.get('twitch_token');
+                               
+      // Проверяем наличие данных пользователя
+      const twitchUserData = Cookies.get('twitch_user') || 
+                            localStorage.getItem('cookie_twitch_user') || 
+                            localStorage.getItem('twitch_user');
+      
+      console.log('Проверка авторизации Twitch:', { 
+        hasTwitchAccessToken: !!twitchAccessToken, 
+        hasTwitchUser: !!twitchUserData 
+      });
+      
+      if (twitchAccessToken && twitchUserData) {
+        // Пользователь уже авторизован через Twitch
+        try {
+          // Парсим данные пользователя
+          const parsedUserData = typeof twitchUserData === 'string' ? JSON.parse(twitchUserData) : twitchUserData;
+          setUserData(parsedUserData);
+          
+          // Если контекст авторизации не содержит данные пользователя, обновляем его
+          if (!isAuthenticated && login) {
+            login(twitchAccessToken, parsedUserData);
           }
-        } else {
-          // Если нет авторизации через Twitch, перенаправляем на страницу авторизации
-          console.log('Нет авторизации через Twitch, перенаправление на /auth');
-          router.push('/auth');
+          
+          // Загружаем стример-коины
+          if (parsedUserData && parsedUserData.id) {
+            loadStreamCoins(parsedUserData.id);
+            setReferralCode(generateReferralCode(parsedUserData.id));
+          }
+          
+          setLoading(false);
+          return true;
+        } catch (parseError) {
+          console.error('Ошибка при парсинге данных пользователя:', parseError);
+          setLoading(false);
+          return false;
         }
-      } catch (error) {
-        console.error('Ошибка при проверке авторизации Twitch:', error);
-        setLoading(false);
-        // Перенаправляем на страницу авторизации при ошибке
+      } else {
+        // Если нет авторизации через Twitch, перенаправляем на страницу авторизации
+        console.log('Нет авторизации через Twitch, перенаправление на /auth');
+        router.push('/auth');
+        return false;
+      }
+    } catch (error) {
+      console.error('Ошибка при проверке авторизации Twitch:', error);
+      setLoading(false);
+      return false;
+    }
+  };
+  
+  // Проверяем авторизацию при загрузке страницы
+  useEffect(() => {
+    const initAuth = async () => {
+      const isAuthed = await checkTwitchAuth();
+      if (!isAuthed) {
         router.push('/auth');
       }
     };
     
-    checkTwitchAuth();
+    initAuth();
   }, [router]);
   
   // Загрузка стример-коинов из localStorage
@@ -111,9 +125,10 @@ export default function Menu() {
     );
   }
   
-  // Получаем данные пользователя
+  // Получаем данные пользователя из контекста или из локального состояния
   const displayName = userLogin || (userData && (userData.login || userData.display_name)) || 'Пользователь';
   const avatarUrl = userAvatar || (userData && userData.profile_image_url);
+  const userIdToUse = userId || (userData && userData.id);
   
   return (
     <div className={styles.container}>
