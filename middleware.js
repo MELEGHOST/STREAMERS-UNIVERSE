@@ -13,6 +13,12 @@ export function middleware(request) {
     return NextResponse.next();
   }
   
+  // Пропускаем запросы к меню без проверки авторизации
+  if (pathname === '/menu') {
+    console.log('Middleware: пропускаем запрос к меню без проверки авторизации');
+    return NextResponse.next();
+  }
+  
   // Клонируем текущий ответ
   const response = NextResponse.next();
   
@@ -142,9 +148,8 @@ export function middleware(request) {
     }
   }
   
-  // Проверяем доступ к защищенным страницам
-  if (pathname === '/menu' || 
-      pathname === '/profile' || 
+  // Проверяем доступ к защищенным страницам (кроме меню)
+  if (pathname === '/profile' || 
       pathname === '/search' || 
       pathname === '/followings' || 
       pathname === '/followers' || 
