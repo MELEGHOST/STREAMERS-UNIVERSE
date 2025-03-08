@@ -42,6 +42,7 @@ export function AuthProvider({ children }) {
             // Пытаемся распарсить данные пользователя
             const user = typeof userData === 'string' ? JSON.parse(userData) : userData;
             
+            // Устанавливаем состояние авторизации
             setIsAuthenticated(true);
             setUserId(user.id);
             setUserLogin(user.login || user.display_name);
@@ -49,6 +50,16 @@ export function AuthProvider({ children }) {
             
             // Устанавливаем флаг авторизации в localStorage
             localStorage.setItem('is_authenticated', 'true');
+            
+            // Сохраняем токен в localStorage для надежности
+            if (!localStorage.getItem('cookie_twitch_access_token') && token) {
+              localStorage.setItem('cookie_twitch_access_token', token);
+            }
+            
+            // Сохраняем данные пользователя в localStorage для надежности
+            if (!localStorage.getItem('cookie_twitch_user') && userData) {
+              localStorage.setItem('cookie_twitch_user', typeof userData === 'string' ? userData : JSON.stringify(userData));
+            }
             
             console.log('AuthContext: Пользователь авторизован', {
               id: user.id,
@@ -71,6 +82,7 @@ export function AuthProvider({ children }) {
       }
     };
     
+    // Проверяем авторизацию при загрузке
     checkAuth();
     
     // Добавляем слушатель события для обновления состояния авторизации

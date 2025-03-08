@@ -13,6 +13,7 @@ export default function Auth() {
   const [errorMessage, setErrorMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [debugInfo, setDebugInfo] = useState(null);
+  const [redirecting, setRedirecting] = useState(false);
 
   useEffect(() => {
     // Упрощенная проверка авторизации
@@ -23,6 +24,7 @@ export default function Auth() {
           twitch_access_token: hasCookie('twitch_access_token'),
           twitch_refresh_token: hasCookie('twitch_refresh_token'),
           twitch_user: hasCookie('twitch_user'),
+          twitch_token: hasCookie('twitch_token'),
         },
         localStorage: {
           cookie_twitch_access_token: !!localStorage.getItem('cookie_twitch_access_token'),
@@ -84,6 +86,9 @@ export default function Auth() {
         
         // Устанавливаем флаг авторизации
         localStorage.setItem('is_authenticated', 'true');
+        
+        // Устанавливаем флаг перенаправления
+        setRedirecting(true);
         
         // Простое перенаправление без анимации
         window.location.href = '/menu';
@@ -179,6 +184,18 @@ export default function Auth() {
       setIsLoading(false);
     }
   };
+
+  // Если идет перенаправление, показываем индикатор загрузки
+  if (redirecting) {
+    return (
+      <div className={styles.container}>
+        <div className={styles.loadingContainer}>
+          <div className={styles.loadingSpinner}></div>
+          <p>Перенаправление в меню...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className={styles.container}>

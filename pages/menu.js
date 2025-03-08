@@ -13,23 +13,46 @@ export default function Menu() {
   const [streamCoins, setStreamCoins] = useState(0);
   const [referralCode, setReferralCode] = useState('');
   const [loading, setLoading] = useState(true);
+  const [userData, setUserData] = useState(null);
   
   useEffect(() => {
     // Проверяем авторизацию через Twitch
     const checkTwitchAuth = async () => {
       try {
         // Проверяем наличие токена в cookies или localStorage
-        const twitchAccessToken = Cookies.get('twitch_access_token') || localStorage.getItem('cookie_twitch_access_token');
-        const twitchUser = Cookies.get('twitch_user') || localStorage.getItem('cookie_twitch_user') || localStorage.getItem('twitch_user');
+        const twitchAccessToken = Cookies.get('twitch_access_token') || 
+                                 localStorage.getItem('cookie_twitch_access_token') || 
+                                 Cookies.get('twitch_token');
+                                 
+        // Проверяем наличие данных пользователя
+        const twitchUserData = Cookies.get('twitch_user') || 
+                              localStorage.getItem('cookie_twitch_user') || 
+                              localStorage.getItem('twitch_user');
         
         console.log('Проверка авторизации Twitch:', { 
           hasTwitchAccessToken: !!twitchAccessToken, 
-          hasTwitchUser: !!twitchUser 
+          hasTwitchUser: !!twitchUserData 
         });
         
-        if (twitchAccessToken && twitchUser) {
+        if (twitchAccessToken && twitchUserData) {
           // Пользователь уже авторизован через Twitch
-          setLoading(false);
+          try {
+            // Парсим данные пользователя
+            const parsedUserData = typeof twitchUserData === 'string' ? JSON.parse(twitchUserData) : twitchUserData;
+            setUserData(parsedUserData);
+            
+            // Загружаем стример-коины
+            if (parsedUserData && parsedUserData.id) {
+              loadStreamCoins(parsedUserData.id);
+              setReferralCode(generateReferralCode(parsedUserData.id));
+            }
+            
+            setLoading(false);
+          } catch (parseError) {
+            console.error('Ошибка при парсинге данных пользователя:', parseError);
+            // Перенаправляем на страницу авторизации при ошибке
+            router.push('/auth');
+          }
         } else {
           // Если нет авторизации через Twitch, перенаправляем на страницу авторизации
           console.log('Нет авторизации через Twitch, перенаправление на /auth');
@@ -38,21 +61,13 @@ export default function Menu() {
       } catch (error) {
         console.error('Ошибка при проверке авторизации Twitch:', error);
         setLoading(false);
+        // Перенаправляем на страницу авторизации при ошибке
+        router.push('/auth');
       }
     };
     
     checkTwitchAuth();
   }, [router]);
-  
-  useEffect(() => {
-    if (isAuthenticated && userId) {
-      // Загружаем стример-коины
-      loadStreamCoins(userId);
-      
-      // Генерируем реферальный код
-      setReferralCode(generateReferralCode(userId));
-    }
-  }, [isAuthenticated, userId]);
   
   // Загрузка стример-коинов из localStorage
   const loadStreamCoins = (userId) => {
@@ -96,43 +111,9 @@ export default function Menu() {
     );
   }
   
-  // Если пользователь не авторизован через контекст, но у нас есть токен Twitch,
-  // мы все равно показываем меню, так как авторизация через Twitch уже выполнена
-  const twitchAccessToken = Cookies.get('twitch_access_token') || localStorage.getItem('cookie_twitch_access_token');
-  const twitchUser = Cookies.get('twitch_user') || localStorage.getItem('cookie_twitch_user') || localStorage.getItem('twitch_user');
-  
-  if (!isAuthenticated && !twitchAccessToken && !twitchUser) {
-    return (
-      <div className={styles.container}>
-        <Head>
-          <title>Меню | Streamers Universe</title>
-        </Head>
-        <div className={styles.authMessage}>
-          <h2>Требуется авторизация</h2>
-          <p>Пожалуйста, войдите в систему, чтобы получить доступ к меню.</p>
-          <button onClick={() => router.push('/auth')} className={styles.authButton}>
-            Войти
-          </button>
-        </div>
-      </div>
-    );
-  }
-  
-  // Пытаемся получить данные пользователя из Twitch, если они не доступны через контекст
-  let displayName = userLogin;
-  let avatarUrl = userAvatar;
-  
-  if (!displayName || !avatarUrl) {
-    try {
-      const twitchUserData = twitchUser ? (typeof twitchUser === 'string' ? JSON.parse(twitchUser) : twitchUser) : null;
-      if (twitchUserData) {
-        displayName = displayName || twitchUserData.login || twitchUserData.display_name;
-        avatarUrl = avatarUrl || twitchUserData.profile_image_url;
-      }
-    } catch (error) {
-      console.error('Ошибка при парсинге данных пользователя Twitch:', error);
-    }
-  }
+  // Получаем данные пользователя
+  const displayName = userLogin || (userData && (userData.login || userData.display_name)) || 'Пользователь';
+  const avatarUrl = userAvatar || (userData && userData.profile_image_url);
   
   return (
     <div className={styles.container}>
@@ -146,11 +127,11 @@ export default function Menu() {
           <div className={styles.userInfo}>
             {avatarUrl && (
               <div className={styles.userAvatar}>
-                <img src={avatarUrl} alt={displayName || 'Пользователь'} />
+                <img src={avatarUrl} alt={displayName} />
               </div>
             )}
             <div className={styles.userDetails}>
-              <h1>Привет, {displayName || 'Пользователь'}!</h1>
+              <h1>Привет, {displayName}!</h1>
               <div className={styles.coinsContainer}>
                 <div className={styles.coinIcon}>
                   <svg viewBox="0 0 24 24" width="24" height="24" fill="currentColor">
