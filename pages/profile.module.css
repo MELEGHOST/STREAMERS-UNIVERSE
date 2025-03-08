@@ -327,12 +327,20 @@
   display: flex;
   flex-wrap: wrap;
   justify-content: center;
-  gap: 15px;
-  margin-top: 20px;
-  padding: 15px;
-  background: rgba(30, 30, 46, 0.5);
-  border-radius: 15px;
-  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+  align-items: center;
+  gap: 25px;
+  margin: 30px auto;
+  padding: 25px;
+  max-width: 90%;
+  background-color: rgba(145, 70, 255, 0.05);
+  border-radius: 20px;
+  box-shadow: 0 5px 20px rgba(0, 0, 0, 0.1);
+  transition: all 0.3s ease;
+}
+
+.socialLinks:hover {
+  box-shadow: 0 8px 25px rgba(145, 70, 255, 0.2);
+  transform: translateY(-5px);
 }
 
 .socialLink {
@@ -382,15 +390,33 @@
   }
 
   .socialLinks {
-    gap: 10px;
-    padding: 10px;
+    gap: 20px;
+    padding: 20px;
+    max-width: 95%;
+    margin: 25px auto;
+  }
+
+  .reviewsButton {
+    padding: 8px 12px;
+    font-size: 14px;
+    margin-right: 8px;
   }
 }
 
 @media (max-width: 480px) {
   .socialLinks {
-    gap: 5px;
-    padding: 8px;
+    gap: 15px;
+    padding: 15px;
+    max-width: 100%;
+    margin: 20px auto;
+    flex-direction: row;
+    flex-wrap: wrap;
+  }
+
+  .reviewsButton {
+    padding: 6px 10px;
+    font-size: 12px;
+    margin-right: 5px;
   }
 }
 
@@ -592,4 +618,36 @@
     grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
     gap: 15px;
   }
+}
+
+.reviewsButton {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: #FFD700;
+  color: #333;
+  border: none;
+  border-radius: 8px;
+  padding: 10px 15px;
+  font-size: 16px;
+  font-weight: bold;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  margin-right: 10px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.reviewsButton:hover {
+  background-color: #FFC107;
+  transform: translateY(-3px);
+  box-shadow: 0 6px 10px rgba(0, 0, 0, 0.15);
+}
+
+.reviewsContainer {
+  animation: fadeIn 0.5s ease;
+  padding: 20px;
+  background-color: rgba(255, 255, 255, 0.05);
+  border-radius: 15px;
+  margin-top: 20px;
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
 }

@@ -126,7 +126,7 @@ const SocialButton = ({ type, url, username, subscribers }) => {
             >
               <path 
                 fill="#FFCC00"
-                d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm0 2c5.523 0 10 4.477 10 10s-4.477 10-10 10S2 17.523 2 12 6.477 2 12 2zm-1.5 5v10h3v-10h-3zm0 3v4h3v-4h-3z"
+                d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm0 2c5.523 0 10 4.477 10 10s-4.477 10-10 10-10-4.477-10-10 4.477-10 10-10zm-1.5 5v10h3v-10h-3zm0 3v4h3v-4h-3z"
               />
             </svg>
           ),
@@ -181,9 +181,9 @@ const SocialButton = ({ type, url, username, subscribers }) => {
       <div className={styles.tooltip}>
         <div className={styles.profile}>
           <div className={styles.user}>
-            <div className={styles.img}>{config.initials}</div>
+            <div className={styles.img} style={{backgroundColor: config.color}}>{config.initials}</div>
             <div className={styles.details}>
-              <div className={styles.name}>{type || 'Соцсеть'}</div>
+              <div className={styles.name} style={{color: config.color}}>{type || 'Соцсеть'}</div>
               <div className={styles.username}>@{safeUsername}</div>
             </div>
           </div>
@@ -198,7 +198,7 @@ const SocialButton = ({ type, url, username, subscribers }) => {
           className={styles.icon}
           onClick={handleClick}
         >
-          <div className={styles.layer}>
+          <div className={styles.layer} style={{backgroundColor: config.color, boxShadow: `0 5px 15px ${config.color}80`}}>
             <span></span>
             <span></span>
             <span></span>
@@ -207,7 +207,7 @@ const SocialButton = ({ type, url, username, subscribers }) => {
               {config.icon}
             </span>
           </div>
-          <div className={styles.text}>{type || 'Соцсеть'}</div>
+          <div className={styles.text} style={{color: config.color, fontWeight: 'bold'}}>{type || 'Соцсеть'}</div>
         </a>
       </div>
     </div>

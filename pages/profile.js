@@ -8,6 +8,7 @@ import { useRouter } from 'next/router';
 import CookieChecker from '../components/CookieChecker';
 import SocialButton from '../components/SocialButton';
 import AchievementsSystem from '../components/AchievementsSystem';
+import ReviewSection from '../components/ReviewSection';
 
 export default function Profile() {
   const [profileData, setProfileData] = useState(null);
@@ -27,6 +28,7 @@ export default function Profile() {
   const [showAchievements, setShowAchievements] = useState(false);
   const [streamsCompleted, setStreamsCompleted] = useState(0);
   const [hasCollaborations, setHasCollaborations] = useState(false);
+  const [showReviews, setShowReviews] = useState(false);
 
   // Функция для загрузки данных пользователя
   const loadUserData = async () => {
@@ -496,6 +498,41 @@ export default function Profile() {
     setShowAchievements(!showAchievements);
   };
 
+  // Функция для переключения отображения отзывов
+  const toggleReviews = () => {
+    setShowReviews(!showReviews);
+    setShowAchievements(false); // Скрываем достижения при показе отзывов
+  };
+
+  // Функция для отображения статуса пользователя
+  const renderUserStatus = () => {
+    // Принудительно устанавливаем статус "Стример" для всех пользователей
+    const isStreamer = true;
+    
+    // Обновляем данные в localStorage
+    if (profileData && profileData.id) {
+      try {
+        const userData = JSON.parse(localStorage.getItem('twitch_user') || '{}');
+        userData.isStreamer = true;
+        localStorage.setItem('twitch_user', JSON.stringify(userData));
+      } catch (error) {
+        console.error('Ошибка при обновлении статуса пользователя:', error);
+      }
+    }
+    
+    return (
+      <div className={styles.statusContainer}>
+        <span className={styles.statusText}>Статус:</span>
+        <span className={styles.statusValue} style={{ color: isStreamer ? '#9146FF' : '#4CAF50' }}>
+          {isStreamer ? 'Стример' : 'Зритель'}
+        </span>
+        <span className={styles.followersCount}>
+          (Фолловеров: {profileData?.followersCount || 0})
+        </span>
+      </div>
+    );
+  };
+
   if (loading) {
     return (
       <div className={styles.loading}>
@@ -531,15 +568,6 @@ export default function Profile() {
     );
   }
 
-  // ВРЕМЕННОЕ РЕШЕНИЕ: Проверяем и исправляем статус стримера перед отображением
-  if (profileData.followersCount >= 265 && !profileData.isStreamer) {
-    console.log('ИСПРАВЛЕНИЕ при отображении: Обнаружено 265+ подписчиков, но статус не стример. Исправляем...');
-    profileData.isStreamer = true;
-    // Также обновляем в localStorage
-    localStorage.setItem('twitch_user', JSON.stringify(profileData));
-    console.log('Статус стримера принудительно установлен перед отображением');
-  }
-
   return (
     <div className={styles.profileContainer}>
       <CookieChecker />
@@ -554,19 +582,7 @@ export default function Profile() {
         />
         <div className={styles.profileInfo}>
           <h1>{profileData.twitchName}</h1>
-          <div className={styles.statusContainer}>
-            <p className={styles.statusText}>
-              Статус: <span className={styles.statusValue}>{profileData.isStreamer ? 'Стример' : 'Зритель'}</span>
-              <span className={styles.followersCount}>(Фолловеров: {profileData.followersCount})</span>
-            </p>
-            <button 
-              className={styles.achievementsButton} 
-              onClick={toggleAchievements}
-              title="Достижения"
-            >
-              🏆 Достижения
-            </button>
-          </div>
+          {renderUserStatus()}
           {socialLinks.description && (
             <div className={styles.description}>
               <p>{socialLinks.description}</p>
@@ -574,6 +590,32 @@ export default function Profile() {
           )}
           {renderSocialLinks()}
         </div>
+      </div>
+
+      <div className={styles.profileActions}>
+        <button 
+          className={styles.achievementsButton} 
+          onClick={toggleAchievements}
+          title="Посмотреть достижения"
+        >
+          🏆 Достижения
+        </button>
+        <button 
+          className={styles.reviewsButton} 
+          onClick={toggleReviews}
+          title="Отзывы о вас"
+        >
+          ⭐ Отзывы
+        </button>
+        <button className={styles.button} onClick={() => router.push('/edit-profile')}>
+          Редактировать профиль
+        </button>
+        <button className={styles.button} onClick={() => router.push('/menu')}>
+          Вернуться в меню
+        </button>
+        <button className={styles.logoutButton} onClick={handleLogout}>
+          Выйти
+        </button>
       </div>
 
       {showAchievements ? (
@@ -594,6 +636,19 @@ export default function Profile() {
             streamsCompleted={streamsCompleted}
             hasCollaborations={hasCollaborations}
           />
+        </div>
+      ) : showReviews ? (
+        <div className={styles.reviewsContainer}>
+          <div className={styles.achievementsHeader}>
+            <h2>Отзывы о вас</h2>
+            <button 
+              className={styles.backToProfileButton}
+              onClick={() => setShowReviews(false)}
+            >
+              Вернуться к профилю
+            </button>
+          </div>
+          <ReviewSection userId={profileData.id} />
         </div>
       ) : (
         <>
@@ -692,18 +747,6 @@ export default function Profile() {
               </div>
             </div>
           )}
-
-          <div className={styles.profileActions}>
-            <button className={styles.button} onClick={() => router.push('/edit-profile')}>
-              Редактировать профиль
-            </button>
-            <button className={styles.button} onClick={() => router.push('/menu')}>
-              Вернуться в меню
-            </button>
-            <button className={styles.logoutButton} onClick={handleLogout}>
-              Выйти
-            </button>
-          </div>
         </>
       )}
     </div>
