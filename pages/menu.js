@@ -10,7 +10,7 @@ export default function Menu() {
   const router = useRouter();
   const { isAuthenticated, userId, userLogin, userAvatar, logout } = useAuth();
   
-  const [streamCoins, setStreamCoins] = useState(0);
+  const [streamCoins, setStreamCoins] = useState(100);
   const [referralCode, setReferralCode] = useState('');
   
   useEffect(() => {
@@ -20,27 +20,51 @@ export default function Menu() {
       
       // Генерируем реферальный код
       setReferralCode(generateReferralCode(userId));
+    } else {
+      // Если пользователь не авторизован через контекст, пробуем получить данные из localStorage или cookies
+      try {
+        const twitchUserData = localStorage.getItem('twitch_user') || Cookies.get('twitch_user');
+        if (twitchUserData) {
+          const userData = JSON.parse(twitchUserData);
+          if (userData && userData.id) {
+            loadStreamCoins(userData.id);
+            setReferralCode(generateReferralCode(userData.id));
+          }
+        }
+      } catch (error) {
+        console.error('Ошибка при получении данных пользователя:', error);
+      }
     }
   }, [isAuthenticated, userId]);
   
   // Загрузка стример-коинов из localStorage
   const loadStreamCoins = (userId) => {
     try {
+      if (!userId) {
+        console.error('Ошибка при загрузке стример-коинов: userId не определен');
+        setStreamCoins(100); // Устанавливаем значение по умолчанию
+        return;
+      }
+      
       const storedCoins = localStorage.getItem(`streamcoins_${userId}`);
-      if (storedCoins) {
+      console.log(`Загрузка стример-коинов для пользователя ${userId}:`, storedCoins);
+      
+      if (storedCoins && !isNaN(parseInt(storedCoins, 10))) {
         setStreamCoins(parseInt(storedCoins, 10));
       } else {
-        // Если стример-коинов нет, устанавливаем начальное значение
+        // Если стример-коинов нет или значение некорректно, устанавливаем начальное значение
         localStorage.setItem(`streamcoins_${userId}`, '100');
         setStreamCoins(100);
       }
     } catch (error) {
       console.error('Ошибка при загрузке стример-коинов:', error);
+      setStreamCoins(100); // Устанавливаем значение по умолчанию при ошибке
     }
   };
   
   // Генерация реферального кода
   const generateReferralCode = (userId) => {
+    if (!userId) return 'SU-000000';
     return `SU-${userId.substring(0, 6)}`;
   };
   

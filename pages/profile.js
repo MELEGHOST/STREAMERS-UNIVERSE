@@ -47,13 +47,37 @@ export default function Profile() {
             localStorageUserData = JSON.parse(storedUserData);
             console.log('Данные пользователя из localStorage:', localStorageUserData);
             
-            // ИСПРАВЛЕНИЕ: Если у пользователя 265+ подписчиков, но статус не стример,
-            // принудительно устанавливаем статус стримера
-            if (localStorageUserData.followersCount >= 265 && !localStorageUserData.isStreamer) {
-              console.log('ИСПРАВЛЕНИЕ: Обнаружено 265+ подписчиков, но статус не стример. Исправляем...');
-              localStorageUserData.isStreamer = true;
-              localStorage.setItem('twitch_user', JSON.stringify(localStorageUserData));
-              console.log('Статус стримера принудительно установлен в localStorage');
+            // Получаем количество подписчиков из API Twitch
+            if (accessToken && localStorageUserData.id) {
+              try {
+                const followersResponse = await fetch(`https://api.twitch.tv/helix/users/follows?to_id=${localStorageUserData.id}`, {
+                  headers: {
+                    'Client-ID': process.env.NEXT_PUBLIC_TWITCH_CLIENT_ID,
+                    'Authorization': `Bearer ${accessToken}`
+                  }
+                });
+                
+                if (followersResponse.ok) {
+                  const followersData = await followersResponse.json();
+                  const followersCount = followersData.total || 0;
+                  
+                  console.log('Количество подписчиков:', followersCount);
+                  
+                  // Обновляем данные пользователя с количеством подписчиков
+                  localStorageUserData.followersCount = followersCount;
+                  
+                  // ИСПРАВЛЕНИЕ: Если у пользователя 265+ подписчиков, устанавливаем статус стримера
+                  if (followersCount >= 265) {
+                    console.log('Пользователь имеет 265+ подписчиков, устанавливаем статус стримера');
+                    localStorageUserData.isStreamer = true;
+                  }
+                  
+                  // Сохраняем обновленные данные в localStorage
+                  localStorage.setItem('twitch_user', JSON.stringify(localStorageUserData));
+                }
+              } catch (error) {
+                console.error('Ошибка при получении количества подписчиков:', error);
+              }
             }
             
             // Загружаем данные о стримах и коллаборациях из localStorage
