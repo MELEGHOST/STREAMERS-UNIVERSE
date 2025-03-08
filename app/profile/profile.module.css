@@ -382,6 +382,10 @@
   .avatar {
     width: 100px;
     height: 100px;
+    min-width: 100px;
+    min-height: 100px;
+    margin-bottom: 15px;
+    border-width: 3px;
   }
   
   .section ul {
@@ -408,6 +412,37 @@
     padding: 8px 12px;
     font-size: 14px;
     margin-right: 8px;
+  }
+  
+  .statsGrid {
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  }
+  
+  .usersList {
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  }
+  
+  .streamsList {
+    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+  }
+  
+  .statsButton {
+    padding: 8px 12px;
+    font-size: 14px;
+    margin-right: 8px;
+  }
+  
+  .statsActions {
+    flex-direction: column;
+  }
+  
+  .userAvatar {
+    min-width: 50px;
+    min-height: 50px;
+  }
+  
+  .userCard {
+    padding: 12px;
   }
 }
 
@@ -1028,6 +1063,15 @@
   
   .statsActions {
     flex-direction: column;
+  }
+  
+  .userAvatar {
+    min-width: 50px;
+    min-height: 50px;
+  }
+  
+  .userCard {
+    padding: 12px;
   }
 }
 

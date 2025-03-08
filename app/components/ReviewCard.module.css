@@ -1,0 +1,255 @@
+.reviewCard {
+  background-color: rgba(30, 30, 40, 0.7);
+  border-radius: 12px;
+  padding: 20px;
+  margin-bottom: 20px;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.reviewCard:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
+}
+
+.reviewHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 15px;
+}
+
+.categoryTag {
+  background-color: rgba(123, 65, 201, 0.2);
+  color: #b490e2;
+  padding: 5px 12px;
+  border-radius: 20px;
+  font-size: 0.85rem;
+  font-weight: 500;
+  border: 1px solid rgba(123, 65, 201, 0.3);
+}
+
+.rating {
+  display: flex;
+  align-items: center;
+}
+
+.star, .emptyStar, .halfStar {
+  font-size: 1.2rem;
+  margin-right: 2px;
+}
+
+.star {
+  color: #ffd700;
+}
+
+.halfStar {
+  position: relative;
+  color: #ffd700;
+  opacity: 0.5;
+}
+
+.emptyStar {
+  color: rgba(255, 255, 255, 0.3);
+}
+
+.reviewContent {
+  margin-bottom: 20px;
+}
+
+.reviewTitle {
+  font-size: 1.3rem;
+  font-weight: 600;
+  margin-bottom: 15px;
+  color: #fff;
+}
+
+.productInfo {
+  display: flex;
+  margin-bottom: 20px;
+  background-color: rgba(20, 20, 30, 0.5);
+  border-radius: 8px;
+  padding: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.productImage {
+  width: 80px;
+  height: 80px;
+  border-radius: 8px;
+  overflow: hidden;
+  margin-right: 15px;
+  background-color: rgba(0, 0, 0, 0.2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.noImage {
+  color: rgba(255, 255, 255, 0.5);
+  font-size: 0.8rem;
+  text-align: center;
+}
+
+.productDetails {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.productName {
+  font-size: 1.1rem;
+  font-weight: 500;
+  margin-bottom: 5px;
+  color: #fff;
+}
+
+.productMeta {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.brand {
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 0.9rem;
+}
+
+.price {
+  color: #b490e2;
+  font-weight: 600;
+  font-size: 0.95rem;
+}
+
+.reviewText {
+  margin-bottom: 20px;
+  line-height: 1.6;
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.prosSection, .consSection {
+  margin-bottom: 15px;
+  padding: 10px 15px;
+  border-radius: 8px;
+}
+
+.prosSection {
+  background-color: rgba(39, 174, 96, 0.1);
+  border-left: 3px solid rgba(39, 174, 96, 0.5);
+}
+
+.consSection {
+  background-color: rgba(231, 76, 60, 0.1);
+  border-left: 3px solid rgba(231, 76, 60, 0.5);
+}
+
+.prosSection h5, .consSection h5 {
+  margin-bottom: 8px;
+  font-weight: 600;
+  font-size: 1rem;
+}
+
+.prosSection h5 {
+  color: rgba(39, 174, 96, 0.9);
+}
+
+.consSection h5 {
+  color: rgba(231, 76, 60, 0.9);
+}
+
+.prosSection ul, .consSection ul {
+  margin-left: 20px;
+}
+
+.prosSection li, .consSection li {
+  margin-bottom: 5px;
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.reviewFooter {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-top: 15px;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.reviewDate {
+  color: rgba(255, 255, 255, 0.5);
+  font-size: 0.9rem;
+}
+
+.reviewActions {
+  display: flex;
+  gap: 10px;
+}
+
+.actionButton {
+  display: flex;
+  align-items: center;
+  background: none;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 20px;
+  padding: 5px 12px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.actionButton:hover {
+  background-color: rgba(255, 255, 255, 0.1);
+}
+
+.actionIcon {
+  margin-right: 5px;
+  font-size: 1rem;
+}
+
+.actionCount {
+  font-size: 0.9rem;
+}
+
+.liked {
+  background-color: rgba(39, 174, 96, 0.2);
+  border-color: rgba(39, 174, 96, 0.4);
+  color: rgba(39, 174, 96, 0.9);
+}
+
+.disliked {
+  background-color: rgba(231, 76, 60, 0.2);
+  border-color: rgba(231, 76, 60, 0.4);
+  color: rgba(231, 76, 60, 0.9);
+}
+
+@media (max-width: 768px) {
+  .reviewHeader {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+  }
+  
+  .productInfo {
+    flex-direction: column;
+  }
+  
+  .productImage {
+    margin-right: 0;
+    margin-bottom: 10px;
+    width: 100%;
+    height: 120px;
+  }
+  
+  .reviewFooter {
+    flex-direction: column;
+    gap: 15px;
+    align-items: flex-start;
+  }
+  
+  .reviewActions {
+    width: 100%;
+    justify-content: space-between;
+  }
+} 

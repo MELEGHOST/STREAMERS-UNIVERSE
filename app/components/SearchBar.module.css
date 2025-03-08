@@ -1,0 +1,161 @@
+.searchContainer {
+  position: relative;
+  width: 300px;
+  height: 50px;
+  margin: 0 auto;
+}
+
+#poda {
+  position: relative;
+  width: 100%;
+  height: 100%;
+}
+
+.grid {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  background-image: linear-gradient(rgba(255, 255, 255, 0.05) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.05) 1px, transparent 1px);
+  background-size: 20px 20px;
+  z-index: 1;
+}
+
+.glow {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  background: radial-gradient(circle at center, rgba(255, 192, 203, 0.2) 0%, transparent 70%);
+  z-index: 2;
+}
+
+.darkBorderBg {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.2);
+  border-radius: 10px;
+  z-index: 3;
+  transform: translate(2px, 2px);
+}
+
+.darkBorderBg:nth-child(3) {
+  transform: translate(1px, 1px);
+}
+
+.darkBorderBg:nth-child(4) {
+  transform: translate(0px, 0px);
+}
+
+.white {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(255, 255, 255, 0.1);
+  border-radius: 10px;
+  z-index: 4;
+}
+
+.border {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 10px;
+  z-index: 5;
+}
+
+#main {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(20, 20, 30, 0.7);
+  border-radius: 10px;
+  z-index: 6;
+  display: flex;
+  align-items: center;
+  padding: 0 15px;
+}
+
+.input {
+  background: transparent;
+  border: none;
+  color: #fff;
+  font-size: 16px;
+  width: 100%;
+  height: 100%;
+  padding: 0 40px 0 10px;
+  outline: none;
+  position: relative;
+  z-index: 10;
+}
+
+.input::placeholder {
+  color: rgba(255, 255, 255, 0.5);
+}
+
+#inputMask {
+  position: absolute;
+  width: calc(100% - 30px);
+  height: 70%;
+  background-color: rgba(30, 30, 40, 0.5);
+  border-radius: 6px;
+  z-index: 7;
+  left: 15px;
+}
+
+#pinkMask {
+  position: absolute;
+  width: calc(100% - 30px);
+  height: 70%;
+  background: linear-gradient(90deg, rgba(255, 192, 203, 0.05) 0%, transparent 100%);
+  border-radius: 6px;
+  z-index: 8;
+  left: 15px;
+}
+
+.filterBorder {
+  position: absolute;
+  width: calc(100% - 30px);
+  height: 70%;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 6px;
+  z-index: 9;
+  left: 15px;
+}
+
+#filterIcon {
+  position: absolute;
+  right: 50px;
+  z-index: 11;
+  cursor: pointer;
+  opacity: 0.7;
+  transition: opacity 0.3s;
+}
+
+#filterIcon:hover {
+  opacity: 1;
+}
+
+#searchIcon {
+  position: absolute;
+  right: 15px;
+  z-index: 11;
+  cursor: pointer;
+  opacity: 0.7;
+  transition: opacity 0.3s;
+}
+
+#searchIcon:hover {
+  opacity: 1;
+}
+
+.featherSearch {
+  stroke-width: 1.5;
+}
+
+@media (max-width: 768px) {
+  .searchContainer {
+    width: 100%;
+  }
+} 

@@ -126,6 +126,12 @@ export async function GET(request) {
       return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
     }
 
+    // Проверяем наличие TWITCH_CLIENT_ID в переменных окружения
+    if (!process.env.TWITCH_CLIENT_ID) {
+      console.error('TWITCH_CLIENT_ID не найден в переменных окружения');
+      return NextResponse.json({ error: 'Server configuration error' }, { status: 500 });
+    }
+
     // Получаем данные пользователя из Twitch API
     const twitchUserResponse = await fetch(`https://api.twitch.tv/helix/users?login=${login}`, {
       headers: {

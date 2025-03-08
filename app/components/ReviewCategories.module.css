@@ -1,0 +1,137 @@
+.categoriesContainer {
+  position: relative;
+  width: 100%;
+  margin-bottom: 20px;
+  z-index: 10;
+}
+
+.categoriesHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background-color: rgba(30, 30, 40, 0.7);
+  border-radius: 10px;
+  padding: 12px 15px;
+  cursor: pointer;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  transition: all 0.3s ease;
+}
+
+.categoriesHeader:hover {
+  background-color: rgba(40, 40, 50, 0.8);
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+.selectedCategory {
+  display: flex;
+  align-items: center;
+}
+
+.categoryIcon {
+  font-size: 1.2rem;
+  margin-right: 10px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.categoryName {
+  font-size: 1rem;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.expandIcon {
+  font-size: 0.8rem;
+  color: rgba(255, 255, 255, 0.6);
+  transition: transform 0.3s ease;
+}
+
+.expanded {
+  transform: rotate(180deg);
+}
+
+.categoriesList {
+  position: absolute;
+  top: calc(100% + 5px);
+  left: 0;
+  width: 100%;
+  background-color: rgba(25, 25, 35, 0.95);
+  border-radius: 10px;
+  box-shadow: 0 5px 20px rgba(0, 0, 0, 0.3);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  max-height: 300px;
+  overflow-y: auto;
+  z-index: 20;
+  animation: fadeIn 0.2s ease;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.categoryItem {
+  display: flex;
+  align-items: center;
+  padding: 10px 15px;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.categoryItem:hover {
+  background-color: rgba(123, 65, 201, 0.1);
+}
+
+.categoryItem.active {
+  background-color: rgba(123, 65, 201, 0.2);
+  border-left: 3px solid #7b41c9;
+}
+
+/* Стилизация скроллбара */
+.categoriesList::-webkit-scrollbar {
+  width: 6px;
+}
+
+.categoriesList::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.1);
+  border-radius: 3px;
+}
+
+.categoriesList::-webkit-scrollbar-thumb {
+  background: rgba(123, 65, 201, 0.5);
+  border-radius: 3px;
+}
+
+.categoriesList::-webkit-scrollbar-thumb:hover {
+  background: rgba(123, 65, 201, 0.7);
+}
+
+@media (max-width: 768px) {
+  .categoriesContainer {
+    margin-bottom: 15px;
+  }
+  
+  .categoriesHeader {
+    padding: 10px 12px;
+  }
+  
+  .categoryIcon {
+    font-size: 1.1rem;
+    margin-right: 8px;
+  }
+  
+  .categoryName {
+    font-size: 0.9rem;
+  }
+  
+  .categoriesList {
+    max-height: 250px;
+  }
+} 
