@@ -241,7 +241,7 @@ export default function UserProfile() {
         <div className={styles.authMessage}>
           <h2>Требуется авторизация</h2>
           <p>Пожалуйста, войдите в систему, чтобы просмотреть профиль пользователя.</p>
-          <button onClick={() => router.push('/login')} className={styles.authButton}>
+          <button onClick={() => router.push('/auth')} className={styles.authButton}>
             Войти
           </button>
         </div>

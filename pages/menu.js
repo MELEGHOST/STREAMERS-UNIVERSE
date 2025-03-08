@@ -47,7 +47,7 @@ export default function Menu() {
   // Обработка выхода из системы
   const handleLogout = () => {
     logout();
-    router.push('/login');
+    router.push('/auth');
   };
   
   if (!isAuthenticated) {
@@ -59,7 +59,7 @@ export default function Menu() {
         <div className={styles.authMessage}>
           <h2>Требуется авторизация</h2>
           <p>Пожалуйста, войдите в систему, чтобы получить доступ к меню.</p>
-          <button onClick={() => router.push('/login')} className={styles.authButton}>
+          <button onClick={() => router.push('/auth')} className={styles.authButton}>
             Войти
           </button>
         </div>
