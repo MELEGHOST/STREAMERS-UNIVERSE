@@ -8,66 +8,45 @@ import { useAuth } from '../contexts/AuthContext';
 
 export default function Menu() {
   const router = useRouter();
-  const { isAuthenticated, userId, userLogin, userAvatar, login, logout } = useAuth();
+  const { isAuthenticated, userId, userLogin, userAvatar, logout } = useAuth();
   
   const [streamCoins, setStreamCoins] = useState(0);
   const [referralCode, setReferralCode] = useState('');
   const [loading, setLoading] = useState(true);
-  const [userData, setUserData] = useState(null);
   
-  // Загружаем данные пользователя при монтировании компонента
   useEffect(() => {
-    const loadUserData = async () => {
-      try {
-        // Проверяем наличие токена в cookies или localStorage
-        const twitchAccessToken = Cookies.get('twitch_access_token') || 
-                                 localStorage.getItem('cookie_twitch_access_token') || 
-                                 Cookies.get('twitch_token');
-                                 
-        // Проверяем наличие данных пользователя
-        const twitchUserData = Cookies.get('twitch_user') || 
-                              localStorage.getItem('cookie_twitch_user') || 
-                              localStorage.getItem('twitch_user');
-        
-        console.log('Проверка авторизации Twitch:', { 
-          hasTwitchAccessToken: !!twitchAccessToken, 
-          hasTwitchUser: !!twitchUserData 
-        });
-        
-        if (twitchUserData) {
-          try {
-            // Парсим данные пользователя
-            const parsedUserData = typeof twitchUserData === 'string' ? JSON.parse(twitchUserData) : twitchUserData;
-            setUserData(parsedUserData);
-            
-            // Если контекст авторизации не содержит данные пользователя, обновляем его
-            if (!isAuthenticated && login && twitchAccessToken) {
-              login(twitchAccessToken, parsedUserData);
-            }
-            
-            // Загружаем стример-коины
-            if (parsedUserData && parsedUserData.id) {
-              loadStreamCoins(parsedUserData.id);
-              setReferralCode(generateReferralCode(parsedUserData.id));
-            }
-          } catch (parseError) {
-            console.error('Ошибка при парсинге данных пользователя:', parseError);
-          }
-        }
-        
-        // В любом случае завершаем загрузку
-        setLoading(false);
-      } catch (error) {
-        console.error('Ошибка при загрузке данных пользователя:', error);
-        setLoading(false);
-      }
-    };
+    // Проверяем наличие токена в cookies или localStorage
+    const twitchAccessToken = Cookies.get('twitch_access_token') || 
+                             localStorage.getItem('cookie_twitch_access_token') || 
+                             Cookies.get('twitch_token');
+                             
+    // Проверяем наличие данных пользователя
+    const twitchUser = Cookies.get('twitch_user') || 
+                      localStorage.getItem('cookie_twitch_user') || 
+                      localStorage.getItem('twitch_user');
     
-    loadUserData();
-  }, [isAuthenticated, login]);
+    console.log('Проверка авторизации Twitch:', { 
+      hasTwitchAccessToken: !!twitchAccessToken, 
+      hasTwitchUser: !!twitchUser 
+    });
+    
+    // Завершаем загрузку
+    setLoading(false);
+    
+    // Если есть userId, загружаем стример-коины и генерируем реферальный код
+    if (userId) {
+      // Загружаем стример-коины
+      loadStreamCoins(userId);
+      
+      // Генерируем реферальный код
+      setReferralCode(generateReferralCode(userId));
+    }
+  }, [userId]);
   
   // Загрузка стример-коинов из localStorage
   const loadStreamCoins = (userId) => {
+    if (!userId) return;
+    
     try {
       const storedCoins = localStorage.getItem(`streamcoins_${userId}`);
       if (storedCoins) {
@@ -84,6 +63,7 @@ export default function Menu() {
   
   // Генерация реферального кода
   const generateReferralCode = (userId) => {
+    if (!userId) return 'SU-000000';
     return `SU-${userId.substring(0, 6)}`;
   };
   
@@ -108,10 +88,8 @@ export default function Menu() {
     );
   }
   
-  // Получаем данные пользователя из контекста или из локального состояния
-  const displayName = userLogin || (userData && (userData.login || userData.display_name)) || 'Пользователь';
-  const avatarUrl = userAvatar || (userData && userData.profile_image_url);
-  const userIdToUse = userId || (userData && userData.id);
+  // Получаем данные пользователя
+  const displayName = userLogin || 'Пользователь';
   
   return (
     <div className={styles.container}>
@@ -123,9 +101,9 @@ export default function Menu() {
       <div className={styles.menuContainer}>
         <div className={styles.menuHeader}>
           <div className={styles.userInfo}>
-            {avatarUrl && (
+            {userAvatar && (
               <div className={styles.userAvatar}>
-                <img src={avatarUrl} alt={displayName} />
+                <img src={userAvatar} alt={displayName} />
               </div>
             )}
             <div className={styles.userDetails}>
@@ -206,4 +184,4 @@ export default function Menu() {
       </div>
     </div>
   );
-} 
+}
