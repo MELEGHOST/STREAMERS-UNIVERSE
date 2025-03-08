@@ -78,8 +78,54 @@ export default function UserProfile() {
           }
         }
         
+        // Проверяем, подписан ли текущий пользователь на просматриваемого
+        const storedSubscriptions = localStorage.getItem('su_subscriptions');
+        let isFollowed = false;
+        
+        if (storedSubscriptions && userId) {
+          try {
+            const subscriptions = JSON.parse(storedSubscriptions);
+            isFollowed = subscriptions.some(
+              sub => sub.subscriberId === userId && sub.targetUserId === data.twitchData.id
+            );
+          } catch (e) {
+            console.error('Ошибка при парсинге подписок из localStorage:', e);
+          }
+        }
+        
+        // Получаем количество подписчиков
+        let subscribersCount = 0;
+        if (storedSubscriptions) {
+          try {
+            const subscriptions = JSON.parse(storedSubscriptions);
+            subscribersCount = subscriptions.filter(
+              sub => sub.targetUserId === data.twitchData.id
+            ).length;
+          } catch (e) {
+            console.error('Ошибка при парсинге подписок из localStorage:', e);
+          }
+        }
+        
+        // Получаем количество подписок
+        let subscriptionsCount = 0;
+        if (storedSubscriptions) {
+          try {
+            const subscriptions = JSON.parse(storedSubscriptions);
+            subscriptionsCount = subscriptions.filter(
+              sub => sub.subscriberId === data.twitchData.id
+            ).length;
+          } catch (e) {
+            console.error('Ошибка при парсинге подписок из localStorage:', e);
+          }
+        }
+        
+        // Добавляем данные о подписках в объект пользователя
+        data.isFollowed = isFollowed;
+        data.subscribersCount = subscribersCount;
+        data.subscriptionsCount = subscriptionsCount;
+        
         setUserData(data);
-        setIsFollowing(data.isFollowed || false);
+        setIsFollowing(isFollowed);
       } catch (err) {
         console.error('Ошибка при загрузке данных пользователя:', err);
         setError('Не удалось загрузить данные пользователя. Пожалуйста, попробуйте позже.');
@@ -89,7 +135,7 @@ export default function UserProfile() {
     };
     
     fetchUserData();
-  }, [id, isAuthenticated]);
+  }, [id, isAuthenticated, userId]);
   
   const handleFollow = async () => {
     try {
@@ -97,35 +143,50 @@ export default function UserProfile() {
       const currentUserId = userId;
       const targetUserId = userData.twitchData.id;
       
-      // Отправляем запрос на создание подписки
-      const response = await fetch('/api/subscriptions', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          subscriberId: currentUserId,
-          targetUserId: targetUserId
-        })
-      });
+      // Создаем новую подписку
+      const newSubscription = {
+        id: `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+        subscriberId: currentUserId,
+        targetUserId: targetUserId,
+        createdAt: new Date().toISOString()
+      };
       
-      const data = await response.json();
+      // Сохраняем подписку в localStorage
+      const storedSubscriptions = localStorage.getItem('su_subscriptions');
+      let subscriptions = [];
       
-      if (response.ok) {
-        // Обновляем состояние подписки
-        setIsFollowing(true);
-        
-        // Обновляем счетчик подписчиков
-        const updatedUserData = { ...userData };
-        updatedUserData.subscribersCount = (updatedUserData.subscribersCount || 0) + 1;
-        setUserData(updatedUserData);
-        
-        // Показываем уведомление об успешной подписке
-        alert('Вы успешно подписались на пользователя!');
-      } else {
-        console.error('Ошибка при подписке:', data.error);
-        alert(`Ошибка при подписке: ${data.error}`);
+      if (storedSubscriptions) {
+        try {
+          subscriptions = JSON.parse(storedSubscriptions);
+        } catch (e) {
+          console.error('Ошибка при парсинге подписок из localStorage:', e);
+        }
       }
+      
+      // Проверяем, существует ли уже такая подписка
+      const existingSubscription = subscriptions.find(
+        sub => sub.subscriberId === currentUserId && sub.targetUserId === targetUserId
+      );
+      
+      if (existingSubscription) {
+        alert('Вы уже подписаны на этого пользователя');
+        return;
+      }
+      
+      // Добавляем новую подписку
+      subscriptions.push(newSubscription);
+      localStorage.setItem('su_subscriptions', JSON.stringify(subscriptions));
+      
+      // Обновляем состояние подписки
+      setIsFollowing(true);
+      
+      // Обновляем счетчик подписчиков
+      const updatedUserData = { ...userData };
+      updatedUserData.subscribersCount = (updatedUserData.subscribersCount || 0) + 1;
+      setUserData(updatedUserData);
+      
+      // Показываем уведомление об успешной подписке
+      alert('Вы успешно подписались на пользователя!');
     } catch (err) {
       console.error('Ошибка при подписке на пользователя:', err);
       alert('Произошла ошибка при подписке. Пожалуйста, попробуйте позже.');
@@ -138,28 +199,42 @@ export default function UserProfile() {
       const currentUserId = userId;
       const targetUserId = userData.twitchData.id;
       
-      // Отправляем запрос на удаление подписки
-      const response = await fetch(`/api/subscriptions?subscriberId=${currentUserId}&targetUserId=${targetUserId}`, {
-        method: 'DELETE'
-      });
+      // Получаем подписки из localStorage
+      const storedSubscriptions = localStorage.getItem('su_subscriptions');
+      let subscriptions = [];
       
-      const data = await response.json();
-      
-      if (response.ok) {
-        // Обновляем состояние подписки
-        setIsFollowing(false);
-        
-        // Обновляем счетчик подписчиков
-        const updatedUserData = { ...userData };
-        updatedUserData.subscribersCount = Math.max((updatedUserData.subscribersCount || 0) - 1, 0);
-        setUserData(updatedUserData);
-        
-        // Показываем уведомление об успешной отписке
-        alert('Вы успешно отписались от пользователя!');
-      } else {
-        console.error('Ошибка при отписке:', data.error);
-        alert(`Ошибка при отписке: ${data.error}`);
+      if (storedSubscriptions) {
+        try {
+          subscriptions = JSON.parse(storedSubscriptions);
+        } catch (e) {
+          console.error('Ошибка при парсинге подписок из localStorage:', e);
+        }
       }
+      
+      // Находим индекс подписки для удаления
+      const subscriptionIndex = subscriptions.findIndex(
+        sub => sub.subscriberId === currentUserId && sub.targetUserId === targetUserId
+      );
+      
+      if (subscriptionIndex === -1) {
+        alert('Вы не подписаны на этого пользователя');
+        return;
+      }
+      
+      // Удаляем подписку
+      subscriptions.splice(subscriptionIndex, 1);
+      localStorage.setItem('su_subscriptions', JSON.stringify(subscriptions));
+      
+      // Обновляем состояние подписки
+      setIsFollowing(false);
+      
+      // Обновляем счетчик подписчиков
+      const updatedUserData = { ...userData };
+      updatedUserData.subscribersCount = Math.max((updatedUserData.subscribersCount || 0) - 1, 0);
+      setUserData(updatedUserData);
+      
+      // Показываем уведомление об успешной отписке
+      alert('Вы успешно отписались от пользователя!');
     } catch (err) {
       console.error('Ошибка при отписке от пользователя:', err);
       alert('Произошла ошибка при отписке. Пожалуйста, попробуйте позже.');
@@ -180,32 +255,42 @@ export default function UserProfile() {
       const currentUserId = userId;
       const receiverId = userData.twitchData.id;
       
-      // Отправляем запрос на создание сообщения
-      const response = await fetch('/api/messages', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          senderId: currentUserId,
-          receiverId: receiverId,
-          content: messageText
-        })
-      });
+      // Создаем или получаем ID беседы
+      const participantIds = [currentUserId, receiverId].sort();
+      const conversationId = `conv-${participantIds.join('-')}`;
       
-      const data = await response.json();
+      // Создаем новое сообщение
+      const newMessage = {
+        id: `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+        conversationId,
+        senderId: currentUserId,
+        receiverId,
+        content: messageText,
+        createdAt: new Date().toISOString(),
+        read: false
+      };
       
-      if (response.ok) {
-        // Очищаем поле ввода и закрываем модальное окно
-        setMessageText('');
-        setShowMessageModal(false);
-        
-        // Показываем уведомление об успешной отправке
-        alert('Сообщение успешно отправлено!');
-      } else {
-        console.error('Ошибка при отправке сообщения:', data.error);
-        alert(`Ошибка при отправке сообщения: ${data.error}`);
+      // Сохраняем сообщение в localStorage
+      const storedMessages = localStorage.getItem('su_messages');
+      let messages = [];
+      
+      if (storedMessages) {
+        try {
+          messages = JSON.parse(storedMessages);
+        } catch (e) {
+          console.error('Ошибка при парсинге сообщений из localStorage:', e);
+        }
       }
+      
+      messages.push(newMessage);
+      localStorage.setItem('su_messages', JSON.stringify(messages));
+      
+      // Очищаем поле ввода и закрываем модальное окно
+      setMessageText('');
+      setShowMessageModal(false);
+      
+      // Показываем уведомление об успешной отправке
+      alert('Сообщение успешно отправлено!');
     } catch (err) {
       console.error('Ошибка при отправке сообщения:', err);
       alert('Произошла ошибка при отправке сообщения. Пожалуйста, попробуйте позже.');
@@ -372,11 +457,11 @@ export default function UserProfile() {
           
           <div className={styles.statsRow}>
             <div className={styles.statItem}>
-              <span className={styles.statValue}>0</span>
+              <span className={styles.statValue}>{userData.subscribersCount || 0}</span>
               <span className={styles.statLabel}>Подписчики SU</span>
             </div>
             <div className={styles.statItem}>
-              <span className={styles.statValue}>0</span>
+              <span className={styles.statValue}>{userData.subscriptionsCount || 0}</span>
               <span className={styles.statLabel}>Подписки SU</span>
             </div>
           </div>

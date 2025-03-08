@@ -26,43 +26,78 @@ export default function Messages() {
       try {
         setLoading(true);
         
-        // Получаем беседы пользователя
-        const response = await fetch(`/api/messages?userId=${userId}`);
+        // Получаем беседы из localStorage (временное решение)
+        const storedMessages = localStorage.getItem('su_messages');
+        let userMessages = [];
         
-        if (!response.ok) {
-          throw new Error('Не удалось загрузить беседы');
-        }
-        
-        const data = await response.json();
-        setConversations(data.messages || []);
-        
-        // Если есть беседы, загружаем информацию о пользователях
-        if (data.messages && data.messages.length > 0) {
-          const userIds = new Set();
-          
-          data.messages.forEach(conv => {
-            conv.participants.forEach(participantId => {
-              if (participantId !== userId) {
-                userIds.add(participantId);
+        if (storedMessages) {
+          try {
+            const parsedMessages = JSON.parse(storedMessages);
+            
+            // Фильтруем сообщения пользователя
+            userMessages = parsedMessages.filter(msg => 
+              msg.senderId === userId || msg.receiverId === userId
+            );
+            
+            // Группируем сообщения по беседам
+            const conversations = {};
+            
+            userMessages.forEach(msg => {
+              const conversationId = msg.conversationId;
+              
+              if (!conversations[conversationId]) {
+                conversations[conversationId] = {
+                  id: conversationId,
+                  participants: [msg.senderId, msg.receiverId],
+                  lastMessage: msg,
+                  messages: [],
+                  unreadCount: 0
+                };
+              }
+              
+              conversations[conversationId].messages.push(msg);
+              
+              // Обновляем последнее сообщение, если текущее новее
+              if (new Date(msg.createdAt) > new Date(conversations[conversationId].lastMessage.createdAt)) {
+                conversations[conversationId].lastMessage = msg;
+              }
+              
+              // Считаем непрочитанные сообщения
+              if (!msg.read && msg.receiverId === userId) {
+                conversations[conversationId].unreadCount++;
               }
             });
+            
+            // Преобразуем объект бесед в массив
+            setConversations(Object.values(conversations));
+          } catch (e) {
+            console.error('Ошибка при парсинге сообщений из localStorage:', e);
+            setError('Ошибка при загрузке сообщений. Пожалуйста, попробуйте позже.');
+          }
+        }
+        
+        // Если есть беседы, загружаем информацию о пользователях
+        if (userMessages.length > 0) {
+          const userIds = new Set();
+          
+          userMessages.forEach(msg => {
+            if (msg.senderId !== userId) userIds.add(msg.senderId);
+            if (msg.receiverId !== userId) userIds.add(msg.receiverId);
           });
           
-          // Загружаем информацию о пользователях
-          await Promise.all(Array.from(userIds).map(async (id) => {
+          // Загружаем информацию о пользователях из localStorage
+          const storedUsers = localStorage.getItem('twitch_users');
+          let usersData = {};
+          
+          if (storedUsers) {
             try {
-              const userResponse = await fetch(`/api/twitch/user?id=${id}`);
-              if (userResponse.ok) {
-                const userData = await userResponse.json();
-                setUsers(prev => ({
-                  ...prev,
-                  [id]: userData
-                }));
-              }
-            } catch (err) {
-              console.error(`Ошибка при загрузке данных пользователя ${id}:`, err);
+              usersData = JSON.parse(storedUsers);
+            } catch (e) {
+              console.error('Ошибка при парсинге данных пользователей из localStorage:', e);
             }
-          }));
+          }
+          
+          setUsers(usersData);
         }
       } catch (err) {
         console.error('Ошибка при загрузке бесед:', err);
@@ -81,27 +116,48 @@ export default function Messages() {
     
     const fetchMessages = async () => {
       try {
-        // Получаем сообщения беседы
-        const response = await fetch(`/api/messages?userId=${userId}&conversationId=${activeConversation.id}`);
+        // Получаем сообщения из localStorage
+        const storedMessages = localStorage.getItem('su_messages');
         
-        if (!response.ok) {
-          throw new Error('Не удалось загрузить сообщения');
+        if (storedMessages) {
+          try {
+            const parsedMessages = JSON.parse(storedMessages);
+            
+            // Фильтруем сообщения текущей беседы
+            const conversationMessages = parsedMessages.filter(
+              msg => msg.conversationId === activeConversation.id
+            );
+            
+            // Сортируем сообщения по дате
+            conversationMessages.sort((a, b) => 
+              new Date(a.createdAt) - new Date(b.createdAt)
+            );
+            
+            setMessages(conversationMessages);
+            
+            // Отмечаем сообщения как прочитанные
+            const updatedMessages = parsedMessages.map(msg => {
+              if (msg.conversationId === activeConversation.id && msg.receiverId === userId && !msg.read) {
+                return { ...msg, read: true };
+              }
+              return msg;
+            });
+            
+            localStorage.setItem('su_messages', JSON.stringify(updatedMessages));
+            
+            // Обновляем счетчик непрочитанных сообщений
+            setConversations(prevConversations => 
+              prevConversations.map(conv => {
+                if (conv.id === activeConversation.id) {
+                  return { ...conv, unreadCount: 0 };
+                }
+                return conv;
+              })
+            );
+          } catch (e) {
+            console.error('Ошибка при парсинге сообщений из localStorage:', e);
+          }
         }
-        
-        const data = await response.json();
-        setMessages(data.messages || []);
-        
-        // Отмечаем сообщения как прочитанные
-        await fetch('/api/messages', {
-          method: 'PATCH',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            userId,
-            conversationId: activeConversation.id
-          })
-        });
       } catch (err) {
         console.error('Ошибка при загрузке сообщений:', err);
       }
@@ -120,27 +176,47 @@ export default function Messages() {
       // Определяем получателя (не текущий пользователь)
       const receiverId = activeConversation.participants.find(id => id !== userId);
       
-      // Отправляем запрос на создание сообщения
-      const response = await fetch('/api/messages', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          senderId: userId,
-          receiverId,
-          content: newMessage
-        })
-      });
+      // Создаем новое сообщение
+      const newMessageObj = {
+        id: `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+        conversationId: activeConversation.id,
+        senderId: userId,
+        receiverId,
+        content: newMessage,
+        createdAt: new Date().toISOString(),
+        read: false
+      };
       
-      if (!response.ok) {
-        throw new Error('Не удалось отправить сообщение');
+      // Сохраняем сообщение в localStorage
+      const storedMessages = localStorage.getItem('su_messages');
+      let messages = [];
+      
+      if (storedMessages) {
+        try {
+          messages = JSON.parse(storedMessages);
+        } catch (e) {
+          console.error('Ошибка при парсинге сообщений из localStorage:', e);
+        }
       }
       
-      const data = await response.json();
+      messages.push(newMessageObj);
+      localStorage.setItem('su_messages', JSON.stringify(messages));
       
       // Добавляем новое сообщение в список
-      setMessages(prev => [...prev, data.message]);
+      setMessages(prev => [...prev, newMessageObj]);
+      
+      // Обновляем последнее сообщение в беседе
+      setConversations(prevConversations => 
+        prevConversations.map(conv => {
+          if (conv.id === activeConversation.id) {
+            return {
+              ...conv,
+              lastMessage: newMessageObj
+            };
+          }
+          return conv;
+        })
+      );
       
       // Очищаем поле ввода
       setNewMessage('');

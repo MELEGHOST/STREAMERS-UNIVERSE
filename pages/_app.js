@@ -3,6 +3,7 @@ import '../styles/global.css'; // Относительный путь от pages
 import CookieChecker from '../components/CookieChecker';
 import ThemeProvider from '../components/ThemeProvider';
 import { useRouter } from 'next/router';
+import { AuthProvider } from '../contexts/AuthContext';
 
 export default function MyApp({ Component, pageProps }) {
   const router = useRouter();
@@ -52,9 +53,11 @@ export default function MyApp({ Component, pageProps }) {
   }, [router]);
 
   return (
-    <ThemeProvider>
-      <Component {...pageProps} />
-      <CookieChecker />
-    </ThemeProvider>
+    <AuthProvider>
+      <ThemeProvider>
+        <Component {...pageProps} />
+        <CookieChecker />
+      </ThemeProvider>
+    </AuthProvider>
   );
 } 
