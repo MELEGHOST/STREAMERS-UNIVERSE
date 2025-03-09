@@ -1,6 +1,6 @@
 import React, { useEffect } from 'react';
 import { useRouter } from 'next/router';
-import styles from './auth.module.css'; // Используем стили от страницы авторизации
+import styles from './404.module.css'; // Используем собственные стили для страницы 404
 
 export default function Custom404() {
   const router = useRouter();
