@@ -41,26 +41,46 @@ export default function Auth() {
       
       // Очищаем устаревшие токены при загрузке страницы авторизации
       if (typeof window !== 'undefined') {
-        // Проверяем, есть ли параметр clear_auth в URL
+        // Проверяем, есть ли параметр clear_auth или logged_out в URL
         const urlParams = new URLSearchParams(window.location.search);
         const clearAuth = urlParams.get('clear_auth') === 'true';
+        const loggedOut = urlParams.get('logged_out') === 'true';
         
-        if (clearAuth) {
+        // Если есть параметр logged_out или clear_auth, очищаем данные авторизации
+        if (clearAuth || loggedOut) {
           console.log('Очищаем данные авторизации по запросу');
+          
+          // Очищаем куки напрямую через document.cookie
+          document.cookie = 'twitch_access_token=; Path=/; Expires=Thu, 01 Jan 1970 00:00:01 GMT;';
+          document.cookie = 'twitch_refresh_token=; Path=/; Expires=Thu, 01 Jan 1970 00:00:01 GMT;';
+          document.cookie = 'twitch_token=; Path=/; Expires=Thu, 01 Jan 1970 00:00:01 GMT;';
+          document.cookie = 'twitch_user=; Path=/; Expires=Thu, 01 Jan 1970 00:00:01 GMT;';
+          document.cookie = 'twitch_auth_state=; Path=/; Expires=Thu, 01 Jan 1970 00:00:01 GMT;';
+          
+          // Используем библиотеку js-cookie для дополнительного надежного удаления
           Cookies.remove('twitch_access_token');
           Cookies.remove('twitch_refresh_token');
           Cookies.remove('twitch_user');
           Cookies.remove('twitch_token');
+          
+          // Очищаем localStorage и sessionStorage
           localStorage.removeItem('twitch_user');
           localStorage.removeItem('cookie_twitch_access_token');
           localStorage.removeItem('cookie_twitch_refresh_token');
           localStorage.removeItem('cookie_twitch_user');
           localStorage.removeItem('is_authenticated');
+          localStorage.removeItem('logged_out');
           
           // Удаляем параметр из URL
           const newUrl = new URL(window.location.href);
           newUrl.searchParams.delete('clear_auth');
+          newUrl.searchParams.delete('logged_out');
           window.history.replaceState({}, document.title, newUrl.toString());
+          
+          // Отображаем сообщение о выходе, если был параметр logged_out
+          if (loggedOut) {
+            setErrorMessage('Вы успешно вышли из системы.');
+          }
           return;
         }
       }

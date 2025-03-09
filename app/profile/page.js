@@ -170,31 +170,27 @@ export default function Profile() {
   };
 
   // Функция для выхода из аккаунта
-  const handleLogout = async () => {
+  const handleLogout = () => {
     try {
-      console.log('Выполняем выход из аккаунта...');
+      console.log('Выполняем выход из аккаунта (клиентская версия)...');
       
-      // Используем API-роут для выхода из системы, который также отзывает токен на стороне Twitch
-      const response = await fetch('/api/twitch/logout?redirect=/auth');
-      
-      if (response.ok) {
-        console.log('Успешно вышли из аккаунта через API');
-      } else {
-        console.warn('Ошибка при использовании API для выхода, выполняем локальный выход');
+      // 1. Очищаем все cookies, используя document.cookie напрямую
+      if (typeof document !== 'undefined') {
+        document.cookie = 'twitch_access_token=; Path=/; Expires=Thu, 01 Jan 1970 00:00:01 GMT;';
+        document.cookie = 'twitch_refresh_token=; Path=/; Expires=Thu, 01 Jan 1970 00:00:01 GMT;';
+        document.cookie = 'twitch_token=; Path=/; Expires=Thu, 01 Jan 1970 00:00:01 GMT;';
+        document.cookie = 'twitch_user=; Path=/; Expires=Thu, 01 Jan 1970 00:00:01 GMT;';
+        document.cookie = 'twitch_auth_state=; Path=/; Expires=Thu, 01 Jan 1970 00:00:01 GMT;';
         
-        // Очищаем все куки и локальное хранилище
-        if (typeof document !== 'undefined') {
-          // Удаляем куки через js-cookie
-          const Cookies = (await import('js-cookie')).default;
-          Cookies.remove('twitch_access_token', { path: '/' });
-          Cookies.remove('twitch_refresh_token', { path: '/' });
-          Cookies.remove('twitch_token', { path: '/' });
-          Cookies.remove('twitch_user', { path: '/' });
-          Cookies.remove('twitch_auth_state', { path: '/' });
-        }
+        // Для надежности пробуем еще с secure и domain
+        document.cookie = 'twitch_access_token=; Path=/; Domain='+window.location.hostname+'; Expires=Thu, 01 Jan 1970 00:00:01 GMT; Secure;';
+        document.cookie = 'twitch_refresh_token=; Path=/; Domain='+window.location.hostname+'; Expires=Thu, 01 Jan 1970 00:00:01 GMT; Secure;';
+        document.cookie = 'twitch_token=; Path=/; Domain='+window.location.hostname+'; Expires=Thu, 01 Jan 1970 00:00:01 GMT; Secure;';
+        document.cookie = 'twitch_user=; Path=/; Domain='+window.location.hostname+'; Expires=Thu, 01 Jan 1970 00:00:01 GMT; Secure;';
+        document.cookie = 'twitch_auth_state=; Path=/; Domain='+window.location.hostname+'; Expires=Thu, 01 Jan 1970 00:00:01 GMT; Secure;';
       }
       
-      // Очищаем все данные в localStorage
+      // 2. Очищаем все переменные в localStorage
       localStorage.removeItem('twitch_user');
       localStorage.removeItem('twitch_token');
       localStorage.removeItem('cookie_twitch_access_token');
@@ -202,17 +198,41 @@ export default function Profile() {
       localStorage.removeItem('cookie_twitch_user');
       localStorage.removeItem('is_authenticated');
       
-      // Очищаем данные сессии
+      // Очищаем другие потенциальные данные аутентификации
+      const keysToRemove = [];
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        if (key && (
+          key.includes('twitch') || 
+          key.includes('auth') || 
+          key.includes('token') || 
+          key.includes('user') ||
+          key.includes('login')
+        )) {
+          keysToRemove.push(key);
+        }
+      }
+      
+      // Удаляем найденные ключи
+      keysToRemove.forEach(key => {
+        localStorage.removeItem(key);
+      });
+      
+      // 3. Очищаем sessionStorage
       sessionStorage.clear();
       
       console.log('Все данные аутентификации успешно удалены');
       
-      // Перенаправляем на страницу авторизации
-      window.location.href = '/auth';
+      // 4. Устанавливаем признак выхода в localStorage
+      localStorage.setItem('logged_out', 'true');
+      
+      // 5. Перенаправляем на страницу авторизации с параметром, указывающим на выход
+      window.location.href = '/auth?logged_out=true';
     } catch (error) {
       console.error('Ошибка при выходе из аккаунта:', error);
       
-      // В случае ошибки всё равно пытаемся перенаправить пользователя на страницу авторизации
+      // В случае ошибки всё равно пытаемся перенаправить на страницу авторизации
+      alert('Произошла ошибка при выходе из аккаунта. Вы будете перенаправлены на страницу авторизации.');
       window.location.href = '/auth';
     }
   };
@@ -716,6 +736,21 @@ export default function Profile() {
           <button className={styles.logoutButton} onClick={handleLogout}>
             Выйти из аккаунта
           </button>
+          <a 
+            href="/auth?logged_out=true" 
+            className={styles.logoutButton} 
+            style={{ marginLeft: '10px', textDecoration: 'none', textAlign: 'center' }}
+            onClick={(e) => {
+              e.preventDefault();
+              localStorage.removeItem('twitch_user');
+              localStorage.removeItem('twitch_token');
+              localStorage.removeItem('is_authenticated');
+              localStorage.setItem('logged_out', 'true');
+              window.location.href = '/auth?logged_out=true';
+            }}
+          >
+            Альтернативный выход
+          </a>
         </div>
       </div>
       
