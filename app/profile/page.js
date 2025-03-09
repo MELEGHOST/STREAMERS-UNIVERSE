@@ -7,7 +7,7 @@ import SocialButton from '../components/SocialButton';
 import AchievementsSystem from '../components/AchievementsSystem';
 import ReviewSection from '../components/ReviewSection';
 import { checkBirthday, getDaysToBirthday } from '../utils/birthdayCheck';
-import { getUserData, getUserFollowers } from '../utils/twitchAPI';
+import { getUserData, getUserFollowers, getUserStats } from '../utils/twitchAPI';
 import { DataStorage } from '../utils/dataStorage';
 import { useAuth } from '../../contexts/AuthContext';
 
@@ -100,6 +100,16 @@ export default function Profile() {
           }
         }
         
+        // Загружаем статистику пользователя
+        try {
+          const userStatsData = await getUserStats(userId);
+          if (userStatsData) {
+            setUserStats(userStatsData);
+          }
+        } catch (statsError) {
+          console.error('Ошибка при загрузке статистики пользователя:', statsError);
+        }
+        
         // Загружаем фолловеров, используя новый метод с кешированием
         try {
           const followersData = await getUserFollowers(userId);
@@ -140,6 +150,16 @@ export default function Profile() {
             const days = getDaysToBirthday(userData.birthday);
             setDaysToBirthday(days);
           }
+        }
+        
+        // Загружаем статистику пользователя
+        try {
+          const userStatsData = await getUserStats(userData.id);
+          if (userStatsData) {
+            setUserStats(userStatsData);
+          }
+        } catch (statsError) {
+          console.error('Ошибка при загрузке статистики пользователя:', statsError);
         }
         
         // Загружаем фолловеров, используя новый метод с кешированием

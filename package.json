@@ -24,6 +24,7 @@
     "@vercel/postgres": "^0.10.0",
     "axios": "1.8.1",
     "cookies-next": "^5.1.0",
+    "framer-motion": "^12.4.10",
     "jose": "^6.0.8",
     "js-cookie": "^3.0.5",
     "next": "^15.2.1",

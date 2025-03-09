@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
 import styles from './followings.module.css';
-import { getUserData, getUserFollowings } from '../utils/twitchAPI';
+import { getUserData, getUserFollowings, getUserStats } from '../utils/twitchAPI';
 import { DataStorage } from '../utils/dataStorage';
 
 export default function Followings() {
@@ -42,7 +42,21 @@ export default function Followings() {
         setUserId(userData.id);
         setUserLogin(userData.login || userData.display_name);
         
-        // Загружаем данные о подписках
+        // Сначала пробуем загрузить статистику пользователя, которая включает followings
+        try {
+          const userStats = await getUserStats(userData.id);
+          if (userStats && userStats.followings && userStats.followings.recentFollowings) {
+            setFollowings(userStats.followings.recentFollowings);
+            setTotalFollowings(userStats.followings.total || userStats.followings.recentFollowings.length);
+            setLoading(false);
+            return;
+          }
+        } catch (statsError) {
+          console.error('Ошибка при загрузке статистики пользователя:', statsError);
+          // Продолжаем и пробуем загрузить followings напрямую
+        }
+        
+        // Если не удалось получить данные из статистики, загружаем напрямую
         await loadFollowings(userData.id);
       } catch (error) {
         console.error('Ошибка при загрузке данных:', error);
@@ -79,6 +93,21 @@ export default function Followings() {
     setLoading(true);
     setError(null);
     if (userId) {
+      // Сначала пробуем загрузить статистику пользователя
+      try {
+        const userStats = await getUserStats(userId);
+        if (userStats && userStats.followings && userStats.followings.recentFollowings) {
+          setFollowings(userStats.followings.recentFollowings);
+          setTotalFollowings(userStats.followings.total || userStats.followings.recentFollowings.length);
+          setLoading(false);
+          return;
+        }
+      } catch (statsError) {
+        console.error('Ошибка при загрузке статистики пользователя:', statsError);
+        // Продолжаем и пробуем загрузить followings напрямую
+      }
+      
+      // Если не удалось получить данные из статистики, загружаем напрямую
       await loadFollowings(userId);
     } else {
       setError('ID пользователя не найден. Пожалуйста, перезайдите в аккаунт.');

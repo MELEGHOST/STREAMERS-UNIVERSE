@@ -290,4 +290,90 @@ export function isStreamer(userData) {
      
   // Определяем статус стримера по комбинации параметров
   return isPartnerOrAffiliate || hasFollowers || hasStreamerBadge;
+}
+
+/**
+ * Получает статистику пользователя
+ * @param {string} userId - ID пользователя в Twitch
+ * @returns {Promise<Object>} - Статистика пользователя
+ */
+export async function getUserStats(userId) {
+  if (!userId) {
+    throw new Error('Необходим userId');
+  }
+
+  try {
+    // Попытка получить данные из нашего хранилища
+    const cachedStats = await DataStorage.getData('user_stats');
+    
+    if (cachedStats && cachedStats.timestamp && 
+        (Date.now() - cachedStats.timestamp < 3600000)) { // Данные не старше 1 часа
+      console.log('Использую кэшированные данные о статистике пользователя');
+      return cachedStats;
+    }
+    
+    // Если нет кэшированных данных или они устарели, делаем запрос к API
+    const response = await fetch(`/api/twitch/user-stats?userId=${userId}`, {
+      method: 'GET',
+      credentials: 'include',
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      
+      // Если есть кэшированные данные, возвращаем их, даже если они устарели
+      if (cachedStats) {
+        console.warn('API вернул ошибку, использую устаревшие кэшированные данные');
+        return cachedStats;
+      }
+      
+      throw new Error(errorData.error || `HTTP ошибка: ${response.status}`);
+    }
+
+    const data = await response.json();
+    
+    // Сохраняем в нашем хранилище с меткой времени
+    await DataStorage.saveData('user_stats', {
+      ...data,
+      timestamp: Date.now()
+    });
+    
+    return data;
+  } catch (error) {
+    console.error('Ошибка при получении статистики пользователя:', error);
+    
+    // В случае ошибки пытаемся использовать кэшированные данные
+    const cachedStats = await DataStorage.getData('user_stats');
+    if (cachedStats) {
+      console.warn('Использую кэшированные данные о статистике пользователя из-за ошибки');
+      return cachedStats;
+    }
+    
+    // Если нет кэшированных данных, возвращаем базовую структуру
+    return {
+      user: {
+        viewCount: 0,
+        createdAt: new Date().toISOString(),
+        broadcasterType: ''
+      },
+      followers: {
+        total: 0,
+        recentFollowers: []
+      },
+      followings: {
+        total: 0,
+        recentFollowings: []
+      },
+      stream: {
+        isLive: false,
+        currentStream: null,
+        lastStream: null,
+        recentStreams: []
+      },
+      channel: {
+        hasSubscriptionProgram: false,
+        subscribers: 0
+      }
+    };
+  }
 } 
