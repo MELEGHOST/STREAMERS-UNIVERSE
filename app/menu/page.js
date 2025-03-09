@@ -18,6 +18,7 @@ export default function Menu() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
   const initTimeoutRef = useRef(null);
+  const hasRedirectedRef = useRef(false);
   
   // Выносим функции за пределы useEffect для оптимизации
   const loadStreamCoins = useCallback((userId) => {
@@ -81,7 +82,10 @@ export default function Menu() {
         } else {
           console.log('Пользователь не аутентифицирован, перенаправляем на страницу авторизации');
           // Если пользователь не авторизован, перенаправляем на страницу авторизации
-          router.push('/auth');
+          if (!hasRedirectedRef.current) {
+            hasRedirectedRef.current = true;
+            router.push('/auth');
+          }
         }
       } catch (error) {
         console.error('Ошибка при инициализации пользователя:', error);

@@ -1,24 +1,37 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '../contexts/AuthContext';
 
 export default function Home() {
   const router = useRouter();
   const { isAuthenticated, isInitialized } = useAuth();
+  const hasRedirectedRef = useRef(false);
   
   useEffect(() => {
+    // Предотвращаем повторные перенаправления
+    if (hasRedirectedRef.current) {
+      return;
+    }
+    
     // Устанавливаем таймаут для предотвращения бесконечной загрузки
     const redirectTimeout = setTimeout(() => {
-      console.log('Таймаут перенаправления, принудительно перенаправляем на /menu');
-      router.push('/menu');
+      if (!hasRedirectedRef.current) {
+        console.log('Таймаут перенаправления, принудительно перенаправляем на /menu');
+        hasRedirectedRef.current = true;
+        router.push('/menu');
+      }
     }, 3000); // 3 секунды таймаут
     
     // Если контекст аутентификации инициализирован, перенаправляем на соответствующую страницу
     if (isInitialized) {
       clearTimeout(redirectTimeout);
-      router.push('/menu');
+      if (!hasRedirectedRef.current) {
+        console.log('Контекст аутентификации инициализирован, перенаправляем на /menu');
+        hasRedirectedRef.current = true;
+        router.push('/menu');
+      }
     }
     
     // Очищаем таймаут при размонтировании компонента

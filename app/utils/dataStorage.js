@@ -9,10 +9,32 @@ const createTimeout = (ms) => {
 
 // Вспомогательная функция для выполнения запроса с таймаутом
 const fetchWithTimeout = async (url, options, timeout = 5000) => {
-  return Promise.race([
-    fetch(url, options),
-    createTimeout(timeout)
-  ]);
+  // Создаем контроллер для отмены запроса
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), timeout);
+  
+  try {
+    // Добавляем signal к опциям запроса
+    const response = await fetch(url, {
+      ...options,
+      signal: controller.signal
+    });
+    
+    // Очищаем таймаут, если запрос успешно выполнен
+    clearTimeout(timeoutId);
+    return response;
+  } catch (error) {
+    // Очищаем таймаут в случае ошибки
+    clearTimeout(timeoutId);
+    
+    // Если запрос был отменен из-за таймаута
+    if (error.name === 'AbortError') {
+      throw new Error(`Request to ${url} timed out after ${timeout}ms`);
+    }
+    
+    // Пробрасываем другие ошибки
+    throw error;
+  }
 };
 
 export class DataStorage {
