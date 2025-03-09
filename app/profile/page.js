@@ -3,8 +3,8 @@
 import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import styles from './profile.module.css';
-import SocialButton from '../../components/SocialButton';
-import AchievementsSystem from '../../components/AchievementsSystem';
+import SocialButton from '../components/SocialButton';
+import AchievementsSystem from '../components/AchievementsSystem';
 import ReviewSection from '../components/ReviewSection';
 import { checkBirthday, getDaysToBirthday } from '../utils/birthdayCheck';
 
