@@ -26,9 +26,17 @@ export default function Auth() {
         setIsLoading(false);
       }, 3000);
 
+      // Функция для безопасного получения данных из localStorage
+      const safeGetFromStorage = (key) => {
+        if (typeof window !== 'undefined' && window.localStorage) {
+          return localStorage.getItem(key);
+        }
+        return null;
+      };
+
       // Проверяем, есть ли токен и данные пользователя
-      const accessToken = localStorage.getItem('cookie_twitch_access_token') || Cookies.get('twitch_access_token');
-      const userData = localStorage.getItem('cookie_twitch_user') || localStorage.getItem('twitch_user') || Cookies.get('twitch_user');
+      const accessToken = safeGetFromStorage('cookie_twitch_access_token') || Cookies.get('twitch_access_token');
+      const userData = safeGetFromStorage('cookie_twitch_user') || safeGetFromStorage('twitch_user') || Cookies.get('twitch_user');
 
       if (accessToken && userData) {
         // Если данные есть, перенаправляем на меню
@@ -62,16 +70,23 @@ export default function Auth() {
     try {
       setIsLoading(true);
       
+      // Функция для безопасного удаления данных из localStorage
+      const safeRemoveFromStorage = (key) => {
+        if (typeof window !== 'undefined' && window.localStorage) {
+          localStorage.removeItem(key);
+        }
+      };
+      
       // Очищаем все куки и localStorage перед авторизацией
       Cookies.remove('twitch_access_token');
       Cookies.remove('twitch_refresh_token');
       Cookies.remove('twitch_user');
       Cookies.remove('twitch_token');
-      localStorage.removeItem('twitch_user');
-      localStorage.removeItem('cookie_twitch_access_token');
-      localStorage.removeItem('cookie_twitch_refresh_token');
-      localStorage.removeItem('cookie_twitch_user');
-      localStorage.removeItem('is_authenticated');
+      safeRemoveFromStorage('twitch_user');
+      safeRemoveFromStorage('cookie_twitch_access_token');
+      safeRemoveFromStorage('cookie_twitch_refresh_token');
+      safeRemoveFromStorage('cookie_twitch_user');
+      safeRemoveFromStorage('is_authenticated');
       
       // Перенаправляем на API авторизации
       console.log('Перенаправляем на страницу авторизации Twitch');

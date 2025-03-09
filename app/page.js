@@ -16,6 +16,14 @@ export default function Home() {
       return;
     }
     
+    // Функция для безопасного получения данных из localStorage
+    const safeGetFromStorage = (key) => {
+      if (typeof window !== 'undefined' && window.localStorage) {
+        return localStorage.getItem(key);
+      }
+      return null;
+    };
+    
     // Устанавливаем таймаут для гарантированного перенаправления
     timeoutRef.current = setTimeout(() => {
       if (!hasRedirectedRef.current) {
@@ -23,8 +31,8 @@ export default function Home() {
         hasRedirectedRef.current = true;
         
         // Проверяем, есть ли данные пользователя в localStorage
-        const userData = localStorage.getItem('twitch_user') || 
-                         localStorage.getItem('cookie_twitch_user');
+        const userData = safeGetFromStorage('twitch_user') || 
+                         safeGetFromStorage('cookie_twitch_user');
         
         if (userData) {
           console.log('Найдены данные пользователя, перенаправляем в меню');

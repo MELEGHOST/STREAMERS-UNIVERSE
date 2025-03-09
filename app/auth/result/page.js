@@ -31,6 +31,14 @@ function AuthResultContent() {
     const success = searchParams.get('success');
     const errorMessage = searchParams.get('message');
     
+    // Функция для безопасного получения данных из localStorage
+    const safeGetFromStorage = (key) => {
+      if (typeof window !== 'undefined' && window.localStorage) {
+        return localStorage.getItem(key);
+      }
+      return null;
+    };
+    
     if (error) {
       // Если есть ошибка
       console.error('Ошибка авторизации:', error, errorMessage);
@@ -51,8 +59,8 @@ function AuthResultContent() {
       setMessage('Авторизация успешно выполнена! Перенаправляем в меню...');
       
       // Получаем данные пользователя из localStorage
-      const userData = localStorage.getItem('twitch_user') || localStorage.getItem('cookie_twitch_user');
-      const accessToken = localStorage.getItem('cookie_twitch_access_token') || localStorage.getItem('twitch_token');
+      const userData = safeGetFromStorage('twitch_user') || safeGetFromStorage('cookie_twitch_user');
+      const accessToken = safeGetFromStorage('cookie_twitch_access_token') || safeGetFromStorage('twitch_token');
       
       if (userData && accessToken) {
         try {
@@ -68,7 +76,7 @@ function AuthResultContent() {
       redirectTimeoutRef.current = setTimeout(redirectToMenu, 1500);
     } else {
       // Если нет явных параметров, проверяем данные аутентификации
-      const userData = localStorage.getItem('twitch_user') || localStorage.getItem('cookie_twitch_user');
+      const userData = safeGetFromStorage('twitch_user') || safeGetFromStorage('cookie_twitch_user');
       
       if (userData) {
         // Если данные есть, считаем что авторизация успешна

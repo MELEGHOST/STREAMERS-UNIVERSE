@@ -7,7 +7,6 @@ import Image from 'next/image';
 import Cookies from 'js-cookie';
 import styles from '../../styles/menu.module.css';
 import { useAuth } from '../../contexts/AuthContext';
-import Head from 'next/head';
 
 export default function Menu() {
   const router = useRouter();
@@ -29,13 +28,28 @@ export default function Menu() {
         return;
       }
       
-      const storedCoins = localStorage.getItem(`streamcoins_${userId}`);
+      // Безопасное получение данных из localStorage
+      const safeGetFromStorage = (key) => {
+        if (typeof window !== 'undefined' && window.localStorage) {
+          return localStorage.getItem(key);
+        }
+        return null;
+      };
+      
+      // Безопасное сохранение данных в localStorage
+      const safeSetToStorage = (key, value) => {
+        if (typeof window !== 'undefined' && window.localStorage) {
+          localStorage.setItem(key, value);
+        }
+      };
+      
+      const storedCoins = safeGetFromStorage(`streamcoins_${userId}`);
       
       if (storedCoins && !isNaN(parseInt(storedCoins, 10))) {
         setStreamCoins(parseInt(storedCoins, 10));
       } else {
         // Если стример-коинов нет или значение некорректно, устанавливаем начальное значение
-        localStorage.setItem(`streamcoins_${userId}`, '100');
+        safeSetToStorage(`streamcoins_${userId}`, '100');
         setStreamCoins(100);
       }
     } catch (error) {
@@ -64,9 +78,17 @@ export default function Menu() {
     console.log('Menu useEffect:', { isInitialized, isAuthenticated, userId });
     
     const checkLocalAuth = () => {
+      // Безопасное получение данных из localStorage
+      const safeGetFromStorage = (key) => {
+        if (typeof window !== 'undefined' && window.localStorage) {
+          return localStorage.getItem(key);
+        }
+        return null;
+      };
+      
       // Проверяем наличие данных пользователя в localStorage
-      const userData = localStorage.getItem('twitch_user') || 
-                      localStorage.getItem('cookie_twitch_user');
+      const userData = safeGetFromStorage('twitch_user') || 
+                      safeGetFromStorage('cookie_twitch_user');
       
       // Если данных нет, перенаправляем на авторизацию
       if (!userData && !hasRedirectedRef.current) {
@@ -91,11 +113,19 @@ export default function Menu() {
     // Функция инициализации пользователя
     const initializeUser = async () => {
       try {
+        // Безопасное получение данных из localStorage
+        const safeGetFromStorage = (key) => {
+          if (typeof window !== 'undefined' && window.localStorage) {
+            return localStorage.getItem(key);
+          }
+          return null;
+        };
+        
         // Если у нас есть userId (из контекста или localStorage)
         const userIdToUse = userId || (() => {
           try {
-            const userData = localStorage.getItem('twitch_user') || 
-                             localStorage.getItem('cookie_twitch_user');
+            const userData = safeGetFromStorage('twitch_user') || 
+                           safeGetFromStorage('cookie_twitch_user');
             if (userData) {
               const parsed = JSON.parse(userData);
               return parsed.id;
@@ -184,8 +214,6 @@ export default function Menu() {
   
   return (
     <div className={styles.container}>
-      {/* В App Router мы не используем компонент Head, вместо этого метаданные определяются в metadata */}
-      
       <div className={styles.menuContainer}>
         <div className={styles.menuHeader}>
           <div className={styles.userInfo}>
