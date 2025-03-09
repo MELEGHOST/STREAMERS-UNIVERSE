@@ -432,14 +432,21 @@
     grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
   }
   
+  .statsActions {
+    flex-direction: row;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 10px;
+    padding: 0 10px;
+  }
+  
   .statsButton {
     padding: 8px 12px;
     font-size: 14px;
-    margin-right: 8px;
-  }
-  
-  .statsActions {
-    flex-direction: column;
+    margin-right: 0;
+    margin-bottom: 10px;
+    flex: 0 0 auto;
+    white-space: nowrap;
   }
   
   .userAvatar {
@@ -466,6 +473,17 @@
     padding: 6px 10px;
     font-size: 12px;
     margin-right: 5px;
+  }
+  
+  .statsActions {
+    padding: 0 5px;
+    width: 100%;
+  }
+  
+  .statsButton {
+    padding: 6px 10px;
+    font-size: 12px;
+    margin-bottom: 8px;
   }
 }
 
@@ -723,29 +741,6 @@
   color: #FFD700;
 }
 
-.statsButton {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background-color: #4CAF50;
-  color: white;
-  border: none;
-  border-radius: 8px;
-  padding: 10px 15px;
-  font-size: 16px;
-  font-weight: bold;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  margin-right: 10px;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-}
-
-.statsButton:hover {
-  background-color: #388e3c;
-  transform: translateY(-3px);
-  box-shadow: 0 6px 10px rgba(0, 0, 0, 0.15);
-}
-
 .statsContainer, 
 .followersContainer, 
 .followingsContainer, 
@@ -762,22 +757,31 @@
   display: flex;
   flex-wrap: wrap;
   gap: 10px;
+  margin-top: 20px;
+  justify-content: center;
 }
 
-.statsActionButton {
-  background-color: rgba(255, 255, 255, 0.1);
+.statsButton {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: rgba(145, 70, 255, 0.2);
   color: white;
   border: none;
   border-radius: 8px;
-  padding: 8px 15px;
-  font-size: 14px;
+  padding: 10px 15px;
+  font-size: 16px;
+  font-weight: bold;
   cursor: pointer;
   transition: all 0.3s ease;
+  margin-right: 10px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
 }
 
-.statsActionButton:hover {
-  background-color: rgba(255, 255, 255, 0.2);
-  transform: translateY(-2px);
+.statsButton:hover {
+  background-color: rgba(145, 70, 255, 0.4);
+  transform: translateY(-3px);
+  box-shadow: 0 6px 10px rgba(0, 0, 0, 0.15);
 }
 
 .statsSection {
@@ -1057,7 +1061,7 @@
     grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
   }
   
-  .streamsList {
+ .streamsList {
     grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
   }
   

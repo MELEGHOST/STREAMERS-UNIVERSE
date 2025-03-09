@@ -273,14 +273,6 @@ export default function Auth() {
       )}
       
       <div className={styles.authButtonsContainer}>
-        <button 
-          className={styles.normalLoginButton}
-          onClick={handleLoginClick}
-          disabled={isLoading}
-        >
-          {isLoading ? 'Авторизация...' : 'Войти через Twitch'}
-        </button>
-        
         <div className={styles.galaxyButton}>
           <button 
             className={styles.spaceButton}

@@ -285,7 +285,7 @@ export default function Profile() {
         
         {socialLinks.isMusician && socialLinks.yandexMusic && (
           <SocialButton 
-            type="yandexMusic" 
+            type="yandexmusic" 
             url={socialLinks.yandexMusic} 
             username={socialLinks.yandexMusic.split('/').pop()} 
           />
@@ -556,10 +556,23 @@ export default function Profile() {
   
   // Функция для отображения последних подписчиков
   const renderRecentFollowers = () => {
-    if (!userStats || !userStats.followers.recentFollowers || userStats.followers.recentFollowers.length === 0) {
+    console.log('Состояние userStats при отображении фолловеров:', userStats);
+    
+    if (!userStats || 
+        !userStats.followers || 
+        !userStats.followers.recentFollowers || 
+        userStats.followers.recentFollowers.length === 0) {
       return (
         <div className={styles.emptyState}>
           <p>У вас пока нет подписчиков</p>
+          {userStats?.followers?.total > 0 && (
+            <button 
+              className={styles.button}
+              onClick={loadUserData}
+            >
+              Обновить данные
+            </button>
+          )}
         </div>
       );
     }

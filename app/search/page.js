@@ -6,6 +6,138 @@ import Cookies from 'js-cookie';
 import styles from './search.module.css';
 import { getAccessTokenFromCookie } from '../utils/twitchAPI';
 
+// Стили для кнопки поиска с uiverse.io
+const searchButtonStyles = {
+  searchBox: {
+    display: 'flex',
+    padding: '10px',
+    alignItems: 'center',
+    borderRadius: '50px',
+    background: '#c7c7c72b',
+    boxShadow: '0px 0px 20px rgba(0, 0, 0, 0.1)',
+    maxWidth: '300px',
+    margin: '20px auto',
+  },
+  searchInput: {
+    padding: '10px',
+    border: 'none',
+    background: 'transparent',
+    outline: 'none',
+    color: 'white',
+    width: '100%',
+    fontSize: '16px',
+  },
+  searchBtn: {
+    borderRadius: '50%',
+    color: 'white',
+    background: '#664cf8',
+    borderWidth: '0',
+    width: '37px',
+    height: '37px',
+    display: 'flex',
+    justifyContent: 'center',
+    alignItems: 'center',
+    cursor: 'pointer',
+    transition: 'all 0.2s ease-in-out',
+  },
+  searchIcon: {
+    width: '20px',
+    height: '20px',
+    stroke: 'white',
+  }
+};
+
+// Добавляем CSS для красивых чекбоксов
+const checkboxStyles = {
+  checkboxWrapper: {
+    position: 'relative',
+    marginBottom: '0.75rem',
+    display: 'flex',
+    alignItems: 'center',
+    cursor: 'pointer',
+  },
+  checkbox: {
+    position: 'absolute',
+    opacity: '0',
+    cursor: 'pointer',
+    height: '0',
+    width: '0',
+  },
+  checkmark: {
+    position: 'relative',
+    height: '1.5em',
+    width: '1.5em',
+    backgroundColor: 'transparent',
+    borderRadius: '0.2em',
+    transition: 'all 0.1s ease-in',
+    marginRight: '0.5rem',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    border: '1px solid #ffffffb0',
+  },
+  checkmarkActive: {
+    backgroundColor: '#9146FF',
+    border: '1px solid #9146FF',
+  },
+  checkmarkCheckIcon: {
+    color: 'white',
+    transform: 'scale(0)',
+    transition: 'all 0.1s ease-in',
+  },
+  checkmarkCheckIconActive: {
+    transform: 'scale(1)',
+  },
+  labelText: {
+    color: '#fff',
+    userSelect: 'none',
+    cursor: 'pointer',
+  }
+};
+
+// Компонент стилизованного чекбокса
+const StyledCheckbox = ({ label, checked, onChange, name, value }) => {
+  return (
+    <label style={checkboxStyles.checkboxWrapper}>
+      <input
+        type="checkbox"
+        style={checkboxStyles.checkbox}
+        checked={checked}
+        onChange={onChange}
+        name={name}
+        value={value}
+      />
+      <span 
+        style={{
+          ...checkboxStyles.checkmark,
+          ...(checked ? checkboxStyles.checkmarkActive : {})
+        }}
+      >
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          fill="none"
+          viewBox="0 0 24 24"
+          strokeWidth={2.5}
+          stroke="currentColor"
+          style={{
+            ...checkboxStyles.checkmarkCheckIcon,
+            ...(checked ? checkboxStyles.checkmarkCheckIconActive : {})
+          }}
+          width="14px"
+          height="14px"
+        >
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            d="M4.5 12.75l6 6 9-13.5"
+          />
+        </svg>
+      </span>
+      <span style={checkboxStyles.labelText}>{label}</span>
+    </label>
+  );
+};
+
 export default function Search() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [userId, setUserId] = useState(null);
@@ -15,7 +147,10 @@ export default function Search() {
   const [showFilters, setShowFilters] = useState(false);
   const [filters, setFilters] = useState({
     category: 'all',
-    status: 'all'
+    status: 'all',
+    popularity: null,
+    activity: null,
+    region: null
   });
   const router = useRouter();
 
@@ -128,6 +263,37 @@ export default function Search() {
     <div className={styles.searchContainer}>
       <h1>Поиск пользователя</h1>
       
+      <div style={searchButtonStyles.searchBox}>
+        <input 
+          type="text" 
+          placeholder="Поиск..." 
+          style={searchButtonStyles.searchInput}
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
+        />
+        <button 
+          style={searchButtonStyles.searchBtn}
+          onClick={handleSearch}
+          disabled={loading}
+        >
+          <svg
+            style={searchButtonStyles.searchIcon}
+            xmlns="http://www.w3.org/2000/svg"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+            strokeWidth={2}
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+            />
+          </svg>
+        </button>
+      </div>
+      
       <div className={styles.grid}></div>
       <div id={styles.poda}>
         <div className={styles.glow}></div>
@@ -210,72 +376,120 @@ export default function Search() {
           <div className={styles.filterGroup}>
             <h3>Категория</h3>
             <div className={styles.filterOptions}>
-              <label className={styles.filterOption}>
-                <input 
-                  type="radio" 
-                  name="category" 
-                  value="all" 
-                  checked={filters.category === 'all'} 
-                  onChange={() => setFilters({...filters, category: 'all'})}
-                />
-                <span>Все</span>
-              </label>
-              <label className={styles.filterOption}>
-                <input 
-                  type="radio" 
-                  name="category" 
-                  value="streamer" 
-                  checked={filters.category === 'streamer'} 
-                  onChange={() => setFilters({...filters, category: 'streamer'})}
-                />
-                <span>Стримеры</span>
-              </label>
-              <label className={styles.filterOption}>
-                <input 
-                  type="radio" 
-                  name="category" 
-                  value="viewer" 
-                  checked={filters.category === 'viewer'} 
-                  onChange={() => setFilters({...filters, category: 'viewer'})}
-                />
-                <span>Зрители</span>
-              </label>
+              <StyledCheckbox
+                label="Все"
+                checked={filters.category === 'all'}
+                onChange={() => setFilters({...filters, category: 'all'})}
+                name="category"
+                value="all"
+              />
+              <StyledCheckbox
+                label="Стримеры"
+                checked={filters.category === 'streamer'}
+                onChange={() => setFilters({...filters, category: 'streamer'})}
+                name="category"
+                value="streamer"
+              />
+              <StyledCheckbox
+                label="Зрители"
+                checked={filters.category === 'viewer'}
+                onChange={() => setFilters({...filters, category: 'viewer'})}
+                name="category"
+                value="viewer"
+              />
             </div>
           </div>
           
           <div className={styles.filterGroup}>
             <h3>Статус</h3>
             <div className={styles.filterOptions}>
-              <label className={styles.filterOption}>
-                <input 
-                  type="radio" 
-                  name="status" 
-                  value="all" 
-                  checked={filters.status === 'all'} 
-                  onChange={() => setFilters({...filters, status: 'all'})}
-                />
-                <span>Все</span>
-              </label>
-              <label className={styles.filterOption}>
-                <input 
-                  type="radio" 
-                  name="status" 
-                  value="registered" 
-                  checked={filters.status === 'registered'} 
-                  onChange={() => setFilters({...filters, status: 'registered'})}
-                />
-                <span>Зарегистрированные</span>
-              </label>
-              <label className={styles.filterOption}>
-                <input 
-                  type="radio" 
-                  name="status" 
-                  value="not_registered" 
-                  checked={filters.status === 'not_registered'} 
-                  onChange={() => setFilters({...filters, status: 'not_registered'})}
-                />
-                <span>Не зарегистрированные</span>
-              </label>
+              <StyledCheckbox
+                label="Все"
+                checked={filters.status === 'all'}
+                onChange={() => setFilters({...filters, status: 'all'})}
+                name="status"
+                value="all"
+              />
+              <StyledCheckbox
+                label="Зарегистрированные"
+                checked={filters.status === 'registered'}
+                onChange={() => setFilters({...filters, status: 'registered'})}
+                name="status"
+                value="registered"
+              />
+              <StyledCheckbox
+                label="Не зарегистрированные"
+                checked={filters.status === 'not_registered'}
+                onChange={() => setFilters({...filters, status: 'not_registered'})}
+                name="status"
+                value="not_registered"
+              />
+            </div>
+          </div>
+          
+          <div className={styles.filterGroup}>
+            <h3>Популярность</h3>
+            <div className={styles.filterOptions}>
+              <StyledCheckbox
+                label="Популярные (1000+ фолловеров)"
+                checked={filters.popularity === 'popular'}
+                onChange={(e) => setFilters({...filters, 
+                  popularity: e.target.checked ? 'popular' : null})}
+                name="popularity"
+                value="popular"
+              />
+              <StyledCheckbox
+                label="Растущие каналы"
+                checked={filters.popularity === 'rising'}
+                onChange={(e) => setFilters({...filters, 
+                  popularity: e.target.checked ? 'rising' : null})}
+                name="popularity"
+                value="rising"
+              />
+            </div>
+          </div>
+          
+          <div className={styles.filterGroup}>
+            <h3>Активность</h3>
+            <div className={styles.filterOptions}>
+              <StyledCheckbox
+                label="Сейчас в эфире"
+                checked={filters.activity === 'live'}
+                onChange={(e) => setFilters({...filters, 
+                  activity: e.target.checked ? 'live' : null})}
+                name="activity"
+                value="live"
+              />
+              <StyledCheckbox
+                label="Недавно стримили"
+                checked={filters.activity === 'recent'}
+                onChange={(e) => setFilters({...filters, 
+                  activity: e.target.checked ? 'recent' : null})}
+                name="activity"
+                value="recent"
+              />
+            </div>
+          </div>
+          
+          <div className={styles.filterGroup}>
+            <h3>Регион</h3>
+            <div className={styles.filterOptions}>
+              <StyledCheckbox
+                label="Русскоговорящие"
+                checked={filters.region === 'ru'}
+                onChange={(e) => setFilters({...filters, 
+                  region: e.target.checked ? 'ru' : null})}
+                name="region"
+                value="ru"
+              />
+              <StyledCheckbox
+                label="Англоговорящие"
+                checked={filters.region === 'en'}
+                onChange={(e) => setFilters({...filters, 
+                  region: e.target.checked ? 'en' : null})}
+                name="region"
+                value="en"
+              />
             </div>
           </div>
           
@@ -294,7 +508,10 @@ export default function Search() {
               onClick={() => {
                 setFilters({
                   category: 'all',
-                  status: 'all'
+                  status: 'all',
+                  popularity: null,
+                  activity: null,
+                  region: null
                 });
               }}
             >
