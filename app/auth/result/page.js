@@ -4,6 +4,7 @@ import { useEffect, useState, useRef, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '../../../contexts/AuthContext';
 import styles from '../auth.module.css';
+import clientStorage from '../../utils/clientStorage';
 
 // Создаем отдельный компонент для использования useSearchParams
 function AuthResultContent() {
@@ -22,6 +23,11 @@ function AuthResultContent() {
       if (!hasRedirectedRef.current) {
         hasRedirectedRef.current = true;
         console.log('Перенаправляем пользователя в меню после успешной авторизации');
+        // Устанавливаем флаг перенаправления
+        clientStorage.setItem('auth_to_menu_redirect', 'true');
+        // Очищаем другие флаги перенаправления
+        clientStorage.removeItem('menu_to_auth_redirect');
+        // Перенаправляем в меню
         router.push('/menu');
       }
     };
@@ -31,19 +37,15 @@ function AuthResultContent() {
     const success = searchParams.get('success');
     const errorMessage = searchParams.get('message');
     
-    // Функция для безопасного получения данных из localStorage
-    const safeGetFromStorage = (key) => {
-      if (typeof window !== 'undefined' && window.localStorage) {
-        return localStorage.getItem(key);
-      }
-      return null;
-    };
-    
     if (error) {
       // Если есть ошибка
       console.error('Ошибка авторизации:', error, errorMessage);
       setStatus('error');
       setMessage(errorMessage || 'Произошла ошибка при авторизации через Twitch');
+      
+      // Очищаем флаги редиректов
+      clientStorage.removeItem('auth_to_menu_redirect');
+      clientStorage.removeItem('menu_to_auth_redirect');
       
       // Перенаправляем на страницу авторизации через 3 секунды
       redirectTimeoutRef.current = setTimeout(() => {
@@ -59,8 +61,8 @@ function AuthResultContent() {
       setMessage('Авторизация успешно выполнена! Перенаправляем в меню...');
       
       // Получаем данные пользователя из localStorage
-      const userData = safeGetFromStorage('twitch_user') || safeGetFromStorage('cookie_twitch_user');
-      const accessToken = safeGetFromStorage('cookie_twitch_access_token') || safeGetFromStorage('twitch_token');
+      const userData = clientStorage.getItem('twitch_user') || clientStorage.getItem('cookie_twitch_user');
+      const accessToken = clientStorage.getItem('cookie_twitch_access_token') || clientStorage.getItem('twitch_token');
       
       if (userData && accessToken) {
         try {
@@ -76,7 +78,7 @@ function AuthResultContent() {
       redirectTimeoutRef.current = setTimeout(redirectToMenu, 1500);
     } else {
       // Если нет явных параметров, проверяем данные аутентификации
-      const userData = safeGetFromStorage('twitch_user') || safeGetFromStorage('cookie_twitch_user');
+      const userData = clientStorage.getItem('twitch_user') || clientStorage.getItem('cookie_twitch_user');
       
       if (userData) {
         // Если данные есть, считаем что авторизация успешна
@@ -89,6 +91,10 @@ function AuthResultContent() {
         // Иначе считаем что произошла ошибка
         setStatus('error');
         setMessage('Не удалось получить данные пользователя');
+        
+        // Очищаем флаги редиректов
+        clientStorage.removeItem('auth_to_menu_redirect');
+        clientStorage.removeItem('menu_to_auth_redirect');
         
         // Перенаправляем на страницу авторизации через 3 секунды
         redirectTimeoutRef.current = setTimeout(() => {

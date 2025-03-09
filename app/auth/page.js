@@ -5,38 +5,34 @@ import { useRouter } from 'next/navigation';
 import Cookies from 'js-cookie';
 import { useAuth } from '../../contexts/AuthContext';
 import styles from './auth.module.css';
+import clientStorage from '../utils/clientStorage';
 
 export default function Auth() {
   const router = useRouter();
   const { login, isAuthenticated } = useAuth();
   const [errorMessage, setErrorMessage] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
   const hasCheckedAuthRef = useRef(false);
   const redirectTimeoutRef = useRef(null);
 
   useEffect(() => {
+    // Очищаем возможные флаги перенаправления
+    clientStorage.removeItem('redirect_in_progress');
+    
     // Простая проверка авторизации при загрузке страницы
     if (!hasCheckedAuthRef.current) {
       hasCheckedAuthRef.current = true;
       
-      // Очищаем таймаут при размонтировании
+      // Устанавливаем таймаут для предотвращения бесконечной загрузки
       redirectTimeoutRef.current = setTimeout(() => {
         console.log('Таймаут проверки аутентификации на странице auth');
         // Если нет ответа в течение 3 секунд, считаем что пользователь не авторизован
         setIsLoading(false);
       }, 3000);
 
-      // Функция для безопасного получения данных из localStorage
-      const safeGetFromStorage = (key) => {
-        if (typeof window !== 'undefined' && window.localStorage) {
-          return localStorage.getItem(key);
-        }
-        return null;
-      };
-
       // Проверяем, есть ли токен и данные пользователя
-      const accessToken = safeGetFromStorage('cookie_twitch_access_token') || Cookies.get('twitch_access_token');
-      const userData = safeGetFromStorage('cookie_twitch_user') || safeGetFromStorage('twitch_user') || Cookies.get('twitch_user');
+      const accessToken = clientStorage.getItem('cookie_twitch_access_token') || Cookies.get('twitch_access_token');
+      const userData = clientStorage.getItem('cookie_twitch_user') || clientStorage.getItem('twitch_user') || Cookies.get('twitch_user');
 
       if (accessToken && userData) {
         // Если данные есть, перенаправляем на меню
@@ -45,13 +41,29 @@ export default function Auth() {
           // Обновляем состояние аутентификации
           const parsedUserData = typeof userData === 'string' ? JSON.parse(userData) : userData;
           login(parsedUserData, accessToken);
+          
+          // Устанавливаем флаг перенаправления
+          clientStorage.setItem('auth_to_menu_redirect', 'true');
+          
+          // Перенаправляем на страницу меню
+          router.push('/menu');
         } catch (error) {
           console.error('Ошибка при обработке данных пользователя:', error);
+          setIsLoading(false);
+        }
+      } else {
+        // Проверяем, не пришли ли мы сюда после редиректа с меню
+        if (clientStorage.getItem('menu_to_auth_redirect')) {
+          // Очищаем флаг для предотвращения зацикливания
+          clientStorage.removeItem('menu_to_auth_redirect');
+          // Очищаем все данные аутентификации, чтобы быть уверенными
+          clientStorage.removeItem('twitch_user');
+          clientStorage.removeItem('cookie_twitch_user');
+          clientStorage.removeItem('cookie_twitch_access_token');
+          Cookies.remove('twitch_access_token');
+          Cookies.remove('twitch_user');
         }
         
-        // Перенаправляем на страницу меню
-        router.push('/menu');
-      } else {
         // Пользователь не авторизован
         console.log('Пользователь не авторизован, показываем форму авторизации');
         setIsLoading(false);
@@ -70,23 +82,18 @@ export default function Auth() {
     try {
       setIsLoading(true);
       
-      // Функция для безопасного удаления данных из localStorage
-      const safeRemoveFromStorage = (key) => {
-        if (typeof window !== 'undefined' && window.localStorage) {
-          localStorage.removeItem(key);
-        }
-      };
-      
       // Очищаем все куки и localStorage перед авторизацией
-      Cookies.remove('twitch_access_token');
-      Cookies.remove('twitch_refresh_token');
-      Cookies.remove('twitch_user');
-      Cookies.remove('twitch_token');
-      safeRemoveFromStorage('twitch_user');
-      safeRemoveFromStorage('cookie_twitch_access_token');
-      safeRemoveFromStorage('cookie_twitch_refresh_token');
-      safeRemoveFromStorage('cookie_twitch_user');
-      safeRemoveFromStorage('is_authenticated');
+      Cookies.remove('twitch_access_token', { path: '/' });
+      Cookies.remove('twitch_refresh_token', { path: '/' });
+      Cookies.remove('twitch_user', { path: '/' });
+      Cookies.remove('twitch_token', { path: '/' });
+      clientStorage.removeItem('twitch_user');
+      clientStorage.removeItem('cookie_twitch_access_token');
+      clientStorage.removeItem('cookie_twitch_refresh_token');
+      clientStorage.removeItem('cookie_twitch_user');
+      clientStorage.removeItem('is_authenticated');
+      clientStorage.removeItem('auth_to_menu_redirect');
+      clientStorage.removeItem('menu_to_auth_redirect');
       
       // Перенаправляем на API авторизации
       console.log('Перенаправляем на страницу авторизации Twitch');

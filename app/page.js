@@ -3,6 +3,7 @@
 import { useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '../contexts/AuthContext';
+import clientStorage from './utils/clientStorage';
 
 export default function Home() {
   const router = useRouter();
@@ -16,14 +17,6 @@ export default function Home() {
       return;
     }
     
-    // Функция для безопасного получения данных из localStorage
-    const safeGetFromStorage = (key) => {
-      if (typeof window !== 'undefined' && window.localStorage) {
-        return localStorage.getItem(key);
-      }
-      return null;
-    };
-    
     // Устанавливаем таймаут для гарантированного перенаправления
     timeoutRef.current = setTimeout(() => {
       if (!hasRedirectedRef.current) {
@@ -31,8 +24,8 @@ export default function Home() {
         hasRedirectedRef.current = true;
         
         // Проверяем, есть ли данные пользователя в localStorage
-        const userData = safeGetFromStorage('twitch_user') || 
-                         safeGetFromStorage('cookie_twitch_user');
+        const userData = clientStorage.getItem('twitch_user') || 
+                         clientStorage.getItem('cookie_twitch_user');
         
         if (userData) {
           console.log('Найдены данные пользователя, перенаправляем в меню');
@@ -42,12 +35,27 @@ export default function Home() {
           router.push('/auth');
         }
       }
-    }, 1500); // 1.5 секунды таймаут
+    }, 2000); // Увеличиваем таймаут до 2 секунд
     
     // Если контекст аутентификации инициализирован, перенаправляем сразу
     if (isInitialized && !hasRedirectedRef.current) {
-      clearTimeout(timeoutRef.current);
       console.log('Контекст аутентификации инициализирован, проверяем состояние авторизации');
+      
+      // Проверяем, нет ли уже активного перенаправления
+      if (clientStorage.getItem('redirect_in_progress')) {
+        console.log('Обнаружено активное перенаправление, отменяем новое');
+        return;
+      }
+      
+      // Устанавливаем флаг перенаправления
+      clientStorage.setItem('redirect_in_progress', 'true');
+      
+      // Очищаем флаг перенаправления через 5 секунд
+      setTimeout(() => {
+        clientStorage.removeItem('redirect_in_progress');
+      }, 5000);
+      
+      clearTimeout(timeoutRef.current);
       hasRedirectedRef.current = true;
       
       if (isAuthenticated) {

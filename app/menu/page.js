@@ -7,6 +7,7 @@ import Image from 'next/image';
 import Cookies from 'js-cookie';
 import styles from '../../styles/menu.module.css';
 import { useAuth } from '../../contexts/AuthContext';
+import clientStorage from '../utils/clientStorage';
 
 export default function Menu() {
   const router = useRouter();
@@ -65,6 +66,9 @@ export default function Menu() {
   
   // Проверка авторизации и загрузка данных
   useEffect(() => {
+    // Очищаем потенциальные флаги перенаправления
+    clientStorage.removeItem('redirect_in_progress');
+    
     // Устанавливаем таймаут для предотвращения бесконечной загрузки
     initTimeoutRef.current = setTimeout(() => {
       if (isLoading) {
@@ -72,30 +76,42 @@ export default function Menu() {
         setIsLoading(false);
         setError('Превышено время ожидания загрузки. Пожалуйста, перезагрузите страницу или попробуйте войти снова.');
       }
-    }, 3000); // Уменьшаем таймаут до 3 секунд
+    }, 3000); // Таймаут в 3 секунды
     
     // Логируем состояние для отладки
     console.log('Menu useEffect:', { isInitialized, isAuthenticated, userId });
     
     const checkLocalAuth = () => {
-      // Безопасное получение данных из localStorage
-      const safeGetFromStorage = (key) => {
-        if (typeof window !== 'undefined' && window.localStorage) {
-          return localStorage.getItem(key);
-        }
-        return null;
-      };
-      
       // Проверяем наличие данных пользователя в localStorage
-      const userData = safeGetFromStorage('twitch_user') || 
-                      safeGetFromStorage('cookie_twitch_user');
+      const userData = clientStorage.getItem('twitch_user') || 
+                      clientStorage.getItem('cookie_twitch_user');
       
       // Если данных нет, перенаправляем на авторизацию
       if (!userData && !hasRedirectedRef.current) {
-        console.log('Данные пользователя не найдены, перенаправляем на страницу авторизации');
+        console.log('Данные пользователя не найдены, проверяем флаг редиректа');
+        
+        // Проверяем, не пришли ли мы сюда после редиректа с auth
+        if (clientStorage.getItem('auth_to_menu_redirect')) {
+          // Если есть флаг редиректа с auth, но нет данных пользователя,
+          // значит что-то пошло не так с аутентификацией
+          console.log('Обнаружен флаг редиректа с auth, но нет данных пользователя');
+          clientStorage.removeItem('auth_to_menu_redirect');
+          setError('Произошла ошибка при получении данных пользователя. Пожалуйста, попробуйте войти снова.');
+          setIsLoading(false);
+          return false;
+        }
+        
+        // Устанавливаем флаг перенаправления и редиректим
+        console.log('Перенаправляем на страницу авторизации');
         hasRedirectedRef.current = true;
+        clientStorage.setItem('menu_to_auth_redirect', 'true');
         router.push('/auth');
         return false;
+      }
+      
+      // Очищаем флаг перенаправления с auth, если он есть
+      if (clientStorage.getItem('auth_to_menu_redirect')) {
+        clientStorage.removeItem('auth_to_menu_redirect');
       }
       
       return !!userData;
@@ -106,26 +122,18 @@ export default function Menu() {
     if (isInitialized && !isAuthenticated) {
       const hasLocalAuth = checkLocalAuth();
       if (!hasLocalAuth) {
-        return; // Выходим, т.к. будет перенаправление
+        return; // Выходим, т.к. будет перенаправление или показ ошибки
       }
     }
     
     // Функция инициализации пользователя
     const initializeUser = async () => {
       try {
-        // Безопасное получение данных из localStorage
-        const safeGetFromStorage = (key) => {
-          if (typeof window !== 'undefined' && window.localStorage) {
-            return localStorage.getItem(key);
-          }
-          return null;
-        };
-        
-        // Если у нас есть userId (из контекста или localStorage)
+        // Получаем userId из контекста или localStorage
         const userIdToUse = userId || (() => {
           try {
-            const userData = safeGetFromStorage('twitch_user') || 
-                           safeGetFromStorage('cookie_twitch_user');
+            const userData = clientStorage.getItem('twitch_user') || 
+                           clientStorage.getItem('cookie_twitch_user');
             if (userData) {
               const parsed = JSON.parse(userData);
               return parsed.id;
@@ -152,6 +160,7 @@ export default function Menu() {
           console.log('ID пользователя не найден, перенаправляем на страницу авторизации');
           if (!hasRedirectedRef.current) {
             hasRedirectedRef.current = true;
+            clientStorage.setItem('menu_to_auth_redirect', 'true');
             router.push('/auth');
           }
         }
