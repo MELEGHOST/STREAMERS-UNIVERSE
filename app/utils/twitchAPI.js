@@ -1,6 +1,7 @@
 /**
  * Утилиты для работы с Twitch API
  */
+import { DataStorage } from './dataStorage';
 
 /**
  * Получает фолловеров пользователя
@@ -9,8 +10,8 @@
  * @returns {Promise<Object>} - Данные о фолловерах
  */
 export async function getUserFollowers(userId, accessToken) {
-  if (!userId || !accessToken) {
-    throw new Error('Необходимы userId и accessToken');
+  if (!userId) {
+    throw new Error('Необходим userId');
   }
 
   const clientId = process.env.NEXT_PUBLIC_TWITCH_CLIENT_ID;
@@ -19,7 +20,16 @@ export async function getUserFollowers(userId, accessToken) {
   }
 
   try {
-    // Используем наш собственный API-роут для избежания CORS проблем
+    // Попытка получить данные из нашего хранилища
+    const cachedFollowers = await DataStorage.getData('followers');
+    
+    if (cachedFollowers && cachedFollowers.timestamp && 
+        (Date.now() - cachedFollowers.timestamp < 3600000)) { // Данные не старше 1 часа
+      console.log('Использую кэшированные данные о фолловерах');
+      return cachedFollowers;
+    }
+    
+    // Если нет кэшированных данных или они устарели, делаем запрос к API
     const response = await fetch(`/api/twitch/user-followers?userId=${userId}`, {
       method: 'GET',
       credentials: 'include',
@@ -27,18 +37,69 @@ export async function getUserFollowers(userId, accessToken) {
 
     if (!response.ok) {
       const errorData = await response.json();
+      
+      // Если есть кэшированные данные, возвращаем их, даже если они устарели
+      if (cachedFollowers) {
+        console.warn('API вернул ошибку, использую устаревшие кэшированные данные');
+        return cachedFollowers;
+      }
+      
       throw new Error(errorData.error || `HTTP ошибка: ${response.status}`);
     }
 
-    return await response.json();
+    const data = await response.json();
+    
+    // Сохраняем в нашем хранилище с меткой времени
+    await DataStorage.saveData('followers', {
+      ...data,
+      timestamp: Date.now()
+    });
+    
+    return data;
   } catch (error) {
     console.error('Ошибка при получении фолловеров:', error);
+    
+    // В случае ошибки пытаемся использовать кэшированные данные
+    const cachedFollowers = await DataStorage.getData('followers');
+    if (cachedFollowers) {
+      console.warn('Произошла ошибка, использую кэшированные данные о фолловерах');
+      return cachedFollowers;
+    }
+    
     throw error;
   }
 }
 
 /**
- * Получает данные пользователя из localStorage
+ * Получает данные пользователя из хранилища
+ * @returns {Promise<Object|null>} - Данные пользователя или null, если данные отсутствуют
+ */
+export async function getUserData() {
+  try {
+    // Пытаемся получить данные пользователя из нашего хранилища
+    const userData = await DataStorage.getData('user');
+    if (userData) {
+      return userData;
+    }
+    
+    // Если нет данных в нашем хранилище, пытаемся получить из старых источников
+    // и сохранить в новое хранилище
+    const legacyUserData = getUserFromLocalStorage();
+    if (legacyUserData) {
+      // Сохраняем данные в новое хранилище
+      await DataStorage.saveData('user', legacyUserData);
+      return legacyUserData;
+    }
+    
+    return null;
+  } catch (error) {
+    console.error('Ошибка при получении данных пользователя:', error);
+    return null;
+  }
+}
+
+/**
+ * Получает данные пользователя из localStorage (устаревший метод)
  * @returns {Object|null} - Данные пользователя или null, если данные отсутствуют
  */
 export function getUserFromLocalStorage() {
@@ -53,7 +114,50 @@ export function getUserFromLocalStorage() {
 }
 
 /**
- * Получает токен доступа из cookie
+ * Получает токен доступа из наших хранилищ
+ * @returns {Promise<string|null>} - Токен доступа или null, если токен отсутствует
+ */
+export async function getAccessToken() {
+  try {
+    // Сначала проверяем наш новый токен
+    const authToken = await DataStorage.getData('auth_token');
+    if (authToken) {
+      return authToken;
+    }
+    
+    // Если нет, проверяем старые источники
+    if (typeof document === 'undefined') return null; // Проверка, что выполняется на клиенте
+    
+    const value = `; ${document.cookie}`;
+    const parts = value.split(`; twitch_access_token=`);
+    if (parts.length === 2) {
+      const token = parts.pop().split(';').shift();
+      
+      // Сохраняем в новое хранилище
+      if (token) {
+        await DataStorage.saveData('auth_token', token);
+      }
+      
+      return token;
+    }
+    
+    // Наконец, проверяем localStorage
+    const localToken = localStorage.getItem('cookie_twitch_access_token');
+    if (localToken) {
+      // Сохраняем в новое хранилище
+      await DataStorage.saveData('auth_token', localToken);
+      return localToken;
+    }
+    
+    return null;
+  } catch (error) {
+    console.error('Ошибка при получении токена доступа:', error);
+    return null;
+  }
+}
+
+/**
+ * Получает токен доступа из cookie (устаревший метод)
  * @returns {string|null} - Токен доступа или null, если токен отсутствует
  */
 export function getAccessTokenFromCookie() {
@@ -71,17 +175,11 @@ export function getAccessTokenFromCookie() {
 }
 
 /**
- * Сохраняет данные в localStorage с обработкой ошибок
+ * Сохраняет данные в нашем хранилище
  * @param {string} key - Ключ для сохранения
  * @param {any} value - Значение для сохранения
- * @returns {boolean} - true, если сохранение прошло успешно, иначе false
+ * @returns {Promise<boolean>} - true, если сохранение прошло успешно, иначе false
  */
-export function safeLocalStorage(key, value) {
-  try {
-    localStorage.setItem(key, typeof value === 'string' ? value : JSON.stringify(value));
-    return true;
-  } catch (error) {
-    console.error(`Ошибка при сохранении ${key} в localStorage:`, error);
-    return false;
-  }
+export async function saveData(key, value) {
+  return await DataStorage.saveData(key, value);
 } 

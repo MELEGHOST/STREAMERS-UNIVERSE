@@ -104,6 +104,8 @@ export default function UserProfile() {
   const [isQuestionModalOpen, setIsQuestionModalOpen] = useState(false);
   const [questionText, setQuestionText] = useState('');
   
+  const [socialLinks, setSocialLinks] = useState(null);
+  
   useEffect(() => {
     if (!id) return;
     
@@ -111,102 +113,33 @@ export default function UserProfile() {
       try {
         setLoading(true);
         
-        // Получаем данные пользователя через API Twitch
-        const response = await fetch(`/api/twitch/search?login=${id}`);
-        
-        if (!response.ok) {
-          throw new Error('Не удалось загрузить данные пользователя');
-        }
-        
+        const response = await fetch(`/api/twitch/user?id=${id}`);
         const data = await response.json();
         
-        // Проверяем, есть ли данные о фолловерах и фолловингах
-        if (!data.twitchData.follower_count || !data.twitchData.following_count) {
-          console.log('Данные о фолловерах/фолловингах отсутствуют, запрашиваем дополнительно');
-          
-          // Если данных нет, запрашиваем их отдельно
-          try {
-            const twitchToken = localStorage.getItem('twitch_token');
-            
-            if (twitchToken) {
-              // Запрашиваем фолловеров
-              const followersResponse = await fetch(`https://api.twitch.tv/helix/users/follows?to_id=${data.twitchData.id}`, {
-                headers: {
-                  'Client-ID': process.env.NEXT_PUBLIC_TWITCH_CLIENT_ID,
-                  'Authorization': `Bearer ${twitchToken}`
-                }
-              });
-              
-              if (followersResponse.ok) {
-                const followersData = await followersResponse.json();
-                data.twitchData.follower_count = followersData.total || 0;
-              }
-              
-              // Запрашиваем фолловингов
-              const followingResponse = await fetch(`https://api.twitch.tv/helix/users/follows?from_id=${data.twitchData.id}`, {
-                headers: {
-                  'Client-ID': process.env.NEXT_PUBLIC_TWITCH_CLIENT_ID,
-                  'Authorization': `Bearer ${twitchToken}`
-                }
-              });
-              
-              if (followingResponse.ok) {
-                const followingData = await followingResponse.json();
-                data.twitchData.following_count = followingData.total || 0;
-              }
-            }
-          } catch (err) {
-            console.error('Ошибка при получении данных о фолловерах/фолловингах:', err);
-          }
+        if (data.error) {
+          setError(data.error);
+          setLoading(false);
+          return;
         }
-        
-        // Проверяем, подписан ли текущий пользователь на просматриваемого
-        let isFollowed = false;
-        let subscribersCount = 0;
-        let subscriptionsCount = 0;
-        
-        if (isAuthenticated && userId) {
-          const storedSubscriptions = localStorage.getItem('su_subscriptions');
-          
-          if (storedSubscriptions) {
-            try {
-              const subscriptions = JSON.parse(storedSubscriptions);
-              isFollowed = subscriptions.some(
-                sub => sub.subscriberId === userId && sub.targetUserId === data.twitchData.id
-              );
-              
-              // Получаем количество подписчиков
-              subscribersCount = subscriptions.filter(
-                sub => sub.targetUserId === data.twitchData.id
-              ).length;
-              
-              // Получаем количество подписок
-              subscriptionsCount = subscriptions.filter(
-                sub => sub.subscriberId === data.twitchData.id
-              ).length;
-            } catch (e) {
-              console.error('Ошибка при парсинге подписок из localStorage:', e);
-            }
-          }
-        }
-        
-        // Добавляем данные о подписках в объект пользователя
-        data.isFollowed = isFollowed;
-        data.subscribersCount = subscribersCount;
-        data.subscriptionsCount = subscriptionsCount;
         
         setUserData(data);
-        setIsFollowing(isFollowed);
-      } catch (err) {
-        console.error('Ошибка при загрузке данных пользователя:', err);
-        setError('Не удалось загрузить данные пользователя. Пожалуйста, попробуйте позже.');
-      } finally {
+        setIsFollowing(data.isFollowed || false);
+        
+        // Загружаем социальные ссылки
+        if (data.twitchData && data.twitchData.id) {
+          await fetchSocialLinks(data.twitchData.id);
+        }
+        
+        setLoading(false);
+      } catch (error) {
+        console.error('Ошибка при загрузке данных пользователя:', error);
+        setError('Произошла ошибка при загрузке данных пользователя.');
         setLoading(false);
       }
     };
     
     fetchUserData();
-  }, [id, isAuthenticated, userId]);
+  }, [id]);
   
   const handleSubscribe = () => {
     if (!isAuthenticated) {
@@ -310,6 +243,141 @@ export default function UserProfile() {
     }
   };
   
+  // Функция для получения социальных ссылок пользователя
+  const fetchSocialLinks = async (userId) => {
+    try {
+      console.log('Получение социальных ссылок для пользователя:', userId);
+      
+      // Пытаемся получить данные через API
+      const response = await fetch(`/api/socials?userId=${userId}`);
+      
+      if (response.ok) {
+        const data = await response.json();
+        console.log('Социальные ссылки получены через API:', data);
+        setSocialLinks(data);
+        return data;
+      } else {
+        console.warn('API не вернул соц. ссылки, проверяем localStorage');
+        
+        // Если API недоступен, пробуем localStorage
+        if (typeof window !== 'undefined') {
+          const cachedData = localStorage.getItem(`social_links_${userId}`);
+          if (cachedData) {
+            try {
+              const parsedData = JSON.parse(cachedData);
+              console.log('Социальные ссылки получены из localStorage');
+              setSocialLinks(parsedData);
+              return parsedData;
+            } catch (err) {
+              console.error('Ошибка при парсинге данных из localStorage:', err);
+            }
+          }
+        }
+      }
+      
+      // Если данные не получены ни из API, ни из localStorage
+      return null;
+    } catch (error) {
+      console.error('Ошибка при получении социальных ссылок:', error);
+      return null;
+    }
+  };
+  
+  // Функция для отображения социальных ссылок
+  const renderSocialLinks = () => {
+    if (!socialLinks) return null;
+    
+    console.log('Отображение социальных ссылок:', socialLinks);
+    
+    return (
+      <div className={styles.socialIconsContainer}>
+        {socialLinks.twitch && (
+          <a 
+            href={socialLinks.twitch} 
+            target="_blank" 
+            rel="noopener noreferrer" 
+            className={styles.socialLink} 
+            aria-label="Twitch"
+          >
+            <svg viewBox="0 0 24 24" width="24" height="24" fill="#9146FF">
+              <path d="M11.571 4.714h1.715v5.143H11.57zm4.715 0H18v5.143h-1.714zM6 0L1.714 4.286v15.428h5.143V24l4.286-4.286h3.428L22.286 12V0zm14.571 11.143l-3.428 3.428h-3.429l-3 3v-3H6.857V1.714h13.714Z" />
+            </svg>
+          </a>
+        )}
+        
+        {socialLinks.youtube && (
+          <a 
+            href={socialLinks.youtube} 
+            target="_blank" 
+            rel="noopener noreferrer" 
+            className={styles.socialLink}
+            aria-label="YouTube"
+          >
+            <svg viewBox="0 0 24 24" width="24" height="24" fill="#FF0000">
+              <path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z" />
+            </svg>
+          </a>
+        )}
+        
+        {socialLinks.discord && (
+          <a 
+            href={socialLinks.discord} 
+            target="_blank" 
+            rel="noopener noreferrer" 
+            className={styles.socialLink}
+            aria-label="Discord"
+          >
+            <svg viewBox="0 0 24 24" width="24" height="24" fill="#5865F2">
+              <path d="M20.317 4.3698a19.7913 19.7913 0 00-4.8851-1.5152.0741.0741 0 00-.0785.0371c-.211.3753-.4447.8648-.6083 1.2495-1.8447-.2762-3.68-.2762-5.4868 0-.1636-.3933-.4058-.8742-.6177-1.2495a.077.077 0 00-.0785-.037 19.7363 19.7363 0 00-4.8852 1.515.0699.0699 0 00-.0321.0277C.5334 9.0458-.319 13.5799.0992 18.0578a.0824.0824 0 00.0312.0561c2.0528 1.5076 4.0413 2.4228 5.9929 3.0294a.0777.0777 0 00.0842-.0276c.4616-.6304.8731-1.2952 1.226-1.9942a.076.076 0 00-.0416-.1057c-.6528-.2476-1.2743-.5495-1.8722-.8923a.077.077 0 01-.0076-.1277c.1258-.0943.2517-.1923.3718-.2914a.0743.0743 0 01.0776-.0105c3.9278 1.7933 8.18 1.7933 12.0614 0a.0739.0739 0 01.0785.0095c.1202.099.246.1981.3728.2924a.077.077 0 01-.0066.1276 12.2986 12.2986 0 01-1.873.8914.0766.0766 0 00-.0407.1067c.3604.698.7719 1.3628 1.225 1.9932a.076.076 0 00.0842.0286c1.961-.6067 3.9495-1.5219 6.0023-3.0294a.077.077 0 00.0313-.0552c.5004-5.177-.8382-9.6739-3.5485-13.6604a.061.061 0 00-.0312-.0286zM8.02 15.3312c-1.1825 0-2.1569-1.0857-2.1569-2.419 0-1.3332.9555-2.4189 2.157-2.4189 1.2108 0 2.1757 1.0952 2.1568 2.419 0 1.3332-.9555 2.4189-2.1569 2.4189zm7.9748 0c-1.1825 0-2.1569-1.0857-2.1569-2.419 0-1.3332.9554-2.4189 2.1569-2.4189 1.2108 0 2.1757 1.0952 2.1568 2.419 0 1.3332-.946 2.4189-2.1568 2.4189Z" />
+            </svg>
+          </a>
+        )}
+        
+        {socialLinks.telegram && (
+          <a 
+            href={socialLinks.telegram} 
+            target="_blank" 
+            rel="noopener noreferrer" 
+            className={styles.socialLink}
+            aria-label="Telegram"
+          >
+            <svg viewBox="0 0 24 24" width="24" height="24" fill="#0088cc">
+              <path d="M11.944 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0a12 12 0 0 0-.056 0zm4.962 7.224c.1-.002.321.023.465.14a.506.506 0 0 1 .171.325c.016.093.036.306.02.472-.18 1.898-.96 6.502-1.36 8.627-.168.9-.499 1.201-.82 1.23-.696.065-1.225-.46-1.9-.902-1.056-.693-1.653-1.124-2.678-1.8-1.185-.78-.417-1.21.258-1.91.177-.184 3.247-2.977 3.307-3.23.007-.032.014-.15-.056-.212s-.174-.041-.249-.024c-.106.024-1.793 1.14-5.061 3.345-.48.33-.913.49-1.302.48-.428-.008-1.252-.241-1.865-.44-.752-.245-1.349-.374-1.297-.789.027-.216.325-.437.893-.663 3.498-1.524 5.83-2.529 6.998-3.014 3.332-1.386 4.025-1.627 4.476-1.635z" />
+            </svg>
+          </a>
+        )}
+        
+        {socialLinks.vk && (
+          <a 
+            href={socialLinks.vk} 
+            target="_blank" 
+            rel="noopener noreferrer" 
+            className={styles.socialLink}
+            aria-label="VK"
+          >
+            <svg viewBox="0 0 24 24" width="24" height="24" fill="#4C75A3">
+              <path d="M15.684 0H8.316C1.592 0 0 1.592 0 8.316v7.368C0 22.408 1.592 24 8.316 24h7.368C22.408 24 24 22.408 24 15.684V8.316C24 1.592 22.391 0 15.684 0zm3.692 17.123h-1.744c-.66 0-.864-.525-2.05-1.727-1.033-1-1.49-1.135-1.744-1.135-.356 0-.458.102-.458.593v1.575c0 .424-.135.678-1.253.678-1.846 0-3.896-1.118-5.335-3.202C4.624 10.857 4.03 8.57 4.03 8.096c0-.254.102-.491.593-.491h1.744c.44 0 .61.203.78.677.847 2.387 2.267 4.472 2.845 4.472.22 0 .322-.102.322-.66V9.721c-.068-1.186-.695-1.287-.695-1.71 0-.204.17-.407.44-.407h2.743c.372 0 .508.203.508.643v3.473c0 .372.17.508.271.508.22 0 .407-.136.813-.542 1.254-1.406 2.15-3.574 2.15-3.574.119-.254.322-.491.763-.491h1.744c.525 0 .644.27.525.643-.22 1.017-2.354 4.031-2.354 4.031-.186.305-.254.44 0 .78.186.254.796.779 1.203 1.253.745.847 1.32 1.558 1.473 2.05.17.49-.085.744-.576.744z" />
+            </svg>
+          </a>
+        )}
+        
+        {socialLinks.isMusician && socialLinks.yandexMusic && (
+          <a 
+            href={socialLinks.yandexMusic} 
+            target="_blank" 
+            rel="noopener noreferrer" 
+            className={styles.socialLink}
+            aria-label="Yandex Music"
+          >
+            <svg viewBox="0 0 24 24" width="24" height="24" fill="#FFCC00">
+              <path d="M12 0C5.376 0 0 5.376 0 12s5.376 12 12 12 12-5.376 12-12S18.624 0 12 0zm0 19.104c-3.924 0-7.104-3.18-7.104-7.104S8.076 4.896 12 4.896s7.104 3.18 7.104 7.104-3.18 7.104-7.104 7.104zm0-13.332c-3.432 0-6.228 2.784-6.228 6.228S8.568 18.228 12 18.228s6.228-2.784 6.228-6.228S15.432 5.772 12 5.772zM9.684 15.54V8.124h1.764v5.724h3.684v1.692H9.684z" />
+            </svg>
+          </a>
+        )}
+      </div>
+    );
+  };
+  
   if (!isAuthenticated) {
     return (
       <div className={styles.container}>
@@ -358,62 +426,10 @@ export default function UserProfile() {
     );
   }
   
-  const { twitchData, socialLinks, isRegisteredInSU } = userData;
+  const { twitchData, socialLinks: userSocialLinks, isRegisteredInSU } = userData;
   
   // Определяем статус пользователя
   const isStreamer = twitchData.follower_count >= 265;
-  
-  // Рендерим социальные ссылки
-  const renderSocialLinks = () => {
-    if (!socialLinks) return null;
-    
-    return (
-      <div className={styles.socialLinks}>
-        {socialLinks.twitch && (
-          <a href={socialLinks.twitch} target="_blank" rel="noopener noreferrer" className={styles.socialLink}>
-            <svg viewBox="0 0 24 24" width="24" height="24" fill="#9146FF">
-              <path d="M11.64 5.93h1.43v4.28h-1.43m3.93-4.28H17v4.28h-1.43M7 2L3.43 5.57v12.86h4.28V22l3.58-3.57h2.85L20.57 12V2m-1.43 9.29l-2.85 2.85h-2.86l-2.5 2.5v-2.5H7.71V3.43h11.43z" />
-            </svg>
-          </a>
-        )}
-        {socialLinks.youtube && (
-          <a href={socialLinks.youtube} target="_blank" rel="noopener noreferrer" className={styles.socialLink}>
-            <svg viewBox="0 0 24 24" width="24" height="24" fill="#FF0000">
-              <path d="M10 15l5.19-3L10 9v6m11.56-7.83c.13.47.22 1.1.28 1.9.07.8.1 1.49.1 2.09L22 12c0 2.19-.16 3.8-.44 4.83-.25.9-.83 1.48-1.73 1.73-.47.13-1.33.22-2.65.28-1.3.07-2.49.1-3.59.1L12 19c-4.19 0-6.8-.16-7.83-.44-.9-.25-1.48-.83-1.73-1.73-.13-.47-.22-1.1-.28-1.9-.07-.8-.1-1.49-.1-2.09L2 12c0-2.19.16-3.8.44-4.83.25-.9.83-1.48 1.73-1.73.47-.13 1.33-.22 2.65-.28 1.3-.07 2.49-.1 3.59-.1L12 5c4.19 0 6.8.16 7.83.44.9.25 1.48.83 1.73 1.73z" />
-            </svg>
-          </a>
-        )}
-        {socialLinks.discord && (
-          <a href={socialLinks.discord} target="_blank" rel="noopener noreferrer" className={styles.socialLink}>
-            <svg viewBox="0 0 24 24" width="24" height="24" fill="#7289DA">
-              <path d="M22 24L16.75 19H17.38L15.38 17H20.12C21.16 17 22 16.16 22 15.12V4.88C22 3.84 21.16 3 20.12 3H3.88C2.84 3 2 3.84 2 4.88V15.12C2 16.16 2.84 17 3.88 17H8.62L13.5 21.5L12.5 17H13.25L14.25 19H16L17.25 24H22M7.5 12.62C6.5 12.62 5.62 11.75 5.62 10.62C5.62 9.5 6.5 8.62 7.5 8.62C8.5 8.62 9.38 9.5 9.38 10.62C9.38 11.75 8.5 12.62 7.5 12.62M16.5 12.62C15.5 12.62 14.62 11.75 14.62 10.62C14.62 9.5 15.5 8.62 16.5 8.62C17.5 8.62 18.38 9.5 18.38 10.62C18.38 11.75 17.5 12.62 16.5 12.62Z" />
-            </svg>
-          </a>
-        )}
-        {socialLinks.telegram && (
-          <a href={socialLinks.telegram} target="_blank" rel="noopener noreferrer" className={styles.socialLink}>
-            <svg viewBox="0 0 24 24" width="24" height="24" fill="#0088cc">
-              <path d="M9.78 18.65l.28-4.23 7.68-6.92c.34-.31-.07-.46-.52-.19L7.74 13.3 3.64 12c-.88-.25-.89-.86.2-1.3l15.97-6.16c.73-.33 1.43.18 1.15 1.3l-2.72 12.81c-.19.91-.74 1.13-1.5.71L12.6 16.3l-1.99 1.93c-.23.23-.42.42-.83.42z" />
-            </svg>
-          </a>
-        )}
-        {socialLinks.vk && (
-          <a href={socialLinks.vk} target="_blank" rel="noopener noreferrer" className={styles.socialLink}>
-            <svg viewBox="0 0 24 24" width="24" height="24" fill="#4C75A3">
-              <path d="M15.07 2H8.93C3.33 2 2 3.33 2 8.93v6.14C2 20.67 3.33 22 8.93 22h6.14c5.6 0 6.93-1.33 6.93-6.93V8.93C22 3.33 20.67 2 15.07 2zm.63 15.06h-1.71c-.67 0-.83-.22-1.37-.95-.85-1.13-1.47-1.28-1.71-1.28-.35 0-.46.11-.46.59v1.38c0 .41-.13.65-1.21.65-1.79 0-3.77-1.08-5.16-3.11-2.1-2.96-2.67-5.19-2.67-5.62 0-.32.11-.41.46-.41h1.71c.44 0 .61.13.78.55.85 2.47 2.29 4.64 2.89 4.64.22 0 .32-.11.32-.57v-2.17c-.07-1.03-.5-1.12-5-1.12-.29 0-.32-.11-.32-.41 0-.17.11-.41.22-.62.33-.57 1.03-.76 3.27-.76h.76c1.21 0 1.66.13 1.66 1.26v1.89c0 .41.11.54.18.54.22 0 .41-.13.83-.55.85-1.01 1.47-2.58 1.47-2.58.11-.22.33-.46.78-.46h1.71c.5 0 .61.24.5.57-.2.87-2.27 3.9-2.27 3.9-.17.29-.24.41 0 .71.17.22.76.72 1.13 1.16.72.81 1.24 1.5 1.38 1.97.18.44-.03.67-.5.67z" />
-            </svg>
-          </a>
-        )}
-        {socialLinks.yandexMusic && (
-          <a href={socialLinks.yandexMusic} target="_blank" rel="noopener noreferrer" className={styles.socialLink}>
-            <svg viewBox="0 0 24 24" width="24" height="24" fill="#FFCC00">
-              <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 14.5c-2.49 0-4.5-2.01-4.5-4.5S9.51 7.5 12 7.5s4.5 2.01 4.5 4.5-2.01 4.5-4.5 4.5zm0-5.5c-.55 0-1 .45-1 1s.45 1 1 1 1-.45 1-1-.45-1-1-1z" />
-            </svg>
-          </a>
-        )}
-      </div>
-    );
-  };
   
   return (
     <div className={styles.container}>

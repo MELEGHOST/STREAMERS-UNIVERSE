@@ -1,10 +1,10 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import Cookies from 'js-cookie';
 import { useRouter } from 'next/navigation';
 import styles from './followers.module.css';
-import { getUserFollowers, getUserFromLocalStorage, getAccessTokenFromCookie, safeLocalStorage } from '../utils/twitchAPI';
+import { getUserFollowers, getUserData, getAccessToken } from '../utils/twitchAPI';
+import { DataStorage } from '../utils/dataStorage';
 
 export default function Followers() {
   const router = useRouter();
@@ -18,111 +18,88 @@ export default function Followers() {
   const [totalFollowers, setTotalFollowers] = useState(0);
 
   useEffect(() => {
-    const accessToken = getAccessTokenFromCookie();
-    if (!accessToken) {
-      console.error('Отсутствует токен доступа, перенаправление на страницу авторизации');
-      router.push('/auth');
-      return;
-    }
-    
     const loadData = async () => {
       try {
-        setIsAuthenticated(true);
-        // Получаем данные пользователя из localStorage
-        const storedUser = getUserFromLocalStorage();
-        if (!storedUser) {
-          console.error('Отсутствуют данные пользователя');
-          setLoading(false);
-          setError('Не удалось загрузить данные пользователя. Пожалуйста, перезайдите в аккаунт.');
+        // Проверяем авторизацию
+        if (!DataStorage.isAuthenticated()) {
+          console.error('Пользователь не авторизован, перенаправление на страницу логина');
+          router.push('/login');
           return;
         }
         
-        const userId = storedUser.id || 'unknown';
-        setUserId(userId);
+        setIsAuthenticated(true);
         
-        // Исправлено: правильно определяем статус стримера
-        setIsStreamer(storedUser.isStreamer || storedUser.follower_count >= 265 || false);
-
-        console.log('Загружаем фолловеров для пользователя:', userId);
-
-        // Получаем фолловеров через наш API
-        await fetchFollowers(userId, accessToken);
-
-        // Загружаем сохраненные роли фолловеров
-        try {
-          const savedRoles = JSON.parse(localStorage.getItem(`roles_${userId}`)) || {};
-          setRoles(savedRoles);
-        } catch (rolesError) {
-          console.error('Ошибка при загрузке ролей:', rolesError);
-          // Не останавливаем выполнение из-за ошибки с ролями
+        // Получаем данные пользователя из нового хранилища
+        const userData = await getUserData();
+        
+        if (!userData || !userData.id) {
+          console.error('Данные пользователя отсутствуют, перенаправление на страницу логина');
+          router.push('/login');
+          return;
         }
+        
+        setUserId(userData.id);
+        
+        // Определяем статус стримера
+        const isStreamerStatus = userData.broadcaster_type === 'partner' || 
+                              userData.broadcaster_type === 'affiliate' || 
+                              (userData.follower_count && userData.follower_count >= 265);
+        
+        setIsStreamer(isStreamerStatus);
+        
+        // Получаем и устанавливаем роли из хранилища
+        const savedRoles = await DataStorage.getData('follower_roles');
+        if (savedRoles) {
+          setRoles(savedRoles);
+        }
+        
+        // Загружаем данные о фолловерах
+        await loadFollowers(userData.id);
       } catch (error) {
         console.error('Ошибка при загрузке данных:', error);
-        setError('Произошла ошибка при загрузке данных. Попробуйте обновить страницу.');
+        setError('Не удалось загрузить данные. Пожалуйста, попробуйте позже.');
         setLoading(false);
       }
     };
-
+    
     loadData();
   }, [router]);
-
-  const fetchFollowers = async (userId, accessToken) => {
+  
+  // Загрузка фолловеров с использованием нового метода
+  const loadFollowers = async (userId) => {
     try {
-      console.log('Выполняем запрос к API для получения фолловеров...');
+      setLoading(true);
       
-      // Используем нашу утилиту для получения фолловеров
-      const data = await getUserFollowers(userId, accessToken);
+      // Загружаем фолловеров с использованием нового метода twitchAPI
+      const followersData = await getUserFollowers(userId);
       
-      console.log('Получены данные о фолловерах:', {
-        total: data.total,
-        count: data.followers?.length || 0
-      });
-      
-      setTotalFollowers(data.total || 0);
-      
-      if (data && data.followers && Array.isArray(data.followers)) {
-        const formattedFollowers = data.followers.map(follower => ({
-          id: follower.id,
-          name: follower.name || follower.login || 'Неизвестный пользователь',
-          followedAt: new Date(follower.followedAt).toLocaleDateString('ru-RU')
-        }));
-        
-        setFollowers(formattedFollowers);
-        
-        // Сохраняем данные в localStorage для кэширования
-        safeLocalStorage(`followers_${userId}`, JSON.stringify(formattedFollowers));
-      } else {
-        throw new Error('Неверный формат данных с API');
+      if (followersData && followersData.followers) {
+        setFollowers(followersData.followers);
+        setTotalFollowers(followersData.total || followersData.followers.length);
       }
       
       setLoading(false);
     } catch (error) {
-      console.error('Ошибка при получении фолловеров:', error);
-      setError(`Не удалось загрузить фолловеров: ${error.message}`);
-      
-      // Пробуем загрузить из кэша, если API недоступен
-      try {
-        const cachedFollowersStr = localStorage.getItem(`followers_${userId}`);
-        if (cachedFollowersStr) {
-          const cachedFollowers = JSON.parse(cachedFollowersStr);
-          if (Array.isArray(cachedFollowers) && cachedFollowers.length > 0) {
-            console.log('Загружаем фолловеров из кэша:', cachedFollowers.length);
-            setFollowers(cachedFollowers);
-            setError('Данные загружены из кэша и могут быть устаревшими');
-          }
-        }
-      } catch (cacheError) {
-        console.error('Ошибка при получении фолловеров из кэша:', cacheError);
-      } finally {
-        setLoading(false);
-      }
+      console.error('Ошибка при загрузке фолловеров:', error);
+      setError('Не удалось загрузить данные о фолловерах.');
+      setLoading(false);
+    }
+  };
+  
+  // Функция для сохранения ролей фолловеров
+  const saveRoles = async (newRoles) => {
+    try {
+      setRoles(newRoles);
+      await DataStorage.saveData('follower_roles', newRoles);
+    } catch (error) {
+      console.error('Ошибка при сохранении ролей:', error);
     }
   };
 
   const handleAssignRole = (followerId, role) => {
     const updatedRoles = { ...roles, [followerId]: role };
     setRoles(updatedRoles);
-    safeLocalStorage(`roles_${userId}`, updatedRoles);
+    saveRoles(updatedRoles);
     console.log(`Назначена роль ${role} для фолловера ${followerId}`);
   };
 
@@ -130,13 +107,13 @@ export default function Followers() {
     setLoading(true);
     setError(null);
     if (userId) {
-      const accessToken = getAccessTokenFromCookie();
+      const accessToken = getAccessToken();
       if (!accessToken) {
         setError('Отсутствует токен доступа. Пожалуйста, перезайдите в аккаунт.');
         setLoading(false);
         return;
       }
-      await fetchFollowers(userId, accessToken);
+      await loadFollowers(userId);
     } else {
       setError('ID пользователя не найден. Пожалуйста, перезайдите в аккаунт.');
       setLoading(false);

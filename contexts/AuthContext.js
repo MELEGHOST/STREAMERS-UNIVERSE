@@ -1,5 +1,7 @@
 import { createContext, useContext, useState, useEffect } from 'react';
 import Cookies from 'js-cookie';
+import { createJwtToken } from '../app/utils/auth';
+import { DataStorage } from '../app/utils/dataStorage';
 
 // Создаем контекст авторизации
 const AuthContext = createContext({
@@ -23,7 +25,8 @@ export function AuthProvider({ children }) {
     const checkAuth = () => {
       try {
         // Проверяем наличие токена в cookies или localStorage
-        const token = Cookies.get('twitch_access_token') || 
+        const token = Cookies.get('auth_token') || 
+                      Cookies.get('twitch_access_token') || 
                       localStorage.getItem('cookie_twitch_access_token') || 
                       Cookies.get('twitch_token');
                       
@@ -50,6 +53,11 @@ export function AuthProvider({ children }) {
             
             // Устанавливаем флаг авторизации в localStorage
             localStorage.setItem('is_authenticated', 'true');
+            
+            // Создаем JWT токен, если его еще нет
+            if (!Cookies.get('auth_token') && token) {
+              createAndSetJwtToken(user);
+            }
             
             // Сохраняем токен в localStorage для надежности
             if (!localStorage.getItem('cookie_twitch_access_token') && token) {
@@ -93,9 +101,31 @@ export function AuthProvider({ children }) {
     };
   }, []);
   
+  // Функция для создания и установки JWT токена
+  const createAndSetJwtToken = async (user) => {
+    try {
+      // Создаем JWT токен
+      const jwtToken = await createJwtToken({
+        userId: user.id,
+        userLogin: user.login || user.display_name,
+        userAvatar: user.profile_image_url
+      });
+      
+      if (jwtToken) {
+        // Сохраняем JWT токен в cookies
+        Cookies.set('auth_token', jwtToken, { expires: 7 });
+      }
+    } catch (error) {
+      console.error('Ошибка при создании JWT токена:', error);
+    }
+  };
+  
   // Функция для входа в систему
   const login = (token, user) => {
     try {
+      // Создаем и устанавливаем JWT токен
+      createAndSetJwtToken(user);
+      
       // Сохраняем токен в cookies и localStorage для надежности
       Cookies.set('twitch_token', token, { expires: 7 });
       Cookies.set('twitch_access_token', token, { expires: 7 });
@@ -126,9 +156,13 @@ export function AuthProvider({ children }) {
   };
   
   // Функция для выхода из системы
-  const logout = () => {
+  const logout = async () => {
     try {
+      // Очищаем все данные пользователя в хранилище
+      await DataStorage.clearAllData();
+      
       // Удаляем все токены и данные пользователя
+      Cookies.remove('auth_token');
       Cookies.remove('twitch_token');
       Cookies.remove('twitch_access_token');
       Cookies.remove('twitch_refresh_token');

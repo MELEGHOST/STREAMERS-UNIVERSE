@@ -7,7 +7,8 @@ import SocialButton from '../components/SocialButton';
 import AchievementsSystem from '../components/AchievementsSystem';
 import ReviewSection from '../components/ReviewSection';
 import { checkBirthday, getDaysToBirthday } from '../utils/birthdayCheck';
-import { getAccessTokenFromCookie } from '../utils/twitchAPI';
+import { getUserData, getUserFollowers } from '../utils/twitchAPI';
+import { DataStorage } from '../utils/dataStorage';
 
 export default function Profile() {
   const [profileData, setProfileData] = useState(null);
@@ -48,126 +49,77 @@ export default function Profile() {
     try {
       setLoading(true);
       
-      // Получаем данные пользователя из localStorage
-      const userData = JSON.parse(localStorage.getItem('twitch_user') || '{}');
+      // Получаем сохраненные настройки видимости статистики, если они есть
+      const savedStatsVisibility = await DataStorage.getData('stats_visibility');
+      if (savedStatsVisibility) {
+        setStatsVisibility(savedStatsVisibility);
+      }
       
-      if (!userData || !userData.id) {
-        router.push('/auth');
+      // Получаем данные пользователя, используя новый метод getUserData
+      const userData = await getUserData();
+      
+      if (!userData) {
+        router.push('/login');
         return;
       }
       
-      // Определяем статус стримера на основе количества фолловеров
-      const isStreamer = userData.broadcaster_type === 'partner' || 
-                       userData.broadcaster_type === 'affiliate' || 
-                       (userData.follower_count && userData.follower_count >= 265);
+      setProfileData(userData);
       
-      userData.isStreamer = isStreamer;
-      localStorage.setItem('twitch_user', JSON.stringify(userData));
+      // Сохраняем данные пользователя в новое хранилище
+      await DataStorage.saveData('user', userData);
       
-      // Получаем расширенную статистику пользователя
-      try {
-        const response = await fetch('/api/twitch/user-stats');
-        if (response.ok) {
-          const stats = await response.json();
-          setUserStats(stats);
-          
-          // Обновляем данные пользователя с расширенной статистикой
-          userData.follower_count = stats.followers.total;
-          userData.following_count = stats.followings.total;
-          userData.recent_followers = stats.followers.recentFollowers || [];
-          userData.is_live = stats.stream.isLive;
-          userData.last_stream = stats.stream.lastStream;
-          userData.created_at = stats.user.createdAt;
-          userData.view_count = stats.user.viewCount;
-          userData.broadcaster_type = stats.user.broadcasterType;
-          
-          // Повторно определяем статус стримера с обновленными данными
-          userData.isStreamer = userData.broadcaster_type === 'partner' || 
-                             userData.broadcaster_type === 'affiliate' || 
-                             (userData.follower_count && userData.follower_count >= 265);
-          
-          // Сохраняем обновленные данные в localStorage
-          localStorage.setItem('twitch_user', JSON.stringify(userData));
-          
-          console.log('Получена расширенная статистика пользователя:', stats);
-          
-          // Загружаем настройки видимости статистики
-          try {
-            const savedVisibility = localStorage.getItem(`stats_visibility_${userData.id}`);
-            if (savedVisibility) {
-              setStatsVisibility(JSON.parse(savedVisibility));
-            }
-          } catch (visibilityError) {
-            console.error('Ошибка при загрузке настроек видимости:', visibilityError);
-          }
-        }
-      } catch (statsError) {
-        console.error('Ошибка при получении расширенной статистики:', statsError);
+      // Получаем сохраненные социальные ссылки из нового хранилища
+      const savedSocialLinks = await DataStorage.getData('social_links');
+      if (savedSocialLinks) {
+        setSocialLinks(savedSocialLinks);
       }
       
-      setProfileData(userData);
-      await loadSocialLinks(userData.id);
-      
-      // Загружаем день рождения пользователя из localStorage, если он есть
-      try {
-        const userBirthday = localStorage.getItem(`birthday_${userData.id}`);
-        if (userBirthday) {
-          setProfileData(prev => ({ ...prev, birthday: userBirthday }));
-          
-          // Проверяем, является ли сегодня днем рождения пользователя
-          const isTodayBirthday = checkBirthday(userData.id);
-          setIsBirthday(isTodayBirthday);
-          
-          // Получаем количество дней до дня рождения
-          const days = getDaysToBirthday(userData.id);
+      // Проверяем день рождения пользователя
+      if (userData.birthday) {
+        const birthdayToday = checkBirthday(userData.birthday);
+        setIsBirthday(birthdayToday);
+        
+        if (!birthdayToday) {
+          const days = getDaysToBirthday(userData.birthday);
           setDaysToBirthday(days);
         }
-      } catch (birthdayError) {
-        console.error('Ошибка при загрузке дня рождения:', birthdayError);
       }
       
-      // Загружаем данные о стримах
+      // Загружаем фолловеров, используя новый метод с кешированием
       try {
-        const completedStreams = localStorage.getItem(`completed_streams_${userData.id}`);
-        if (completedStreams) {
-          setStreamsCompleted(parseInt(completedStreams, 10) || 0);
+        const followersData = await getUserFollowers(userData.id);
+        if (followersData) {
+          // Обработка данных о фолловерах
+          // ...
         }
-        
-        const collaborationsStatus = localStorage.getItem(`has_collaborations_${userData.id}`);
-        if (collaborationsStatus === 'true') {
-          setHasCollaborations(true);
-        }
-      } catch (streamsError) {
-        console.error('Ошибка при загрузке данных о стримах:', streamsError);
+      } catch (followerError) {
+        console.error('Ошибка при загрузке фолловеров:', followerError);
       }
       
       setLoading(false);
     } catch (error) {
-      console.error('Ошибка при загрузке данных профиля:', error);
-      setError('Не удалось загрузить данные профиля. Пожалуйста, попробуйте позже.');
+      console.error('Ошибка при загрузке данных пользователя:', error);
+      setError('Не удалось загрузить данные профиля');
       setLoading(false);
     }
+  };
+  
+  // Функция для сохранения настроек видимости статистики
+  const saveStatsVisibility = async (newVisibility) => {
+    setStatsVisibility(newVisibility);
+    await DataStorage.saveData('stats_visibility', newVisibility);
+  };
+  
+  // Функция для сохранения социальных ссылок
+  const saveSocialLinks = async (newLinks) => {
+    setSocialLinks(newLinks);
+    await DataStorage.saveData('social_links', newLinks);
   };
 
   // Загрузка данных при монтировании компонента
   useEffect(() => {
     loadUserData();
   }, []);
-
-  // Функция для загрузки социальных ссылок
-  const loadSocialLinks = async (userId) => {
-    try {
-      // Здесь должен быть запрос к API для получения социальных ссылок
-      // Пока используем данные из localStorage
-      const savedLinks = localStorage.getItem(`social_links_${userId}`);
-      
-      if (savedLinks) {
-        setSocialLinks(JSON.parse(savedLinks));
-      }
-    } catch (error) {
-      console.error('Ошибка при загрузке социальных ссылок:', error);
-    }
-  };
 
   // Функция для выхода из аккаунта
   const handleLogout = () => {
