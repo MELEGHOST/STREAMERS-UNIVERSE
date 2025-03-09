@@ -13,6 +13,7 @@ export default function Followings() {
   const [followings, setFollowings] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [totalFollowings, setTotalFollowings] = useState(0);
   
   useEffect(() => {
     if (!isAuthenticated || !userId) return;
@@ -28,55 +29,57 @@ export default function Followings() {
           throw new Error('Токен авторизации не найден');
         }
         
-        // Получаем фолловингов пользователя из Twitch API
-        const response = await fetch(`https://api.twitch.tv/helix/users/follows?from_id=${userId}`, {
-          headers: {
-            'Client-ID': process.env.NEXT_PUBLIC_TWITCH_CLIENT_ID,
-            'Authorization': `Bearer ${token}`
-          }
+        // Используем API роут вместо прямого обращения к Twitch API
+        const response = await fetch(`/api/twitch/followings?userId=${userId}`, {
+          method: 'GET',
+          credentials: 'include'
         });
         
         if (!response.ok) {
-          throw new Error('Не удалось загрузить данные о фолловингах');
+          const errorData = await response.json().catch(() => ({ error: 'Ошибка сервера' }));
+          throw new Error(errorData.error || 'Не удалось загрузить данные о фолловингах');
         }
         
         const data = await response.json();
         
-        // Если есть фолловинги, получаем информацию о каждом пользователе
-        if (data.data && data.data.length > 0) {
-          // Получаем ID всех фолловингов
-          const followingIds = data.data.map(follow => follow.to_id);
+        // Обрабатываем полученные данные
+        if (data && data.followings && Array.isArray(data.followings)) {
+          // Сохраняем данные о пользователях, на которых подписаны
+          setFollowings(data.followings);
+          setTotalFollowings(data.total || data.followings.length);
           
-          // Получаем информацию о пользователях
-          const usersResponse = await fetch(`https://api.twitch.tv/helix/users?id=${followingIds.join('&id=')}`, {
-            headers: {
-              'Client-ID': process.env.NEXT_PUBLIC_TWITCH_CLIENT_ID,
-              'Authorization': `Bearer ${token}`
-            }
-          });
-          
-          if (!usersResponse.ok) {
-            throw new Error('Не удалось загрузить данные о пользователях');
+          // Сохраняем в localStorage для кэширования
+          try {
+            localStorage.setItem(`followings_${userId}`, JSON.stringify(data.followings));
+            localStorage.setItem(`followings_total_${userId}`, data.total.toString());
+          } catch (cacheError) {
+            console.warn('Ошибка при кэшировании фолловингов:', cacheError);
           }
-          
-          const usersData = await usersResponse.json();
-          
-          // Объединяем данные о фолловингах с данными о пользователях
-          const followingsWithUserData = data.data.map(follow => {
-            const userData = usersData.data.find(user => user.id === follow.to_id);
-            return {
-              ...follow,
-              user: userData
-            };
-          });
-          
-          setFollowings(followingsWithUserData);
         } else {
           setFollowings([]);
+          setTotalFollowings(0);
         }
       } catch (err) {
         console.error('Ошибка при загрузке фолловингов:', err);
         setError('Не удалось загрузить данные о фолловингах. Пожалуйста, попробуйте позже.');
+        
+        // Пробуем загрузить данные из кэша
+        try {
+          const cachedFollowingsStr = localStorage.getItem(`followings_${userId}`);
+          const cachedTotalStr = localStorage.getItem(`followings_total_${userId}`);
+          
+          if (cachedFollowingsStr) {
+            const cachedFollowings = JSON.parse(cachedFollowingsStr);
+            if (Array.isArray(cachedFollowings) && cachedFollowings.length > 0) {
+              console.log('Загружаем фолловинги из кэша:', cachedFollowings.length);
+              setFollowings(cachedFollowings);
+              setTotalFollowings(parseInt(cachedTotalStr || '0', 10) || cachedFollowings.length);
+              setError('Данные загружены из кэша и могут быть устаревшими');
+            }
+          }
+        } catch (cacheError) {
+          console.error('Ошибка при получении фолловингов из кэша:', cacheError);
+        }
       } finally {
         setLoading(false);
       }
@@ -84,6 +87,12 @@ export default function Followings() {
     
     fetchFollowings();
   }, [isAuthenticated, userId]);
+  
+  const retryFetchFollowings = () => {
+    setLoading(true);
+    setError(null);
+    window.location.reload();
+  };
   
   if (!isAuthenticated) {
     return (
@@ -94,7 +103,7 @@ export default function Followings() {
         <div className={styles.authMessage}>
           <h2>Требуется авторизация</h2>
           <p>Пожалуйста, войдите в систему, чтобы просмотреть ваши фолловинги.</p>
-          <button onClick={() => router.push('/login')} className={styles.authButton}>
+          <button onClick={() => router.push('/auth')} className={styles.authButton}>
             Войти
           </button>
         </div>
@@ -111,6 +120,7 @@ export default function Followings() {
       
       <div className={styles.header}>
         <h1>Ваши фолловинги Twitch</h1>
+        <p className={styles.totalCount}>Всего подписок: {totalFollowings}</p>
         <Link href="/menu" className={styles.backButton}>
           <svg viewBox="0 0 24 24" width="24" height="24" fill="currentColor">
             <path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z" />
@@ -127,7 +137,7 @@ export default function Followings() {
       ) : error ? (
         <div className={styles.errorContainer}>
           <p>{error}</p>
-          <button onClick={() => window.location.reload()} className={styles.retryButton}>
+          <button onClick={retryFetchFollowings} className={styles.retryButton}>
             Повторить
           </button>
         </div>
@@ -149,32 +159,32 @@ export default function Followings() {
       ) : (
         <div className={styles.followersGrid}>
           {followings.map(following => (
-            <div key={following.to_id} className={styles.followerCard}>
+            <div key={following.id || following.to_id} className={styles.followerCard}>
               <div className={styles.followerAvatar}>
                 <Image 
-                  src={following.user?.profile_image_url || '/images/default-avatar.png'} 
-                  alt={following.user?.display_name || 'Пользователь'}
+                  src={following.profileImageUrl || following.user?.profile_image_url || '/images/default-avatar.png'} 
+                  alt={following.name || following.user?.display_name || 'Пользователь'}
                   width={80}
                   height={80}
                   className={styles.avatarImage}
                 />
               </div>
               <div className={styles.followerInfo}>
-                <h3 className={styles.followerName}>{following.user?.display_name || 'Пользователь'}</h3>
-                <p className={styles.followerLogin}>@{following.user?.login || 'unknown'}</p>
+                <h3 className={styles.followerName}>{following.name || following.user?.display_name || 'Пользователь'}</h3>
+                <p className={styles.followerLogin}>@{following.login || following.user?.login || 'unknown'}</p>
                 <p className={styles.followDate}>
-                  Подписаны с {new Date(following.followed_at).toLocaleDateString()}
+                  Подписаны с {new Date(following.followedAt || following.followed_at).toLocaleDateString('ru-RU')}
                 </p>
               </div>
               <div className={styles.followerActions}>
                 <Link 
-                  href={`/user/${following.user?.login}`} 
+                  href={`/user/${following.login || following.user?.login || ''}`} 
                   className={styles.viewProfileButton}
                 >
                   Профиль в SU
                 </Link>
                 <a 
-                  href={`https://twitch.tv/${following.user?.login}`} 
+                  href={`https://twitch.tv/${following.login || following.user?.login || ''}`} 
                   target="_blank" 
                   rel="noopener noreferrer" 
                   className={styles.twitchProfileButton}

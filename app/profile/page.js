@@ -7,6 +7,7 @@ import SocialButton from '../components/SocialButton';
 import AchievementsSystem from '../components/AchievementsSystem';
 import ReviewSection from '../components/ReviewSection';
 import { checkBirthday, getDaysToBirthday } from '../utils/birthdayCheck';
+import { getAccessTokenFromCookie } from '../utils/twitchAPI';
 
 export default function Profile() {
   const [profileData, setProfileData] = useState(null);
@@ -51,12 +52,16 @@ export default function Profile() {
       const userData = JSON.parse(localStorage.getItem('twitch_user') || '{}');
       
       if (!userData || !userData.id) {
-        router.push('/login');
+        router.push('/auth');
         return;
       }
       
-      // Принудительно устанавливаем статус стримера
-      userData.isStreamer = true;
+      // Определяем статус стримера на основе количества фолловеров
+      const isStreamer = userData.broadcaster_type === 'partner' || 
+                       userData.broadcaster_type === 'affiliate' || 
+                       (userData.follower_count && userData.follower_count >= 265);
+      
+      userData.isStreamer = isStreamer;
       localStorage.setItem('twitch_user', JSON.stringify(userData));
       
       // Получаем расширенную статистику пользователя
@@ -69,12 +74,17 @@ export default function Profile() {
           // Обновляем данные пользователя с расширенной статистикой
           userData.follower_count = stats.followers.total;
           userData.following_count = stats.followings.total;
-          userData.recent_followers = stats.followers.recentFollowers;
+          userData.recent_followers = stats.followers.recentFollowers || [];
           userData.is_live = stats.stream.isLive;
           userData.last_stream = stats.stream.lastStream;
           userData.created_at = stats.user.createdAt;
           userData.view_count = stats.user.viewCount;
           userData.broadcaster_type = stats.user.broadcasterType;
+          
+          // Повторно определяем статус стримера с обновленными данными
+          userData.isStreamer = userData.broadcaster_type === 'partner' || 
+                             userData.broadcaster_type === 'affiliate' || 
+                             (userData.follower_count && userData.follower_count >= 265);
           
           // Сохраняем обновленные данные в localStorage
           localStorage.setItem('twitch_user', JSON.stringify(userData));
@@ -82,9 +92,13 @@ export default function Profile() {
           console.log('Получена расширенная статистика пользователя:', stats);
           
           // Загружаем настройки видимости статистики
-          const savedVisibility = localStorage.getItem(`stats_visibility_${userData.id}`);
-          if (savedVisibility) {
-            setStatsVisibility(JSON.parse(savedVisibility));
+          try {
+            const savedVisibility = localStorage.getItem(`stats_visibility_${userData.id}`);
+            if (savedVisibility) {
+              setStatsVisibility(JSON.parse(savedVisibility));
+            }
+          } catch (visibilityError) {
+            console.error('Ошибка при загрузке настроек видимости:', visibilityError);
           }
         }
       } catch (statsError) {
@@ -110,6 +124,21 @@ export default function Profile() {
         }
       } catch (birthdayError) {
         console.error('Ошибка при загрузке дня рождения:', birthdayError);
+      }
+      
+      // Загружаем данные о стримах
+      try {
+        const completedStreams = localStorage.getItem(`completed_streams_${userData.id}`);
+        if (completedStreams) {
+          setStreamsCompleted(parseInt(completedStreams, 10) || 0);
+        }
+        
+        const collaborationsStatus = localStorage.getItem(`has_collaborations_${userData.id}`);
+        if (collaborationsStatus === 'true') {
+          setHasCollaborations(true);
+        }
+      } catch (streamsError) {
+        console.error('Ошибка при загрузке данных о стримах:', streamsError);
       }
       
       setLoading(false);
@@ -272,8 +301,11 @@ export default function Profile() {
 
   // Функция для отображения статуса пользователя
   const renderUserStatus = () => {
-    // Принудительно устанавливаем статус "Стример" для всех пользователей
-    const isStreamer = true;
+    // Определяем статус стримера на основе данных профиля
+    const isStreamer = profileData?.isStreamer || 
+                      profileData?.broadcaster_type === 'partner' || 
+                      profileData?.broadcaster_type === 'affiliate' || 
+                      (profileData?.follower_count && profileData.follower_count >= 265);
     
     return (
       <div className={styles.statusContainer}>

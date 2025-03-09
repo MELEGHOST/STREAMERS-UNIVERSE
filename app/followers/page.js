@@ -39,15 +39,23 @@ export default function Followers() {
         
         const userId = storedUser.id || 'unknown';
         setUserId(userId);
-        setIsStreamer(storedUser.isStreamer || true); // Временно устанавливаем всех пользователей как стримеров
+        
+        // Исправлено: правильно определяем статус стримера
+        setIsStreamer(storedUser.isStreamer || storedUser.follower_count >= 265 || false);
 
         console.log('Загружаем фолловеров для пользователя:', userId);
 
         // Получаем фолловеров через наш API
         await fetchFollowers(userId, accessToken);
 
-        const savedRoles = JSON.parse(localStorage.getItem(`roles_${userId}`)) || {};
-        setRoles(savedRoles);
+        // Загружаем сохраненные роли фолловеров
+        try {
+          const savedRoles = JSON.parse(localStorage.getItem(`roles_${userId}`)) || {};
+          setRoles(savedRoles);
+        } catch (rolesError) {
+          console.error('Ошибка при загрузке ролей:', rolesError);
+          // Не останавливаем выполнение из-за ошибки с ролями
+        }
       } catch (error) {
         console.error('Ошибка при загрузке данных:', error);
         setError('Произошла ошибка при загрузке данных. Попробуйте обновить страницу.');
@@ -72,34 +80,42 @@ export default function Followers() {
       
       setTotalFollowers(data.total || 0);
       
-      if (data && data.followers) {
+      if (data && data.followers && Array.isArray(data.followers)) {
         const formattedFollowers = data.followers.map(follower => ({
           id: follower.id,
-          name: follower.name,
+          name: follower.name || follower.login || 'Неизвестный пользователь',
           followedAt: new Date(follower.followedAt).toLocaleDateString('ru-RU')
         }));
         
         setFollowers(formattedFollowers);
         
         // Сохраняем данные в localStorage для кэширования
-        safeLocalStorage(`followers_${userId}`, formattedFollowers);
+        safeLocalStorage(`followers_${userId}`, JSON.stringify(formattedFollowers));
+      } else {
+        throw new Error('Неверный формат данных с API');
       }
+      
+      setLoading(false);
     } catch (error) {
       console.error('Ошибка при получении фолловеров:', error);
       setError(`Не удалось загрузить фолловеров: ${error.message}`);
       
       // Пробуем загрузить из кэша, если API недоступен
       try {
-        const cachedFollowers = JSON.parse(localStorage.getItem(`followers_${userId}`)) || [];
-        if (cachedFollowers.length > 0) {
-          console.log('Загружаем фолловеров из кэша:', cachedFollowers.length);
-          setFollowers(cachedFollowers);
+        const cachedFollowersStr = localStorage.getItem(`followers_${userId}`);
+        if (cachedFollowersStr) {
+          const cachedFollowers = JSON.parse(cachedFollowersStr);
+          if (Array.isArray(cachedFollowers) && cachedFollowers.length > 0) {
+            console.log('Загружаем фолловеров из кэша:', cachedFollowers.length);
+            setFollowers(cachedFollowers);
+            setError('Данные загружены из кэша и могут быть устаревшими');
+          }
         }
       } catch (cacheError) {
         console.error('Ошибка при получении фолловеров из кэша:', cacheError);
+      } finally {
+        setLoading(false);
       }
-    } finally {
-      setLoading(false);
     }
   };
 

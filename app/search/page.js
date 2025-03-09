@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Cookies from 'js-cookie';
 import styles from './search.module.css';
+import { getAccessTokenFromCookie } from '../utils/twitchAPI';
 
 export default function Search() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -19,7 +20,7 @@ export default function Search() {
   const router = useRouter();
 
   useEffect(() => {
-    const accessToken = Cookies.get('twitch_access_token');
+    const accessToken = getAccessTokenFromCookie();
     if (!accessToken) {
       router.push('/auth');
     } else {
@@ -28,7 +29,7 @@ export default function Search() {
         const storedUser = JSON.parse(localStorage.getItem('twitch_user') || '{}');
         setUserId(storedUser.id || 'unknown');
       } catch (e) {
-        console.error('Failed to parse user data:', e);
+        console.error('Ошибка при обработке данных пользователя:', e);
       }
     }
   }, [router]);
@@ -40,19 +41,23 @@ export default function Search() {
     setResults(null);
     
     try {
-      const accessToken = Cookies.get('twitch_access_token');
+      const accessToken = getAccessTokenFromCookie();
       
       if (!accessToken) {
         throw new Error('Не авторизован. Пожалуйста, войдите в систему.');
       }
       
-      // Делаем запрос через наш API для поиска пользователя
-      const response = await fetch(`/api/twitch/search?login=${encodeURIComponent(searchTerm)}`, {
+      const sanitizedSearchTerm = searchTerm.trim().toLowerCase();
+      
+      if (!sanitizedSearchTerm) {
+        throw new Error('Пожалуйста, введите корректный запрос для поиска');
+      }
+      
+      const response = await fetch(`/api/twitch/search?login=${encodeURIComponent(sanitizedSearchTerm)}`, {
         method: 'GET',
         credentials: 'include',
         headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${accessToken}`
+          'Content-Type': 'application/json'
         }
       });
       
@@ -60,41 +65,45 @@ export default function Search() {
         if (response.status === 404) {
           setResults({ error: 'Пользователь не найден на Twitch' });
         } else {
-          const errorData = await response.json();
-          throw new Error(errorData.error || 'Ошибка поиска');
+          let errorMessage = 'Ошибка поиска';
+          try {
+            const errorData = await response.json();
+            errorMessage = errorData.error || errorMessage;
+          } catch (jsonError) {
+            console.error('Ошибка при обработке ответа сервера:', jsonError);
+          }
+          throw new Error(errorMessage);
         }
         setLoading(false);
         return;
       }
       
-      const data = await response.json();
+      let data;
+      try {
+        data = await response.json();
+      } catch (jsonError) {
+        throw new Error('Не удалось обработать ответ от сервера');
+      }
       
       if (!data.twitchData) {
         setResults({ error: 'Пользователь не найден на Twitch' });
       } else {
-        // Добавляем данные о фолловерах из токена, если они отсутствуют
-        if (!data.twitchData.follower_count && data.twitchData.id) {
-          try {
-            const followersResponse = await fetch(`https://api.twitch.tv/helix/users/follows?to_id=${data.twitchData.id}`, {
-              headers: {
-                'Client-ID': process.env.NEXT_PUBLIC_TWITCH_CLIENT_ID,
-                'Authorization': `Bearer ${accessToken}`
-              }
-            });
-            
-            if (followersResponse.ok) {
-              const followersData = await followersResponse.json();
-              data.twitchData.follower_count = followersData.total || 0;
-            }
-          } catch (error) {
-            console.error('Error fetching followers:', error);
-          }
+        let filteredResults = { ...data };
+        
+        if (filters.category === 'streamer' && 
+            !(data.twitchData.broadcaster_type || 
+             (data.twitchData.follower_count && data.twitchData.follower_count >= 265))) {
+          filteredResults = { filtered: true, error: 'Нет результатов, соответствующих фильтрам' };
+        } else if (filters.category === 'viewer' && 
+                  (data.twitchData.broadcaster_type || 
+                  (data.twitchData.follower_count && data.twitchData.follower_count >= 265))) {
+          filteredResults = { filtered: true, error: 'Нет результатов, соответствующих фильтрам' };
         }
         
-        setResults(data);
+        setResults(filteredResults);
       }
     } catch (error) {
-      console.error('Search error:', error);
+      console.error('Ошибка поиска:', error);
       setResults({ error: error.message || 'Произошла ошибка при поиске пользователя' });
     } finally {
       setLoading(false);
@@ -196,7 +205,6 @@ export default function Search() {
         </div>
       </div>
       
-      {/* Фильтры поиска */}
       {showFilters && (
         <div className={styles.filtersPanel}>
           <div className={styles.filterGroup}>
@@ -275,7 +283,6 @@ export default function Search() {
             <button 
               className={styles.applyFiltersButton}
               onClick={() => {
-                // Применение фильтров
                 handleSearch();
                 setShowFilters(false);
               }}

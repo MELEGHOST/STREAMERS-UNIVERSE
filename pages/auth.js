@@ -61,6 +61,7 @@ export default function Auth() {
           const newUrl = new URL(window.location.href);
           newUrl.searchParams.delete('clear_auth');
           window.history.replaceState({}, document.title, newUrl.toString());
+          return;
         }
       }
       
@@ -124,12 +125,23 @@ export default function Auth() {
     }
   }, [router, router.query, login]);
 
+  const handleLoginClick = (e) => {
+    e.preventDefault();
+    // Упрощенная логика клика - сразу начинаем авторизацию
+    setIsLoading(true);
+    setErrorMessage('');
+    handleLoginComplete();
+  };
+
   const handleLoginPress = (e) => {
     e.preventDefault();
     console.log('Button pressed at:', new Date().toISOString());
     pressStartRef.current = Date.now();
     timeoutRef.current = setTimeout(() => {
       console.log('1.42s timeout reached at:', new Date().toISOString());
+      setIsLoading(true);
+      setErrorMessage('');
+      handleLoginComplete();
     }, 1420); // 1.42 секунды
   };
 
@@ -240,48 +252,52 @@ export default function Auth() {
         </div>
       )}
       
-      <div className={styles.galaxyButton}>
+      <div className={styles.authButtonsContainer}>
         <button 
-          className={styles.spaceButton}
-          onMouseDown={handleLoginPress}
-          onMouseUp={handleLoginRelease}
-          onTouchStart={handleLoginPress}
-          onTouchEnd={handleLoginRelease}
+          className={styles.normalLoginButton}
+          onClick={handleLoginClick}
           disabled={isLoading}
         >
-          <span className={styles.backdrop}></span>
-          <span className={styles.galaxy}></span>
-          <label className={styles.text}>
-            {isLoading ? 'Подключение...' : 'Войти через Twitch'}
-          </label>
+          {isLoading ? 'Авторизация...' : 'Войти через Twitch'}
         </button>
-        <div className={styles.bodydrop}></div>
+        
+        <div className={styles.galaxyButton}>
+          <button 
+            className={styles.spaceButton}
+            onMouseDown={handleLoginPress}
+            onMouseUp={handleLoginRelease}
+            onTouchStart={handleLoginPress}
+            onTouchEnd={handleLoginRelease}
+            disabled={isLoading}
+          >
+            {isLoading ? 'Авторизация...' : 'Войти через Twitch'}
+            <div className={styles.spaceBtnGlow}></div>
+            <div className={styles.spaceBtnGlare}></div>
+          </button>
+        </div>
       </div>
       
-      <div className={styles.instructions}>
-        <p>Нажмите и удерживайте кнопку для входа</p>
-        <div className={styles.pulseAnimation}></div>
-      </div>
-      
-      {process.env.NODE_ENV === 'development' && debugInfo && (
-        <div className={styles.debugInfo}>
-          <h3>Отладочная информация</h3>
-          <div>
-            <h4>Cookies:</h4>
-            <ul>
-              {Object.entries(debugInfo.cookies).map(([key, value]) => (
-                <li key={key}>{key}: {value ? 'Да' : 'Нет'}</li>
-              ))}
-            </ul>
-            <h4>LocalStorage:</h4>
-            <ul>
-              {Object.entries(debugInfo.localStorage).map(([key, value]) => (
-                <li key={key}>{key}: {value ? 'Да' : 'Нет'}</li>
-              ))}
-            </ul>
-          </div>
+      {isLoading && (
+        <div className={styles.loadingContainer}>
+          <div className={styles.loadingSpinner}></div>
+          <p>Переход на страницу авторизации Twitch...</p>
         </div>
       )}
+      
+      <div className={styles.infoSection}>
+        <details>
+          <summary>Зачем нужна авторизация через Twitch?</summary>
+          <div className={styles.infoContent}>
+            <p>Авторизация через Twitch нужна для получения базовой информации о вашем аккаунте:</p>
+            <ul>
+              <li>Имя пользователя и аватар</li>
+              <li>Список подписчиков и подписок</li>
+              <li>Статистика канала</li>
+            </ul>
+            <p>Мы не получаем доступ к вашему паролю и не можем управлять вашим каналом.</p>
+          </div>
+        </details>
+      </div>
     </div>
   );
 } 
