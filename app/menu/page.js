@@ -1,10 +1,12 @@
+'use client';
+
 import { useState, useEffect } from 'react';
-import { useRouter } from 'next/router';
-import Head from 'next/head';
+import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import Cookies from 'js-cookie';
-import styles from '../styles/menu.module.css';
-import { useAuth } from '../contexts/AuthContext';
+import styles from '../../styles/menu.module.css';
+import { useAuth } from '../../contexts/AuthContext';
+import Head from 'next/head';
 
 export default function Menu() {
   const router = useRouter();
@@ -75,10 +77,7 @@ export default function Menu() {
   
   return (
     <div className={styles.container}>
-      <Head>
-        <title>Меню | Streamers Universe</title>
-        <meta name="description" content="Главное меню Streamers Universe" />
-      </Head>
+      {/* В App Router мы не используем компонент Head, вместо этого метаданные определяются в metadata */}
       
       <div className={styles.menuContainer}>
         <div className={styles.menuHeader}>
@@ -173,4 +172,4 @@ export default function Menu() {
       </div>
     </div>
   );
-}
+} 
