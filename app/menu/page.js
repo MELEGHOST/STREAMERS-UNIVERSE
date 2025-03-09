@@ -14,14 +14,23 @@ export default function Menu() {
   
   const [streamCoins, setStreamCoins] = useState(100);
   const [referralCode, setReferralCode] = useState('');
+  const [isLoading, setIsLoading] = useState(true);
   
   useEffect(() => {
+    // Проверяем авторизацию
+    if (isAuthenticated === false) {
+      // Если пользователь не авторизован, перенаправляем на страницу авторизации
+      router.push('/auth');
+      return;
+    }
+    
     if (isAuthenticated && userId) {
       // Загружаем стример-коины
       loadStreamCoins(userId);
       
       // Генерируем реферальный код
       setReferralCode(generateReferralCode(userId));
+      setIsLoading(false);
     } else {
       // Если пользователь не авторизован через контекст, пробуем получить данные из localStorage или cookies
       try {
@@ -31,13 +40,22 @@ export default function Menu() {
           if (userData && userData.id) {
             loadStreamCoins(userData.id);
             setReferralCode(generateReferralCode(userData.id));
+            setIsLoading(false);
+          } else {
+            // Если данные пользователя некорректны, перенаправляем на страницу авторизации
+            router.push('/auth');
           }
+        } else {
+          // Если данные пользователя отсутствуют, перенаправляем на страницу авторизации
+          router.push('/auth');
         }
       } catch (error) {
         console.error('Ошибка при получении данных пользователя:', error);
+        // В случае ошибки перенаправляем на страницу авторизации
+        router.push('/auth');
       }
     }
-  }, [isAuthenticated, userId]);
+  }, [isAuthenticated, userId, router]);
   
   // Загрузка стример-коинов из localStorage
   const loadStreamCoins = (userId) => {
@@ -74,6 +92,16 @@ export default function Menu() {
   const goToProfile = () => {
     router.push('/profile');
   };
+  
+  // Если данные загружаются, показываем индикатор загрузки
+  if (isLoading) {
+    return (
+      <div className={styles.loading}>
+        <div className={styles.spinner}></div>
+        <p>Загрузка...</p>
+      </div>
+    );
+  }
   
   return (
     <div className={styles.container}>

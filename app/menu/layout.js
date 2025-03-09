@@ -1,5 +1,5 @@
 export const metadata = {
-  title: 'Меню | Streamers Universe',
+  title: 'Меню',
   description: 'Главное меню Streamers Universe',
 };
 
