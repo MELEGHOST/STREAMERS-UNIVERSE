@@ -118,6 +118,14 @@ export function AuthProvider({ children }) {
           // Пытаемся распарсить данные пользователя
           const user = typeof userData === 'string' ? JSON.parse(userData) : userData;
           
+          if (!user || !user.id) {
+            console.warn('Данные пользователя некорректны');
+            setIsAuthenticated(false);
+            localStorage.removeItem('is_authenticated');
+            setIsInitialized(true);
+            return;
+          }
+          
           // Устанавливаем состояние авторизации
           setIsAuthenticated(true);
           setUserId(user.id);

@@ -4,43 +4,56 @@ export class DataStorage {
   // Сохранение данных
   static async saveData(dataType, dataValue) {
     try {
-      // Отправляем данные на сервер
-      const response = await fetch('/api/user-data', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ dataType, dataValue }),
-        credentials: 'include', // Важно для отправки cookies
-      });
+      // Преобразуем значение в строку JSON, если оно не строка
+      const dataValueString = typeof dataValue === 'string' 
+        ? dataValue 
+        : JSON.stringify(dataValue);
       
-      if (!response.ok) {
-        console.warn('Не удалось сохранить данные на сервере');
+      // Сохраняем в localStorage для надежности
+      if (typeof window !== 'undefined') {
+        try {
+          localStorage.setItem(`data_${dataType}`, dataValueString);
+        } catch (localError) {
+          console.warn('Не удалось сохранить данные в localStorage:', localError);
+        }
       }
       
-      // Также сохраняем в cookies для временного доступа
+      // Сохраняем в cookies для временного доступа
       // Устанавливаем срок действия - 7 дней
-      Cookies.set(`data_${dataType}`, JSON.stringify(dataValue), {
-        expires: 7,
-        sameSite: 'strict',
-        secure: process.env.NODE_ENV === 'production'
-      });
-      
-      return true;
-    } catch (error) {
-      console.error('Ошибка при сохранении данных:', error);
-      
-      // В случае ошибки сохраняем только в cookie
       try {
-        Cookies.set(`data_${dataType}`, JSON.stringify(dataValue), {
+        Cookies.set(`data_${dataType}`, dataValueString, {
           expires: 7,
           sameSite: 'strict',
           secure: process.env.NODE_ENV === 'production'
         });
-        return true;
-      } catch {
-        return false;
+      } catch (cookieError) {
+        console.warn('Не удалось сохранить данные в cookies:', cookieError);
       }
+      
+      // Отправляем данные на сервер
+      try {
+        const response = await fetch('/api/user-data', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ dataType, dataValue }),
+          credentials: 'include', // Важно для отправки cookies
+          // Добавляем таймаут для запроса
+          signal: AbortSignal.timeout(5000) // 5 секунд таймаут
+        });
+        
+        if (!response.ok) {
+          console.warn('Не удалось сохранить данные на сервере:', await response.text());
+        }
+      } catch (serverError) {
+        console.warn('Ошибка при отправке данных на сервер:', serverError);
+      }
+      
+      return true;
+    } catch (error) {
+      console.error('Ошибка при сохранении данных:', error);
+      return false;
     }
   }
   
@@ -48,14 +61,23 @@ export class DataStorage {
   static async getData(dataType) {
     try {
       // Сначала пытаемся получить данные с сервера
-      const response = await fetch(`/api/user-data?type=${dataType}`, {
-        credentials: 'include',
-      });
-      
-      // Если получили данные с сервера
-      if (response.ok) {
-        const data = await response.json();
-        return data[dataType] || null;
+      try {
+        const response = await fetch(`/api/user-data?type=${dataType}`, {
+          credentials: 'include',
+          // Добавляем таймаут для запроса
+          signal: AbortSignal.timeout(3000) // 3 секунды таймаут
+        });
+        
+        // Если получили данные с сервера
+        if (response.ok) {
+          const data = await response.json();
+          if (data && data[dataType] !== undefined) {
+            return data[dataType];
+          }
+        }
+      } catch (serverError) {
+        console.warn('Не удалось получить данные с сервера:', serverError);
+        // Продолжаем выполнение и пробуем получить данные из cookies
       }
       
       // Если не удалось получить с сервера, проверяем cookies
@@ -63,8 +85,22 @@ export class DataStorage {
       if (cookieData) {
         try {
           return JSON.parse(cookieData);
-        } catch {
+        } catch (parseError) {
+          console.warn('Ошибка при парсинге данных из cookie:', parseError);
           return null;
+        }
+      }
+      
+      // Если данных нет в cookies, проверяем localStorage
+      if (typeof window !== 'undefined') {
+        const localData = localStorage.getItem(`data_${dataType}`);
+        if (localData) {
+          try {
+            return JSON.parse(localData);
+          } catch (parseError) {
+            console.warn('Ошибка при парсинге данных из localStorage:', parseError);
+            return null;
+          }
         }
       }
       
@@ -73,13 +109,25 @@ export class DataStorage {
       console.error('Ошибка при получении данных:', error);
       
       // В случае ошибки пытаемся получить из cookies
-      const cookieData = Cookies.get(`data_${dataType}`);
-      if (cookieData) {
-        try {
+      try {
+        const cookieData = Cookies.get(`data_${dataType}`);
+        if (cookieData) {
           return JSON.parse(cookieData);
-        } catch {
-          return null;
         }
+      } catch (cookieError) {
+        console.warn('Ошибка при получении данных из cookie:', cookieError);
+      }
+      
+      // Если не удалось получить из cookies, пробуем localStorage
+      try {
+        if (typeof window !== 'undefined') {
+          const localData = localStorage.getItem(`data_${dataType}`);
+          if (localData) {
+            return JSON.parse(localData);
+          }
+        }
+      } catch (localError) {
+        console.warn('Ошибка при получении данных из localStorage:', localError);
       }
       
       return null;

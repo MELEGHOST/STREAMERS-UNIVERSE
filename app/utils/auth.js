@@ -99,20 +99,43 @@ export function getUserData() {
 export async function authenticateUser(req) {
   try {
     // Получаем JWT токен из cookies запроса
-    const token = req.cookies.auth_token || req.cookies.twitch_token || req.cookies.twitch_access_token;
+    const cookieStore = req.cookies;
     
-    if (!token) {
-      return null;
+    // Проверяем различные возможные токены
+    const token = cookieStore.get('auth_token')?.value || 
+                 cookieStore.get('twitch_token')?.value || 
+                 cookieStore.get('twitch_access_token')?.value;
+    
+    if (token) {
+      // Проверяем JWT токен
+      const payload = await verifyJwtToken(token);
+      
+      if (payload) {
+        return payload;
+      }
     }
     
-    // Проверяем JWT токен
-    const payload = await verifyJwtToken(token);
+    // Если JWT токен не найден или недействителен, пытаемся получить данные пользователя из cookies
+    const userDataCookie = cookieStore.get('twitch_user')?.value;
     
-    if (!payload) {
-      return null;
+    if (userDataCookie) {
+      try {
+        const userData = JSON.parse(userDataCookie);
+        
+        if (userData && userData.id) {
+          // Создаем минимальный объект пользователя
+          return {
+            userId: userData.id,
+            userLogin: userData.login || userData.display_name,
+            userAvatar: userData.profile_image_url
+          };
+        }
+      } catch (e) {
+        console.error('Ошибка при парсинге данных пользователя из cookies:', e);
+      }
     }
     
-    return payload;
+    return null;
   } catch (error) {
     console.error('Ошибка при аутентификации пользователя:', error);
     return null;

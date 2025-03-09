@@ -9,12 +9,14 @@ import ReviewSection from '../components/ReviewSection';
 import { checkBirthday, getDaysToBirthday } from '../utils/birthdayCheck';
 import { getUserData, getUserFollowers } from '../utils/twitchAPI';
 import { DataStorage } from '../utils/dataStorage';
+import { useAuth } from '../../contexts/AuthContext';
 
 export default function Profile() {
   const [profileData, setProfileData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const router = useRouter();
+  const { isAuthenticated, userId, userLogin, userAvatar, isInitialized } = useAuth();
   const [socialLinks, setSocialLinks] = useState({
     description: '',
     twitch: '',
@@ -43,11 +45,26 @@ export default function Profile() {
     channel: true,
     accountInfo: true
   });
+  const [loadAttempts, setLoadAttempts] = useState(0);
 
   // Функция для загрузки данных пользователя
   const loadUserData = async () => {
     try {
       setLoading(true);
+      
+      // Проверяем, инициализирован ли контекст аутентификации
+      if (!isInitialized) {
+        // Если контекст еще не инициализирован, выходим из функции
+        // и ждем следующего вызова, когда контекст будет инициализирован
+        return;
+      }
+      
+      // Проверяем, авторизован ли пользователь
+      if (!isAuthenticated) {
+        console.log('Пользователь не авторизован, перенаправляем на страницу авторизации');
+        router.push('/auth');
+        return;
+      }
       
       // Получаем сохраненные настройки видимости статистики, если они есть
       const savedStatsVisibility = await DataStorage.getData('stats_visibility');
@@ -55,52 +72,103 @@ export default function Profile() {
         setStatsVisibility(savedStatsVisibility);
       }
       
-      // Получаем данные пользователя, используя новый метод getUserData
-      const userData = await getUserData();
-      
-      if (!userData) {
-        router.push('/login');
-        return;
-      }
-      
-      setProfileData(userData);
-      
-      // Сохраняем данные пользователя в новое хранилище
-      await DataStorage.saveData('user', userData);
-      
-      // Получаем сохраненные социальные ссылки из нового хранилища
-      const savedSocialLinks = await DataStorage.getData('social_links');
-      if (savedSocialLinks) {
-        setSocialLinks(savedSocialLinks);
-      }
-      
-      // Проверяем день рождения пользователя
-      if (userData.birthday) {
-        const birthdayToday = checkBirthday(userData.birthday);
-        setIsBirthday(birthdayToday);
+      // Используем данные из контекста аутентификации
+      if (userId && userLogin) {
+        const userData = {
+          id: userId,
+          login: userLogin,
+          profile_image_url: userAvatar
+        };
         
-        if (!birthdayToday) {
-          const days = getDaysToBirthday(userData.birthday);
-          setDaysToBirthday(days);
+        setProfileData(userData);
+        
+        // Получаем сохраненные социальные ссылки из нового хранилища
+        const savedSocialLinks = await DataStorage.getData('social_links');
+        if (savedSocialLinks) {
+          setSocialLinks(savedSocialLinks);
         }
-      }
-      
-      // Загружаем фолловеров, используя новый метод с кешированием
-      try {
-        const followersData = await getUserFollowers(userData.id);
-        if (followersData) {
-          // Обработка данных о фолловерах
-          // ...
+        
+        // Проверяем день рождения пользователя
+        const userBirthday = await DataStorage.getData('birthday');
+        if (userBirthday) {
+          const birthdayToday = checkBirthday(userBirthday);
+          setIsBirthday(birthdayToday);
+          
+          if (!birthdayToday) {
+            const days = getDaysToBirthday(userBirthday);
+            setDaysToBirthday(days);
+          }
         }
-      } catch (followerError) {
-        console.error('Ошибка при загрузке фолловеров:', followerError);
+        
+        // Загружаем фолловеров, используя новый метод с кешированием
+        try {
+          const followersData = await getUserFollowers(userId);
+          if (followersData) {
+            // Обработка данных о фолловерах
+            // ...
+          }
+        } catch (followerError) {
+          console.error('Ошибка при загрузке фолловеров:', followerError);
+        }
+        
+        setLoading(false);
+      } else {
+        // Если данные пользователя отсутствуют в контексте, пробуем получить их из API
+        const userData = await getUserData();
+        
+        if (!userData) {
+          // Если данные пользователя не найдены, перенаправляем на страницу авторизации
+          console.log('Данные пользователя не найдены, перенаправляем на страницу авторизации');
+          router.push('/auth');
+          return;
+        }
+        
+        setProfileData(userData);
+        
+        // Получаем сохраненные социальные ссылки из нового хранилища
+        const savedSocialLinks = await DataStorage.getData('social_links');
+        if (savedSocialLinks) {
+          setSocialLinks(savedSocialLinks);
+        }
+        
+        // Проверяем день рождения пользователя
+        if (userData.birthday) {
+          const birthdayToday = checkBirthday(userData.birthday);
+          setIsBirthday(birthdayToday);
+          
+          if (!birthdayToday) {
+            const days = getDaysToBirthday(userData.birthday);
+            setDaysToBirthday(days);
+          }
+        }
+        
+        // Загружаем фолловеров, используя новый метод с кешированием
+        try {
+          const followersData = await getUserFollowers(userData.id);
+          if (followersData) {
+            // Обработка данных о фолловерах
+            // ...
+          }
+        } catch (followerError) {
+          console.error('Ошибка при загрузке фолловеров:', followerError);
+        }
+        
+        setLoading(false);
       }
-      
-      setLoading(false);
     } catch (error) {
       console.error('Ошибка при загрузке данных пользователя:', error);
       setError('Не удалось загрузить данные профиля');
       setLoading(false);
+      
+      // Увеличиваем счетчик попыток загрузки
+      setLoadAttempts(prev => prev + 1);
+      
+      // Если было сделано 3 попытки загрузки и все они завершились ошибкой,
+      // перенаправляем пользователя на страницу авторизации
+      if (loadAttempts >= 2) {
+        console.log('Превышено количество попыток загрузки, перенаправляем на страницу авторизации');
+        router.push('/auth');
+      }
     }
   };
   
@@ -118,8 +186,47 @@ export default function Profile() {
 
   // Загрузка данных при монтировании компонента
   useEffect(() => {
+    // Проверяем, инициализирован ли контекст аутентификации
+    if (!isInitialized) return;
+    
     loadUserData();
-  }, []);
+  }, [isInitialized, isAuthenticated, userId]);
+
+  // Если данные загружаются, показываем индикатор загрузки
+  if (loading) {
+    return (
+      <div className={styles.loading}>
+        <div className={styles.spinner}></div>
+        <p>Загрузка профиля...</p>
+      </div>
+    );
+  }
+
+  // Если произошла ошибка, показываем сообщение об ошибке
+  if (error) {
+    return (
+      <div className={styles.error}>
+        <h2>Ошибка загрузки профиля</h2>
+        <p>{error}</p>
+        <button onClick={() => router.push('/auth')} className={styles.button}>
+          Вернуться на страницу авторизации
+        </button>
+      </div>
+    );
+  }
+
+  // Если данные профиля отсутствуют, показываем сообщение
+  if (!profileData) {
+    return (
+      <div className={styles.error}>
+        <h2>Профиль не найден</h2>
+        <p>Не удалось загрузить данные профиля. Пожалуйста, авторизуйтесь снова.</p>
+        <button onClick={() => router.push('/auth')} className={styles.button}>
+          Вернуться на страницу авторизации
+        </button>
+      </div>
+    );
+  }
 
   // Функция для выхода из аккаунта
   const handleLogout = () => {
@@ -626,37 +733,6 @@ export default function Profile() {
     return words[(number % 100 > 4 && number % 100 < 20) ? 2 : cases[(number % 10 < 5) ? number % 10 : 5]];
   };
 
-  if (loading) {
-    return (
-      <div className={styles.loading}>
-        <div className={styles.spinner}></div>
-        <p>Загрузка профиля...</p>
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className={styles.error}>
-        <p>{error}</p>
-        <button className={styles.button} onClick={() => router.push('/login')}>
-          Вернуться на страницу входа
-        </button>
-      </div>
-    );
-  }
-
-  if (!profileData) {
-    return (
-      <div className={styles.error}>
-        <p>Не удалось загрузить данные профиля. Пожалуйста, войдите в аккаунт.</p>
-        <button className={styles.button} onClick={() => router.push('/login')}>
-          Войти
-        </button>
-      </div>
-    );
-  }
-
   return (
     <div className={styles.profileContainer}>
       <div className={styles.profileHeader}>
@@ -723,12 +799,6 @@ export default function Profile() {
         <div className={styles.achievementsSection}>
           <div className={styles.sectionHeader}>
             <h2>Достижения</h2>
-            <button 
-              className={styles.backToProfileButton}
-              onClick={() => setShowAchievements(false)}
-            >
-              Вернуться к профилю
-            </button>
           </div>
           <AchievementsSystem 
             userId={profileData.id}
@@ -740,12 +810,6 @@ export default function Profile() {
         <div className={styles.reviewsContainer}>
           <div className={styles.sectionHeader}>
             <h2>Отзывы о вас</h2>
-            <button 
-              className={styles.backToProfileButton}
-              onClick={() => setShowReviews(false)}
-            >
-              Вернуться к профилю
-            </button>
           </div>
           <ReviewSection userId={profileData.id} />
         </div>
@@ -780,13 +844,6 @@ export default function Profile() {
                   🎬 Стримы
                 </button>
               )}
-              
-              <button 
-                className={styles.backToProfileButton}
-                onClick={() => setShowStats(false)}
-              >
-                Вернуться к профилю
-              </button>
             </div>
           </div>
           
@@ -797,12 +854,14 @@ export default function Profile() {
         <div className={styles.followersContainer}>
           <div className={styles.sectionHeader}>
             <h2>Ваши подписчики ({userStats?.followers.total || 0})</h2>
-            <button 
-              className={styles.backToProfileButton}
-              onClick={() => setShowFollowers(false)}
-            >
-              Вернуться к статистике
-            </button>
+            <div className={styles.statsActions}>
+              <button 
+                className={styles.statsActionButton}
+                onClick={() => setShowStats(true)}
+              >
+                📊 К статистике
+              </button>
+            </div>
           </div>
           {renderRecentFollowers()}
         </div>
@@ -810,12 +869,14 @@ export default function Profile() {
         <div className={styles.followingsContainer}>
           <div className={styles.sectionHeader}>
             <h2>Ваши подписки ({userStats?.followings.total || 0})</h2>
-            <button 
-              className={styles.backToProfileButton}
-              onClick={() => setShowFollowings(false)}
-            >
-              Вернуться к статистике
-            </button>
+            <div className={styles.statsActions}>
+              <button 
+                className={styles.statsActionButton}
+                onClick={() => setShowStats(true)}
+              >
+                📊 К статистике
+              </button>
+            </div>
           </div>
           {renderRecentFollowings()}
         </div>
@@ -823,12 +884,14 @@ export default function Profile() {
         <div className={styles.streamsContainer}>
           <div className={styles.sectionHeader}>
             <h2>Ваши стримы</h2>
-            <button 
-              className={styles.backToProfileButton}
-              onClick={() => setShowStreams(false)}
-            >
-              Вернуться к статистике
-            </button>
+            <div className={styles.statsActions}>
+              <button 
+                className={styles.statsActionButton}
+                onClick={() => setShowStats(true)}
+              >
+                📊 К статистике
+              </button>
+            </div>
           </div>
           {renderRecentStreams()}
         </div>

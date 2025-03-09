@@ -2,6 +2,7 @@
  * Утилиты для работы с Twitch API
  */
 import { DataStorage } from './dataStorage';
+import Cookies from 'js-cookie';
 
 /**
  * Получает фолловеров пользователя
@@ -104,11 +105,31 @@ export async function getUserData() {
  */
 export function getUserFromLocalStorage() {
   try {
-    const userData = localStorage.getItem('twitch_user');
-    if (!userData) return null;
-    return JSON.parse(userData);
+    // Проверяем несколько возможных источников данных
+    const sources = [
+      localStorage.getItem('twitch_user'),
+      localStorage.getItem('cookie_twitch_user'),
+      Cookies.get('twitch_user')
+    ];
+    
+    // Перебираем источники и возвращаем первый непустой результат
+    for (const source of sources) {
+      if (source) {
+        try {
+          const parsed = typeof source === 'string' ? JSON.parse(source) : source;
+          if (parsed && parsed.id) {
+            return parsed;
+          }
+        } catch (e) {
+          console.warn('Ошибка при парсинге данных пользователя:', e);
+          // Продолжаем проверку других источников
+        }
+      }
+    }
+    
+    return null;
   } catch (error) {
-    console.error('Ошибка при получении данных пользователя из localStorage:', error);
+    console.error('Ошибка при получении данных пользователя из хранилища:', error);
     return null;
   }
 }
