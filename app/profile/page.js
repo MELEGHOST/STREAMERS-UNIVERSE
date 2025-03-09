@@ -172,13 +172,48 @@ export default function Profile() {
   // Функция для выхода из аккаунта
   const handleLogout = async () => {
     try {
+      console.log('Выполняем выход из аккаунта...');
+      
+      // Используем API-роут для выхода из системы, который также отзывает токен на стороне Twitch
+      const response = await fetch('/api/twitch/logout?redirect=/auth');
+      
+      if (response.ok) {
+        console.log('Успешно вышли из аккаунта через API');
+      } else {
+        console.warn('Ошибка при использовании API для выхода, выполняем локальный выход');
+        
+        // Очищаем все куки и локальное хранилище
+        if (typeof document !== 'undefined') {
+          // Удаляем куки через js-cookie
+          const Cookies = (await import('js-cookie')).default;
+          Cookies.remove('twitch_access_token', { path: '/' });
+          Cookies.remove('twitch_refresh_token', { path: '/' });
+          Cookies.remove('twitch_token', { path: '/' });
+          Cookies.remove('twitch_user', { path: '/' });
+          Cookies.remove('twitch_auth_state', { path: '/' });
+        }
+      }
+      
+      // Очищаем все данные в localStorage
       localStorage.removeItem('twitch_user');
       localStorage.removeItem('twitch_token');
+      localStorage.removeItem('cookie_twitch_access_token');
+      localStorage.removeItem('cookie_twitch_refresh_token');
+      localStorage.removeItem('cookie_twitch_user');
+      localStorage.removeItem('is_authenticated');
       
-      // Перенаправляем на страницу входа
-      router.push('/login');
+      // Очищаем данные сессии
+      sessionStorage.clear();
+      
+      console.log('Все данные аутентификации успешно удалены');
+      
+      // Перенаправляем на страницу авторизации
+      window.location.href = '/auth';
     } catch (error) {
       console.error('Ошибка при выходе из аккаунта:', error);
+      
+      // В случае ошибки всё равно пытаемся перенаправить пользователя на страницу авторизации
+      window.location.href = '/auth';
     }
   };
 
