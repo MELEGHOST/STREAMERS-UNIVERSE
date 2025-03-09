@@ -24,12 +24,20 @@ export function AuthProvider({ children }) {
   // Создаем JWT токен и устанавливаем его в куки
   const createAndSetJwtToken = useCallback((user) => {
     try {
+      // Проверяем, на клиенте или на сервере
+      if (typeof window !== 'undefined') {
+        // На клиенте не создаем JWT токен, так как секретный ключ недоступен
+        console.log('Пропускаем создание JWT токена на клиенте');
+        return;
+      }
+      
       const token = createJwtToken(user);
       if (token) {
         Cookies.set('auth_token', token, { expires: 7, path: '/' });
       }
     } catch (error) {
       console.error('Ошибка при создании JWT токена:', error);
+      // Игнорируем ошибку, продолжаем работу без JWT токена
     }
   }, []);
   
@@ -164,7 +172,15 @@ export function AuthProvider({ children }) {
       
       // Создаем JWT токен, если его еще нет
       if (!Cookies.get('auth_token') && token) {
-        createAndSetJwtToken(user);
+        try {
+          // Пропускаем создание JWT токена на клиенте, чтобы избежать ошибок
+          if (typeof window === 'undefined') {
+            createAndSetJwtToken(user);
+          }
+        } catch (error) {
+          console.warn('Не удалось создать JWT токен, но авторизация продолжена:', error);
+          // Игнорируем ошибку, продолжаем работу без JWT токена
+        }
       }
       
       console.log('Пользователь успешно аутентифицирован:', { 
