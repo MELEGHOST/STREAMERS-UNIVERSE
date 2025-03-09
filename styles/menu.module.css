@@ -86,10 +86,19 @@
 }
 
 .coinIcon {
-  width: 20px;
-  height: 20px;
+  width: 24px;
+  height: 24px;
   animation: shine 3s infinite;
-  color: var(--primary-color, #7B41C9);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+}
+
+.coinIcon img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
 }
 
 .coinsAmount {

@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useEffect } from 'react';
+import { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react';
 import Cookies from 'js-cookie';
 import { createJwtToken } from '../app/utils/auth';
 import { DataStorage } from '../app/utils/dataStorage';
@@ -19,190 +19,188 @@ export function AuthProvider({ children }) {
   const [userId, setUserId] = useState(null);
   const [userLogin, setUserLogin] = useState(null);
   const [userAvatar, setUserAvatar] = useState(null);
+  const [isInitialized, setIsInitialized] = useState(false);
   
-  // Проверяем авторизацию при загрузке
-  useEffect(() => {
-    const checkAuth = () => {
-      try {
-        // Проверяем наличие токена в cookies или localStorage
-        const token = Cookies.get('auth_token') || 
-                      Cookies.get('twitch_access_token') || 
-                      localStorage.getItem('cookie_twitch_access_token') || 
-                      Cookies.get('twitch_token');
-                      
-        // Проверяем наличие данных пользователя
-        const userData = Cookies.get('twitch_user') || 
-                         localStorage.getItem('cookie_twitch_user') || 
-                         localStorage.getItem('twitch_user');
-        
-        console.log('AuthContext: Проверка авторизации', {
-          hasToken: !!token,
-          hasUserData: !!userData
-        });
-        
-        if (token && userData) {
-          try {
-            // Пытаемся распарсить данные пользователя
-            const user = typeof userData === 'string' ? JSON.parse(userData) : userData;
-            
-            // Устанавливаем состояние авторизации
-            setIsAuthenticated(true);
-            setUserId(user.id);
-            setUserLogin(user.login || user.display_name);
-            setUserAvatar(user.profile_image_url);
-            
-            // Устанавливаем флаг авторизации в localStorage
-            localStorage.setItem('is_authenticated', 'true');
-            
-            // Создаем JWT токен, если его еще нет
-            if (!Cookies.get('auth_token') && token) {
-              createAndSetJwtToken(user);
-            }
-            
-            // Сохраняем токен в localStorage для надежности
-            if (!localStorage.getItem('cookie_twitch_access_token') && token) {
-              localStorage.setItem('cookie_twitch_access_token', token);
-            }
-            
-            // Сохраняем данные пользователя в localStorage для надежности
-            if (!localStorage.getItem('cookie_twitch_user') && userData) {
-              localStorage.setItem('cookie_twitch_user', typeof userData === 'string' ? userData : JSON.stringify(userData));
-            }
-            
-            console.log('AuthContext: Пользователь авторизован', {
-              id: user.id,
-              login: user.login || user.display_name
-            });
-          } catch (e) {
-            console.error('Ошибка при парсинге данных пользователя:', e);
-            setIsAuthenticated(false);
-            localStorage.removeItem('is_authenticated');
-          }
-        } else {
-          console.log('AuthContext: Пользователь не авторизован (нет токена или данных)');
-          setIsAuthenticated(false);
-          localStorage.removeItem('is_authenticated');
-        }
-      } catch (error) {
-        console.error('Ошибка при проверке авторизации:', error);
-        setIsAuthenticated(false);
-        localStorage.removeItem('is_authenticated');
-      }
-    };
-    
-    // Проверяем авторизацию при загрузке
-    checkAuth();
-    
-    // Добавляем слушатель события для обновления состояния авторизации
-    window.addEventListener('storage', checkAuth);
-    
-    return () => {
-      window.removeEventListener('storage', checkAuth);
-    };
-  }, []);
-  
-  // Функция для создания и установки JWT токена
-  const createAndSetJwtToken = async (user) => {
+  // Создаем JWT токен и устанавливаем его в куки
+  const createAndSetJwtToken = useCallback((user) => {
     try {
-      // Создаем JWT токен
-      const jwtToken = await createJwtToken({
-        userId: user.id,
-        userLogin: user.login || user.display_name,
-        userAvatar: user.profile_image_url
-      });
-      
-      if (jwtToken) {
-        // Сохраняем JWT токен в cookies
-        Cookies.set('auth_token', jwtToken, { expires: 7 });
+      const token = createJwtToken(user);
+      if (token) {
+        Cookies.set('auth_token', token, { expires: 7, path: '/' });
       }
     } catch (error) {
       console.error('Ошибка при создании JWT токена:', error);
     }
-  };
+  }, []);
   
-  // Функция для входа в систему
-  const login = (token, user) => {
+  // Функция для входа пользователя
+  const login = useCallback((userData, token) => {
     try {
-      // Создаем и устанавливаем JWT токен
-      createAndSetJwtToken(user);
+      if (!userData || !token) {
+        console.error('Ошибка при входе: отсутствуют данные пользователя или токен');
+        return false;
+      }
       
-      // Сохраняем токен в cookies и localStorage для надежности
-      Cookies.set('twitch_token', token, { expires: 7 });
-      Cookies.set('twitch_access_token', token, { expires: 7 });
+      // Сохраняем токен в куки
+      Cookies.set('twitch_access_token', token, { expires: 7, path: '/' });
+      
+      // Сохраняем данные пользователя в куки
+      const userDataString = typeof userData === 'string' ? userData : JSON.stringify(userData);
+      Cookies.set('twitch_user', userDataString, { expires: 7, path: '/' });
+      
+      // Сохраняем данные в localStorage для надежности
       localStorage.setItem('cookie_twitch_access_token', token);
-      
-      // Сохраняем данные пользователя
-      const userStr = typeof user === 'string' ? user : JSON.stringify(user);
-      localStorage.setItem('twitch_user', userStr);
-      localStorage.setItem('cookie_twitch_user', userStr);
-      Cookies.set('twitch_user', userStr, { expires: 7 });
-      
-      // Устанавливаем флаг авторизации
+      localStorage.setItem('cookie_twitch_user', userDataString);
+      localStorage.setItem('twitch_user', userDataString);
       localStorage.setItem('is_authenticated', 'true');
       
-      // Обновляем состояние контекста
+      // Создаем JWT токен
+      createAndSetJwtToken(userData);
+      
+      // Обновляем состояние
       setIsAuthenticated(true);
-      setUserId(user.id);
-      setUserLogin(user.login || user.display_name);
-      setUserAvatar(user.profile_image_url);
+      setUserId(userData.id);
+      setUserLogin(userData.login || userData.display_name);
+      setUserAvatar(userData.profile_image_url);
       
-      console.log('AuthContext: Пользователь успешно вошел в систему', {
-        id: user.id,
-        login: user.login || user.display_name
-      });
+      return true;
     } catch (error) {
-      console.error('Ошибка при входе в систему:', error);
+      console.error('Ошибка при входе:', error);
+      return false;
     }
-  };
+  }, [createAndSetJwtToken]);
   
-  // Функция для выхода из системы
-  const logout = async () => {
+  // Функция для выхода пользователя
+  const logout = useCallback(() => {
     try {
-      // Очищаем все данные пользователя в хранилище
-      await DataStorage.clearAllData();
+      // Удаляем куки
+      Cookies.remove('auth_token', { path: '/' });
+      Cookies.remove('twitch_access_token', { path: '/' });
+      Cookies.remove('twitch_refresh_token', { path: '/' });
+      Cookies.remove('twitch_user', { path: '/' });
+      Cookies.remove('twitch_state', { path: '/' });
       
-      // Удаляем все токены и данные пользователя
-      Cookies.remove('auth_token');
-      Cookies.remove('twitch_token');
-      Cookies.remove('twitch_access_token');
-      Cookies.remove('twitch_refresh_token');
-      Cookies.remove('twitch_user');
-      
-      localStorage.removeItem('twitch_user');
+      // Удаляем данные из localStorage
       localStorage.removeItem('cookie_twitch_access_token');
       localStorage.removeItem('cookie_twitch_refresh_token');
       localStorage.removeItem('cookie_twitch_user');
       localStorage.removeItem('is_authenticated');
       
-      // Обновляем состояние контекста
+      // Обновляем состояние
       setIsAuthenticated(false);
       setUserId(null);
       setUserLogin(null);
       setUserAvatar(null);
       
-      console.log('AuthContext: Пользователь вышел из системы');
+      return true;
     } catch (error) {
-      console.error('Ошибка при выходе из системы:', error);
+      console.error('Ошибка при выходе:', error);
+      return false;
     }
-  };
+  }, []);
+  
+  // Проверяем авторизацию при загрузке
+  const checkAuth = useCallback(() => {
+    try {
+      // Проверяем наличие токена в cookies или localStorage
+      const token = Cookies.get('auth_token') || 
+                    Cookies.get('twitch_access_token') || 
+                    localStorage.getItem('cookie_twitch_access_token') || 
+                    Cookies.get('twitch_token');
+                    
+      // Проверяем наличие данных пользователя
+      const userData = Cookies.get('twitch_user') || 
+                       localStorage.getItem('cookie_twitch_user') || 
+                       localStorage.getItem('twitch_user');
+      
+      if (token && userData) {
+        try {
+          // Пытаемся распарсить данные пользователя
+          const user = typeof userData === 'string' ? JSON.parse(userData) : userData;
+          
+          // Устанавливаем состояние авторизации
+          setIsAuthenticated(true);
+          setUserId(user.id);
+          setUserLogin(user.login || user.display_name);
+          setUserAvatar(user.profile_image_url);
+          
+          // Устанавливаем флаг авторизации в localStorage
+          localStorage.setItem('is_authenticated', 'true');
+          
+          // Создаем JWT токен, если его еще нет
+          if (!Cookies.get('auth_token') && token) {
+            createAndSetJwtToken(user);
+          }
+          
+          // Сохраняем токен в localStorage для надежности
+          if (!localStorage.getItem('cookie_twitch_access_token') && token) {
+            localStorage.setItem('cookie_twitch_access_token', token);
+          }
+          
+          // Сохраняем данные пользователя в localStorage для надежности
+          if (!localStorage.getItem('cookie_twitch_user') && userData) {
+            localStorage.setItem('cookie_twitch_user', typeof userData === 'string' ? userData : JSON.stringify(userData));
+          }
+        } catch (e) {
+          console.error('Ошибка при парсинге данных пользователя:', e);
+          setIsAuthenticated(false);
+          localStorage.removeItem('is_authenticated');
+        }
+      } else {
+        setIsAuthenticated(false);
+        localStorage.removeItem('is_authenticated');
+      }
+    } catch (error) {
+      console.error('Ошибка при проверке авторизации:', error);
+      setIsAuthenticated(false);
+      localStorage.removeItem('is_authenticated');
+    } finally {
+      // Устанавливаем флаг инициализации
+      setIsInitialized(true);
+    }
+  }, [createAndSetJwtToken]);
+  
+  // Проверяем авторизацию при загрузке
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      checkAuth();
+      
+      // Создаем обработчик события storage
+      const handleStorageChange = (event) => {
+        if (event.key === 'is_authenticated' || 
+            event.key === 'twitch_user' || 
+            event.key === 'cookie_twitch_user' || 
+            event.key === 'cookie_twitch_access_token') {
+          checkAuth();
+        }
+      };
+      
+      // Добавляем слушатель события для обновления состояния авторизации
+      window.addEventListener('storage', handleStorageChange);
+      
+      return () => {
+        window.removeEventListener('storage', handleStorageChange);
+      };
+    }
+  }, [checkAuth]);
+  
+  // Мемоизируем значение контекста для предотвращения лишних ререндеров
+  const contextValue = useMemo(() => ({
+    isAuthenticated,
+    userId,
+    userLogin,
+    userAvatar,
+    isInitialized,
+    login,
+    logout
+  }), [isAuthenticated, userId, userLogin, userAvatar, isInitialized, login, logout]);
   
   return (
-    <AuthContext.Provider
-      value={{
-        isAuthenticated,
-        userId,
-        userLogin,
-        userAvatar,
-        login,
-        logout,
-      }}
-    >
+    <AuthContext.Provider value={contextValue}>
       {children}
     </AuthContext.Provider>
   );
 }
 
 // Хук для использования контекста авторизации
-export function useAuth() {
-  return useContext(AuthContext);
-} 
+export const useAuth = () => useContext(AuthContext); 

@@ -70,19 +70,26 @@ export default function CookieChecker() {
         localStorage.setItem('current_domain', currentDomain);
       }
       
-      // Выводим информацию в консоль для отладки
-      console.log('Статус куков:', cookiesStatus);
-      console.log('Статус localStorage:', localStorageItems);
+      // Выводим информацию в консоль только в режиме отладки
+      if (isDev || debugMode) {
+        console.log('Статус куков:', cookiesStatus);
+        console.log('Статус localStorage:', localStorageItems);
+      }
     };
 
     // Проверяем куки при загрузке компонента
     checkCookies();
 
-    // Проверяем куки каждые 5 секунд
-    const interval = setInterval(checkCookies, 5000);
+    // Проверяем куки только если компонент видимый и только раз в 30 секунд
+    let interval;
+    if (isDev || debugMode) {
+      interval = setInterval(checkCookies, 30000); // Увеличиваем интервал до 30 секунд
+    }
 
     // Очищаем интервал при размонтировании компонента
-    return () => clearInterval(interval);
+    return () => {
+      if (interval) clearInterval(interval);
+    };
   }, []);
 
   // Если компонент не должен быть видимым, возвращаем null
