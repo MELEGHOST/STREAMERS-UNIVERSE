@@ -67,27 +67,10 @@ export async function GET(request) {
     const clientId = process.env.NEXT_PUBLIC_TWITCH_CLIENT_ID;
     const clientSecret = process.env.TWITCH_CLIENT_SECRET;
     
-    // Определяем правильный URI перенаправления в зависимости от домена
-    let redirectUri;
-    
-    // Проверяем, есть ли в переменных окружения URI для текущего домена
-    if (currentDomain.includes('localhost') || currentDomain.includes('127.0.0.1')) {
-      // Для локальной разработки
-      redirectUri = process.env.NEXT_PUBLIC_TWITCH_REDIRECT_URI_LOCAL || `${currentDomain}/api/twitch/callback`;
-      console.log('Callback API - Используем локальный URI перенаправления:', redirectUri);
-    } else if (currentDomain.includes('streamers-universe-meleghost-meleghosts-projects.vercel.app')) {
-      // Для превью версии - явно указываем полный URI
-      redirectUri = 'https://streamers-universe-meleghost-meleghosts-projects.vercel.app/api/twitch/callback';
-      console.log('Callback API - Используем фиксированный URI перенаправления для превью:', redirectUri);
-    } else if (currentDomain.includes('streamers-universe.vercel.app') || currentDomain.includes('streamers-universe.com')) {
-      // Для продакшн версии - явно указываем полный URI
-      redirectUri = 'https://streamers-universe.vercel.app/api/twitch/callback';
-      console.log('Callback API - Используем фиксированный URI перенаправления для продакшн:', redirectUri);
-    } else {
-      // Для других доменов или по умолчанию
-      redirectUri = process.env.NEXT_PUBLIC_TWITCH_REDIRECT_URI || `${currentDomain}/api/twitch/callback`;
-      console.log('Callback API - Используем URI перенаправления по умолчанию:', redirectUri);
-    }
+    // Используем единый фиксированный redirect_uri, который зарегистрирован в консоли разработчика Twitch
+    // Это должно соответствовать точно тому, что указано в настройках приложения на dev.twitch.tv
+    const redirectUri = 'https://streamers-universe.vercel.app/api/twitch/callback';
+    console.log('Callback API - Используем фиксированный URI перенаправления:', redirectUri);
     
     console.log('Параметры для обмена кода на токен:', {
       clientId: clientId ? 'присутствует' : 'отсутствует',

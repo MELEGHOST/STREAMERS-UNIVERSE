@@ -4,6 +4,13 @@ import Cookies from 'js-cookie';
 // Функция для получения секретного ключа
 // В режиме разработки используем временный ключ, в продакшне - переменную окружения
 const getSecretKey = () => {
+  // Проверяем, работаем ли мы на клиенте
+  if (typeof window !== 'undefined') {
+    // На клиенте нет доступа к секретному ключу
+    console.log('Попытка получить секретный ключ на клиенте - это невозможно');
+    return null;
+  }
+  
   // Это выполняется только на сервере
   if (typeof process !== 'undefined') {
     return new TextEncoder().encode(
@@ -12,17 +19,24 @@ const getSecretKey = () => {
         : 'temporary_dev_key_not_for_production')
     );
   }
-  // Клиент не имеет доступа к секрету
+  
+  // Если мы здесь, значит что-то пошло не так
   return null;
 };
 
 // Создание JWT токена (только на сервере)
 export async function createJwtToken(payload) {
   try {
+    // Проверяем, работаем ли мы на клиенте
+    if (typeof window !== 'undefined') {
+      console.log('Создание JWT токена не поддерживается на клиенте');
+      return null;
+    }
+    
     const secretKey = getSecretKey();
     
     if (!secretKey) {
-      console.error('JWT_SECRET не установлен на сервере');
+      console.error('JWT_SECRET не установлен на сервере или попытка создать токен на клиенте');
       return null;
     }
     
