@@ -148,11 +148,9 @@ export async function GET(request) {
       const userResponse = await fetch('https://api.twitch.tv/helix/users', {
         headers: {
           'Authorization': `Bearer ${accessToken}`,
-          'Client-ID': clientId,
-        },
+          'Client-Id': process.env.TWITCH_CLIENT_ID
+        }
       });
-      
-      console.log('Статус ответа на запрос данных пользователя:', userResponse.status);
       
       if (!userResponse.ok) {
         console.error('Ошибка при получении данных пользователя:', userResponse.status);
@@ -160,10 +158,6 @@ export async function GET(request) {
       }
       
       const userData = await userResponse.json();
-      console.log('Получены данные пользователя:', {
-        hasData: userData.data ? 'да' : 'нет',
-        dataLength: userData.data ? userData.data.length : 0
-      });
       
       if (!userData.data || userData.data.length === 0) {
         console.error('Данные пользователя отсутствуют в ответе');
@@ -171,138 +165,71 @@ export async function GET(request) {
       }
       
       const user = userData.data[0];
-      console.log('Данные пользователя:', {
-        id: user.id,
-        login: user.login,
-        display_name: user.display_name
+      
+      // Устанавливаем данные пользователя в куки
+      const userDataString = JSON.stringify(user);
+      cookies().set('twitch_user', userDataString, { 
+        expires: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 дней
+        path: '/',
+        sameSite: 'lax',
+        secure: process.env.NODE_ENV === 'production'
       });
       
-      // Создаем ответ с перенаправлением на главную страницу
-      const response = NextResponse.redirect(new URL('/auth/result?success=true', request.url));
-      
-      console.log('Установка куков с токенами и данными пользователя...');
-      
-      // Устанавливаем куки с токенами и данными пользователя
-      // Используем более безопасные настройки для куков
-      response.cookies.set('twitch_access_token', accessToken, {
+      // Устанавливаем все куки с более строгими параметрами
+      cookies().set('twitch_access_token', accessToken, { 
+        expires: new Date(Date.now() + tokenData.expires_in * 1000), // 1 час
         path: '/',
-        httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',
         sameSite: 'lax',
-        maxAge: 60 * 60 * 24 * 7, // 7 дней
+        secure: process.env.NODE_ENV === 'production',
+        httpOnly: true
       });
       
       if (refreshToken) {
-        response.cookies.set('twitch_refresh_token', refreshToken, {
+        cookies().set('twitch_refresh_token', refreshToken, { 
+          expires: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 дней
           path: '/',
-          httpOnly: true,
-          secure: process.env.NODE_ENV === 'production',
           sameSite: 'lax',
-          maxAge: 60 * 60 * 24 * 30, // 30 дней
+          secure: process.env.NODE_ENV === 'production',
+          httpOnly: true
         });
       }
       
-      // Сохраняем только необходимые данные пользователя в куки
-      // Не сохраняем чувствительные данные
-      const userDataForCookie = {
-        id: user.id,
-        login: user.login,
-        display_name: user.display_name,
-        profile_image_url: user.profile_image_url,
-      };
-      
-      // Сохраняем данные пользователя в куки и localStorage для надежности
-      const userDataString = JSON.stringify(userDataForCookie);
-      
-      // Для превью-версии добавляем дополнительное логирование
-      const isPreviewVersion = currentDomain.includes('streamers-universe-meleghost-meleghosts-projects.vercel.app');
-      if (isPreviewVersion) {
-        console.log('Callback API - Превью-версия: сохраняем данные пользователя:', userDataForCookie);
-      }
-      
-      response.cookies.set('twitch_user', userDataString, {
-        path: '/',
-        httpOnly: false, // Нужен доступ из JavaScript
-        secure: process.env.NODE_ENV === 'production',
-        sameSite: 'lax',
-        maxAge: 60 * 60 * 24 * 7, // 7 дней
-      });
-      
-      // Добавляем скрипт для сохранения данных в localStorage
-      const script = `
-        <script>
-          try {
-            // Сохраняем данные пользователя в localStorage
-            const userData = ${JSON.stringify(userDataForCookie)};
-            localStorage.setItem('twitch_user', JSON.stringify(userData));
-            localStorage.setItem('cookie_twitch_user', JSON.stringify(userData));
-            
-            // Сохраняем токены в localStorage
-            localStorage.setItem('cookie_twitch_access_token', '${accessToken}');
-            ${refreshToken ? `localStorage.setItem('cookie_twitch_refresh_token', '${refreshToken}');` : ''}
-            
-            // Устанавливаем флаг авторизации
-            localStorage.setItem('is_authenticated', 'true');
-            
-            // Для отладки выводим информацию в консоль
-            console.log('Данные пользователя и токены сохранены в localStorage');
-            
-            // Плавное перенаправление на главную страницу
-            document.body.style.opacity = '0';
-            document.body.style.transition = 'opacity 0.5s ease';
-            
-            // Перенаправляем на главную страницу без дополнительных проверок
-            setTimeout(() => {
-              window.location.href = '/menu';
-            }, 500);
-          } catch (e) {
-            console.error('Ошибка при сохранении данных в localStorage:', e);
-            // В случае ошибки все равно перенаправляем на главную страницу
-            window.location.href = '/menu';
-          }
-        </script>
-      `;
-      
-      // Создаем HTML-ответ с редиректом и скриптом для сохранения данных
-      const htmlResponse = new NextResponse(
-        `<!DOCTYPE html>
+      // Записываем данные в локальное хранилище через скрипт
+      const injectLocalStorage = `
         <html>
         <head>
-          <title>Авторизация успешна</title>
-          <meta charset="utf-8">
-          <meta name="viewport" content="width=device-width, initial-scale=1">
-          <style>
-            body { font-family: Arial, sans-serif; padding: 20px; line-height: 1.6; text-align: center; }
-            .success-container { max-width: 600px; margin: 0 auto; background: #d4edda; border: 1px solid #c3e6cb; padding: 20px; border-radius: 5px; }
-            h1 { color: #155724; }
-            .loader { border: 5px solid #f3f3f3; border-top: 5px solid #3498db; border-radius: 50%; width: 50px; height: 50px; animation: spin 2s linear infinite; margin: 20px auto; }
-            @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-          </style>
+          <title>Обработка авторизации...</title>
+          <script>
+            // Сохраняем данные пользователя и токены в localStorage
+            try {
+              localStorage.setItem('twitch_user', '${userDataString.replace(/'/g, "\\'")}');
+              localStorage.setItem('cookie_twitch_user', '${userDataString.replace(/'/g, "\\'")}');
+              localStorage.setItem('twitch_token', '${accessToken}');
+              localStorage.setItem('cookie_twitch_access_token', '${accessToken}');
+              ${refreshToken ? `localStorage.setItem('cookie_twitch_refresh_token', '${refreshToken}');` : ''}
+              localStorage.setItem('is_authenticated', 'true');
+              console.log('Данные успешно сохранены в localStorage');
+            } catch(e) {
+              console.error('Ошибка при сохранении данных в localStorage:', e);
+            }
+
+            // Перенаправляем на страницу результатов
+            window.location.href = '/auth/result?success=true';
+          </script>
         </head>
         <body>
-          <div class="success-container">
-            <h1>Авторизация успешна!</h1>
-            <p>Перенаправление на главную страницу...</p>
-            <div class="loader"></div>
-          </div>
-          ${script}
+          <h1>Обработка авторизации...</h1>
+          <p>Пожалуйста, подождите. Вы будете перенаправлены автоматически.</p>
         </body>
-        </html>`,
-        {
-          status: 200,
-          headers: {
-            'Content-Type': 'text/html; charset=utf-8',
-          },
+        </html>
+      `;
+      
+      // Возвращаем HTML с инструкциями для сохранения в localStorage
+      return new Response(injectLocalStorage, {
+        headers: {
+          'Content-Type': 'text/html; charset=utf-8'
         }
-      );
-      
-      // Удаляем состояние CSRF после использования
-      htmlResponse.cookies.delete('twitch_auth_state');
-      htmlResponse.cookies.delete('current_domain');
-      
-      console.log('Авторизация успешно завершена, отправка HTML-ответа с редиректом');
-      
-      return htmlResponse;
+      });
     } catch (error) {
       console.error('Ошибка при запросе данных пользователя:', error);
       return NextResponse.redirect(new URL(`/auth/result?error=user_request_error&message=Ошибка при запросе данных пользователя: ${error.message}`, request.url));

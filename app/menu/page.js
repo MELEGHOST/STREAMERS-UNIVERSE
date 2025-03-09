@@ -81,6 +81,36 @@ export default function Menu() {
     // Логируем состояние для отладки
     console.log('Menu useEffect:', { isInitialized, isAuthenticated, userId });
     
+    // Проверка, если мы только что пришли с авторизации, автоматически инициализируем пользователя
+    const cameFromAuth = clientStorage.getItem('auth_to_menu_redirect');
+    if (cameFromAuth) {
+      console.log('Пришли с авторизации, принудительно инициализируем без проверки');
+      clientStorage.removeItem('auth_to_menu_redirect');
+      
+      // Получаем данные пользователя напрямую из хранилища
+      const rawUserData = clientStorage.getItem('twitch_user') || clientStorage.getItem('cookie_twitch_user');
+      if (rawUserData) {
+        try {
+          const userData = typeof rawUserData === 'string' ? JSON.parse(rawUserData) : rawUserData;
+          const userIdToUse = userData.id;
+          
+          if (userIdToUse) {
+            // Загружаем стример-коины
+            loadStreamCoins(userIdToUse);
+            
+            // Генерируем реферальный код
+            setReferralCode(generateReferralCode(userIdToUse));
+            
+            // Завершаем загрузку
+            setIsLoading(false);
+            return; // Выходим из useEffect, чтобы не выполнять другие проверки
+          }
+        } catch (e) {
+          console.error('Ошибка при обработке данных пользователя:', e);
+        }
+      }
+    }
+    
     const checkLocalAuth = () => {
       // Проверяем наличие данных пользователя в localStorage
       const userData = clientStorage.getItem('twitch_user') || 
@@ -135,7 +165,7 @@ export default function Menu() {
             const userData = clientStorage.getItem('twitch_user') || 
                            clientStorage.getItem('cookie_twitch_user');
             if (userData) {
-              const parsed = JSON.parse(userData);
+              const parsed = typeof userData === 'string' ? JSON.parse(userData) : userData;
               return parsed.id;
             }
             return null;
@@ -171,8 +201,10 @@ export default function Menu() {
       }
     };
     
-    // Инициализируем пользователя
-    initializeUser();
+    // Инициализируем пользователя, только если не пришли с авторизации
+    if (!cameFromAuth) {
+      initializeUser();
+    }
     
     // Очищаем таймаут при размонтировании компонента
     return () => {
