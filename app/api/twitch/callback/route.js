@@ -34,13 +34,13 @@ export async function GET(request) {
     // Проверяем наличие ошибки от Twitch
     if (error) {
       console.error('Ошибка авторизации Twitch:', error, error_description);
-      return NextResponse.redirect(new URL(`/auth?error=${encodeURIComponent(error)}&message=${encodeURIComponent(error_description || 'Ошибка авторизации')}`, request.url));
+      return NextResponse.redirect(new URL(`/auth/result?error=${encodeURIComponent(error)}&message=${encodeURIComponent(error_description || 'Ошибка авторизации')}`, request.url));
     }
     
     // Проверяем наличие кода авторизации
     if (!code) {
       console.error('Отсутствует код авторизации в ответе Twitch');
-      return NextResponse.redirect(new URL('/auth?error=no_code&message=Не получен код авторизации от Twitch', request.url));
+      return NextResponse.redirect(new URL('/auth/result?error=no_code&message=Не получен код авторизации от Twitch', request.url));
     }
     
     // Получаем состояние из куки для проверки
@@ -48,15 +48,15 @@ export async function GET(request) {
     const cookieState = cookieStore.get('twitch_auth_state')?.value;
     
     console.log('Проверка состояния CSRF:', {
-      cookieState: cookieState ? 'присутствует' : 'отсутствует',
-      urlState: state ? 'присутствует' : 'отсутствует',
-      match: cookieState && state ? (cookieState === state ? 'совпадает' : 'не совпадает') : 'невозможно проверить'
+      receivedState: state ? state.substring(0, 10) + '...' : 'отсутствует',
+      storedState: cookieState ? cookieState.substring(0, 10) + '...' : 'отсутствует',
+      match: state && cookieState && state === cookieState ? 'да' : 'нет'
     });
     
-    // Проверяем соответствие состояния для защиты от CSRF
-    if (!cookieState || !state || cookieState !== state) {
-      console.error('Несоответствие состояния при авторизации Twitch');
-      return NextResponse.redirect(new URL('/auth?error=state_mismatch&message=Ошибка безопасности при авторизации', request.url));
+    // Проверяем состояние для защиты от CSRF
+    if (!state || !cookieState || state !== cookieState) {
+      console.error('Несоответствие состояния CSRF');
+      return NextResponse.redirect(new URL('/auth/result?error=state_mismatch&message=Ошибка безопасности: несоответствие состояния', request.url));
     }
     
     // Получаем текущий домен из куки или из запроса
@@ -123,7 +123,7 @@ export async function GET(request) {
     if (!tokenResponse.ok) {
       const errorData = await tokenResponse.json().catch(() => ({}));
       console.error('Ошибка при обмене кода на токен:', tokenResponse.status, errorData);
-      return NextResponse.redirect(new URL(`/auth?error=token_error&message=Ошибка получения токена: ${errorData.message || tokenResponse.status}`, request.url));
+      return NextResponse.redirect(new URL(`/auth/result?error=token_error&message=Ошибка получения токена: ${errorData.message || tokenResponse.status}`, request.url));
     }
     
     const tokenData = await tokenResponse.json();
@@ -138,7 +138,7 @@ export async function GET(request) {
     
     if (!accessToken) {
       console.error('Токен доступа отсутствует в ответе');
-      return NextResponse.redirect(new URL('/auth?error=no_token&message=Не удалось получить токен доступа', request.url));
+      return NextResponse.redirect(new URL('/auth/result?error=no_token&message=Не удалось получить токен доступа', request.url));
     }
     
     console.log('Отправка запроса на получение данных пользователя...');
@@ -156,7 +156,7 @@ export async function GET(request) {
       
       if (!userResponse.ok) {
         console.error('Ошибка при получении данных пользователя:', userResponse.status);
-        return NextResponse.redirect(new URL('/auth?error=user_error&message=Ошибка получения данных пользователя', request.url));
+        return NextResponse.redirect(new URL('/auth/result?error=user_error&message=Ошибка получения данных пользователя', request.url));
       }
       
       const userData = await userResponse.json();
@@ -167,7 +167,7 @@ export async function GET(request) {
       
       if (!userData.data || userData.data.length === 0) {
         console.error('Данные пользователя отсутствуют в ответе');
-        return NextResponse.redirect(new URL('/auth?error=no_user_data&message=Не удалось получить данные пользователя', request.url));
+        return NextResponse.redirect(new URL('/auth/result?error=no_user_data&message=Не удалось получить данные пользователя', request.url));
       }
       
       const user = userData.data[0];
@@ -178,7 +178,7 @@ export async function GET(request) {
       });
       
       // Создаем ответ с перенаправлением на главную страницу
-      const response = NextResponse.redirect(new URL('/menu', request.url));
+      const response = NextResponse.redirect(new URL('/auth/result?success=true', request.url));
       
       console.log('Установка куков с токенами и данными пользователя...');
       
@@ -305,10 +305,10 @@ export async function GET(request) {
       return htmlResponse;
     } catch (error) {
       console.error('Ошибка при запросе данных пользователя:', error);
-      return NextResponse.redirect(new URL(`/auth?error=user_request_error&message=Ошибка при запросе данных пользователя: ${error.message}`, request.url));
+      return NextResponse.redirect(new URL(`/auth/result?error=user_request_error&message=Ошибка при запросе данных пользователя: ${error.message}`, request.url));
     }
   } catch (error) {
     console.error('Ошибка при обработке callback от Twitch:', error);
-    return NextResponse.redirect(new URL(`/auth?error=server_error&message=${encodeURIComponent(error.message || 'Внутренняя ошибка сервера')}`, request.url));
+    return NextResponse.redirect(new URL(`/auth/result?error=server_error&message=${encodeURIComponent(error.message || 'Произошла ошибка на сервере')}`, request.url));
   }
 } 

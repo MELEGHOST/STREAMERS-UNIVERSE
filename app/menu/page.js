@@ -56,58 +56,84 @@ export default function Menu() {
       if (isLoading) {
         console.warn('Таймаут загрузки меню, принудительно устанавливаем isLoading = false');
         setIsLoading(false);
-        setError('Превышено время ожидания загрузки. Пожалуйста, обновите страницу или попробуйте войти снова.');
+        setError('Превышено время ожидания загрузки. Пожалуйста, перезагрузите страницу или попробуйте войти снова.');
       }
-    }, 5000); // Уменьшаем таймаут до 5 секунд вместо 10
+    }, 3000); // Уменьшаем таймаут до 3 секунд
     
     // Логируем состояние для отладки
     console.log('Menu useEffect:', { isInitialized, isAuthenticated, userId });
     
-    // Если пользователь не авторизован и инициализация завершена, 
-    // сразу перенаправляем на страницу авторизации
-    if (isInitialized && !isAuthenticated && !hasRedirectedRef.current) {
-      console.log('Пользователь не аутентифицирован, перенаправляем на страницу авторизации');
-      hasRedirectedRef.current = true;
-      router.push('/auth');
-      return;
+    const checkLocalAuth = () => {
+      // Проверяем наличие данных пользователя в localStorage
+      const userData = localStorage.getItem('twitch_user') || 
+                      localStorage.getItem('cookie_twitch_user');
+      
+      // Если данных нет, перенаправляем на авторизацию
+      if (!userData && !hasRedirectedRef.current) {
+        console.log('Данные пользователя не найдены, перенаправляем на страницу авторизации');
+        hasRedirectedRef.current = true;
+        router.push('/auth');
+        return false;
+      }
+      
+      return !!userData;
+    };
+    
+    // Если инициализация выполнена и пользователь не авторизован, 
+    // проверяем локальные данные аутентификации
+    if (isInitialized && !isAuthenticated) {
+      const hasLocalAuth = checkLocalAuth();
+      if (!hasLocalAuth) {
+        return; // Выходим, т.к. будет перенаправление
+      }
     }
     
-    // Если контекст еще не инициализирован, ждем
-    if (!isInitialized) {
-      console.log('Контекст аутентификации еще не инициализирован');
-      return;
-    }
-    
+    // Функция инициализации пользователя
     const initializeUser = async () => {
       try {
-        if (isAuthenticated && userId) {
-          console.log('Пользователь аутентифицирован, загружаем данные');
+        // Если у нас есть userId (из контекста или localStorage)
+        const userIdToUse = userId || (() => {
+          try {
+            const userData = localStorage.getItem('twitch_user') || 
+                             localStorage.getItem('cookie_twitch_user');
+            if (userData) {
+              const parsed = JSON.parse(userData);
+              return parsed.id;
+            }
+            return null;
+          } catch (e) {
+            console.error('Ошибка при получении userId из localStorage:', e);
+            return null;
+          }
+        })();
+        
+        if (userIdToUse) {
+          console.log('Инициализация пользователя с ID:', userIdToUse);
+          
           // Загружаем стример-коины
-          loadStreamCoins(userId);
+          loadStreamCoins(userIdToUse);
           
           // Генерируем реферальный код
-          setReferralCode(generateReferralCode(userId));
+          setReferralCode(generateReferralCode(userIdToUse));
+          
           // Завершаем загрузку
           setIsLoading(false);
-        } else if (isInitialized) {
-          // Дополнительная проверка на случай, если статус аутентификации изменился
+        } else {
+          console.log('ID пользователя не найден, перенаправляем на страницу авторизации');
           if (!hasRedirectedRef.current) {
-            console.log('Пользователь не аутентифицирован после инициализации, перенаправляем на страницу авторизации');
             hasRedirectedRef.current = true;
             router.push('/auth');
           }
         }
       } catch (error) {
         console.error('Ошибка при инициализации пользователя:', error);
-        setError('Произошла ошибка при загрузке данных. Пожалуйста, обновите страницу или попробуйте войти снова.');
+        setError('Произошла ошибка при загрузке данных. Пожалуйста, обновите страницу.');
         setIsLoading(false);
       }
     };
     
-    // Инициализируем пользователя только если он аутентифицирован
-    if (isAuthenticated && userId) {
-      initializeUser();
-    }
+    // Инициализируем пользователя
+    initializeUser();
     
     // Очищаем таймаут при размонтировании компонента
     return () => {

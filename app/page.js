@@ -6,7 +6,7 @@ import { useAuth } from '../contexts/AuthContext';
 
 export default function Home() {
   const router = useRouter();
-  const { isInitialized } = useAuth();
+  const { isAuthenticated, isInitialized } = useAuth();
   const hasRedirectedRef = useRef(false);
   const timeoutRef = useRef(null);
   
@@ -19,18 +19,36 @@ export default function Home() {
     // Устанавливаем таймаут для гарантированного перенаправления
     timeoutRef.current = setTimeout(() => {
       if (!hasRedirectedRef.current) {
-        console.log('Таймаут перенаправления, принудительно перенаправляем на /menu');
+        console.log('Таймаут перенаправления на главной странице');
         hasRedirectedRef.current = true;
-        router.push('/menu');
+        
+        // Проверяем, есть ли данные пользователя в localStorage
+        const userData = localStorage.getItem('twitch_user') || 
+                         localStorage.getItem('cookie_twitch_user');
+        
+        if (userData) {
+          console.log('Найдены данные пользователя, перенаправляем в меню');
+          router.push('/menu');
+        } else {
+          console.log('Данные пользователя не найдены, перенаправляем на страницу авторизации');
+          router.push('/auth');
+        }
       }
-    }, 2000); // Сокращаем таймаут до 2 секунд
+    }, 1500); // 1.5 секунды таймаут
     
     // Если контекст аутентификации инициализирован, перенаправляем сразу
     if (isInitialized && !hasRedirectedRef.current) {
       clearTimeout(timeoutRef.current);
-      console.log('Контекст аутентификации инициализирован, перенаправляем на /menu');
+      console.log('Контекст аутентификации инициализирован, проверяем состояние авторизации');
       hasRedirectedRef.current = true;
-      router.push('/menu');
+      
+      if (isAuthenticated) {
+        console.log('Пользователь авторизован, перенаправляем в меню');
+        router.push('/menu');
+      } else {
+        console.log('Пользователь не авторизован, перенаправляем на страницу авторизации');
+        router.push('/auth');
+      }
     }
     
     // Очищаем таймаут при размонтировании компонента
@@ -39,7 +57,7 @@ export default function Home() {
         clearTimeout(timeoutRef.current);
       }
     };
-  }, [isInitialized, router]);
+  }, [isInitialized, isAuthenticated, router]);
   
   // Показываем простой индикатор загрузки
   return (

@@ -1,0 +1,107 @@
+.container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  background: linear-gradient(to bottom, #0f0c29, #302b63, #24243e);
+  color: white;
+  padding: 20px;
+}
+
+.authContent {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 10px;
+  padding: 30px;
+  max-width: 500px;
+  width: 90%;
+  text-align: center;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+  backdrop-filter: blur(10px);
+}
+
+.title {
+  font-size: 2rem;
+  margin-bottom: 1.5rem;
+  color: #fff;
+}
+
+.authButton {
+  background-color: #9146FF; /* Twitch color */
+  color: white;
+  border: none;
+  border-radius: 5px;
+  padding: 12px 24px;
+  font-size: 1.1rem;
+  font-weight: bold;
+  cursor: pointer;
+  transition: background-color 0.3s, transform 0.2s;
+  margin: 1.5rem 0;
+  width: 100%;
+  max-width: 300px;
+}
+
+.authButton:hover {
+  background-color: #7224d4;
+  transform: translateY(-2px);
+}
+
+.authButton:active {
+  transform: translateY(1px);
+}
+
+.authButton:disabled {
+  background-color: #6c6c6c;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.authInfo {
+  margin-top: 1.5rem;
+  font-size: 0.9rem;
+  opacity: 0.8;
+  line-height: 1.5;
+}
+
+.errorMessage {
+  background-color: rgba(255, 0, 0, 0.2);
+  border-left: 4px solid red;
+  padding: 10px 15px;
+  margin-bottom: 20px;
+  border-radius: 0 4px 4px 0;
+  text-align: left;
+  font-size: 0.9rem;
+}
+
+.successMessage {
+  background-color: rgba(0, 255, 0, 0.1);
+  border-left: 4px solid #00c851;
+  padding: 10px 15px;
+  margin-bottom: 20px;
+  border-radius: 0 4px 4px 0;
+  text-align: left;
+  font-size: 0.9rem;
+}
+
+.loadingContainer {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100vh;
+}
+
+.loadingSpinner {
+  width: 50px;
+  height: 50px;
+  border: 5px solid rgba(255, 255, 255, 0.3);
+  border-top: 5px solid white;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin-bottom: 20px;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+} 
