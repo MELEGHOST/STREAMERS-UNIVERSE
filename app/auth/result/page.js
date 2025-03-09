@@ -160,7 +160,8 @@ function AuthResultContent() {
   }, [searchParams, router, login]);
 
   return (
-    <div className={styles.container}>
+    <div className={styles.oldContainer}>
+      <div className={styles.stars}></div>
       <div className={styles.authContent}>
         <h1 className={styles.title}>
           {status === 'loading' ? 'Обработка авторизации' : 
@@ -181,8 +182,9 @@ function AuthResultContent() {
         
         {status === 'error' && (
           <button 
-            className={styles.authButton}
+            className={styles.oldAuthButton}
             onClick={() => router.push('/auth')}
+            style={{ fontSize: '1rem', padding: '10px 20px', margin: '20px auto', display: 'block' }}
           >
             Вернуться на страницу авторизации
           </button>

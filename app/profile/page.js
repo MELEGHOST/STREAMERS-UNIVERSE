@@ -66,115 +66,86 @@ export default function Profile() {
         return;
       }
       
+      // Массив для параллельных промисов
+      const dataPromises = [];
+      
       // Получаем сохраненные настройки видимости статистики, если они есть
-      const savedStatsVisibility = await DataStorage.getData('stats_visibility');
-      if (savedStatsVisibility) {
-        setStatsVisibility(savedStatsVisibility);
+      dataPromises.push(
+        DataStorage.getData('stats_visibility')
+          .then(savedStatsVisibility => {
+            if (savedStatsVisibility) {
+              setStatsVisibility(savedStatsVisibility);
+            }
+          })
+          .catch(err => console.warn('Ошибка при загрузке настроек видимости статистики:', err))
+      );
+      
+      // Используем данные из контекста аутентификации или получаем их
+      const userData = userId && userLogin 
+        ? { id: userId, login: userLogin, profile_image_url: userAvatar }
+        : await getUserData();
+        
+      if (!userData || !userData.id) {
+        console.log('Данные пользователя не найдены, перенаправляем на страницу авторизации');
+        router.push('/auth');
+        return;
       }
       
-      // Используем данные из контекста аутентификации
-      if (userId && userLogin) {
-        const userData = {
-          id: userId,
-          login: userLogin,
-          profile_image_url: userAvatar
-        };
-        
-        setProfileData(userData);
-        
-        // Получаем сохраненные социальные ссылки из нового хранилища
-        const savedSocialLinks = await DataStorage.getData('social_links');
-        if (savedSocialLinks) {
-          setSocialLinks(savedSocialLinks);
-        }
-        
-        // Проверяем день рождения пользователя
-        const userBirthday = await DataStorage.getData('birthday');
-        if (userBirthday) {
-          const birthdayToday = checkBirthday(userBirthday);
-          setIsBirthday(birthdayToday);
-          
-          if (!birthdayToday) {
-            const days = getDaysToBirthday(userBirthday);
-            setDaysToBirthday(days);
-          }
-        }
-        
-        // Загружаем статистику пользователя
-        try {
-          const userStatsData = await getUserStats(userId);
-          if (userStatsData) {
-            setUserStats(userStatsData);
-          }
-        } catch (statsError) {
-          console.error('Ошибка при загрузке статистики пользователя:', statsError);
-        }
-        
-        // Загружаем фолловеров, используя новый метод с кешированием
-        try {
-          const followersData = await getUserFollowers(userId);
-          if (followersData) {
-            // Обработка данных о фолловерах
-            // ...
-          }
-        } catch (followerError) {
-          console.error('Ошибка при загрузке фолловеров:', followerError);
-        }
-        
-        setLoading(false);
-      } else {
-        // Если данные пользователя отсутствуют в контексте, пробуем получить их из API
-        const userData = await getUserData();
-        
-        if (!userData) {
-          // Если данные пользователя не найдены, перенаправляем на страницу авторизации
-          console.log('Данные пользователя не найдены, перенаправляем на страницу авторизации');
-          router.push('/auth');
-          return;
-        }
-        
-        setProfileData(userData);
-        
-        // Получаем сохраненные социальные ссылки из нового хранилища
-        const savedSocialLinks = await DataStorage.getData('social_links');
-        if (savedSocialLinks) {
-          setSocialLinks(savedSocialLinks);
-        }
-        
-        // Проверяем день рождения пользователя
-        if (userData.birthday) {
-          const birthdayToday = checkBirthday(userData.birthday);
-          setIsBirthday(birthdayToday);
-          
-          if (!birthdayToday) {
-            const days = getDaysToBirthday(userData.birthday);
-            setDaysToBirthday(days);
-          }
-        }
-        
-        // Загружаем статистику пользователя
-        try {
-          const userStatsData = await getUserStats(userData.id);
-          if (userStatsData) {
-            setUserStats(userStatsData);
-          }
-        } catch (statsError) {
-          console.error('Ошибка при загрузке статистики пользователя:', statsError);
-        }
-        
-        // Загружаем фолловеров, используя новый метод с кешированием
-        try {
-          const followersData = await getUserFollowers(userData.id);
-          if (followersData) {
-            // Обработка данных о фолловерах
-            // ...
-          }
-        } catch (followerError) {
-          console.error('Ошибка при загрузке фолловеров:', followerError);
-        }
-        
-        setLoading(false);
-      }
+      // Устанавливаем базовые данные пользователя сразу
+      setProfileData(userData);
+      
+      // Получаем сохраненные социальные ссылки
+      dataPromises.push(
+        DataStorage.getData('social_links')
+          .then(savedSocialLinks => {
+            if (savedSocialLinks) {
+              setSocialLinks(savedSocialLinks);
+            }
+          })
+          .catch(err => console.warn('Ошибка при загрузке социальных ссылок:', err))
+      );
+      
+      // Проверяем день рождения пользователя в фоне
+      dataPromises.push(
+        (userData.birthday ? Promise.resolve(userData.birthday) : DataStorage.getData('birthday'))
+          .then(userBirthday => {
+            if (userBirthday) {
+              const birthdayToday = checkBirthday(userBirthday);
+              setIsBirthday(birthdayToday);
+              
+              if (!birthdayToday) {
+                const days = getDaysToBirthday(userBirthday);
+                setDaysToBirthday(days);
+              }
+            }
+          })
+          .catch(err => console.warn('Ошибка при проверке дня рождения:', err))
+      );
+      
+      // Загружаем статистику пользователя
+      dataPromises.push(
+        getUserStats(userData.id)
+          .then(userStatsData => {
+            if (userStatsData) {
+              setUserStats(userStatsData);
+            }
+          })
+          .catch(statsError => console.error('Ошибка при загрузке статистики пользователя:', statsError))
+      );
+      
+      // Загружаем фолловеров
+      dataPromises.push(
+        getUserFollowers(userData.id)
+          .catch(followerError => console.error('Ошибка при загрузке фолловеров:', followerError))
+      );
+      
+      // Снимаем состояние загрузки после первичного отображения контента,
+      // не дожидаясь завершения всех запросов
+      setLoading(false);
+      
+      // Дожидаемся завершения всех операций в фоне
+      await Promise.allSettled(dataPromises);
+      
     } catch (error) {
       console.error('Ошибка при загрузке данных пользователя:', error);
       setError('Не удалось загрузить данные профиля');

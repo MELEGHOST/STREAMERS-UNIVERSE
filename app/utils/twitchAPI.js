@@ -12,40 +12,58 @@ import Cookies from 'js-cookie';
  */
 export async function getUserFollowers(userId, accessToken) {
   if (!userId) {
-    throw new Error('Необходим userId');
+    console.warn('getUserFollowers: Попытка вызова без userId');
+    return { total: 0, followers: [] }; // Возвращаем пустой объект вместо ошибки
   }
 
   const clientId = process.env.NEXT_PUBLIC_TWITCH_CLIENT_ID;
   if (!clientId) {
-    throw new Error('NEXT_PUBLIC_TWITCH_CLIENT_ID не найден в переменных окружения');
+    console.warn('getUserFollowers: NEXT_PUBLIC_TWITCH_CLIENT_ID не найден в переменных окружения');
+    return { total: 0, followers: [] }; // Возвращаем пустой объект вместо ошибки
   }
 
   try {
-    // Попытка получить данные из нашего хранилища
+    // Сначала быстро проверяем кэш
     const cachedFollowers = await DataStorage.getData('followers');
     
-    if (cachedFollowers && cachedFollowers.timestamp && 
-        (Date.now() - cachedFollowers.timestamp < 3600000)) { // Данные не старше 1 часа
+    // Если есть кэшированные данные, сразу их возвращаем и делаем обновление в фоне
+    if (cachedFollowers && cachedFollowers.followers) {
+      // Запускаем обновление данных в фоне, если они устарели
+      if (!cachedFollowers.timestamp || (Date.now() - cachedFollowers.timestamp > 3600000)) {
+        console.log('Кэшированные данные устарели, обновляю в фоне');
+        setTimeout(() => {
+          refreshFollowersData(userId).catch(e => 
+            console.warn('Ошибка при фоновом обновлении данных о фолловерах:', e)
+          );
+        }, 100);
+      }
+      
       console.log('Использую кэшированные данные о фолловерах');
       return cachedFollowers;
     }
     
-    // Если нет кэшированных данных или они устарели, делаем запрос к API
+    // Если кэша нет, делаем запрос к API с таймаутом
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 5000); // 5-секундный таймаут
+    
     const response = await fetch(`/api/twitch/user-followers?userId=${userId}`, {
       method: 'GET',
       credentials: 'include',
+      signal: controller.signal
     });
+    
+    clearTimeout(timeoutId);
 
     if (!response.ok) {
-      const errorData = await response.json();
-      
-      // Если есть кэшированные данные, возвращаем их, даже если они устарели
+      // В случае ошибки проверяем, есть ли хоть какие-то кэшированные данные
       if (cachedFollowers) {
-        console.warn('API вернул ошибку, использую устаревшие кэшированные данные');
+        console.warn('API вернул ошибку, использую любые доступные кэшированные данные');
         return cachedFollowers;
       }
       
-      throw new Error(errorData.error || `HTTP ошибка: ${response.status}`);
+      // Если кэша нет, возвращаем пустой объект вместо ошибки
+      console.error('Ошибка при получении фолловеров:', await response.text());
+      return { total: 0, followers: [] };
     }
 
     const data = await response.json();
@@ -67,6 +85,35 @@ export async function getUserFollowers(userId, accessToken) {
       return cachedFollowers;
     }
     
+    // Если кэша нет, возвращаем пустой объект вместо ошибки
+    return { total: 0, followers: [] };
+  }
+}
+
+// Вспомогательная функция для обновления данных о фолловерах в фоне
+async function refreshFollowersData(userId) {
+  try {
+    const response = await fetch(`/api/twitch/user-followers?userId=${userId}`, {
+      method: 'GET',
+      credentials: 'include'
+    });
+
+    if (!response.ok) {
+      throw new Error(`HTTP ошибка: ${response.status}`);
+    }
+
+    const data = await response.json();
+    
+    // Обновляем кэш с новыми данными
+    await DataStorage.saveData('followers', {
+      ...data,
+      timestamp: Date.now()
+    });
+    
+    console.log('Фоновое обновление данных о фолловерах завершено успешно');
+    return data;
+  } catch (error) {
+    console.error('Ошибка при фоновом обновлении данных о фолловерах:', error);
     throw error;
   }
 }

@@ -9,7 +9,11 @@ export async function GET(request) {
     
     if (!userId) {
       console.error('Отсутствует параметр userId');
-      return NextResponse.json({ error: 'Требуется ID пользователя' }, { status: 400 });
+      return NextResponse.json({ 
+        error: 'Требуется ID пользователя',
+        total: 0,
+        followers: []
+      }, { status: 400 });
     }
     
     // Получаем токен доступа из cookies
@@ -18,7 +22,11 @@ export async function GET(request) {
     
     if (!accessToken) {
       console.error('Отсутствует токен доступа');
-      return NextResponse.json({ error: 'Не авторизован' }, { status: 401 });
+      return NextResponse.json({ 
+        error: 'Не авторизован',
+        total: 0,
+        followers: []
+      }, { status: 401 });
     }
     
     // Получаем TWITCH_CLIENT_ID из переменных окружения
@@ -26,7 +34,11 @@ export async function GET(request) {
     
     if (!TWITCH_CLIENT_ID) {
       console.error('TWITCH_CLIENT_ID отсутствует в переменных окружения');
-      return NextResponse.json({ error: 'Ошибка конфигурации сервера' }, { status: 500 });
+      return NextResponse.json({ 
+        error: 'Ошибка конфигурации сервера',
+        total: 0, 
+        followers: []
+      }, { status: 500 });
     }
     
     console.log('Выполняем запрос к Twitch API для получения фолловеров пользователя:', userId);
@@ -35,43 +47,81 @@ export async function GET(request) {
       'Authorization': 'Bearer ' + accessToken.substring(0, 5) + '...'
     });
     
-    // Выполняем запрос к Twitch API для получения фолловеров пользователя
-    const response = await fetch(`https://api.twitch.tv/helix/users/follows?to_id=${userId}&first=100`, {
-      headers: {
-        'Client-ID': TWITCH_CLIENT_ID,
-        'Authorization': `Bearer ${accessToken}`
+    // Создаем таймаут для запроса
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 8000); // 8-секундный таймаут
+    
+    try {
+      // Выполняем запрос к Twitch API для получения фолловеров пользователя
+      const response = await fetch(`https://api.twitch.tv/helix/users/follows?to_id=${userId}&first=100`, {
+        headers: {
+          'Client-ID': TWITCH_CLIENT_ID,
+          'Authorization': `Bearer ${accessToken}`
+        },
+        signal: controller.signal
+      });
+      
+      clearTimeout(timeoutId);
+      
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error(`Ошибка при получении фолловеров: ${response.status}`, errorText);
+        
+        // Возвращаем пустой результат с кодом ошибки, вместо ошибки 500
+        return NextResponse.json({ 
+          error: 'Ошибка при получении фолловеров',
+          status: response.status,
+          details: errorText,
+          total: 0,
+          followers: []
+        }, { status: 200 }); // Отправляем 200 вместо ошибки для предотвращения краша клиента
       }
-    });
-    
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error(`Ошибка при получении фолловеров: ${response.status}`, errorText);
-      return NextResponse.json({ 
-        error: 'Ошибка при получении фолловеров', 
-        status: response.status,
-        details: errorText
-      }, { status: response.status });
+      
+      const data = await response.json();
+      console.log('Получены данные о фолловерах:', {
+        total: data.total,
+        count: data.data?.length || 0
+      });
+      
+      // Если данных нет, возвращаем пустой массив
+      if (!data.data || !Array.isArray(data.data)) {
+        return NextResponse.json({
+          total: data.total || 0,
+          followers: []
+        });
+      }
+      
+      // Форматируем данные о фолловерах
+      const followers = data.data.map(follower => ({
+        id: follower.from_id,
+        name: follower.from_name,
+        followedAt: follower.followed_at
+      }));
+      
+      return NextResponse.json({
+        total: data.total,
+        followers: followers
+      });
+    } catch (fetchError) {
+      clearTimeout(timeoutId);
+      
+      if (fetchError.name === 'AbortError') {
+        console.error('Запрос к Twitch API превысил время ожидания');
+        return NextResponse.json({ 
+          error: 'Таймаут запроса к Twitch API',
+          total: 0,
+          followers: []
+        }, { status: 200 }); // Отправляем 200 вместо ошибки
+      }
+      
+      throw fetchError; // Передаем ошибку дальше для обработки на верхнем уровне
     }
-    
-    const data = await response.json();
-    console.log('Получены данные о фолловерах:', {
-      total: data.total,
-      count: data.data?.length || 0
-    });
-    
-    // Форматируем данные о фолловерах
-    const followers = data.data.map(follower => ({
-      id: follower.from_id,
-      name: follower.from_name,
-      followedAt: follower.followed_at
-    }));
-    
-    return NextResponse.json({
-      total: data.total,
-      followers: followers
-    });
   } catch (error) {
     console.error('Ошибка при обработке запроса:', error);
-    return NextResponse.json({ error: 'Внутренняя ошибка сервера' }, { status: 500 });
+    return NextResponse.json({ 
+      error: 'Внутренняя ошибка сервера',
+      total: 0,
+      followers: []
+    }, { status: 200 }); // Отправляем 200 вместо ошибки 500
   }
 } 

@@ -256,11 +256,22 @@ export default function Menu() {
           
           <div 
             className={styles.menuItem}
+            onClick={() => router.push('/coins')}
+          >
+            <div className={styles.menuIcon}>💰</div>
+            <div className={styles.menuContent}>
+              <h2>6. Стример-коины</h2>
+              <p>Получайте ежедневный бонус в 100 стример-коинов для альфа-тестеров и следите за своими транзакциями</p>
+            </div>
+          </div>
+          
+          <div 
+            className={styles.menuItem}
             onClick={() => router.push('/settings')}
           >
             <div className={styles.menuIcon}>⚙️</div>
             <div className={styles.menuContent}>
-              <h2>6. Настройки</h2>
+              <h2>7. Настройки</h2>
               <p>Возможность сменить тему (тёмная/светлая), поменять шрифт, часовой пояс, язык и другие настройки</p>
             </div>
           </div>

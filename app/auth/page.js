@@ -88,29 +88,17 @@ export default function Auth() {
   };
 
   return (
-    <div className={styles.container}>
-      <div className={styles.authContent}>
-        <h1 className={styles.title}>Авторизация через Twitch</h1>
-        
-        {errorMessage && (
-          <div className={styles.errorMessage}>
-            {errorMessage}
-          </div>
-        )}
-        
-        <button 
-          className={styles.authButton}
-          onClick={handleAuth}
-          disabled={isLoading}
-        >
-          {isLoading ? 'Загрузка...' : 'Войти через Twitch'}
-        </button>
-        
-        <p className={styles.authInfo}>
-          Для использования нашего сервиса необходимо авторизоваться через Twitch.
-          Мы запрашиваем только базовую информацию из вашего аккаунта.
-        </p>
+    <div className={styles.oldContainer}>
+      <div className={styles.stars}></div>
+      <div className={styles.oldAuthButton} onClick={handleAuth} disabled={isLoading}>
+        {isLoading ? 'Загрузка...' : 'Войти через Twitch'}
       </div>
+      
+      {errorMessage && (
+        <div className={styles.errorMessage}>
+          {errorMessage}
+        </div>
+      )}
     </div>
   );
 } 

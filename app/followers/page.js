@@ -66,18 +66,55 @@ export default function Followers() {
     try {
       setLoading(true);
       
-      // Загружаем фолловеров с использованием нового метода twitchAPI
+      // Сначала быстро проверяем кэш
+      const cachedFollowers = await DataStorage.getData('followers');
+      if (cachedFollowers && cachedFollowers.followers) {
+        // Если есть кэшированные данные, сразу используем их
+        setFollowers(cachedFollowers.followers);
+        setTotalFollowers(cachedFollowers.total || cachedFollowers.followers.length);
+        
+        // Быстро убираем состояние загрузки
+        setLoading(false);
+        
+        // Затем обновляем данные в фоне, если они устарели
+        if (!cachedFollowers.timestamp || (Date.now() - cachedFollowers.timestamp > 3600000)) {
+          try {
+            // Делаем запрос в фоне
+            const followersData = await getUserFollowers(userId);
+            if (followersData && followersData.followers) {
+              // Обновляем состояние, если получены новые данные и они отличаются от кэша
+              if (JSON.stringify(followersData.followers) !== JSON.stringify(cachedFollowers.followers)) {
+                setFollowers(followersData.followers);
+                setTotalFollowers(followersData.total || followersData.followers.length);
+              }
+            }
+          } catch (backgroundError) {
+            console.warn('Фоновое обновление данных о фолловерах не удалось:', backgroundError);
+            // Не показываем ошибку пользователю, так как у нас уже есть кэшированные данные
+          }
+        }
+        
+        return; // Выходим из функции, так как данные уже отображены
+      }
+      
+      // Если кэша нет, делаем обычный запрос
       const followersData = await getUserFollowers(userId);
       
       if (followersData && followersData.followers) {
         setFollowers(followersData.followers);
         setTotalFollowers(followersData.total || followersData.followers.length);
+      } else {
+        // Если данные не получены, показываем пустой список
+        setFollowers([]);
+        setTotalFollowers(0);
       }
       
       setLoading(false);
     } catch (error) {
       console.error('Ошибка при загрузке фолловеров:', error);
-      setError('Не удалось загрузить данные о фолловерах.');
+      setError('Не удалось загрузить данные о фолловерах. Пожалуйста, попробуйте позже.');
+      setFollowers([]);
+      setTotalFollowers(0);
       setLoading(false);
     }
   };

@@ -126,7 +126,7 @@ const filters = [
   { id: 'lowest', name: 'Низкий рейтинг' }
 ];
 
-const ReviewCategories = () => {
+const ReviewCategories = ({ onWriteReview }) => {
   const [selectedCategory, setSelectedCategory] = useState(null);
   const [activeFilter, setActiveFilter] = useState('all');
 
@@ -144,6 +144,19 @@ const ReviewCategories = () => {
   // Изменение активного фильтра
   const handleFilterChange = (filterId) => {
     setActiveFilter(filterId);
+  };
+
+  // Функция для открытия формы написания отзыва
+  const handleWriteReview = () => {
+    // Закрываем текущее модальное окно, если оно открыто
+    if (selectedCategory) {
+      closeModal();
+    }
+    
+    // Вызываем переданную функцию для открытия модального окна написания отзыва
+    if (onWriteReview) {
+      onWriteReview();
+    }
   };
 
   // Генерация отзывов для демонстрации (в реальном приложении это будут данные с сервера)
@@ -176,7 +189,7 @@ const ReviewCategories = () => {
         ))}
       </div>
       
-      <button className={styles.addReviewButton}>
+      <button className={styles.addReviewButton} onClick={handleWriteReview}>
         <span className={styles.addReviewIcon}>✏️</span>
         Написать отзыв
       </button>
@@ -217,7 +230,7 @@ const ReviewCategories = () => {
             ) : (
               <div className={styles.noReviews}>
                 <p>В этой категории пока нет отзывов. Будьте первым!</p>
-                <button className={styles.addReviewButton} style={{ marginTop: '20px' }}>
+                <button className={styles.addReviewButton} onClick={handleWriteReview} style={{ marginTop: '20px' }}>
                   <span className={styles.addReviewIcon}>✏️</span>
                   Написать отзыв
                 </button>
