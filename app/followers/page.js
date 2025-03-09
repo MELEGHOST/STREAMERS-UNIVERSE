@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import styles from './followers.module.css';
-import { getUserFollowers, getUserData, getAccessToken } from '../utils/twitchAPI';
+import { getUserFollowers, getUserData, getAccessToken, isStreamer } from '../utils/twitchAPI';
 import { DataStorage } from '../utils/dataStorage';
 
 export default function Followers() {
@@ -40,12 +40,8 @@ export default function Followers() {
         
         setUserId(userData.id);
         
-        // Определяем статус стримера
-        const isStreamerStatus = userData.broadcaster_type === 'partner' || 
-                              userData.broadcaster_type === 'affiliate' || 
-                              (userData.follower_count && userData.follower_count >= 265);
-        
-        setIsStreamer(isStreamerStatus);
+        // Определяем статус стримера с помощью новой функции
+        setIsStreamer(isStreamer(userData));
         
         // Получаем и устанавливаем роли из хранилища
         const savedRoles = await DataStorage.getData('follower_roles');

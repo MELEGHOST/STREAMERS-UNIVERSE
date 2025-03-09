@@ -203,4 +203,91 @@ export function getAccessTokenFromCookie() {
  */
 export async function saveData(key, value) {
   return await DataStorage.saveData(key, value);
+}
+
+/**
+ * Получает данные о каналах, на которые подписан пользователь (фолловинги)
+ * @param {string} userId - ID пользователя в Twitch
+ * @returns {Promise<Object>} - Данные о фолловингах
+ */
+export async function getUserFollowings(userId) {
+  if (!userId) {
+    throw new Error('Необходим userId');
+  }
+
+  try {
+    // Попытка получить данные из нашего хранилища
+    const cachedFollowings = await DataStorage.getData('followings');
+    
+    if (cachedFollowings && cachedFollowings.timestamp && 
+        (Date.now() - cachedFollowings.timestamp < 3600000)) { // Данные не старше 1 часа
+      console.log('Использую кэшированные данные о фолловингах');
+      return cachedFollowings;
+    }
+    
+    // Если нет кэшированных данных или они устарели, делаем запрос к API
+    const response = await fetch(`/api/twitch/user-followings?userId=${userId}`, {
+      method: 'GET',
+      credentials: 'include',
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      
+      // Если есть кэшированные данные, возвращаем их, даже если они устарели
+      if (cachedFollowings) {
+        console.warn('API вернул ошибку, использую устаревшие кэшированные данные');
+        return cachedFollowings;
+      }
+      
+      throw new Error(errorData.error || `HTTP ошибка: ${response.status}`);
+    }
+
+    const data = await response.json();
+    
+    // Сохраняем в нашем хранилище с меткой времени
+    await DataStorage.saveData('followings', {
+      ...data,
+      timestamp: Date.now()
+    });
+    
+    return data;
+  } catch (error) {
+    console.error('Ошибка при получении фолловингов:', error);
+    
+    // В случае ошибки пытаемся использовать кэшированные данные
+    const cachedFollowings = await DataStorage.getData('followings');
+    if (cachedFollowings) {
+      console.warn('Произошла ошибка, использую кэшированные данные о фолловингах');
+      return cachedFollowings;
+    }
+    
+    throw error;
+  }
+}
+
+/**
+ * Определяет статус стримера на основе данных пользователя
+ * @param {Object} userData - Данные пользователя
+ * @returns {boolean} - true, если пользователь является стримером
+ */
+export function isStreamer(userData) {
+  if (!userData) return false;
+  
+  // Проверяем различные поля, которые могут указывать на статус стримера
+  const isPartnerOrAffiliate = 
+    userData.broadcaster_type === 'partner' || 
+    userData.broadcaster_type === 'affiliate';
+  
+  const hasFollowers = 
+    userData.follower_count && userData.follower_count >= 50;
+    
+  const hasStreamerBadge =
+    userData.badges && 
+    (userData.badges.includes('partner') || 
+     userData.badges.includes('affiliate') ||
+     userData.badges.includes('broadcaster'));
+     
+  // Определяем статус стримера по комбинации параметров
+  return isPartnerOrAffiliate || hasFollowers || hasStreamerBadge;
 } 

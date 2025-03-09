@@ -1,23 +1,21 @@
 'use client';
 
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
-import Cookies from 'js-cookie';
 import styles from '../../styles/menu.module.css';
 import { useAuth } from '../../contexts/AuthContext';
 import clientStorage from '../utils/clientStorage';
 
 export default function Menu() {
   const router = useRouter();
-  const { isAuthenticated, userId, userLogin, userAvatar, isInitialized } = useAuth();
+  const { isAuthenticated, userId, userLogin, userAvatar } = useAuth();
   
   const [streamCoins, setStreamCoins] = useState(100);
   const [referralCode, setReferralCode] = useState('');
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
-  const initTimeoutRef = useRef(null);
   const hasRedirectedRef = useRef(false);
   
   // Выносим функции за пределы useEffect для оптимизации
@@ -66,170 +64,88 @@ export default function Menu() {
   
   // Проверка авторизации и загрузка данных
   useEffect(() => {
-    // Очищаем потенциальные флаги перенаправления
-    clientStorage.removeItem('redirect_in_progress');
+    // Сбрасываем флаг ошибки при загрузке
+    setError(null);
     
-    // Устанавливаем таймаут для предотвращения бесконечной загрузки
-    initTimeoutRef.current = setTimeout(() => {
-      if (isLoading) {
-        console.warn('Таймаут загрузки меню, принудительно устанавливаем isLoading = false');
-        setIsLoading(false);
-        setError('Превышено время ожидания загрузки. Пожалуйста, перезагрузите страницу или попробуйте войти снова.');
-      }
-    }, 3000); // Таймаут в 3 секунды
-    
-    // Логируем состояние для отладки
-    console.log('Menu useEffect:', { isInitialized, isAuthenticated, userId });
-    
-    // Проверка, если мы только что пришли с авторизации, автоматически инициализируем пользователя
-    const cameFromAuth = clientStorage.getItem('auth_to_menu_redirect');
-    if (cameFromAuth) {
-      console.log('Пришли с авторизации, принудительно инициализируем без проверки');
-      clientStorage.removeItem('auth_to_menu_redirect');
-      
-      // Получаем данные пользователя напрямую из хранилища
-      const rawUserData = clientStorage.getItem('twitch_user') || clientStorage.getItem('cookie_twitch_user');
-      if (rawUserData) {
-        try {
-          const userData = typeof rawUserData === 'string' ? JSON.parse(rawUserData) : rawUserData;
-          const userIdToUse = userData.id;
-          
-          if (userIdToUse) {
-            // Загружаем стример-коины
-            loadStreamCoins(userIdToUse);
-            
-            // Генерируем реферальный код
-            setReferralCode(generateReferralCode(userIdToUse));
-            
-            // Завершаем загрузку
-            setIsLoading(false);
-            return; // Выходим из useEffect, чтобы не выполнять другие проверки
-          }
-        } catch (e) {
-          console.error('Ошибка при обработке данных пользователя:', e);
-        }
-      }
-    }
-    
-    const checkLocalAuth = () => {
-      // Проверяем наличие данных пользователя в localStorage
-      const userData = clientStorage.getItem('twitch_user') || 
-                      clientStorage.getItem('cookie_twitch_user');
-      
-      // Если данных нет, перенаправляем на авторизацию
-      if (!userData && !hasRedirectedRef.current) {
-        console.log('Данные пользователя не найдены, проверяем флаг редиректа');
-        
-        // Проверяем, не пришли ли мы сюда после редиректа с auth
-        if (clientStorage.getItem('auth_to_menu_redirect')) {
-          // Если есть флаг редиректа с auth, но нет данных пользователя,
-          // значит что-то пошло не так с аутентификацией
-          console.log('Обнаружен флаг редиректа с auth, но нет данных пользователя');
-          clientStorage.removeItem('auth_to_menu_redirect');
-          setError('Произошла ошибка при получении данных пользователя. Пожалуйста, попробуйте войти снова.');
-          setIsLoading(false);
-          return false;
-        }
-        
-        // Устанавливаем флаг перенаправления и редиректим
-        console.log('Перенаправляем на страницу авторизации');
-        hasRedirectedRef.current = true;
-        clientStorage.setItem('menu_to_auth_redirect', 'true');
-        router.push('/auth');
-        return false;
-      }
-      
-      // Очищаем флаг перенаправления с auth, если он есть
-      if (clientStorage.getItem('auth_to_menu_redirect')) {
-        clientStorage.removeItem('auth_to_menu_redirect');
-      }
-      
-      return !!userData;
-    };
-    
-    // Если инициализация выполнена и пользователь не авторизован, 
-    // проверяем локальные данные аутентификации
-    if (isInitialized && !isAuthenticated) {
-      const hasLocalAuth = checkLocalAuth();
-      if (!hasLocalAuth) {
-        return; // Выходим, т.к. будет перенаправление или показ ошибки
-      }
-    }
-    
-    // Функция инициализации пользователя
-    const initializeUser = async () => {
+    // Функция для асинхронной инициализации пользователя
+    const initUser = async () => {
       try {
-        // Получаем userId из контекста или localStorage
-        const userIdToUse = userId || (() => {
-          try {
-            const userData = clientStorage.getItem('twitch_user') || 
-                           clientStorage.getItem('cookie_twitch_user');
-            if (userData) {
-              const parsed = typeof userData === 'string' ? JSON.parse(userData) : userData;
-              return parsed.id;
-            }
-            return null;
-          } catch (e) {
-            console.error('Ошибка при получении userId из localStorage:', e);
-            return null;
-          }
-        })();
+        // Проверяем, пришли ли мы с авторизации
+        const cameFromAuth = clientStorage.getItem('auth_to_menu_redirect');
+        if (cameFromAuth) {
+          clientStorage.removeItem('auth_to_menu_redirect');
+        }
         
-        if (userIdToUse) {
-          console.log('Инициализация пользователя с ID:', userIdToUse);
-          
-          // Загружаем стример-коины
-          loadStreamCoins(userIdToUse);
-          
-          // Генерируем реферальный код
-          setReferralCode(generateReferralCode(userIdToUse));
-          
-          // Завершаем загрузку
-          setIsLoading(false);
-        } else {
-          console.log('ID пользователя не найден, перенаправляем на страницу авторизации');
-          if (!hasRedirectedRef.current) {
+        // Получаем данные пользователя
+        const userData = clientStorage.getItem('twitch_user') || 
+                      clientStorage.getItem('cookie_twitch_user');
+        
+        // Если данных нет, но мы не с авторизации - перенаправляем
+        if (!userData && !hasRedirectedRef.current) {
+          if (!cameFromAuth) {
+            console.log('Данные пользователя не найдены, перенаправляем на страницу авторизации');
             hasRedirectedRef.current = true;
             clientStorage.setItem('menu_to_auth_redirect', 'true');
             router.push('/auth');
+            return;
+          } else {
+            setError('Произошла ошибка при получении данных пользователя. Пожалуйста, попробуйте войти снова.');
+            return;
           }
+        }
+        
+        // Получаем userId
+        let userIdToUse = userId;
+        if (!userIdToUse && userData) {
+          try {
+            const parsedData = typeof userData === 'string' ? JSON.parse(userData) : userData;
+            userIdToUse = parsedData.id;
+          } catch (e) {
+            console.error('Ошибка при получении userId из localStorage:', e);
+          }
+        }
+        
+        if (userIdToUse) {
+          // Загружаем стример-коины
+          try {
+            const storedCoins = clientStorage.getItem(`streamcoins_${userIdToUse}`);
+            if (storedCoins && !isNaN(parseInt(storedCoins, 10))) {
+              setStreamCoins(parseInt(storedCoins, 10));
+            } else {
+              clientStorage.setItem(`streamcoins_${userIdToUse}`, '100');
+              setStreamCoins(100);
+            }
+          } catch (e) {
+            console.error('Ошибка при загрузке стример-коинов:', e);
+            setStreamCoins(100);
+          }
+          
+          // Генерируем реферальный код
+          setReferralCode(`SU-${userIdToUse.substring(0, 6) || '000000'}`);
+        } else {
+          console.error('Не удалось получить userId');
+          setError('Не удалось получить данные пользователя. Пожалуйста, попробуйте войти снова.');
         }
       } catch (error) {
         console.error('Ошибка при инициализации пользователя:', error);
         setError('Произошла ошибка при загрузке данных. Пожалуйста, обновите страницу.');
+      } finally {
+        // В любом случае скрываем индикатор загрузки
         setIsLoading(false);
       }
     };
     
-    // Инициализируем пользователя, только если не пришли с авторизации
-    if (!cameFromAuth) {
-      initializeUser();
-    }
+    // Начинаем инициализацию сразу
+    initUser();
     
-    // Очищаем таймаут при размонтировании компонента
-    return () => {
-      if (initTimeoutRef.current) {
-        clearTimeout(initTimeoutRef.current);
-      }
-    };
-  }, [isAuthenticated, userId, isInitialized, loadStreamCoins, generateReferralCode, router]);
+  }, [isAuthenticated, userId, router]);
   
-  // Переход в профиль пользователя
+  // При переходе на страницу профиля не показываем индикатор загрузки
   const goToProfile = () => {
     router.push('/profile');
   };
   
-  // Если контекст авторизации еще не инициализирован или данные загружаются, показываем индикатор загрузки
-  if (!isInitialized || isLoading) {
-    return (
-      <div className={styles.loading}>
-        <div className={styles.spinner}></div>
-        <p>Загрузка...</p>
-      </div>
-    );
-  }
-  
-  // Если произошла ошибка, показываем сообщение об ошибке
+  // Если есть ошибка, показываем сообщение об ошибке
   if (error) {
     return (
       <div className={styles.error}>

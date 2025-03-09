@@ -34,10 +34,10 @@ function AuthResultContent() {
           setStatus('error');
           setMessage('Не удалось получить данные пользователя. Пожалуйста, попробуйте войти снова.');
           
-          // Перенаправляем на страницу авторизации через 3.5 секунды
+          // Перенаправляем на страницу авторизации через 2 секунды
           redirectTimeoutRef.current = setTimeout(() => {
             router.push('/auth');
-          }, 3500);
+          }, 2000);
           return;
         }
         
@@ -64,13 +64,13 @@ function AuthResultContent() {
       clientStorage.removeItem('auth_to_menu_redirect');
       clientStorage.removeItem('menu_to_auth_redirect');
       
-      // Перенаправляем на страницу авторизации через 3 секунды
+      // Перенаправляем на страницу авторизации через 2 секунды
       redirectTimeoutRef.current = setTimeout(() => {
         if (!hasRedirectedRef.current) {
           hasRedirectedRef.current = true;
           router.push('/auth');
         }
-      }, 3000);
+      }, 2000);
     } else if (success === 'true') {
       // Если авторизация успешна
       console.log('Успешная авторизация через Twitch');
@@ -101,10 +101,10 @@ function AuthResultContent() {
           setStatus('error');
           setMessage('Ошибка при обработке данных пользователя. Пожалуйста, попробуйте войти снова.');
           
-          // Перенаправляем на страницу авторизации через 3 секунды
+          // Перенаправляем на страницу авторизации через 2 секунды
           redirectTimeoutRef.current = setTimeout(() => {
             router.push('/auth');
-          }, 3000);
+          }, 2000);
           return;
         }
       } else {
@@ -112,15 +112,15 @@ function AuthResultContent() {
         setStatus('error');
         setMessage('Не удалось получить данные пользователя или токен доступа. Пожалуйста, попробуйте войти снова.');
         
-        // Перенаправляем на страницу авторизации через 3 секунды
+        // Перенаправляем на страницу авторизации через 2 секунды
         redirectTimeoutRef.current = setTimeout(() => {
           router.push('/auth');
-        }, 3000);
+        }, 2000);
         return;
       }
       
-      // Перенаправляем в меню через 1.5 секунды
-      redirectTimeoutRef.current = setTimeout(redirectToMenu, 1500);
+      // Перенаправляем в меню через 0.8 секунды - сделаем быстрее
+      redirectTimeoutRef.current = setTimeout(redirectToMenu, 800);
     } else {
       // Если нет явных параметров, проверяем данные аутентификации
       const userData = clientStorage.getItem('twitch_user') || clientStorage.getItem('cookie_twitch_user');

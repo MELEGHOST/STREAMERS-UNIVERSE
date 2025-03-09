@@ -3,6 +3,8 @@ import { Inter } from 'next/font/google';
 import CookieChecker from '../components/CookieChecker';
 import ThemeProvider from '../components/ThemeProvider';
 import { AuthProvider } from './providers/AuthProvider';
+import { Suspense } from 'react';
+import PageTransition from '../components/PageTransition';
 
 const inter = Inter({ subsets: ['latin', 'cyrillic'] });
 
@@ -20,7 +22,9 @@ export default function RootLayout({ children }) {
       <body className={inter.className}>
         <AuthProvider>
           <ThemeProvider>
-            {children}
+            <PageTransition>
+              {children}
+            </PageTransition>
             <CookieChecker />
           </ThemeProvider>
         </AuthProvider>

@@ -11,25 +11,17 @@ export default function Auth() {
   const router = useRouter();
   const { login, isAuthenticated } = useAuth();
   const [errorMessage, setErrorMessage] = useState('');
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(false);
   const hasCheckedAuthRef = useRef(false);
-  const redirectTimeoutRef = useRef(null);
 
   useEffect(() => {
-    // Очищаем возможные флаги перенаправления
+    // Очищаем потенциальные флаги конфликтов
     clientStorage.removeItem('redirect_in_progress');
     
     // Простая проверка авторизации при загрузке страницы
     if (!hasCheckedAuthRef.current) {
       hasCheckedAuthRef.current = true;
       
-      // Устанавливаем таймаут для предотвращения бесконечной загрузки
-      redirectTimeoutRef.current = setTimeout(() => {
-        console.log('Таймаут проверки аутентификации на странице auth');
-        // Если нет ответа в течение 3 секунд, считаем что пользователь не авторизован
-        setIsLoading(false);
-      }, 3000);
-
       // Проверяем, есть ли токен и данные пользователя
       const accessToken = clientStorage.getItem('cookie_twitch_access_token') || Cookies.get('twitch_access_token');
       const userData = clientStorage.getItem('cookie_twitch_user') || clientStorage.getItem('twitch_user') || Cookies.get('twitch_user');
@@ -49,7 +41,7 @@ export default function Auth() {
           router.push('/menu');
         } catch (error) {
           console.error('Ошибка при обработке данных пользователя:', error);
-          setIsLoading(false);
+          setErrorMessage('Произошла ошибка при обработке данных пользователя. Пожалуйста, попробуйте войти снова.');
         }
       } else {
         // Проверяем, не пришли ли мы сюда после редиректа с меню
@@ -63,18 +55,8 @@ export default function Auth() {
           Cookies.remove('twitch_access_token');
           Cookies.remove('twitch_user');
         }
-        
-        // Пользователь не авторизован
-        console.log('Пользователь не авторизован, показываем форму авторизации');
-        setIsLoading(false);
       }
     }
-    
-    return () => {
-      if (redirectTimeoutRef.current) {
-        clearTimeout(redirectTimeoutRef.current);
-      }
-    };
   }, [login, router]);
 
   // Обработчик авторизации через Twitch
@@ -104,18 +86,6 @@ export default function Auth() {
       setIsLoading(false);
     }
   };
-
-  // Показываем индикатор загрузки при инициализации
-  if (isLoading) {
-    return (
-      <div className={styles.container}>
-        <div className={styles.loadingContainer}>
-          <div className={styles.loadingSpinner}></div>
-          <p>Загрузка...</p>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div className={styles.container}>
