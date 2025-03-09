@@ -58,12 +58,21 @@ export default function Menu() {
         setIsLoading(false);
         setError('Превышено время ожидания загрузки. Пожалуйста, обновите страницу или попробуйте войти снова.');
       }
-    }, 10000); // 10 секунд таймаут
+    }, 5000); // Уменьшаем таймаут до 5 секунд вместо 10
     
     // Логируем состояние для отладки
     console.log('Menu useEffect:', { isInitialized, isAuthenticated, userId });
     
-    // Ждем инициализации контекста авторизации
+    // Если пользователь не авторизован и инициализация завершена, 
+    // сразу перенаправляем на страницу авторизации
+    if (isInitialized && !isAuthenticated && !hasRedirectedRef.current) {
+      console.log('Пользователь не аутентифицирован, перенаправляем на страницу авторизации');
+      hasRedirectedRef.current = true;
+      router.push('/auth');
+      return;
+    }
+    
+    // Если контекст еще не инициализирован, ждем
     if (!isInitialized) {
       console.log('Контекст аутентификации еще не инициализирован');
       return;
@@ -78,11 +87,12 @@ export default function Menu() {
           
           // Генерируем реферальный код
           setReferralCode(generateReferralCode(userId));
+          // Завершаем загрузку
           setIsLoading(false);
-        } else {
-          console.log('Пользователь не аутентифицирован, перенаправляем на страницу авторизации');
-          // Если пользователь не авторизован, перенаправляем на страницу авторизации
+        } else if (isInitialized) {
+          // Дополнительная проверка на случай, если статус аутентификации изменился
           if (!hasRedirectedRef.current) {
+            console.log('Пользователь не аутентифицирован после инициализации, перенаправляем на страницу авторизации');
             hasRedirectedRef.current = true;
             router.push('/auth');
           }
@@ -94,7 +104,10 @@ export default function Menu() {
       }
     };
     
-    initializeUser();
+    // Инициализируем пользователя только если он аутентифицирован
+    if (isAuthenticated && userId) {
+      initializeUser();
+    }
     
     // Очищаем таймаут при размонтировании компонента
     return () => {

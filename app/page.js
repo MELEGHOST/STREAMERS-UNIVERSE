@@ -6,39 +6,42 @@ import { useAuth } from '../contexts/AuthContext';
 
 export default function Home() {
   const router = useRouter();
-  const { isAuthenticated, isInitialized } = useAuth();
+  const { isInitialized } = useAuth();
   const hasRedirectedRef = useRef(false);
+  const timeoutRef = useRef(null);
   
   useEffect(() => {
-    // Предотвращаем повторные перенаправления
+    // Если уже было выполнено перенаправление, выходим
     if (hasRedirectedRef.current) {
       return;
     }
     
-    // Устанавливаем таймаут для предотвращения бесконечной загрузки
-    const redirectTimeout = setTimeout(() => {
+    // Устанавливаем таймаут для гарантированного перенаправления
+    timeoutRef.current = setTimeout(() => {
       if (!hasRedirectedRef.current) {
         console.log('Таймаут перенаправления, принудительно перенаправляем на /menu');
         hasRedirectedRef.current = true;
         router.push('/menu');
       }
-    }, 3000); // 3 секунды таймаут
+    }, 2000); // Сокращаем таймаут до 2 секунд
     
-    // Если контекст аутентификации инициализирован, перенаправляем на соответствующую страницу
-    if (isInitialized) {
-      clearTimeout(redirectTimeout);
-      if (!hasRedirectedRef.current) {
-        console.log('Контекст аутентификации инициализирован, перенаправляем на /menu');
-        hasRedirectedRef.current = true;
-        router.push('/menu');
-      }
+    // Если контекст аутентификации инициализирован, перенаправляем сразу
+    if (isInitialized && !hasRedirectedRef.current) {
+      clearTimeout(timeoutRef.current);
+      console.log('Контекст аутентификации инициализирован, перенаправляем на /menu');
+      hasRedirectedRef.current = true;
+      router.push('/menu');
     }
     
     // Очищаем таймаут при размонтировании компонента
-    return () => clearTimeout(redirectTimeout);
-  }, [isInitialized, isAuthenticated, router]);
+    return () => {
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+      }
+    };
+  }, [isInitialized, router]);
   
-  // Показываем индикатор загрузки
+  // Показываем простой индикатор загрузки
   return (
     <div style={{ 
       display: 'flex', 

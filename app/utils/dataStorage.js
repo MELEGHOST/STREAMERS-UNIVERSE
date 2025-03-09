@@ -19,21 +19,16 @@ const fetchWithTimeout = async (url, options, timeout = 5000) => {
       ...options,
       signal: controller.signal
     });
-    
-    // Очищаем таймаут, если запрос успешно выполнен
-    clearTimeout(timeoutId);
     return response;
   } catch (error) {
-    // Очищаем таймаут в случае ошибки
-    clearTimeout(timeoutId);
-    
-    // Если запрос был отменен из-за таймаута
+    // Проверяем, была ли ошибка вызвана таймаутом
     if (error.name === 'AbortError') {
-      throw new Error(`Request to ${url} timed out after ${timeout}ms`);
+      throw new Error(`Запрос к ${url} превысил таймаут ${timeout}мс`);
     }
-    
-    // Пробрасываем другие ошибки
     throw error;
+  } finally {
+    // Очищаем таймаут
+    clearTimeout(timeoutId);
   }
 };
 
@@ -56,31 +51,29 @@ export class DataStorage {
       }
       
       // Сохраняем в cookies для временного доступа
-      // Устанавливаем срок действия - 7 дней
       try {
         Cookies.set(`data_${dataType}`, dataValueString, {
           expires: 7,
-          sameSite: 'strict',
-          secure: process.env.NODE_ENV === 'production'
+          sameSite: 'lax',
+          path: '/'
         });
       } catch (cookieError) {
         console.warn('Не удалось сохранить данные в cookies:', cookieError);
       }
       
-      // Отправляем данные на сервер
+      // Пробуем отправить данные на сервер, но не ждем ответа
       try {
-        const response = await fetchWithTimeout('/api/user-data', {
+        fetch('/api/user-data', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({ dataType, dataValue }),
           credentials: 'include', // Важно для отправки cookies
-        }, 5000); // 5 секунд таймаут
-        
-        if (!response.ok) {
-          console.warn('Не удалось сохранить данные на сервере:', await response.text());
-        }
+        }).catch(error => {
+          // Только логируем ошибку, но не блокируем основной поток
+          console.warn('Не удалось сохранить данные на сервере:', error);
+        });
       } catch (serverError) {
         console.warn('Ошибка при отправке данных на сервер:', serverError);
       }
@@ -95,110 +88,113 @@ export class DataStorage {
   // Получение данных
   static async getData(dataType) {
     try {
-      // Сначала пытаемся получить данные с сервера
-      try {
-        const response = await fetchWithTimeout(`/api/user-data?type=${dataType}`, {
-          credentials: 'include',
-        }, 3000); // 3 секунды таймаут
-        
-        // Если получили данные с сервера
-        if (response.ok) {
-          const data = await response.json();
-          if (data && data[dataType] !== undefined) {
-            return data[dataType];
-          }
-        }
-      } catch (serverError) {
-        console.warn('Не удалось получить данные с сервера:', serverError);
-        // Продолжаем выполнение и пробуем получить данные из cookies
-      }
+      // Сначала пытаемся получить данные из localStorage
+      let data = null;
       
-      // Если не удалось получить с сервера, проверяем cookies
-      const cookieData = Cookies.get(`data_${dataType}`);
-      if (cookieData) {
-        try {
-          return JSON.parse(cookieData);
-        } catch (parseError) {
-          console.warn('Ошибка при парсинге данных из cookie:', parseError);
-          return null;
-        }
-      }
-      
-      // Если данных нет в cookies, проверяем localStorage
+      // Проверяем localStorage
       if (typeof window !== 'undefined') {
-        const localData = localStorage.getItem(`data_${dataType}`);
-        if (localData) {
-          try {
-            return JSON.parse(localData);
-          } catch (parseError) {
-            console.warn('Ошибка при парсинге данных из localStorage:', parseError);
-            return null;
+        try {
+          const localData = localStorage.getItem(`data_${dataType}`);
+          if (localData) {
+            try {
+              data = JSON.parse(localData);
+              return data;
+            } catch (parseError) {
+              console.warn('Ошибка при парсинге данных из localStorage:', parseError);
+            }
           }
+        } catch (localError) {
+          console.warn('Ошибка при получении данных из localStorage:', localError);
         }
       }
       
-      return null;
-    } catch (error) {
-      console.error('Ошибка при получении данных:', error);
-      
-      // В случае ошибки пытаемся получить из cookies
+      // Проверяем cookies
       try {
         const cookieData = Cookies.get(`data_${dataType}`);
         if (cookieData) {
-          return JSON.parse(cookieData);
+          try {
+            data = JSON.parse(cookieData);
+            return data;
+          } catch (parseError) {
+            console.warn('Ошибка при парсинге данных из cookie:', parseError);
+          }
         }
       } catch (cookieError) {
         console.warn('Ошибка при получении данных из cookie:', cookieError);
       }
       
-      // Если не удалось получить из cookies, пробуем localStorage
+      // Если локальные данные не найдены, пытаемся получить с сервера
       try {
-        if (typeof window !== 'undefined') {
-          const localData = localStorage.getItem(`data_${dataType}`);
-          if (localData) {
-            return JSON.parse(localData);
+        const response = await fetchWithTimeout(`/api/user-data?type=${dataType}`, {
+          credentials: 'include',
+        }, 3000); // 3 секунды таймаут
+        
+        if (response.ok) {
+          const serverData = await response.json();
+          if (serverData && serverData[dataType] !== undefined) {
+            // Сохраняем данные с сервера в localStorage и cookies
+            await this.saveData(dataType, serverData[dataType]);
+            return serverData[dataType];
           }
         }
-      } catch (localError) {
-        console.warn('Ошибка при получении данных из localStorage:', localError);
+      } catch (serverError) {
+        // Только логируем ошибку, не прерываем выполнение
+        console.warn('Не удалось получить данные с сервера:', serverError);
       }
       
+      return null;
+    } catch (error) {
+      console.error('Ошибка при получении данных:', error);
       return null;
     }
   }
   
   // Проверка авторизации
   static isAuthenticated() {
-    return !!Cookies.get('auth_token');
+    try {
+      // Проверяем наличие токена в localStorage
+      if (typeof window !== 'undefined') {
+        return !!localStorage.getItem('twitch_user') || !!Cookies.get('twitch_user');
+      }
+      return false;
+    } catch (error) {
+      console.error('Ошибка при проверке авторизации:', error);
+      return false;
+    }
   }
   
   // Удаление всех данных
   static async clearAllData() {
     try {
-      // Удаляем с сервера
-      await fetch('/api/user-data/clear', {
+      // Удаляем из localStorage
+      if (typeof window !== 'undefined') {
+        const keys = Object.keys(localStorage);
+        for (const key of keys) {
+          if (key.startsWith('data_')) {
+            localStorage.removeItem(key);
+          }
+        }
+      }
+      
+      // Удаляем cookies
+      const cookies = Cookies.get();
+      for (const cookie in cookies) {
+        if (cookie.startsWith('data_')) {
+          Cookies.remove(cookie, { path: '/' });
+        }
+      }
+      
+      // Отправляем запрос на сервер (не ждем ответа)
+      fetch('/api/user-data/clear', {
         method: 'POST',
         credentials: 'include',
-      });
-      
-      // Удаляем все cookies с префиксом data_
-      Object.keys(Cookies.get()).forEach(cookie => {
-        if (cookie.startsWith('data_')) {
-          Cookies.remove(cookie);
-        }
+      }).catch(error => {
+        console.warn('Ошибка при очистке данных на сервере:', error);
       });
       
       return true;
     } catch (error) {
       console.error('Ошибка при очистке данных:', error);
-      
-      // Даже если сервер недоступен, очищаем локальные cookies
-      Object.keys(Cookies.get()).forEach(cookie => {
-        if (cookie.startsWith('data_')) {
-          Cookies.remove(cookie);
-        }
-      });
-      
       return false;
     }
   }
