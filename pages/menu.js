@@ -68,12 +68,6 @@ export default function Menu() {
     return `SU-${userId.substring(0, 6)}`;
   };
   
-  // Обработка выхода из системы
-  const handleLogout = () => {
-    logout();
-    router.push('/auth');
-  };
-  
   // Переход в профиль пользователя
   const goToProfile = () => {
     router.push('/profile');
@@ -165,10 +159,6 @@ export default function Menu() {
             </div>
           </div>
         </div>
-        
-        <button className={styles.logoutButton} onClick={handleLogout}>
-          Выйти из аккаунта
-        </button>
       </div>
     </div>
   );

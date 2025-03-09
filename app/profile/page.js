@@ -647,7 +647,7 @@ export default function Profile() {
             Вернуться в меню
           </button>
           <button className={styles.logoutButton} onClick={handleLogout}>
-            Выйти
+            Выйти из аккаунта
           </button>
         </div>
       </div>

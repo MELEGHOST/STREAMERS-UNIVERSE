@@ -36,7 +36,7 @@ const SocialButton = ({ type, url, username, subscribers }) => {
               xmlns="http://www.w3.org/2000/svg"
               version="1.1"
               viewBox="0 0 24 24"
-              style={{ transform: 'scale(1.5)' }}
+              style={{ transform: 'scale(1.3)' }}
             >
               <path
                 fill="#FF0000"

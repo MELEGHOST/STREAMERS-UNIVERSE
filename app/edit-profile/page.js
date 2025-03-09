@@ -455,7 +455,7 @@ export default function EditProfile() {
             className={styles.button}
             onClick={() => router.push('/profile')}
           >
-            Отмена
+            Вернуться в профиль
           </button>
           <button
             type="submit"

@@ -1,0 +1,212 @@
+.followersContainer {
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 20px;
+  font-family: 'Arial', sans-serif;
+  color: white;
+  background: linear-gradient(to bottom, #0a0a2a, #1a1a4a);
+  min-height: 100vh;
+}
+
+.followersContainer h1 {
+  color: #7B41C9;
+  text-align: center;
+  margin-bottom: 20px;
+}
+
+.description {
+  text-align: center;
+  margin-bottom: 30px;
+  color: #ccc;
+  font-size: 16px;
+}
+
+.followersList {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+  margin-bottom: 30px;
+}
+
+.followerCard {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background-color: rgba(30, 30, 50, 0.7);
+  border-radius: 10px;
+  padding: 15px;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.followerCard:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 6px 15px rgba(0, 0, 0, 0.3);
+}
+
+.followerInfo {
+  flex: 1;
+}
+
+.followerInfo h3 {
+  margin: 0 0 10px 0;
+  font-size: 18px;
+  color: #fff;
+}
+
+.followDate {
+  margin: 0 0 5px 0;
+  font-size: 14px;
+  color: #aaa;
+}
+
+.roleLabel {
+  margin: 0;
+  font-size: 14px;
+  color: #ccc;
+}
+
+.roleValue {
+  color: #7B41C9;
+  font-weight: bold;
+}
+
+.followerActions {
+  display: flex;
+  gap: 10px;
+}
+
+.roleSelect {
+  padding: 8px 12px;
+  border-radius: 5px;
+  border: 1px solid rgba(123, 65, 201, 0.3);
+  background-color: rgba(20, 20, 40, 0.7);
+  color: white;
+  font-size: 14px;
+  cursor: pointer;
+  transition: border-color 0.3s ease;
+}
+
+.roleSelect:focus {
+  outline: none;
+  border-color: #7B41C9;
+}
+
+.emptyState {
+  text-align: center;
+  padding: 40px 20px;
+  background-color: rgba(30, 30, 50, 0.7);
+  border-radius: 10px;
+  margin-bottom: 30px;
+}
+
+.emptyState p {
+  color: #ccc;
+  font-size: 16px;
+  margin: 0;
+}
+
+.button {
+  display: block;
+  margin: 0 auto;
+  background: linear-gradient(45deg, #9146FF, #7B41C9);
+  color: white;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 5px;
+  font-size: 16px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.button:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 5px 15px rgba(123, 65, 201, 0.4);
+}
+
+.loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100vh;
+  color: white;
+}
+
+.spinner {
+  width: 50px;
+  height: 50px;
+  border: 5px solid rgba(123, 65, 201, 0.3);
+  border-top: 5px solid #7B41C9;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin-bottom: 20px;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* Адаптивные стили */
+@media (max-width: 768px) {
+  .followersContainer {
+    padding: 15px;
+  }
+  
+  .followerCard {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  
+  .followerInfo {
+    margin-bottom: 15px;
+    width: 100%;
+  }
+  
+  .followerActions {
+    width: 100%;
+  }
+  
+  .roleSelect {
+    width: 100%;
+  }
+}
+
+.totalCount {
+  font-weight: bold;
+  color: #9146FF;
+}
+
+.errorContainer {
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 30px;
+  font-family: 'Arial', sans-serif;
+  color: white;
+  background: linear-gradient(to bottom, #0a0a2a, #1a1a4a);
+  min-height: 60vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  border-radius: 10px;
+}
+
+.errorContainer h1 {
+  color: #FF4500;
+  margin-bottom: 20px;
+}
+
+.errorMessage {
+  font-size: 16px;
+  line-height: 1.5;
+  margin-bottom: 30px;
+  color: #ddd;
+  max-width: 600px;
+}
+
+.errorContainer .button {
+  margin: 10px;
+} 
