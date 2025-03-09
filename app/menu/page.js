@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
@@ -16,6 +16,8 @@ export default function Menu() {
   const [streamCoins, setStreamCoins] = useState(100);
   const [referralCode, setReferralCode] = useState('');
   const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const initTimeoutRef = useRef(null);
   
   // Выносим функции за пределы useEffect для оптимизации
   const loadStreamCoins = useCallback((userId) => {
@@ -48,12 +50,28 @@ export default function Menu() {
   
   // Проверка авторизации и загрузка данных
   useEffect(() => {
+    // Устанавливаем таймаут для предотвращения бесконечной загрузки
+    initTimeoutRef.current = setTimeout(() => {
+      if (isLoading) {
+        console.warn('Таймаут загрузки меню, принудительно устанавливаем isLoading = false');
+        setIsLoading(false);
+        setError('Превышено время ожидания загрузки. Пожалуйста, обновите страницу или попробуйте войти снова.');
+      }
+    }, 10000); // 10 секунд таймаут
+    
+    // Логируем состояние для отладки
+    console.log('Menu useEffect:', { isInitialized, isAuthenticated, userId });
+    
     // Ждем инициализации контекста авторизации
-    if (!isInitialized) return;
+    if (!isInitialized) {
+      console.log('Контекст аутентификации еще не инициализирован');
+      return;
+    }
     
     const initializeUser = async () => {
       try {
         if (isAuthenticated && userId) {
+          console.log('Пользователь аутентифицирован, загружаем данные');
           // Загружаем стример-коины
           loadStreamCoins(userId);
           
@@ -61,16 +79,25 @@ export default function Menu() {
           setReferralCode(generateReferralCode(userId));
           setIsLoading(false);
         } else {
+          console.log('Пользователь не аутентифицирован, перенаправляем на страницу авторизации');
           // Если пользователь не авторизован, перенаправляем на страницу авторизации
           router.push('/auth');
         }
       } catch (error) {
         console.error('Ошибка при инициализации пользователя:', error);
+        setError('Произошла ошибка при загрузке данных. Пожалуйста, обновите страницу или попробуйте войти снова.');
         setIsLoading(false);
       }
     };
     
     initializeUser();
+    
+    // Очищаем таймаут при размонтировании компонента
+    return () => {
+      if (initTimeoutRef.current) {
+        clearTimeout(initTimeoutRef.current);
+      }
+    };
   }, [isAuthenticated, userId, isInitialized, loadStreamCoins, generateReferralCode, router]);
   
   // Переход в профиль пользователя
@@ -84,6 +111,30 @@ export default function Menu() {
       <div className={styles.loading}>
         <div className={styles.spinner}></div>
         <p>Загрузка...</p>
+      </div>
+    );
+  }
+  
+  // Если произошла ошибка, показываем сообщение об ошибке
+  if (error) {
+    return (
+      <div className={styles.error}>
+        <h2>Ошибка загрузки</h2>
+        <p>{error}</p>
+        <div className={styles.buttonContainer}>
+          <button 
+            className={styles.button}
+            onClick={() => window.location.reload()}
+          >
+            Обновить страницу
+          </button>
+          <button 
+            className={styles.button}
+            onClick={() => router.push('/auth')}
+          >
+            Вернуться на страницу авторизации
+          </button>
+        </div>
       </div>
     );
   }

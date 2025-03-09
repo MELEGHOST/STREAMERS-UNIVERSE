@@ -113,6 +113,13 @@ export function AuthProvider({ children }) {
                        localStorage.getItem('cookie_twitch_user') || 
                        localStorage.getItem('twitch_user');
       
+      // Логируем состояние аутентификации для отладки
+      console.log('Проверка аутентификации:', { 
+        hasToken: !!token, 
+        hasUserData: !!userData,
+        isInitialized
+      });
+      
       if (token && userData) {
         try {
           // Пытаемся распарсить данные пользователя
@@ -149,12 +156,18 @@ export function AuthProvider({ children }) {
           if (!localStorage.getItem('cookie_twitch_user') && userData) {
             localStorage.setItem('cookie_twitch_user', typeof userData === 'string' ? userData : JSON.stringify(userData));
           }
+          
+          console.log('Пользователь успешно аутентифицирован:', { 
+            id: user.id, 
+            login: user.login || user.display_name 
+          });
         } catch (e) {
           console.error('Ошибка при парсинге данных пользователя:', e);
           setIsAuthenticated(false);
           localStorage.removeItem('is_authenticated');
         }
       } else {
+        console.log('Пользователь не аутентифицирован: отсутствует токен или данные пользователя');
         setIsAuthenticated(false);
         localStorage.removeItem('is_authenticated');
       }
@@ -166,12 +179,26 @@ export function AuthProvider({ children }) {
       // Устанавливаем флаг инициализации
       setIsInitialized(true);
     }
-  }, [createAndSetJwtToken]);
+  }, [createAndSetJwtToken, isInitialized]);
   
   // Проверяем авторизацию при загрузке
   useEffect(() => {
+    // Устанавливаем таймаут для инициализации, чтобы избежать бесконечной загрузки
+    const initTimeout = setTimeout(() => {
+      if (!isInitialized) {
+        console.warn('Таймаут инициализации аутентификации, принудительно устанавливаем isInitialized = true');
+        setIsInitialized(true);
+      }
+    }, 5000); // 5 секунд таймаут
+    
     if (typeof window !== 'undefined') {
-      checkAuth();
+      try {
+        checkAuth();
+      } catch (error) {
+        console.error('Ошибка при проверке аутентификации:', error);
+        // В случае ошибки все равно устанавливаем флаг инициализации
+        setIsInitialized(true);
+      }
       
       // Создаем обработчик события storage
       const handleStorageChange = (event) => {
@@ -179,7 +206,11 @@ export function AuthProvider({ children }) {
             event.key === 'twitch_user' || 
             event.key === 'cookie_twitch_user' || 
             event.key === 'cookie_twitch_access_token') {
-          checkAuth();
+          try {
+            checkAuth();
+          } catch (error) {
+            console.error('Ошибка при обработке события storage:', error);
+          }
         }
       };
       
@@ -188,7 +219,12 @@ export function AuthProvider({ children }) {
       
       return () => {
         window.removeEventListener('storage', handleStorageChange);
+        clearTimeout(initTimeout);
       };
+    } else {
+      // Если window не определен (серверный рендеринг), устанавливаем флаг инициализации
+      setIsInitialized(true);
+      return () => clearTimeout(initTimeout);
     }
   }, [checkAuth]);
   

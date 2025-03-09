@@ -1,5 +1,20 @@
 import Cookies from 'js-cookie';
 
+// Вспомогательная функция для создания таймаута
+const createTimeout = (ms) => {
+  return new Promise((_, reject) => {
+    setTimeout(() => reject(new Error(`Timeout after ${ms}ms`)), ms);
+  });
+};
+
+// Вспомогательная функция для выполнения запроса с таймаутом
+const fetchWithTimeout = async (url, options, timeout = 5000) => {
+  return Promise.race([
+    fetch(url, options),
+    createTimeout(timeout)
+  ]);
+};
+
 export class DataStorage {
   // Сохранение данных
   static async saveData(dataType, dataValue) {
@@ -32,16 +47,14 @@ export class DataStorage {
       
       // Отправляем данные на сервер
       try {
-        const response = await fetch('/api/user-data', {
+        const response = await fetchWithTimeout('/api/user-data', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({ dataType, dataValue }),
           credentials: 'include', // Важно для отправки cookies
-          // Добавляем таймаут для запроса
-          signal: AbortSignal.timeout(5000) // 5 секунд таймаут
-        });
+        }, 5000); // 5 секунд таймаут
         
         if (!response.ok) {
           console.warn('Не удалось сохранить данные на сервере:', await response.text());
@@ -62,11 +75,9 @@ export class DataStorage {
     try {
       // Сначала пытаемся получить данные с сервера
       try {
-        const response = await fetch(`/api/user-data?type=${dataType}`, {
+        const response = await fetchWithTimeout(`/api/user-data?type=${dataType}`, {
           credentials: 'include',
-          // Добавляем таймаут для запроса
-          signal: AbortSignal.timeout(3000) // 3 секунды таймаут
-        });
+        }, 3000); // 3 секунды таймаут
         
         // Если получили данные с сервера
         if (response.ok) {
