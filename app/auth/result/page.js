@@ -1,11 +1,12 @@
 'use client';
 
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState, useRef, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '../../../contexts/AuthContext';
 import styles from '../auth.module.css';
 
-export default function AuthResult() {
+// Создаем отдельный компонент для использования useSearchParams
+function AuthResultContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { login } = useAuth();
@@ -129,5 +130,21 @@ export default function AuthResult() {
         )}
       </div>
     </div>
+  );
+}
+
+// Компонент-обертка с Suspense boundary
+export default function AuthResult() {
+  return (
+    <Suspense fallback={
+      <div className={styles.container}>
+        <div className={styles.loadingContainer}>
+          <div className={styles.loadingSpinner}></div>
+          <p>Загрузка...</p>
+        </div>
+      </div>
+    }>
+      <AuthResultContent />
+    </Suspense>
   );
 } 
