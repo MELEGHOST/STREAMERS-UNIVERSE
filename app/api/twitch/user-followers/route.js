@@ -30,7 +30,7 @@ export async function GET(request) {
     }
     
     // Получаем TWITCH_CLIENT_ID из переменных окружения
-    const TWITCH_CLIENT_ID = process.env.TWITCH_CLIENT_ID;
+    const TWITCH_CLIENT_ID = process.env.NEXT_PUBLIC_TWITCH_CLIENT_ID;
     
     if (!TWITCH_CLIENT_ID) {
       console.error('TWITCH_CLIENT_ID отсутствует в переменных окружения');
@@ -42,18 +42,14 @@ export async function GET(request) {
     }
     
     console.log('Выполняем запрос к Twitch API для получения фолловеров пользователя:', userId);
-    console.log('Используемые заголовки:', {
-      'Client-ID': TWITCH_CLIENT_ID.substring(0, 5) + '...',
-      'Authorization': 'Bearer ' + accessToken.substring(0, 5) + '...'
-    });
     
     // Создаем таймаут для запроса
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 8000); // 8-секундный таймаут
     
     try {
-      // Выполняем запрос к Twitch API для получения фолловеров пользователя
-      const response = await fetch(`https://api.twitch.tv/helix/users/follows?to_id=${userId}&first=100`, {
+      // Используем новый эндпоинт API Twitch 
+      const response = await fetch(`https://api.twitch.tv/helix/channels/followers?broadcaster_id=${userId}&first=100`, {
         headers: {
           'Client-ID': TWITCH_CLIENT_ID,
           'Authorization': `Bearer ${accessToken}`
@@ -91,12 +87,24 @@ export async function GET(request) {
         });
       }
       
-      // Форматируем данные о фолловерах
-      const followers = data.data.map(follower => ({
-        id: follower.from_id,
-        name: follower.from_name,
-        followedAt: follower.followed_at
-      }));
+      // Собираем ID пользователей для получения детальной информации
+      const userIds = data.data.map(follower => follower.user_id);
+      
+      // Получаем детальную информацию о пользователях
+      const usersInfo = await fetchUsersDetails(userIds, accessToken, TWITCH_CLIENT_ID);
+      
+      // Объединяем информацию о подписчиках с их деталями
+      const followers = data.data.map(follower => {
+        const userInfo = usersInfo.find(user => user.id === follower.user_id) || {};
+        return {
+          id: follower.user_id,
+          name: follower.user_name || follower.user_login,
+          login: follower.user_login,
+          followedAt: follower.followed_at,
+          profileImageUrl: userInfo.profile_image_url || '',
+          broadcasterType: userInfo.broadcaster_type || ''
+        };
+      });
       
       return NextResponse.json({
         total: data.total,
@@ -123,5 +131,37 @@ export async function GET(request) {
       total: 0,
       followers: []
     }, { status: 200 }); // Отправляем 200 вместо ошибки 500
+  }
+}
+
+// Функция для получения подробной информации о пользователях
+async function fetchUsersDetails(userIds, accessToken, clientId) {
+  if (!userIds || userIds.length === 0) {
+    return [];
+  }
+  
+  try {
+    // Ограничиваем количество запрашиваемых пользователей до 100
+    const limitedIds = userIds.slice(0, 100);
+    
+    // Формируем запрос с параметрами id для каждого пользователя
+    const queryParams = limitedIds.map(id => `id=${id}`).join('&');
+    const response = await fetch(`https://api.twitch.tv/helix/users?${queryParams}`, {
+      headers: {
+        'Client-ID': clientId,
+        'Authorization': `Bearer ${accessToken}`
+      }
+    });
+    
+    if (!response.ok) {
+      console.error('Ошибка при получении данных пользователей:', response.status);
+      return [];
+    }
+    
+    const data = await response.json();
+    return data.data || [];
+  } catch (error) {
+    console.error('Ошибка при получении данных пользователей:', error);
+    return [];
   }
 } 

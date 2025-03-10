@@ -66,43 +66,63 @@ export default function Followers() {
     try {
       setLoading(true);
       
-      // Сначала быстро проверяем кэш
-      const cachedFollowers = await DataStorage.getData('followers');
-      if (cachedFollowers && cachedFollowers.followers) {
-        // Если есть кэшированные данные, сразу используем их
-        setFollowers(cachedFollowers.followers);
-        setTotalFollowers(cachedFollowers.total || cachedFollowers.followers.length);
-        
-        // Быстро убираем состояние загрузки
+      // Проверяем наличие токена доступа
+      const accessToken = await getAccessToken();
+      if (!accessToken) {
+        setError('Отсутствует токен доступа. Пожалуйста, перезайдите в аккаунт.');
         setLoading(false);
-        
-        // Затем обновляем данные в фоне, если они устарели
-        if (!cachedFollowers.timestamp || (Date.now() - cachedFollowers.timestamp > 3600000)) {
-          try {
-            // Делаем запрос в фоне
-            const followersData = await getUserFollowers(userId);
-            if (followersData && followersData.followers) {
-              // Обновляем состояние, если получены новые данные и они отличаются от кэша
-              if (JSON.stringify(followersData.followers) !== JSON.stringify(cachedFollowers.followers)) {
-                setFollowers(followersData.followers);
-                setTotalFollowers(followersData.total || followersData.followers.length);
-              }
-            }
-          } catch (backgroundError) {
-            console.warn('Фоновое обновление данных о фолловерах не удалось:', backgroundError);
-            // Не показываем ошибку пользователю, так как у нас уже есть кэшированные данные
-          }
-        }
-        
-        return; // Выходим из функции, так как данные уже отображены
+        return;
       }
       
-      // Если кэша нет, делаем обычный запрос
-      const followersData = await getUserFollowers(userId);
+      // Делаем прямой запрос к API для получения актуальных данных
+      console.log('Запрашиваем актуальные данные о фолловерах для пользователя:', userId);
       
+      const response = await fetch(`/api/twitch/user-followers?userId=${userId}`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      });
+      
+      if (!response.ok) {
+        console.error('Ошибка при получении фолловеров:', response.status);
+        setError('Не удалось получить данные о фолловерах. Пожалуйста, попробуйте позже.');
+        setLoading(false);
+        return;
+      }
+      
+      const followersData = await response.json();
+      
+      // Проверяем наличие ошибки в ответе
+      if (followersData.error) {
+        console.error('Ошибка при получении фолловеров:', followersData.error);
+        setError(`Ошибка: ${followersData.error}`);
+        setLoading(false);
+        return;
+      }
+      
+      console.log('Получены данные о фолловерах:', {
+        total: followersData.total || 0,
+        count: followersData.followers?.length || 0
+      });
+      
+      // Обновляем данные в состоянии
       if (followersData && followersData.followers) {
-        setFollowers(followersData.followers);
-        setTotalFollowers(followersData.total || followersData.followers.length);
+        // Обработка аватаров - убедимся, что у каждого фолловера есть URL аватара
+        const followersWithAvatars = followersData.followers.map(follower => ({
+          ...follower,
+          profileImageUrl: follower.profileImageUrl || '/images/default-avatar.png'
+        }));
+        
+        setFollowers(followersWithAvatars);
+        setTotalFollowers(followersData.total || followersWithAvatars.length);
+        
+        // Сохраняем в кэш для будущего использования
+        await DataStorage.saveData('followers', {
+          ...followersData,
+          followers: followersWithAvatars,
+          timestamp: Date.now()
+        });
       } else {
         // Если данные не получены, показываем пустой список
         setFollowers([]);
@@ -178,51 +198,74 @@ export default function Followers() {
   }
 
   return (
-    <div className={styles.followersContainer}>
-      <h1>Фолловеры Twitch</h1>
-      <p className={styles.description}>
-        Здесь отображаются пользователи, которые подписаны на ваш канал на Twitch (фолловеры).
-        {totalFollowers > 0 && (
-          <span className={styles.totalCount}> Всего фолловеров: {totalFollowers}</span>
-        )}
-      </p>
+    <div className={styles.followersPage}>
+      <h1 className={styles.title}>Фолловеры Twitch</h1>
+      <p className={styles.subtitle}>Здесь отображаются пользователи, которые подписаны на ваш канал на Twitch (фолловеры).</p>
       
-      {followers.length > 0 ? (
-        <div className={styles.followersList}>
-          {followers.map(follower => (
-            <div key={follower.id} className={styles.followerCard}>
-              <div className={styles.followerInfo}>
-                <h3>{follower.name}</h3>
-                <p className={styles.followDate}>Подписался: {follower.followedAt}</p>
-                <p className={styles.roleLabel}>Роль: <span className={styles.roleValue}>{roles[follower.id] || 'Не назначена'}</span></p>
+      {loading ? (
+        <div className={styles.loading}>
+          <div className={styles.spinner}></div>
+          <p>Загрузка фолловеров...</p>
+        </div>
+      ) : error ? (
+        <div className={styles.error}>
+          <p>{error}</p>
+          <button onClick={handleRetry} className={styles.button}>Повторить</button>
+        </div>
+      ) : followers.length > 0 ? (
+        <div className={styles.followersContainer}>
+          <div className={styles.followersCount}>
+            <span>Всего фолловеров: <strong>{totalFollowers}</strong></span>
+          </div>
+          
+          <div className={styles.followersGrid}>
+            {followers.map(follower => (
+              <div key={follower.id} className={styles.followerCard}>
+                <div className={styles.followerAvatar}>
+                  <img 
+                    src={follower.profileImageUrl || '/images/default-avatar.png'} 
+                    alt={follower.name} 
+                    onError={(e) => {e.target.src = '/images/default-avatar.png'}}
+                  />
+                </div>
+                <div className={styles.followerInfo}>
+                  <div className={styles.followerName}>{follower.name}</div>
+                  {follower.login && follower.login !== follower.name && (
+                    <div className={styles.followerLogin}>@{follower.login}</div>
+                  )}
+                  <div className={styles.followerDate}>
+                    Подписан с {new Date(follower.followedAt).toLocaleDateString('ru-RU')}
+                  </div>
+                  {follower.broadcasterType && (
+                    <div className={styles.broadcasterType}>
+                      {follower.broadcasterType === 'partner' ? 'Партнер' : 
+                       follower.broadcasterType === 'affiliate' ? 'Аффилейт' : ''}
+                    </div>
+                  )}
+                  <div className={styles.roleSelector}>
+                    <select 
+                      value={roles[follower.id] || ''} 
+                      onChange={(e) => handleAssignRole(follower.id, e.target.value)}
+                    >
+                      <option value="">Роль не назначена</option>
+                      <option value="moderator">Модератор</option>
+                      <option value="vip">VIP</option>
+                      <option value="regular">Постоянный зритель</option>
+                    </select>
+                  </div>
+                </div>
               </div>
-              <div className={styles.followerActions}>
-                <select 
-                  className={styles.roleSelect}
-                  value={roles[follower.id] || ''}
-                  onChange={(e) => handleAssignRole(follower.id, e.target.value)}
-                >
-                  <option value="">Выберите роль</option>
-                  <option value="mod">Модератор</option>
-                  <option value="vip">VIP</option>
-                  <option value="regular">Постоянный зритель</option>
-                </select>
-              </div>
-            </div>
-          ))}
+            ))}
+          </div>
         </div>
       ) : (
         <div className={styles.emptyState}>
-          <p>У вас пока нет фолловеров на Twitch{totalFollowers > 0 ? ', или произошла ошибка при их загрузке.' : '.'}</p>
-          {totalFollowers > 0 && (
-            <button className={styles.button} onClick={handleRetry}>
-              Попробовать загрузить снова
-            </button>
-          )}
+          <p>У вас пока нет фолловеров на Twitch.</p>
+          <button onClick={handleRetry} className={styles.button}>Обновить данные</button>
         </div>
       )}
       
-      <button className={styles.button} onClick={() => router.push('/menu')}>
+      <button onClick={() => router.push('/menu')} className={styles.menuButton}>
         Вернуться в меню
       </button>
     </div>
