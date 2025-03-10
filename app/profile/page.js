@@ -42,6 +42,8 @@ export default function Profile() {
   const [userStats, setUserStats] = useState(null);
   const [followers, setFollowers] = useState([]);
   const [followings, setFollowings] = useState([]);
+  const [tierlists, setTierlists] = useState([]);
+  const [showTierlists, setShowTierlists] = useState(false);
   const [statsVisibility, setStatsVisibility] = useState({
     followers: true,
     followings: true,
@@ -415,6 +417,17 @@ export default function Profile() {
     setShowFollowings(false);
   };
 
+  // Функция для переключения отображения тирлистов
+  const toggleTierlists = () => {
+    setShowTierlists(!showTierlists);
+    setShowAchievements(false);
+    setShowReviews(false);
+    setShowStats(false);
+    setShowFollowers(false);
+    setShowFollowings(false);
+    setShowStreams(false);
+  };
+
   // Функция для отображения статуса пользователя
   const renderUserStatus = () => {
     // Определяем статус стримера на основе данных профиля
@@ -770,6 +783,43 @@ export default function Profile() {
     );
   };
   
+  // Функция для отображения тирлистов
+  const renderTierlists = () => {
+    if (tierlists.length === 0) {
+      return (
+        <div className={styles.emptyState}>
+          <p>У пользователя пока нет тирлистов.</p>
+          {isAuthenticated && userId === profileData.id && (
+            <p>Вы можете создать тирлист в разделе "Меню".</p>
+          )}
+        </div>
+      );
+    }
+    
+    return (
+      <div className={styles.tierlistsGrid}>
+        {tierlists.map(tierlist => (
+          <div key={tierlist.id} className={styles.tierlistCard}>
+            <h3 className={styles.tierlistTitle}>{tierlist.title}</h3>
+            <div className={styles.tierlistCategory}>{tierlist.category}</div>
+            <div className={styles.tierlistItems}>
+              {tierlist.itemCount} элементов
+            </div>
+            <div className={styles.tierlistDate}>
+              Создан: {formatDate(tierlist.createdAt)}
+            </div>
+            <a 
+              href={`/tierlists/${tierlist.id}`} 
+              className={styles.viewTierlistButton}
+            >
+              Посмотреть
+            </a>
+          </div>
+        ))}
+      </div>
+    );
+  };
+  
   // Функция для склонения слов
   const getDeclension = (number, words) => {
     const cases = [2, 0, 1, 1, 1, 2];
@@ -855,6 +905,33 @@ export default function Profile() {
     }
   };
 
+  // Функция для загрузки тирлистов пользователя
+  const fetchTierlists = async () => {
+    if (!profileData || !profileData.id) return;
+    
+    try {
+      const response = await fetch(`/api/tierlists?userId=${profileData.id}`);
+      
+      if (!response.ok) {
+        console.error('Ошибка при загрузке тирлистов:', await response.text());
+        return;
+      }
+      
+      const data = await response.json();
+      console.log('Загружены тирлисты:', data);
+      setTierlists(data);
+    } catch (error) {
+      console.error('Ошибка при загрузке тирлистов:', error);
+    }
+  };
+
+  // Загружаем тирлисты при получении данных профиля
+  useEffect(() => {
+    if (profileData && profileData.id) {
+      fetchTierlists();
+    }
+  }, [profileData]);
+
   return (
     <div className={styles.profileContainer}>
       <div className={styles.profileHeader}>
@@ -927,6 +1004,13 @@ export default function Profile() {
             title="Отзывы о вас"
           >
             ⭐ Отзывы
+          </button>
+          <button 
+            className={styles.tierlistButton} 
+            onClick={toggleTierlists}
+            title="Тирлисты пользователя"
+          >
+            📋 Тирлисты
           </button>
           <button 
             className={styles.statsButton} 
@@ -1087,6 +1171,17 @@ export default function Profile() {
             </div>
           </div>
           {renderRecentStreams()}
+        </div>
+      ) : showTierlists ? (
+        <div className={styles.section}>
+          <div className={styles.sectionHeader}>
+            <h2>Тирлисты</h2>
+            <button className={styles.backToProfileButton} onClick={toggleTierlists}>
+              <i className="fas fa-arrow-left"></i> Вернуться
+            </button>
+          </div>
+          
+          {renderTierlists()}
         </div>
       ) : (
         <>

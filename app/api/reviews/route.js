@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 
 // Временное хранилище данных (в реальном приложении будет база данных)
-let mediaReviews = [];
+let reviews = [];
 
 // Функция для получения ID пользователя из куки
 function getUserIdFromCookies() {
@@ -20,15 +20,18 @@ function getUserIdFromCookies() {
   }
 }
 
-// Функция для проверки, является ли пользователь стримером
-function isStreamer(userId) {
+// Функция для получения данных пользователя из куки
+function getUserDataFromCookies() {
   try {
-    // В реальном приложении здесь будет запрос к базе данных
-    // Пока просто проверяем, что ID пользователя существует
-    return !!userId;
+    const cookieStore = cookies();
+    const userCookie = cookieStore.get('twitch_user')?.value;
+    if (userCookie) {
+      return JSON.parse(userCookie);
+    }
+    return null;
   } catch (error) {
-    console.error('Error checking if user is streamer:', error);
-    return false;
+    console.error('Error getting user data from cookies:', error);
+    return null;
   }
 }
 
@@ -36,18 +39,28 @@ function isStreamer(userId) {
 export async function GET(request) {
   try {
     const url = new URL(request.url);
-    const mediaId = url.searchParams.get('mediaId');
-    const userId = url.searchParams.get('userId');
+    const reviewId = url.searchParams.get('id');
+    const targetUserId = url.searchParams.get('targetUserId'); // ID пользователя, для которого получаем отзывы
+    const authorId = url.searchParams.get('authorId');  // ID автора отзыва
     
-    // Фильтруем отзывы
-    let filteredReviews = [...mediaReviews];
-    
-    if (mediaId) {
-      filteredReviews = filteredReviews.filter(review => review.mediaId === mediaId);
+    // Если указан ID отзыва, возвращаем конкретный отзыв
+    if (reviewId) {
+      const review = reviews.find(item => item.id === reviewId);
+      if (!review) {
+        return NextResponse.json({ error: 'Review not found' }, { status: 404 });
+      }
+      return NextResponse.json(review);
     }
     
-    if (userId) {
-      filteredReviews = filteredReviews.filter(review => review.userId === userId);
+    // Фильтруем отзывы
+    let filteredReviews = [...reviews];
+    
+    if (targetUserId) {
+      filteredReviews = filteredReviews.filter(review => review.targetUserId === targetUserId);
+    }
+    
+    if (authorId) {
+      filteredReviews = filteredReviews.filter(review => review.authorId === authorId);
     }
     
     return NextResponse.json(filteredReviews);
@@ -57,58 +70,49 @@ export async function GET(request) {
   }
 }
 
-// POST - добавление нового отзыва
+// POST - создание нового отзыва
 export async function POST(request) {
   try {
-    const userId = getUserIdFromCookies();
-    if (!userId) {
+    const userData = getUserDataFromCookies();
+    if (!userData || !userData.id) {
       return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
     }
     
     const data = await request.json();
     
     // Валидация данных
-    if (!data.mediaId || !data.rating) {
-      return NextResponse.json({ error: 'Media ID and rating are required' }, { status: 400 });
+    if (!data.targetUserId || !data.text || !data.rating) {
+      return NextResponse.json({ error: 'Target user ID, text and rating are required' }, { status: 400 });
     }
     
-    // Проверяем, существует ли уже отзыв от этого пользователя на это медиа
-    const existingReviewIndex = mediaReviews.findIndex(
-      review => review.mediaId === data.mediaId && review.userId === userId
+    // Проверяем, не оставлял ли пользователь уже отзыв для этого пользователя
+    const existingReview = reviews.find(
+      review => review.authorId === userData.id && review.targetUserId === data.targetUserId
     );
     
-    // Определяем, является ли пользователь стримером
-    const isUserStreamer = isStreamer(userId);
-    
-    if (existingReviewIndex !== -1) {
-      // Обновляем существующий отзыв
-      mediaReviews[existingReviewIndex] = {
-        ...mediaReviews[existingReviewIndex],
-        rating: data.rating,
-        comment: data.comment || mediaReviews[existingReviewIndex].comment,
-        updatedAt: new Date().toISOString()
-      };
-      
-      return NextResponse.json(mediaReviews[existingReviewIndex]);
-    } else {
-      // Создаем новый отзыв
-      const newReview = {
-        id: Date.now().toString(),
-        mediaId: data.mediaId,
-        userId,
-        isStreamer: isUserStreamer,
-        rating: data.rating,
-        comment: data.comment || '',
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString()
-      };
-      
-      mediaReviews.push(newReview);
-      
-      return NextResponse.json(newReview, { status: 201 });
+    if (existingReview) {
+      return NextResponse.json({ error: 'You have already left a review for this user' }, { status: 400 });
     }
+    
+    // Создаем новый отзыв
+    const newReview = {
+      id: Date.now().toString(),
+      authorId: userData.id,
+      authorName: userData.display_name || userData.login,
+      authorImage: userData.profile_image_url || '/default-avatar.png',
+      targetUserId: data.targetUserId,
+      text: data.text,
+      rating: Math.min(Math.max(1, data.rating), 5), // Ограничиваем рейтинг от 1 до 5
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    };
+    
+    // Добавляем в хранилище
+    reviews.push(newReview);
+    
+    return NextResponse.json(newReview, { status: 201 });
   } catch (error) {
-    console.error('Error adding review:', error);
+    console.error('Error creating review:', error);
     return NextResponse.json({ error: 'Server error' }, { status: 500 });
   }
 }
@@ -129,25 +133,25 @@ export async function PUT(request) {
     }
     
     // Находим отзыв
-    const reviewIndex = mediaReviews.findIndex(review => review.id === data.id);
+    const reviewIndex = reviews.findIndex(review => review.id === data.id);
     if (reviewIndex === -1) {
       return NextResponse.json({ error: 'Review not found' }, { status: 404 });
     }
     
     // Проверяем, принадлежит ли отзыв пользователю
-    if (mediaReviews[reviewIndex].userId !== userId) {
+    if (reviews[reviewIndex].authorId !== userId) {
       return NextResponse.json({ error: 'You can only update your own reviews' }, { status: 403 });
     }
     
     // Обновляем отзыв
-    mediaReviews[reviewIndex] = {
-      ...mediaReviews[reviewIndex],
-      rating: data.rating || mediaReviews[reviewIndex].rating,
-      comment: data.comment !== undefined ? data.comment : mediaReviews[reviewIndex].comment,
+    reviews[reviewIndex] = {
+      ...reviews[reviewIndex],
+      text: data.text || reviews[reviewIndex].text,
+      rating: data.rating ? Math.min(Math.max(1, data.rating), 5) : reviews[reviewIndex].rating,
       updatedAt: new Date().toISOString()
     };
     
-    return NextResponse.json(mediaReviews[reviewIndex]);
+    return NextResponse.json(reviews[reviewIndex]);
   } catch (error) {
     console.error('Error updating review:', error);
     return NextResponse.json({ error: 'Server error' }, { status: 500 });
@@ -170,18 +174,18 @@ export async function DELETE(request) {
     }
     
     // Находим отзыв
-    const reviewIndex = mediaReviews.findIndex(review => review.id === reviewId);
+    const reviewIndex = reviews.findIndex(review => review.id === reviewId);
     if (reviewIndex === -1) {
       return NextResponse.json({ error: 'Review not found' }, { status: 404 });
     }
     
     // Проверяем, принадлежит ли отзыв пользователю
-    if (mediaReviews[reviewIndex].userId !== userId) {
+    if (reviews[reviewIndex].authorId !== userId) {
       return NextResponse.json({ error: 'You can only delete your own reviews' }, { status: 403 });
     }
     
     // Удаляем отзыв
-    mediaReviews.splice(reviewIndex, 1);
+    reviews.splice(reviewIndex, 1);
     
     return NextResponse.json({ success: true });
   } catch (error) {
