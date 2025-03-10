@@ -271,11 +271,54 @@ export default function Search() {
   };
 
   const goToUserProfile = (userId) => {
-    router.push(`/user/${userId}`);
+    router.push(`/profile/${userId}`);
   };
 
   const goToMenu = () => {
     router.push('/menu');
+  };
+
+  const handleFollow = async (userId) => {
+    if (!isAuthenticated) {
+      alert('Пожалуйста, войдите в систему, чтобы подписаться на пользователя');
+      return;
+    }
+
+    try {
+      setLoading(true);
+      // Отправляем запрос на API для подписки/отписки
+      const response = await fetch(`/api/twitch/follow`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ 
+          targetUserId: userId,
+          action: results.isFollowed ? 'unfollow' : 'follow'
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`Ошибка: ${response.status}`);
+      }
+
+      const data = await response.json();
+      
+      // Обновляем состояние
+      setResults(prev => ({
+        ...prev,
+        isFollowed: !prev.isFollowed
+      }));
+
+      alert(data.success ? 
+        (results.isFollowed ? 'Вы успешно отписались' : 'Вы успешно подписались') : 
+        'Произошла ошибка. Попробуйте позже.');
+    } catch (error) {
+      console.error('Ошибка при подписке/отписке:', error);
+      alert('Произошла ошибка при обновлении подписки. Пожалуйста, попробуйте позже.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   if (!isAuthenticated) return null;
@@ -611,7 +654,10 @@ export default function Search() {
                 Просмотреть профиль
               </button>
               {results.isRegisteredInSU && (
-                <button className={styles.followButton}>
+                <button 
+                  className={styles.followButton}
+                  onClick={() => handleFollow(results.twitchData.id)}
+                >
                   {results.isFollowed ? 'Отписаться' : 'Подписаться'}
                 </button>
               )}

@@ -140,9 +140,17 @@ export default function Menu() {
     
   }, [isAuthenticated, userId, router]);
   
-  // При переходе на страницу профиля не показываем индикатор загрузки
-  const goToProfile = () => {
-    router.push('/profile');
+  // Функция для перехода на страницу профиля
+  const goToProfile = (e) => {
+    e.preventDefault();
+    if (userId) {
+      console.log("Переход на профиль. userId:", userId);
+      router.push('/profile');
+    } else {
+      console.error("Не удалось определить userId для перехода на профиль");
+      alert("Не удалось определить ваш ID. Пожалуйста, попробуйте войти снова.");
+      router.push('/auth');
+    }
   };
   
   // Если есть ошибка, показываем сообщение об ошибке
