@@ -139,6 +139,12 @@
   z-index: 0;
 }
 
+@keyframes twinkle {
+  0% { opacity: 0.2; }
+  50% { opacity: 0.5; }
+  100% { opacity: 0.2; }
+}
+
 .oldAuthButton {
   background: #9147ff;
   color: white;

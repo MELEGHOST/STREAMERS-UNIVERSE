@@ -38,6 +38,8 @@ export default function Profile() {
   const [isBirthday, setIsBirthday] = useState(false);
   const [daysToBirthday, setDaysToBirthday] = useState(null);
   const [userStats, setUserStats] = useState(null);
+  const [followers, setFollowers] = useState([]);
+  const [followings, setFollowings] = useState([]);
   const [statsVisibility, setStatsVisibility] = useState({
     followers: true,
     followings: true,
@@ -134,10 +136,18 @@ export default function Profile() {
       );
       
       // Загружаем фолловеров
-      dataPromises.push(
-        getUserFollowers(userData.id)
-          .catch(followerError => console.error('Ошибка при загрузке фолловеров:', followerError))
-      );
+      if (userData.id) {
+        try {
+          const followersData = await getUserFollowers(userData.id);
+          setFollowers(followersData.data || []);
+        } catch (error) {
+          console.error('Ошибка при загрузке фолловеров:', error);
+        }
+        
+        // Здесь будет загрузка фолловингов, когда будет готово API
+        // Пока используем пустой массив
+        setFollowings([]);
+      }
       
       // Снимаем состояние загрузки после первичного отображения контента,
       // не дожидаясь завершения всех запросов
@@ -842,34 +852,56 @@ export default function Profile() {
           {renderAccountInfo()}
         </div>
       ) : showFollowers ? (
-        <div className={styles.followersContainer}>
-          <div className={styles.sectionHeader}>
-            <h2>Ваши подписчики ({userStats?.followers.total || 0})</h2>
-            <div className={styles.statsActions}>
-              <button 
-                className={styles.statsActionButton}
-                onClick={() => setShowStats(true)}
-              >
-                📊 К статистике
-              </button>
+        <div className={styles.sectionContainer}>
+          <h2 className={styles.sectionTitle}>Фолловеры</h2>
+          {followers.length === 0 ? (
+            <div className={styles.emptyState}>
+              <p>У вас пока нет фолловеров</p>
             </div>
-          </div>
-          {renderRecentFollowers()}
+          ) : (
+            <div className={styles.followersGrid}>
+              {followers.map(follower => (
+                <div key={follower.id} className={styles.followerCard}>
+                  <img 
+                    src={follower.profile_image_url || '/images/default-avatar.png'} 
+                    alt={follower.display_name} 
+                    className={styles.followerAvatar}
+                  />
+                  <div className={styles.followerName}>{follower.display_name}</div>
+                  <button className={styles.viewProfileButton}>Профиль</button>
+                </div>
+              ))}
+            </div>
+          )}
+          <button className={styles.sectionToggleButton} onClick={() => setShowFollowers(false)}>
+            Скрыть фолловеров
+          </button>
         </div>
       ) : showFollowings ? (
-        <div className={styles.followingsContainer}>
-          <div className={styles.sectionHeader}>
-            <h2>Ваши подписки ({userStats?.followings.total || 0})</h2>
-            <div className={styles.statsActions}>
-              <button 
-                className={styles.statsActionButton}
-                onClick={() => setShowStats(true)}
-              >
-                📊 К статистике
-              </button>
+        <div className={styles.sectionContainer}>
+          <h2 className={styles.sectionTitle}>Подписки</h2>
+          {followings.length === 0 ? (
+            <div className={styles.emptyState}>
+              <p>Вы пока ни на кого не подписаны</p>
             </div>
-          </div>
-          {renderRecentFollowings()}
+          ) : (
+            <div className={styles.followersGrid}>
+              {followings.map(following => (
+                <div key={following.id} className={styles.followerCard}>
+                  <img 
+                    src={following.profile_image_url || '/images/default-avatar.png'} 
+                    alt={following.display_name} 
+                    className={styles.followerAvatar}
+                  />
+                  <div className={styles.followerName}>{following.display_name}</div>
+                  <button className={styles.viewProfileButton}>Профиль</button>
+                </div>
+              ))}
+            </div>
+          )}
+          <button className={styles.sectionToggleButton} onClick={() => setShowFollowings(false)}>
+            Скрыть подписки
+          </button>
         </div>
       ) : showStreams ? (
         <div className={styles.streamsContainer}>

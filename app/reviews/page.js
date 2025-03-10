@@ -4,12 +4,18 @@ import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import styles from './reviews.module.css';
 import ReviewCategories from '../components/ReviewCategories';
+import Link from 'next/link';
 import { DataStorage } from '../utils/dataStorage';
+
+// Импортируем категории из компонента ReviewCategories
+import { categories } from '../components/ReviewCategories';
 
 export default function Reviews() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
+  const [selectedCategory, setSelectedCategory] = useState(null);
+  const [selectedSubcategory, setSelectedSubcategory] = useState(null);
   const router = useRouter();
 
   useEffect(() => {
@@ -40,8 +46,17 @@ export default function Reviews() {
     router.push('/menu');
   };
 
-  const handleWriteReview = () => {
+  const openWriteReviewModal = (categoryData = null) => {
     setShowModal(true);
+    
+    // Если переданы данные о категории, предварительно заполняем форму
+    if (categoryData && categoryData.category) {
+      setSelectedCategory(categoryData.category);
+      
+      if (categoryData.subcategory) {
+        setSelectedSubcategory(categoryData.subcategory);
+      }
+    }
   };
 
   const closeModal = () => {
@@ -73,12 +88,12 @@ export default function Reviews() {
         Выберите категорию, чтобы просмотреть отзывы или добавить свой.
       </p>
       
-      <button onClick={handleWriteReview} className={styles.writeReviewButton}>
+      <button onClick={openWriteReviewModal} className={styles.writeReviewButton}>
         <span className={styles.buttonIcon}>✏️</span>
         Написать отзыв
       </button>
       
-      <ReviewCategories onWriteReview={handleWriteReview} />
+      <ReviewCategories onWriteReview={openWriteReviewModal} />
       
       <div className={styles.infoSection}>
         <h2 className={styles.infoTitle}>Как это работает?</h2>
@@ -112,22 +127,41 @@ export default function Reviews() {
             <div className={styles.modalContent}>
               <div className={styles.formGroup}>
                 <label>Категория</label>
-                <select className={styles.selectField}>
+                <select 
+                  className={styles.selectField}
+                  value={selectedCategory ? selectedCategory.id : ""}
+                  onChange={(e) => {
+                    const cat = categories.find(c => c.id === e.target.value);
+                    setSelectedCategory(cat);
+                    setSelectedSubcategory(null);
+                  }}
+                >
                   <option value="">Выберите категорию</option>
-                  <option value="hardware">Техника</option>
-                  <option value="peripherals">Периферия</option>
-                  <option value="furniture">Мебель</option>
-                  <option value="lighting">Освещение</option>
-                  <option value="audio">Аудио</option>
-                  <option value="software">ПО</option>
-                  <option value="games">Игры</option>
-                  <option value="merch">Мерч</option>
-                  <option value="services">Сервисы</option>
-                  <option value="accessories">Аксессуары</option>
-                  <option value="cameras">Камеры</option>
-                  <option value="other">Прочее</option>
+                  {categories.map(cat => (
+                    <option key={cat.id} value={cat.id}>{cat.name}</option>
+                  ))}
                 </select>
               </div>
+              
+              {selectedCategory && (
+                <div className={styles.formGroup}>
+                  <label>Подкатегория</label>
+                  <select 
+                    className={styles.selectField}
+                    value={selectedSubcategory ? selectedSubcategory.id : ""}
+                    onChange={(e) => {
+                      const subcat = selectedCategory.subcategories.find(sc => sc.id === e.target.value);
+                      setSelectedSubcategory(subcat);
+                    }}
+                  >
+                    <option value="">Выберите подкатегорию</option>
+                    {selectedCategory.subcategories.map(subcat => (
+                      <option key={subcat.id} value={subcat.id}>{subcat.name}</option>
+                    ))}
+                  </select>
+                </div>
+              )}
+              
               <div className={styles.formGroup}>
                 <label>Название товара или услуги</label>
                 <input type="text" className={styles.inputField} placeholder="Например: Logitech G Pro X" />
