@@ -15,7 +15,7 @@ import CyberAvatar from '../components/CyberAvatar';
 
 export default function Profile() {
   const [profileData, setProfileData] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const router = useRouter();
   const { isAuthenticated, userId, userLogin, userAvatar, isInitialized } = useAuth();
@@ -65,9 +65,45 @@ export default function Profile() {
         return;
       }
       
-      // Получаем данные пользователя
+      // Сначала пытаемся загрузить данные из локального хранилища
       try {
-        const userData = await getUserData();
+        const localUser = localStorage.getItem('twitch_user');
+        if (localUser) {
+          const userData = JSON.parse(localUser);
+          if (userData && userData.id) {
+            setProfileData(userData);
+            // Продолжаем загрузку свежих данных в фоне
+            console.log('Загружены данные из localStorage, продолжаем загрузку свежих данных');
+          }
+        }
+      } catch (localError) {
+        console.warn('Не удалось получить данные из localStorage:', localError);
+      }
+      
+      // Получаем данные пользователя из API
+      try {
+        // Установим таймаут для запроса, чтобы избежать бесконечной загрузки
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 10000); // 10-секундный таймаут
+        
+        const response = await fetch('/api/twitch/profile', {
+          credentials: 'include',
+          headers: {
+            'Authorization': `Bearer ${accessToken}`,
+            'Cache-Control': 'no-cache',
+            'Pragma': 'no-cache'
+          },
+          signal: controller.signal
+        });
+        
+        clearTimeout(timeoutId);
+        
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.message || 'Ошибка при получении данных профиля');
+        }
+        
+        const userData = await response.json();
         
         if (!userData || !userData.id) {
           setError('Не удалось получить данные профиля');
@@ -77,83 +113,40 @@ export default function Profile() {
         
         setProfileData(userData);
         
-        // Загружаем статистику пользователя
-        Promise.all([
-          getUserStats(userData.id)
-            .then(stats => {
-              if (stats) {
-                setUserStats(stats);
-                
-                // Сохраняем статистику в localStorage для быстрого доступа
-                if (typeof window !== 'undefined') {
-                  localStorage.setItem(`user_stats_${userData.id}`, JSON.stringify(stats));
+        // Загружаем дополнительные данные в фоне
+        setTimeout(() => {
+          Promise.all([
+            getUserStats(userData.id)
+              .then(stats => {
+                if (stats) {
+                  setUserStats(stats);
+                  
+                  // Сохраняем статистику в localStorage для быстрого доступа
+                  if (typeof window !== 'undefined') {
+                    localStorage.setItem(`user_stats_${userData.id}`, JSON.stringify(stats));
+                  }
                 }
-              }
-            })
-            .catch(statsError => console.error('Ошибка при загрузке статистики пользователя:', statsError))
-        ]);
+              })
+              .catch(statsError => console.error('Ошибка при загрузке статистики пользователя:', statsError)),
+            
+            // Запускаем загрузку фолловеров в фоне
+            fetchFollowings()
+          ]).catch(err => console.error('Ошибка при загрузке дополнительных данных:', err));
+        }, 300);
         
-        // Загружаем фолловеров с принудительным обновлением
-        if (userData.id) {
-          try {
-            // Используем новый API endpoint для принудительного обновления
-            const response = await fetch(`/api/twitch/refresh-followers?userId=${userData.id}`, {
-              method: 'GET',
-              headers: {
-                'Cache-Control': 'no-cache',
-                'Pragma': 'no-cache'
-              }
-            });
-            
-            if (!response.ok) {
-              throw new Error(`Ошибка при обновлении фолловеров: ${response.status}`);
-            }
-            
-            const followersData = await response.json();
-            console.log('Загружены данные фолловеров через API:', followersData);
-            
-            if (followersData.success && followersData.followers) {
-              setFollowers(followersData.followers);
-            } else {
-              console.warn('Ошибка API при загрузке фолловеров:', followersData.error);
-              
-              // Пробуем использовать старый метод
-              const oldFollowersData = await getUserFollowers(userData.id);
-              
-              // Проверяем формат данных и адаптируем для отображения
-              if (oldFollowersData) {
-                // Проверяем, есть ли свойство followers в ответе
-                if (oldFollowersData.followers && Array.isArray(oldFollowersData.followers)) {
-                  setFollowers(oldFollowersData.followers);
-                } 
-                // Проверяем, является ли сам ответ массивом
-                else if (Array.isArray(oldFollowersData)) {
-                  setFollowers(oldFollowersData);
-                } 
-                // Если нет ни того, ни другого, устанавливаем пустой массив
-                else {
-                  console.warn('Некорректный формат данных фолловеров:', oldFollowersData);
-                  setFollowers([]);
-                }
-              } else {
-                console.warn('Пустые данные фолловеров:', oldFollowersData);
-                setFollowers([]);
-              }
-            }
-          } catch (error) {
-            console.error('Ошибка при загрузке фолловеров:', error);
-            setFollowers([]);
-          }
-          
-          // Здесь будет загрузка фолловингов, когда будет готово API
+      } catch (apiError) {
+        console.error('Ошибка при получении данных пользователя из API:', apiError);
+        
+        // Если уже установлены данные из localStorage, просто показываем их
+        if (!profileData) {
+          setError('Ошибка при загрузке данных профиля');
         }
-      } catch (error) {
-        console.error('Ошибка при получении данных пользователя:', error);
-        setError('Ошибка при загрузке данных профиля');
       }
     } catch (error) {
       console.error('Ошибка при загрузке данных:', error);
-      setError('Не удалось загрузить данные');
+      if (!profileData) {
+        setError('Не удалось загрузить данные');
+      }
     } finally {
       setLoading(false);
     }
@@ -175,55 +168,38 @@ export default function Profile() {
   useEffect(() => {
     console.log('Инициализация профиля, isInitialized:', isInitialized, 'isAuthenticated:', isAuthenticated);
     
-    // Проверяем, не выполняется ли загрузка уже
-    if (loading) return;
-    
-    // Если пользователь не аутентифицирован, перенаправляем на страницу авторизации
+    // Если пользователь не аутентифицирован и инициализация завершена, перенаправляем на страницу авторизации
     if (isInitialized && !isAuthenticated) {
       console.log('Пользователь не аутентифицирован, перенаправляем на /auth');
       router.push('/auth');
       return;
     }
     
-    // Если контекст инициализирован и пользователь аутентифицирован, загружаем данные
-    if (isInitialized && isAuthenticated && userId) {
-      console.log('Инициализация контекста завершена, загружаем данные пользователя');
-      loadUserData();
-      
-      // Загружаем данные о фолловингах
-      fetchFollowings();
-    } else if (isInitialized && loadAttempts < 3) {
-      // Пробуем загрузить данные пользователя напрямую
-      console.log('Попытка загрузки данных напрямую, попытка:', loadAttempts + 1);
-      const accessToken = Cookies.get('twitch_access_token');
-      
-      if (accessToken) {
-        // Попытаться получить данные пользователя из localStorage или cookies
-        try {
-          let userData = null;
-          const userDataStr = localStorage.getItem('twitch_user') || Cookies.get('twitch_user');
-          
-          if (userDataStr) {
-            userData = JSON.parse(userDataStr);
-            console.log('Получены данные пользователя из хранилища:', userData);
-            if (userData && userData.id) {
-              setLoadAttempts(prev => prev + 1);
-              loadUserData();
-            }
-          }
-        } catch (error) {
-          console.error('Ошибка при попытке получить данные пользователя из хранилища:', error);
-        }
-      }
+    // Проверяем, есть ли данные профиля или загрузка уже выполняется
+    if (profileData || loading) return;
+    
+    // Получаем токен доступа
+    const accessToken = Cookies.get('twitch_access_token');
+    
+    // Если токен отсутствует, перенаправляем на страницу авторизации
+    if (!accessToken) {
+      console.warn('Отсутствует токен доступа, перенаправление на /auth');
+      router.push('/auth');
+      return;
     }
-  }, [isInitialized, isAuthenticated, userId, router, loadAttempts, loading]);
+    
+    // Загружаем данные профиля
+    loadUserData();
+    
+  }, [isInitialized, isAuthenticated, userId, router, profileData, loading]);
 
-  // Если данные загружаются, показываем индикатор загрузки
-  if (loading) {
+  // Если данные загружаются, не показываем экран загрузки, а рендерим контейнер с плавной анимацией
+  if (loading && !profileData) {
     return (
-      <div className={styles.loading}>
-        <div className={styles.spinner}></div>
-        <p>Загрузка профиля...</p>
+      <div className={styles.profileContainer}>
+        <div className={styles.profileHeader}>
+          <h1>Загрузка профиля...</h1>
+        </div>
       </div>
     );
   }
@@ -231,12 +207,14 @@ export default function Profile() {
   // Если произошла ошибка, показываем сообщение об ошибке
   if (error) {
     return (
-      <div className={styles.error}>
-        <h2>Произошла ошибка</h2>
-        <p>{error}</p>
-        <button onClick={loadUserData} className={styles.button}>
-          Попробовать снова
-        </button>
+      <div className={styles.profileContainer}>
+        <div className={styles.error}>
+          <h2>Произошла ошибка</h2>
+          <p>{error}</p>
+          <button onClick={loadUserData} className={styles.button}>
+            Попробовать снова
+          </button>
+        </div>
       </div>
     );
   }
@@ -244,12 +222,10 @@ export default function Profile() {
   // Если данные профиля отсутствуют, показываем сообщение
   if (!profileData) {
     return (
-      <div className={styles.error}>
-        <h2>Профиль не найден</h2>
-        <p>Не удалось загрузить данные профиля. Пожалуйста, авторизуйтесь снова.</p>
-        <button onClick={() => router.push('/auth')} className={styles.button}>
-          Вернуться на страницу авторизации
-        </button>
+      <div className={styles.profileContainer}>
+        <div className={styles.profileHeader}>
+          <h2>Загрузка профиля...</h2>
+        </div>
       </div>
     );
   }

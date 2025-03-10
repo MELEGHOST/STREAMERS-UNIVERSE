@@ -204,15 +204,49 @@ export function AuthProvider({ children }) {
       if (!isInitialized) {
         console.warn('Таймаут инициализации аутентификации, принудительно устанавливаем isInitialized = true');
         setIsInitialized(true);
+        
+        // Проверяем, есть ли какие-либо признаки аутентификации
+        const hasToken = !!Cookies.get('twitch_access_token') || 
+                       !!localStorage.getItem('cookie_twitch_access_token') ||
+                       !!Cookies.get('auth_token');
+                       
+        // Если есть токен, но isAuthenticated не установлен, выполняем одну попытку установки
+        if (hasToken && !isAuthenticated) {
+          try {
+            // Получаем данные пользователя из хранилища
+            const userData = localStorage.getItem('twitch_user') || Cookies.get('twitch_user');
+            if (userData) {
+              try {
+                const parsedUser = JSON.parse(userData);
+                if (parsedUser && parsedUser.id) {
+                  setIsAuthenticated(true);
+                  setUserId(parsedUser.id);
+                  setUserLogin(parsedUser.login || parsedUser.display_name);
+                  setUserAvatar(parsedUser.profile_image_url);
+                  localStorage.setItem('is_authenticated', 'true');
+                }
+              } catch (e) {
+                console.error('Ошибка при парсинге данных пользователя при таймауте:', e);
+              }
+            }
+          } catch (e) {
+            console.error('Ошибка при принудительной установке аутентификации:', e);
+          }
+        }
       }
-    }, 2000); // 2 секунды таймаут вместо 5
+    }, 4000); // Увеличиваем таймаут до 4 секунд
     
     const checkAuthOnce = () => {
       if (!isCheckingAuth) {
         isCheckingAuth = true;
-        checkAuth();
-        setIsInitialized(true);
-        isCheckingAuth = false;
+        try {
+          checkAuth();
+        } catch (e) {
+          console.error('Ошибка при проверке аутентификации:', e);
+        } finally {
+          setIsInitialized(true);
+          isCheckingAuth = false;
+        }
       }
     };
     

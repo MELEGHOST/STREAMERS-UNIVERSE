@@ -44,7 +44,7 @@ class StreamCoinsManager {
   
   generateReferralCode() {
     // Generate a unique referral code based on userId and timestamp
-    const base = this.userId.substring(0, 5);
+    const base = this.userId ? this.userId.substring(0, Math.min(5, this.userId.length)) : 'user';
     const randomPart = Math.random().toString(36).substring(2, 6);
     return `${base}-${randomPart}`.toUpperCase();
   }
@@ -59,9 +59,11 @@ class StreamCoinsManager {
       
       // First try to get from localStorage for quick loading
       try {
-        const cachedData = localStorage.getItem(`streamcoins_${this.userId}`);
-        if (cachedData) {
-          this.data = JSON.parse(cachedData);
+        if (typeof localStorage !== 'undefined') {
+          const cachedData = localStorage.getItem(`streamcoins_${this.userId}`);
+          if (cachedData) {
+            this.data = JSON.parse(cachedData);
+          }
         }
       } catch (error) {
         console.warn('Failed to load from localStorage:', error);
@@ -75,7 +77,9 @@ class StreamCoinsManager {
           this.data = serverData;
           // Update cache
           try {
-            localStorage.setItem(`streamcoins_${this.userId}`, JSON.stringify(this.data));
+            if (typeof localStorage !== 'undefined') {
+              localStorage.setItem(`streamcoins_${this.userId}`, JSON.stringify(this.data));
+            }
           } catch (cacheError) {
             console.warn('Failed to update cache:', cacheError);
           }
@@ -113,7 +117,9 @@ class StreamCoinsManager {
       
       let token = '';
       try {
-        token = localStorage.getItem('token') || '';
+        if (typeof localStorage !== 'undefined') {
+          token = localStorage.getItem('token') || '';
+        }
       } catch (error) {
         console.warn('Could not get auth token:', error);
       }
@@ -131,7 +137,9 @@ class StreamCoinsManager {
       if (response.ok) {
         // Update cache with the latest data
         try {
-          localStorage.setItem(`streamcoins_${this.userId}`, JSON.stringify(this.data));
+          if (typeof localStorage !== 'undefined') {
+            localStorage.setItem(`streamcoins_${this.userId}`, JSON.stringify(this.data));
+          }
         } catch (cacheError) {
           console.warn('Failed to update cache:', cacheError);
         }

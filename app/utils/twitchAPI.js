@@ -124,16 +124,56 @@ async function refreshFollowersData(userId) {
  */
 export async function getUserData() {
   try {
+    // Устанавливаем таймаут для запроса, чтобы избежать бесконечной загрузки
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 5000); // 5-секундный таймаут
+    
+    // Сначала пытаемся получить данные из API напрямую
+    try {
+      const accessToken = Cookies.get('twitch_access_token') || localStorage.getItem('cookie_twitch_access_token');
+      
+      if (accessToken) {
+        const response = await fetch('/api/twitch/profile', {
+          credentials: 'include',
+          headers: {
+            'Authorization': `Bearer ${accessToken}`,
+            'Cache-Control': 'no-cache'
+          },
+          signal: controller.signal
+        });
+        
+        clearTimeout(timeoutId);
+        
+        if (response.ok) {
+          const userData = await response.json();
+          
+          // Сохраняем данные в localStorage для быстрого доступа в будущем
+          if (userData && userData.id) {
+            try {
+              localStorage.setItem('twitch_user', JSON.stringify(userData));
+              await DataStorage.saveData('user', userData);
+            } catch (storageError) {
+              console.warn('Не удалось сохранить данные пользователя в хранилище:', storageError);
+            }
+          }
+          
+          return userData;
+        }
+      }
+    } catch (apiError) {
+      console.warn('Ошибка при получении данных из API:', apiError);
+      // Продолжаем работу, пытаясь получить данные из хранилища
+    }
+    
     // Пытаемся получить данные пользователя из нашего хранилища
     const userData = await DataStorage.getData('user');
-    if (userData) {
+    if (userData && userData.id) {
       return userData;
     }
     
     // Если нет данных в нашем хранилище, пытаемся получить из старых источников
-    // и сохранить в новое хранилище
     const legacyUserData = getUserFromLocalStorage();
-    if (legacyUserData) {
+    if (legacyUserData && legacyUserData.id) {
       // Сохраняем данные в новое хранилище
       await DataStorage.saveData('user', legacyUserData);
       return legacyUserData;
@@ -142,7 +182,13 @@ export async function getUserData() {
     return null;
   } catch (error) {
     console.error('Ошибка при получении данных пользователя:', error);
-    return null;
+    
+    // В случае общей ошибки, пытаемся вернуть хоть какие-то данные
+    try {
+      return getUserFromLocalStorage() || null;
+    } catch (e) {
+      return null;
+    }
   }
 }
 

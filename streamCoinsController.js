@@ -151,12 +151,25 @@ export async function processReferral(req, res) {
       return res.status(403).json({ error: 'Нет прав для обработки реферала' });
     }
 
+    // Находим ID реферера по коду
+    // Нам нужно искать всех пользователей, чтобы найти того, у кого referralCode совпадает с переданным
+    // Это предварительная реализация, в реальности потребуется более эффективный механизм
+    let referrerId = null;
+    
+    // Здесь можно реализовать поиск по базе данных, но для упрощения
+    // предположим, что у нас есть метод для получения ID пользователя по реферальному коду
+    referrerId = await findUserIdByReferralCode(referralCode);
+    
+    if (!referrerId) {
+      return res.status(404).json({ error: 'Неверный реферальный код' });
+    }
+
     // Загружаем данные реферера и нового пользователя
-    const referrerData = storage.loadStreamCoins(referralCode);
+    const referrerData = storage.loadStreamCoins(referrerId);
     const newUserData = storage.loadStreamCoins(newUserId);
 
     if (!referrerData) {
-      return res.status(404).json({ error: 'Неверный реферальный код' });
+      return res.status(404).json({ error: 'Реферер не найден' });
     }
 
     if (!newUserData) {
@@ -175,7 +188,7 @@ export async function processReferral(req, res) {
     // Создаём транзакцию для реферера
     const transaction = {
       id: `ref_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`,
-      userId: referralCode,
+      userId: referrerId,
       type: 'earn',
       amount: 50,
       reason: 'referral',
@@ -184,7 +197,7 @@ export async function processReferral(req, res) {
     };
 
     // Устанавливаем реферера для нового пользователя
-    newUserData.referredBy = referralCode;
+    newUserData.referredBy = referrerId;
 
     // Обновляем транзакции реферера
     referrerData.transactions = [transaction, ...referrerData.transactions]
@@ -192,7 +205,7 @@ export async function processReferral(req, res) {
       .slice(0, 100);
 
     // Сохраняем обновлённые данные
-    const saveReferrerResult = storage.saveStreamCoins(referralCode, referrerData);
+    const saveReferrerResult = storage.saveStreamCoins(referrerId, referrerData);
     const saveNewUserResult = storage.saveStreamCoins(newUserId, newUserData);
     
     if (saveReferrerResult && saveNewUserResult) {
@@ -204,6 +217,16 @@ export async function processReferral(req, res) {
     console.error('Error processing referral:', error);
     res.status(500).json({ error: 'Ошибка сервера' });
   }
+}
+
+// Вспомогательная функция для поиска пользователя по реферальному коду
+// В реальном приложении это должен быть запрос к базе данных
+async function findUserIdByReferralCode(referralCode) {
+  // Здесь должна быть реализация поиска пользователя по реферальному коду
+  // Это упрощенная реализация для примера
+  
+  // Возвращаем null, если пользователь не найден
+  return null;
 }
 
 export default { getUserData, updateUserData, processReferral };

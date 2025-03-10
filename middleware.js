@@ -55,7 +55,6 @@ export function middleware(request) {
     'https://streamers-universe.vercel.app',
     'https://streamers-universe.com',
     'https://streamers-universe-meleghost-meleghosts-projects.vercel.app',
-    'https://streamers-universe-meleghost-meleghosts-projects.vercel.app/auth',
     // Локальные домены для разработки
     'http://localhost:3000',
     'http://127.0.0.1:3000',
@@ -66,10 +65,15 @@ export function middleware(request) {
   const isAllowedOrigin = origin && allowedOrigins.includes(origin);
   
   // Устанавливаем заголовки CORS только для разрешенных доменов
-  response.headers.set('Access-Control-Allow-Credentials', 'true');
-  response.headers.set('Access-Control-Allow-Origin', isAllowedOrigin ? origin : allowedOrigins[0]);
-  response.headers.set('Access-Control-Allow-Methods', 'GET,OPTIONS,PATCH,DELETE,POST,PUT');
-  response.headers.set('Access-Control-Allow-Headers', 'X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version, Authorization');
+  if (isAllowedOrigin) {
+    response.headers.set('Access-Control-Allow-Credentials', 'true');
+    response.headers.set('Access-Control-Allow-Origin', origin);
+    response.headers.set('Access-Control-Allow-Methods', 'GET,OPTIONS,PATCH,DELETE,POST,PUT');
+    response.headers.set('Access-Control-Allow-Headers', 'X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version, Authorization');
+  } else if (origin) {
+    // Если origin не в списке разрешенных, не устанавливаем заголовок Access-Control-Allow-Origin
+    console.log(`Middleware: Origin ${origin} не разрешен`);
+  }
   
   // Для OPTIONS запросов сразу возвращаем ответ с заголовками CORS
   if (request.method === 'OPTIONS') {
@@ -177,21 +181,26 @@ function generateRandomString(length) {
   const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
   const charactersLength = characters.length;
   
-  // Используем crypto API для более безопасной генерации случайных чисел
-  const randomValues = new Uint32Array(length);
-  
-  // Используем crypto.getRandomValues если доступно, иначе используем Math.random
-  if (typeof crypto !== 'undefined' && crypto.getRandomValues) {
-    crypto.getRandomValues(randomValues);
+  try {
+    // Используем crypto API для более безопасной генерации случайных чисел
+    const randomValues = new Uint8Array(length);
     
-    for (let i = 0; i < length; i++) {
-      result += characters.charAt(randomValues[i] % charactersLength);
+    // Используем crypto.getRandomValues если доступно
+    if (typeof crypto !== 'undefined' && crypto.getRandomValues) {
+      crypto.getRandomValues(randomValues);
+      
+      for (let i = 0; i < length; i++) {
+        result += characters.charAt(randomValues[i] % charactersLength);
+      }
+      return result;
     }
-  } else {
-    // Запасной вариант, если crypto API недоступен
-    for (let i = 0; i < length; i++) {
-      result += characters.charAt(Math.floor(Math.random() * charactersLength));
-    }
+  } catch (error) {
+    console.error('Ошибка при использовании crypto API:', error);
+  }
+    
+  // Запасной вариант, если crypto API недоступен или произошла ошибка
+  for (let i = 0; i < length; i++) {
+    result += characters.charAt(Math.floor(Math.random() * charactersLength));
   }
   
   return result;

@@ -43,6 +43,10 @@ export default function useStreamCoins(userId) {
   const earnFromAd = async (adType) => {
     if (!coinsManager.current || typeof window === 'undefined') {
       console.error('StreamCoins not initialized or running on server');
+      setCoinsData(prevState => ({
+        ...prevState,
+        error: 'StreamCoins не инициализирован или запущен на сервере'
+      }));
       return false;
     }
     
@@ -69,6 +73,10 @@ export default function useStreamCoins(userId) {
   const spendOnQuestion = async (streamerId, questionText, amount) => {
     if (!coinsManager.current || typeof window === 'undefined') {
       console.error('StreamCoins not initialized or running on server');
+      setCoinsData(prevState => ({
+        ...prevState,
+        error: 'StreamCoins не инициализирован или запущен на сервере'
+      }));
       return false;
     }
     
@@ -95,6 +103,10 @@ export default function useStreamCoins(userId) {
   const spendOnRequest = async (streamerId, requestType, details, amount) => {
     if (!coinsManager.current || typeof window === 'undefined') {
       console.error('StreamCoins not initialized or running on server');
+      setCoinsData(prevState => ({
+        ...prevState,
+        error: 'StreamCoins не инициализирован или запущен на сервере'
+      }));
       return false;
     }
     
@@ -121,6 +133,10 @@ export default function useStreamCoins(userId) {
   const useReferralCode = async (referralCode) => {
     if (!coinsManager.current || typeof window === 'undefined') {
       console.error('StreamCoins not initialized or running on server');
+      setCoinsData(prevState => ({
+        ...prevState,
+        error: 'StreamCoins не инициализирован или запущен на сервере'
+      }));
       return false;
     }
     
