@@ -25,7 +25,7 @@ export async function POST(request) {
     const limitedIds = twitchIds.slice(0, maxIds);
     
     // Запрашиваем данные из базы
-    const registeredUsers = await prisma.user.findMany({
+    const registeredUsers = await prisma.users.findMany({
       where: {
         twitchId: {
           in: limitedIds

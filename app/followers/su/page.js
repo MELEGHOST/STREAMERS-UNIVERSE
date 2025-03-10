@@ -75,6 +75,14 @@ export default function FollowersSU() {
         
         const followersData = await response.json();
         
+        // Даже если нет последователей, не выдаем ошибку
+        if (!followersData.followers) {
+          setFollowers([]);
+          setTotalFollowers(0);
+          setLoading(false);
+          return;
+        }
+        
         if (followersData.followers && followersData.followers.length > 0) {
           // Проверяем регистрацию на Twitch для каждого последователя
           try {

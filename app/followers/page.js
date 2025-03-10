@@ -134,6 +134,14 @@ export default function Followers() {
           if (response.ok) {
             const registeredData = await response.json();
             
+            // Обрабатываем случай, когда нет данных в ответе
+            if (!registeredData.registeredIds) {
+              console.error('Ответ API не содержит данных о регистрации');
+              setFollowers(followersWithAvatars);
+              setTotalFollowers(followersData.total || followersWithAvatars.length);
+              return;
+            }
+            
             // Обновляем информацию о регистрации для каждого фолловера
             const followersWithRegistrationInfo = followersWithAvatars.map(follower => ({
               ...follower,

@@ -182,9 +182,8 @@ async function getRegisteredUsers(twitchIds) {
   }
   
   try {
-    // Используем prisma для доступа к базе данных
-    // Ищем всех пользователей, чей twitchId есть в списке
-    const users = await prisma.user.findMany({
+    // Используем mockDb вместо Prisma
+    const users = await prisma.users.findMany({
       where: {
         twitchId: {
           in: twitchIds

@@ -16,7 +16,7 @@ export async function GET(request) {
     }
     
     // Получаем пользователя из базы данных
-    const user = await prisma.user.findUnique({
+    const user = await prisma.users.findUnique({
       where: {
         twitchId: userId
       },

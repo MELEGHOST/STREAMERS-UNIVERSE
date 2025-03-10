@@ -27,14 +27,14 @@ export async function POST(request) {
     }
     
     // Проверяем, что пользователь действительно подписан на assignerId
-    const follow = await prisma.follow.findFirst({
+    const follow = await prisma.follow.findMany({
       where: {
         followerId: followerId,
         followedId: assignerId
       }
     });
     
-    if (!follow) {
+    if (!follow || follow.length === 0) {
       return NextResponse.json({ 
         error: 'Пользователь не является последователем',
         success: false
