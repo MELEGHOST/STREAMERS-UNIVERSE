@@ -2,9 +2,22 @@
 
 import React, { useState, useEffect } from 'react';
 import Cookies from 'js-cookie';
-import { useRouter } from 'next/router';
+import { useRouter } from 'next/navigation';
 import styles from './settings.module.css';
+import { Suspense } from 'react';
+import { saveSettingsToServer, getUserSettingsFromServer } from './actions';
 
+// Компонент для отображения загрузки
+function LoadingUI() {
+  return (
+    <div className={styles.loading}>
+      <div className={styles.spinner}></div>
+      <p>Загрузка...</p>
+    </div>
+  );
+}
+
+// Основной компонент настроек
 export default function Settings() {
   const router = useRouter();
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -15,13 +28,18 @@ export default function Settings() {
   const [language, setLanguage] = useState('ru');
   const [loading, setLoading] = useState(true);
   const [saveMessage, setSaveMessage] = useState('');
+  const [isSaving, setIsSaving] = useState(false);
 
+  // Загрузка данных пользователя и настроек
   useEffect(() => {
-    try {
-      const accessToken = Cookies.get('twitch_access_token');
-      if (!accessToken) {
-        router.push('/auth');
-      } else {
+    const checkAuth = async () => {
+      try {
+        const accessToken = Cookies.get('twitch_access_token');
+        if (!accessToken) {
+          router.push('/auth');
+          return;
+        }
+        
         setIsAuthenticated(true);
         
         // Безопасно получаем данные пользователя
@@ -48,6 +66,19 @@ export default function Settings() {
                 
                 if (globalTheme) setTheme(globalTheme);
                 if (globalFontSize) setFontSize(globalFontSize);
+                
+                // В будущем можно получать настройки с сервера
+                try {
+                  const serverSettings = await getUserSettingsFromServer(userId);
+                  if (serverSettings) {
+                    setTheme(serverSettings.theme);
+                    setFontSize(serverSettings.fontSize);
+                    setTimezone(serverSettings.timezone);
+                    setLanguage(serverSettings.language);
+                  }
+                } catch (err) {
+                  console.error('Ошибка при получении настроек с сервера:', err);
+                }
               }
             } catch (e) {
               console.error('Ошибка при загрузке настроек:', e);
@@ -58,18 +89,22 @@ export default function Settings() {
         }
         
         setLoading(false);
+      } catch (error) {
+        console.error('Ошибка при проверке аутентификации:', error);
+        setLoading(false);
       }
-    } catch (error) {
-      console.error('Ошибка при проверке аутентификации:', error);
-      setLoading(false);
-    }
+    };
+
+    checkAuth();
   }, [router]);
 
-  const handleSaveSettings = () => {
+  // Обработчик сохранения настроек
+  const handleSaveSettings = async () => {
     try {
+      setIsSaving(true);
       const settings = { theme, fontSize, timezone, language };
       
-      // Сохраняем пользовательские настройки
+      // Сохраняем пользовательские настройки в localStorage
       if (userId) {
         localStorage.setItem(`settings_${userId}`, JSON.stringify(settings));
       }
@@ -81,8 +116,15 @@ export default function Settings() {
       // Применяем настройки
       applySettings(settings);
       
-      // Показываем сообщение об успешном сохранении
-      setSaveMessage('Настройки успешно сохранены!');
+      // Сохранение настроек на сервере (если будет реализовано в будущем)
+      if (userId) {
+        const result = await saveSettingsToServer(settings, userId);
+        setSaveMessage(result.message);
+      } else {
+        setSaveMessage('Настройки успешно сохранены!');
+      }
+      
+      // Скрываем сообщение через 3 секунды
       setTimeout(() => setSaveMessage(''), 3000);
       
       console.log('Settings saved:', settings);
@@ -98,9 +140,12 @@ export default function Settings() {
       console.error('Ошибка при сохранении настроек:', error);
       setSaveMessage('Ошибка при сохранении настроек. Попробуйте еще раз.');
       setTimeout(() => setSaveMessage(''), 3000);
+    } finally {
+      setIsSaving(false);
     }
   };
 
+  // Функция применения настроек
   const applySettings = (settings = { theme, fontSize, timezone, language }) => {
     try {
       // Применяем тему
@@ -128,17 +173,12 @@ export default function Settings() {
   };
 
   if (!isAuthenticated || loading) {
-    return (
-      <div className={styles.loading}>
-        <div className={styles.spinner}></div>
-        <p>Загрузка...</p>
-      </div>
-    );
+    return <LoadingUI />;
   }
 
   return (
     <div className={styles.settingsContainer}>
-      <h1>Настройки</h1>
+      <h1>Настройки профиля</h1>
       
       <div className={styles.settingGroup}>
         <label htmlFor="theme">Тема оформления:</label>
@@ -179,6 +219,8 @@ export default function Settings() {
           <option value="Europe/Moscow">Москва (MSK)</option>
           <option value="UTC">UTC</option>
           <option value="America/New_York">Нью-Йорк (EST)</option>
+          <option value="Europe/London">Лондон (GMT)</option>
+          <option value="Asia/Tokyo">Токио (JST)</option>
         </select>
       </div>
       
@@ -198,17 +240,39 @@ export default function Settings() {
       {saveMessage && <div className={styles.saveMessage}>{saveMessage}</div>}
       
       <div className={styles.actionButtons}>
-        <button className={styles.button} onClick={handleSaveSettings}>Сохранить настройки</button>
+        <button 
+          className={styles.button} 
+          onClick={handleSaveSettings}
+          disabled={isSaving}
+        >
+          {isSaving ? 'Сохранение...' : 'Сохранить настройки'}
+        </button>
         <button className={styles.button} onClick={() => router.push('/menu')}>
           Вернуться в меню
         </button>
       </div>
+
+      <div className={styles.currentSettings}>
+        <p>Текущие настройки:</p>
+        <ul>
+          <li>
+            <span>Тема:</span> 
+            <span>{theme === 'base' ? 'Базовая' : theme === 'dark' ? 'Тёмная' : 'Светлая'}</span>
+          </li>
+          <li>
+            <span>Размер шрифта:</span> 
+            <span>{fontSize === 'small' ? 'Меньше' : fontSize === 'normal' ? 'Нормальный' : 'Больше'}</span>
+          </li>
+          <li>
+            <span>Часовой пояс:</span> 
+            <span>{timezone}</span>
+          </li>
+          <li>
+            <span>Язык:</span> 
+            <span>{language === 'ru' ? 'Русский' : 'Английский'}</span>
+          </li>
+        </ul>
+      </div>
     </div>
   );
-}
-
-export async function getStaticProps() {
-  return {
-    props: {}, // Нет данных для prerendering, всё загружается на клиенте
-  };
-}
+} 
