@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import styles from '../profile.module.css';
 import { useAuth } from '../../../contexts/AuthContext';
 import CyberAvatar from '../../components/CyberAvatar';
+import SynthwaveButton from '../../components/SynthwaveButton';
 import Cookies from 'js-cookie';
 
 export default function UserProfile({ params }) {
@@ -17,6 +18,8 @@ export default function UserProfile({ params }) {
   const [isFollowed, setIsFollowed] = useState(false);
   const [followers, setFollowers] = useState([]);
   const [showFollowers, setShowFollowers] = useState(false);
+  const [followings, setFollowings] = useState([]);
+  const [showFollowings, setShowFollowings] = useState(false);
 
   useEffect(() => {
     if (!isAuthenticated) {
@@ -52,6 +55,9 @@ export default function UserProfile({ params }) {
 
         // Загружаем фолловеров
         fetchFollowers();
+        
+        // Загружаем фолловингов
+        fetchFollowings();
       } catch (error) {
         console.error('Ошибка при загрузке данных пользователя:', error);
         setError(error.message || 'Произошла ошибка при загрузке данных');
@@ -74,6 +80,20 @@ export default function UserProfile({ params }) {
       }
     } catch (error) {
       console.error('Ошибка при загрузке фолловеров:', error);
+    }
+  };
+
+  const fetchFollowings = async () => {
+    try {
+      const response = await fetch(`/api/twitch/user-followings?userId=${id}`);
+      if (response.ok) {
+        const data = await response.json();
+        setFollowings(data.followings || []);
+      } else {
+        console.error('Ошибка при загрузке фолловингов:', response.status);
+      }
+    } catch (error) {
+      console.error('Ошибка при загрузке фолловингов:', error);
     }
   };
 
@@ -114,6 +134,10 @@ export default function UserProfile({ params }) {
 
   const toggleFollowers = () => {
     setShowFollowers(!showFollowers);
+  };
+
+  const toggleFollowings = () => {
+    setShowFollowings(!showFollowings);
   };
 
   if (loading) {
@@ -193,17 +217,22 @@ export default function UserProfile({ params }) {
       </div>
 
       <div className={styles.profileActions}>
-        <button 
-          className={styles.button}
+        <SynthwaveButton 
+          text="ПОСЛЕДОВАТЬ"
+          isActive={isFollowed}
           onClick={handleFollow}
-        >
-          {isFollowed ? 'Отписаться' : 'Подписаться'}
-        </button>
+        />
         <button 
           className={styles.button}
           onClick={toggleFollowers}
         >
           Показать фолловеров
+        </button>
+        <button 
+          className={styles.button}
+          onClick={toggleFollowings}
+        >
+          Показать подписки
         </button>
       </div>
 
@@ -222,12 +251,48 @@ export default function UserProfile({ params }) {
                   <div className={styles.followerName}>
                     {follower.display_name || follower.displayName}
                   </div>
+                  {follower.isRegisteredInSU && (
+                    <div className={styles.registeredBadge} title="Зарегистрирован в Streamers Universe">
+                      SU
+                    </div>
+                  )}
                 </div>
               ))}
             </div>
           ) : (
             <div className={styles.emptyState}>
               Нет фолловеров
+            </div>
+          )}
+        </div>
+      )}
+
+      {showFollowings && (
+        <div className={styles.followersSection}>
+          <h2>Подписки ({followings.length})</h2>
+          {followings.length > 0 ? (
+            <div className={styles.followersGrid}>
+              {followings.map(following => (
+                <div key={following.id} className={styles.followerCard}>
+                  <img 
+                    src={following.profile_image_url || following.profileImageUrl || '/images/default-avatar.png'} 
+                    alt={following.display_name || following.displayName} 
+                    className={styles.followerAvatar}
+                  />
+                  <div className={styles.followerName}>
+                    {following.display_name || following.displayName}
+                  </div>
+                  {following.isRegisteredInSU && (
+                    <div className={styles.registeredBadge} title="Зарегистрирован в Streamers Universe">
+                      SU
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className={styles.emptyState}>
+              Нет подписок
             </div>
           )}
         </div>

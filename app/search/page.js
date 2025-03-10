@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import Cookies from 'js-cookie';
 import styles from './search.module.css';
 import { getAccessTokenFromCookie } from '../utils/twitchAPI';
+import SynthwaveButton from '../components/SynthwaveButton';
 
 // Стили для кнопки поиска с uiverse.io
 const searchButtonStyles = {
@@ -654,12 +655,11 @@ export default function Search() {
                 Просмотреть профиль
               </button>
               {results.isRegisteredInSU && (
-                <button 
-                  className={styles.followButton}
+                <SynthwaveButton 
+                  text="ПОСЛЕДОВАТЬ"
+                  isActive={results.isFollowed}
                   onClick={() => handleFollow(results.twitchData.id)}
-                >
-                  {results.isFollowed ? 'Отписаться' : 'Подписаться'}
-                </button>
+                />
               )}
             </div>
           </div>

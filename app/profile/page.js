@@ -173,11 +173,50 @@ export default function Profile() {
 
   // Загрузка данных при монтировании компонента
   useEffect(() => {
-    // Проверяем, инициализирован ли контекст аутентификации
-    if (!isInitialized) return;
+    console.log('Инициализация профиля, isInitialized:', isInitialized, 'isAuthenticated:', isAuthenticated);
     
-    loadUserData();
-  }, [isInitialized, isAuthenticated, router]);
+    // Проверяем, не выполняется ли загрузка уже
+    if (loading) return;
+    
+    // Если пользователь не аутентифицирован, перенаправляем на страницу авторизации
+    if (isInitialized && !isAuthenticated) {
+      console.log('Пользователь не аутентифицирован, перенаправляем на /auth');
+      router.push('/auth');
+      return;
+    }
+    
+    // Если контекст инициализирован и пользователь аутентифицирован, загружаем данные
+    if (isInitialized && isAuthenticated && userId) {
+      console.log('Инициализация контекста завершена, загружаем данные пользователя');
+      loadUserData();
+      
+      // Загружаем данные о фолловингах
+      fetchFollowings();
+    } else if (isInitialized && loadAttempts < 3) {
+      // Пробуем загрузить данные пользователя напрямую
+      console.log('Попытка загрузки данных напрямую, попытка:', loadAttempts + 1);
+      const accessToken = Cookies.get('twitch_access_token');
+      
+      if (accessToken) {
+        // Попытаться получить данные пользователя из localStorage или cookies
+        try {
+          let userData = null;
+          const userDataStr = localStorage.getItem('twitch_user') || Cookies.get('twitch_user');
+          
+          if (userDataStr) {
+            userData = JSON.parse(userDataStr);
+            console.log('Получены данные пользователя из хранилища:', userData);
+            if (userData && userData.id) {
+              setLoadAttempts(prev => prev + 1);
+              loadUserData();
+            }
+          }
+        } catch (error) {
+          console.error('Ошибка при попытке получить данные пользователя из хранилища:', error);
+        }
+      }
+    }
+  }, [isInitialized, isAuthenticated, userId, router, loadAttempts, loading]);
 
   // Если данные загружаются, показываем индикатор загрузки
   if (loading) {
@@ -677,29 +716,37 @@ export default function Profile() {
   
   // Функция для отображения последних подписок
   const renderRecentFollowings = () => {
-    if (!userStats || !userStats.followings.recentFollowings || userStats.followings.recentFollowings.length === 0) {
-      return (
-        <div className={styles.emptyState}>
-          <p>Вы пока ни на кого не подписаны</p>
-        </div>
-      );
-    }
-    
     return (
-      <div className={styles.usersList}>
-        {userStats.followings.recentFollowings.map(following => (
-          <div key={following.id} className={styles.userCard}>
-            <img 
-              src={following.profileImageUrl || '/default-avatar.png'} 
-              alt={following.name} 
-              className={styles.userAvatar}
-            />
-            <div className={styles.userInfo}>
-              <div className={styles.userName}>{following.name}</div>
-              <div className={styles.userDate}>Подписка с: {formatDate(following.followedAt)}</div>
-            </div>
+      <div>
+        <h3>Недавние подписки</h3>
+        {followings.length > 0 ? (
+          <div className={styles.usersList}>
+            {followings.slice(0, 10).map((following, index) => (
+              <div key={index} className={styles.userCard}>
+                <img 
+                  src={following.profile_image_url || '/images/default-avatar.png'} 
+                  alt={following.display_name || following.user_name} 
+                  className={styles.followerAvatar}
+                />
+                <div className={styles.userInfo}>
+                  <div className={styles.userName}>{following.display_name || following.user_name}</div>
+                  <div className={styles.userDate}>
+                    {following.followed_at ? new Date(following.followed_at).toLocaleDateString() : 'Нет данных'}
+                  </div>
+                </div>
+                {following.isRegisteredInSU && (
+                  <div className={styles.registeredBadge} title="Зарегистрирован в Streamers Universe">
+                    SU
+                  </div>
+                )}
+              </div>
+            ))}
           </div>
-        ))}
+        ) : (
+          <div className={styles.emptyState}>
+            Вы еще не подписались ни на одного пользователя
+          </div>
+        )}
       </div>
     );
   };
@@ -789,6 +836,46 @@ export default function Profile() {
       console.error('Ошибка при обновлении фолловеров:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  // Функция для загрузки фолловингов
+  const fetchFollowings = async () => {
+    try {
+      const myUserId = userId || profileData?.id;
+      
+      if (!myUserId) {
+        console.error('Нет ID пользователя для загрузки фолловингов');
+        return;
+      }
+      
+      console.log('Загрузка фолловингов для ID:', myUserId);
+      
+      // Вызов API для получения фолловингов
+      const response = await fetch(`/api/twitch/user-followings?userId=${myUserId}`, {
+        method: 'GET',
+        headers: {
+          'Cache-Control': 'no-cache', 
+          'Pragma': 'no-cache'
+        }
+      });
+      
+      if (!response.ok) {
+        throw new Error(`Ошибка при загрузке фолловингов: ${response.status}`);
+      }
+      
+      const data = await response.json();
+      console.log('Получены данные фолловингов:', data);
+      
+      if (data && data.followings) {
+        setFollowings(data.followings);
+      } else {
+        console.warn('Некорректный формат данных фолловингов:', data);
+        setFollowings([]);
+      }
+    } catch (error) {
+      console.error('Ошибка при загрузке фолловингов:', error);
+      setFollowings([]);
     }
   };
 
@@ -1005,25 +1092,7 @@ export default function Profile() {
       ) : showFollowings ? (
         <div className={styles.sectionContainer}>
           <h2 className={styles.sectionTitle}>Подписки</h2>
-          {followings.length === 0 ? (
-            <div className={styles.emptyState}>
-              <p>Вы пока ни на кого не подписаны</p>
-            </div>
-          ) : (
-            <div className={styles.followersGrid}>
-              {followings.map(following => (
-                <div key={following.id} className={styles.followerCard}>
-                  <img 
-                    src={following.profile_image_url || '/images/default-avatar.png'} 
-                    alt={following.display_name} 
-                    className={styles.followerAvatar}
-                  />
-                  <div className={styles.followerName}>{following.display_name}</div>
-                  <button className={styles.viewProfileButton}>Профиль</button>
-                </div>
-              ))}
-            </div>
-          )}
+          {renderRecentFollowings()}
           <button className={styles.sectionToggleButton} onClick={() => setShowFollowings(false)}>
             Скрыть подписки
           </button>

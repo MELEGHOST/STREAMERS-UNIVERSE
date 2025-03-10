@@ -1150,77 +1150,94 @@
 /* Стили для сетки фолловеров и фолловингов */
 .followersGrid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
-  gap: 15px;
-  margin: 15px 0;
+  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+  grid-gap: 20px;
+  margin-top: 20px;
+  margin-bottom: 30px;
+}
+
+.followersSection {
+  margin-top: 30px;
+  padding: 20px;
+  background-color: rgba(20, 20, 35, 0.7);
+  border-radius: 15px;
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+}
+
+.followersSection h2 {
+  font-size: 20px;
+  color: #9146FF;
+  margin-bottom: 15px;
+  border-bottom: 1px solid rgba(145, 70, 255, 0.3);
+  padding-bottom: 10px;
+}
+
+.emptyState {
+  padding: 30px;
+  text-align: center;
+  color: rgba(255, 255, 255, 0.5);
+  font-style: italic;
+}
+
+.registeredBadge {
+  position: absolute;
+  top: 5px;
+  right: 5px;
+  background: linear-gradient(135deg, #9146FF, #5c16c5);
+  color: white;
+  font-size: 10px;
+  font-weight: bold;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 0 10px rgba(145, 70, 255, 0.5);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  z-index: 5;
 }
 
 .followerCard {
-  background: rgba(255, 255, 255, 0.08);
+  position: relative;
+  background-color: rgba(30, 30, 46, 0.8);
   border-radius: 10px;
   padding: 15px;
   display: flex;
   flex-direction: column;
   align-items: center;
-  transition: all 0.3s ease;
-  position: relative;
-  overflow: hidden;
+  gap: 10px;
+  transition: all 0.2s ease-in-out;
+  width: 120px;
+  height: 160px;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
 }
 
 .followerCard:hover {
-  background: rgba(255, 255, 255, 0.12);
-  transform: translateY(-3px);
-}
-
-.registeredBadge {
-  position: absolute;
-  top: 10px;
-  right: 10px;
-  background-color: rgba(123, 65, 201, 0.8);
-  color: white;
-  border-radius: 4px;
-  padding: 2px 6px;
-  font-size: 0.7rem;
-  font-weight: bold;
-  z-index: 2;
-}
-
-.streamerBadge {
-  position: absolute;
-  top: 10px;
-  right: 10px;
-  background-color: #e91916;
-  color: white;
-  border-radius: 4px;
-  padding: 2px 6px;
-  font-size: 0.7rem;
-  font-weight: bold;
-  z-index: 2;
+  transform: translateY(-5px);
+  box-shadow: 0 6px 14px rgba(145, 70, 255, 0.2);
+  background-color: rgba(40, 40, 56, 0.9);
 }
 
 .followerAvatar {
-  width: 70px;
-  height: 70px;
+  width: 80px;
+  height: 80px;
   border-radius: 50%;
   object-fit: cover;
-  border: 3px solid rgba(123, 65, 201, 0.5);
-  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.2);
-  margin-bottom: 10px;
+  border: 3px solid #9146FF;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
   background-color: #1a1a1a;
 }
 
 .followerName {
+  font-size: 14px;
   font-weight: 600;
-  color: #e0e0e0;
+  color: white;
   text-align: center;
-  margin-bottom: 8px;
-  word-break: break-word;
-  max-width: 100%;
+  width: 100%;
   overflow: hidden;
   text-overflow: ellipsis;
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
+  white-space: nowrap;
 }
 
 .viewProfileButton {
@@ -1238,16 +1255,6 @@
 .viewProfileButton:hover {
   background-color: rgba(123, 65, 201, 1);
   transform: translateY(-2px);
-}
-
-.emptyState {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: 30px;
-  text-align: center;
-  color: rgba(255, 255, 255, 0.6);
 }
 
 .sectionToggleButton {

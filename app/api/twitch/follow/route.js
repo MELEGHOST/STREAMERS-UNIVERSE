@@ -20,11 +20,12 @@ export async function POST(request) {
     
     // Получаем ID текущего пользователя из cookie
     let currentUserId = null;
+    let currentUserData = null;
     try {
       const currentUserCookie = cookieStore.get('twitch_user')?.value;
       if (currentUserCookie) {
-        const currentUser = JSON.parse(currentUserCookie);
-        currentUserId = currentUser?.id;
+        currentUserData = JSON.parse(currentUserCookie);
+        currentUserId = currentUserData?.id;
       }
     } catch (error) {
       console.error('Ошибка при получении ID пользователя:', error);
@@ -38,6 +39,27 @@ export async function POST(request) {
     // Проверяем, что пользователь не пытается подписаться на самого себя
     if (currentUserId === targetUserId) {
       return NextResponse.json({ error: 'Нельзя подписаться на самого себя' }, { status: 400 });
+    }
+    
+    // Получаем информацию о целевом пользователе
+    let targetUserInfo = null;
+    try {
+      const response = await fetch(`https://api.twitch.tv/helix/users?id=${targetUserId}`, {
+        headers: {
+          'Authorization': `Bearer ${accessToken}`,
+          'Client-ID': process.env.NEXT_PUBLIC_TWITCH_CLIENT_ID
+        }
+      });
+      
+      if (!response.ok) {
+        throw new Error(`Ошибка при получении информации о пользователе: ${response.status}`);
+      }
+      
+      const userData = await response.json();
+      targetUserInfo = userData.data[0];
+    } catch (error) {
+      console.error('Ошибка при получении информации о пользователе:', error);
+      // Продолжаем выполнение даже без информации о пользователе
     }
     
     // Получаем текущий список подписок из базы данных или другого хранилища
@@ -55,13 +77,42 @@ export async function POST(request) {
         httpOnly: true
       });
       
+      // Обновляем список подписчиков целевого пользователя
+      try {
+        // В реальном приложении здесь будет обращение к базе данных
+        // Добавляем информацию о подписчике в список последователей целевого пользователя
+        const followerData = {
+          id: currentUserId,
+          login: currentUserData?.login || 'unknown',
+          display_name: currentUserData?.display_name || currentUserData?.login || 'Неизвестный пользователь',
+          profile_image_url: currentUserData?.profile_image_url || '/default-avatar.png',
+          followed_at: new Date().toISOString()
+        };
+        
+        // Здесь бы мы сохранили данные в базе, но в данном случае
+        // это будет реализовано на стороне клиента через localStorage
+      } catch (error) {
+        console.error('Ошибка при обновлении списка последователей:', error);
+        // Продолжаем выполнение даже при ошибке обновления списка
+      }
+      
       return NextResponse.json({ 
         success: true, 
-        message: 'Вы успешно подписались на пользователя' 
+        message: 'Вы успешно подписались на пользователя',
+        userInfo: targetUserInfo
       });
     } else if (action === 'unfollow') {
       // Удаляем cookie с подпиской
       cookieStore.delete(followKey);
+      
+      // Обновляем список подписчиков целевого пользователя
+      try {
+        // В реальном приложении здесь будет обращение к базе данных
+        // Удаляем информацию о подписчике из списка последователей целевого пользователя
+      } catch (error) {
+        console.error('Ошибка при обновлении списка последователей:', error);
+        // Продолжаем выполнение даже при ошибке обновления списка
+      }
       
       return NextResponse.json({ 
         success: true, 

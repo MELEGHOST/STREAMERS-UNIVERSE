@@ -1,0 +1,395 @@
+.synthwaveButtonWrapper {
+  display: inline-block;
+}
+
+.synthwaveBtn {
+  position: relative;
+  padding: 12px 30px;
+  background: linear-gradient(45deg, #ff00ff, #00ffff, #ff00ff, #00ffff);
+  background-size: 300% 300%;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  overflow: hidden;
+  font-family: "Arial", sans-serif;
+  font-weight: 900;
+  font-size: 16px;
+  letter-spacing: 2px;
+  transform-style: preserve-3d;
+  transition: all 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
+  animation: gradientFlow 8s linear infinite;
+}
+
+.synthwaveBtn::before {
+  content: "";
+  position: absolute;
+  inset: 2px;
+  background: linear-gradient(45deg, #000428, #000428);
+  border-radius: 6px;
+  opacity: 0.9;
+}
+
+.synthwaveBtnText {
+  position: relative;
+  z-index: 3;
+  background: linear-gradient(90deg, #fff, #fff, #f0f, #0ff, #fff);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-size: 200% auto;
+  text-shadow:
+    0 0 10px #ff00ff,
+    0 0 20px #ff00ff,
+    0 0 40px #ff00ff;
+  animation: shine 3s linear infinite;
+}
+
+.synthwaveBtnBorders {
+  position: absolute;
+  inset: -2px;
+  border: 2px solid transparent;
+  border-radius: 10px;
+  background: linear-gradient(45deg, #ff00ff, #00ffff, #ff00ff) border-box;
+  -webkit-mask:
+    linear-gradient(#fff 0 0) padding-box,
+    linear-gradient(#fff 0 0);
+  -webkit-mask-composite: destination-out;
+  mask-composite: exclude;
+  opacity: 0.8;
+  animation: borderGlow 2s infinite;
+}
+
+.synthwaveBtnGrid {
+  position: absolute;
+  inset: -150%;
+  background:
+    linear-gradient(90deg, rgba(255, 0, 255, 0.3) 1px, transparent 1px) 0 0 /
+      20px 20px,
+    linear-gradient(0deg, rgba(0, 255, 255, 0.3) 1px, transparent 1px) 0 0 /
+      20px 20px;
+  transform: perspective(500px) rotateX(60deg);
+  transform-origin: center 150%;
+  opacity: 0;
+  transition: all 0.5s ease;
+}
+
+.synthwaveFlare {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 255, 255, 0.2),
+    transparent
+  );
+  transform: translateX(-100%);
+  opacity: 0;
+}
+
+.star {
+  position: absolute;
+  width: 3px;
+  height: 3px;
+  background: #fff;
+  border-radius: 50%;
+  box-shadow:
+    0 0 10px #fff,
+    0 0 20px #fff,
+    0 0 30px rgba(255, 0, 255, 0.8);
+  opacity: 0;
+  transition: all 0.3s ease;
+}
+
+.star:nth-child(1) {
+  top: 20%;
+  left: 20%;
+}
+.star:nth-child(2) {
+  top: 40%;
+  left: 40%;
+}
+.star:nth-child(3) {
+  top: 60%;
+  left: 60%;
+}
+.star:nth-child(4) {
+  top: 30%;
+  left: 70%;
+}
+.star:nth-child(5) {
+  top: 70%;
+  left: 30%;
+}
+
+/* Hover effects */
+.synthwaveBtn:hover {
+  transform: translateY(-5px) scale(1.02);
+  box-shadow:
+    0 0 30px rgba(255, 0, 255, 0.8),
+    0 0 60px rgba(0, 255, 255, 0.6),
+    0 0 100px rgba(255, 0, 255, 0.4),
+    inset 0 0 20px rgba(255, 255, 255, 0.2);
+}
+
+.synthwaveBtn:hover .synthwaveBtnGrid {
+  opacity: 1;
+  animation: gridMove 20s linear infinite;
+}
+
+.synthwaveBtn:hover .star {
+  animation: starTwinkle 2s infinite;
+}
+
+.synthwaveBtn:hover .synthwaveFlare {
+  animation: flareSwipe 2s infinite;
+}
+
+.synthwaveBtn:active {
+  transform: scale(0.97);
+  box-shadow:
+    0 0 50px rgba(255, 0, 255, 1),
+    0 0 100px rgba(0, 255, 255, 0.8),
+    inset 0 0 30px rgba(255, 255, 255, 0.3);
+}
+
+/* Animations */
+@keyframes gradientFlow {
+  0%,
+  100% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+}
+
+@keyframes shine {
+  0% {
+    background-position: 0% 50%;
+  }
+  100% {
+    background-position: 200% 50%;
+  }
+}
+
+@keyframes borderGlow {
+  0%,
+  100% {
+    opacity: 0.8;
+  }
+  50% {
+    opacity: 0.4;
+  }
+}
+
+@keyframes starTwinkle {
+  0%,
+  100% {
+    opacity: 0;
+    transform: scale(0.5) rotate(0deg);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.5) rotate(180deg);
+  }
+}
+
+@keyframes gridMove {
+  0% {
+    transform: perspective(500px) rotateX(60deg) translateY(0%);
+  }
+  100% {
+    transform: perspective(500px) rotateX(60deg) translateY(100%);
+  }
+}
+
+@keyframes flareSwipe {
+  0% {
+    transform: translateX(-100%);
+    opacity: 0;
+  }
+  20% {
+    opacity: 0.5;
+  }
+  80% {
+    opacity: 0.5;
+  }
+  100% {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+}
+
+.synthwaveBtnScanlines {
+  position: absolute;
+  inset: 0;
+  background: repeating-linear-gradient(
+    0deg,
+    transparent,
+    transparent 2px,
+    rgba(255, 255, 255, 0.1) 2px,
+    rgba(255, 255, 255, 0.1) 4px
+  );
+  opacity: 0.1;
+  mix-blend-mode: overlay;
+  pointer-events: none;
+}
+
+.synthwaveBtnTextGlitch {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #0ff;
+  opacity: 0;
+  z-index: 2;
+  text-shadow: 2px 2px #f0f;
+}
+
+.synthwaveNoise {
+  position: absolute;
+  inset: 0;
+  opacity: 0.05;
+  mix-blend-mode: overlay;
+  pointer-events: none;
+}
+
+.synthwaveCircles {
+  position: absolute;
+  inset: -50%;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.synthwaveCircles::before,
+.synthwaveCircles::after {
+  content: "";
+  position: absolute;
+  border-radius: 50%;
+  border: 2px solid rgba(255, 0, 255, 0.5);
+  animation: circleExpand 3s ease-out infinite;
+}
+
+.synthwaveCircles::after {
+  animation-delay: 1.5s;
+}
+
+.synthwaveBtn:hover .synthwaveCircles {
+  opacity: 1;
+}
+
+@keyframes circleExpand {
+  0% {
+    top: 50%;
+    left: 50%;
+    width: 0;
+    height: 0;
+    opacity: 1;
+    transform: translate(-50%, -50%);
+  }
+  100% {
+    top: 50%;
+    left: 50%;
+    width: 200%;
+    height: 200%;
+    opacity: 0;
+    transform: translate(-50%, -50%);
+  }
+}
+
+.synthwaveBtn:hover .synthwaveBtnTextGlitch {
+  animation: glitchText 0.2s infinite;
+}
+
+@keyframes glitchText {
+  0% {
+    opacity: 0;
+    transform: translate(-2px, 2px);
+  }
+  25% {
+    opacity: 0.5;
+    transform: translate(2px, -2px);
+  }
+  50% {
+    opacity: 0.3;
+    transform: translate(-1px, 1px);
+  }
+  75% {
+    opacity: 0.7;
+    transform: translate(1px, -1px);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-2px, 2px);
+  }
+}
+
+.synthwaveBtn:active .synthwaveBtnText {
+  animation: textPulse 0.1s infinite;
+}
+
+@keyframes textPulse {
+  0%,
+  100% {
+    text-shadow:
+      0 0 10px #ff00ff,
+      0 0 20px #ff00ff,
+      0 0 40px #ff00ff;
+  }
+  50% {
+    text-shadow:
+      0 0 20px #00ffff,
+      0 0 40px #00ffff,
+      0 0 60px #00ffff;
+  }
+}
+
+.synthwaveStars .star {
+  filter: blur(0.5px);
+  animation: starFloat 4s ease-in-out infinite;
+}
+
+@keyframes starFloat {
+  0%,
+  100% {
+    transform: translateY(0) scale(1);
+  }
+  50% {
+    transform: translateY(-2px) scale(1.2);
+  }
+}
+
+.star:nth-child(1) {
+  animation-delay: 0s;
+}
+.star:nth-child(2) {
+  animation-delay: 0.7s;
+}
+.star:nth-child(3) {
+  animation-delay: 1.4s;
+}
+.star:nth-child(4) {
+  animation-delay: 2.1s;
+}
+.star:nth-child(5) {
+  animation-delay: 2.8s;
+}
+
+.active {
+  background: linear-gradient(45deg, #0066ff, #00ffcc, #0066ff, #00ffcc) !important;
+}
+
+.active .synthwaveBtnText {
+  background: linear-gradient(90deg, #fff, #fff, #0066ff, #00ffcc, #fff);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  text-shadow:
+    0 0 10px #0066ff,
+    0 0 20px #0066ff,
+    0 0 40px #0066ff;
+} 
