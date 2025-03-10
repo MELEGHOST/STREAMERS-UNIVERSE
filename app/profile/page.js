@@ -10,6 +10,7 @@ import { checkBirthday, getDaysToBirthday } from '../utils/birthdayCheck';
 import { getUserData, getUserFollowers, getUserStats } from '../utils/twitchAPI';
 import { DataStorage } from '../utils/dataStorage';
 import { useAuth } from '../../contexts/AuthContext';
+import Cookies from 'js-cookie';
 
 export default function Profile() {
   const [profileData, setProfileData] = useState(null);
@@ -51,132 +52,109 @@ export default function Profile() {
 
   // Функция для загрузки данных пользователя
   const loadUserData = async () => {
+    setLoading(true);
+    setError(null);
+    
     try {
-      setLoading(true);
-      
-      // Проверяем, инициализирован ли контекст аутентификации
-      if (!isInitialized) {
-        // Если контекст еще не инициализирован, выходим из функции
-        // и ждем следующего вызова, когда контекст будет инициализирован
-        return;
-      }
-      
-      // Проверяем, авторизован ли пользователь
-      if (!isAuthenticated) {
-        console.log('Пользователь не авторизован, перенаправляем на страницу авторизации');
+      // Проверяем токен
+      const accessToken = Cookies.get('twitch_access_token');
+      if (!accessToken) {
+        console.error('Отсутствует токен доступа, перенаправление на страницу авторизации');
         router.push('/auth');
         return;
       }
       
-      // Массив для параллельных промисов
-      const dataPromises = [];
-      
-      // Получаем сохраненные настройки видимости статистики, если они есть
-      dataPromises.push(
-        DataStorage.getData('stats_visibility')
-          .then(savedStatsVisibility => {
-            if (savedStatsVisibility) {
-              setStatsVisibility(savedStatsVisibility);
-            }
-          })
-          .catch(err => console.warn('Ошибка при загрузке настроек видимости статистики:', err))
-      );
-      
-      // Используем данные из контекста аутентификации или получаем их
-      const userData = userId && userLogin 
-        ? { id: userId, login: userLogin, profile_image_url: userAvatar }
-        : await getUserData();
+      // Получаем данные пользователя
+      try {
+        const userData = await getUserData();
         
-      if (!userData || !userData.id) {
-        console.log('Данные пользователя не найдены, перенаправляем на страницу авторизации');
-        router.push('/auth');
-        return;
-      }
-      
-      // Устанавливаем базовые данные пользователя сразу
-      setProfileData(userData);
-      
-      // Получаем сохраненные социальные ссылки
-      dataPromises.push(
-        DataStorage.getData('social_links')
-          .then(savedSocialLinks => {
-            if (savedSocialLinks) {
-              setSocialLinks(savedSocialLinks);
-            }
-          })
-          .catch(err => console.warn('Ошибка при загрузке социальных ссылок:', err))
-      );
-      
-      // Проверяем день рождения пользователя в фоне
-      dataPromises.push(
-        (userData.birthday ? Promise.resolve(userData.birthday) : DataStorage.getData('birthday'))
-          .then(userBirthday => {
-            if (userBirthday) {
-              const birthdayToday = checkBirthday(userBirthday);
-              setIsBirthday(birthdayToday);
-              
-              if (!birthdayToday) {
-                const days = getDaysToBirthday(userBirthday);
-                setDaysToBirthday(days);
-              }
-            }
-          })
-          .catch(err => console.warn('Ошибка при проверке дня рождения:', err))
-      );
-      
-      // Загружаем статистику пользователя
-      dataPromises.push(
-        getUserStats(userData.id)
-          .then(userStatsData => {
-            if (userStatsData) {
-              setUserStats(userStatsData);
-            }
-          })
-          .catch(statsError => console.error('Ошибка при загрузке статистики пользователя:', statsError))
-      );
-      
-      // Загружаем фолловеров с принудительным обновлением
-      if (userData.id) {
-        try {
-          const followersData = await getUserFollowers(userData.id);
-          console.log('Загружены данные фолловеров:', followersData);
-          
-          if (followersData && followersData.followers) {
-            setFollowers(followersData.followers || []);
-          } else {
-            console.warn('Некорректные данные фолловеров:', followersData);
-            setFollowers([]);
-          }
-        } catch (error) {
-          console.error('Ошибка при загрузке фолловеров:', error);
-          setFollowers([]);
+        if (!userData || !userData.id) {
+          setError('Не удалось получить данные профиля');
+          setLoading(false);
+          return;
         }
         
-        // Здесь будет загрузка фолловингов, когда будет готово API
-        setFollowings([]);
+        setProfileData(userData);
+        
+        // Загружаем статистику пользователя
+        Promise.all([
+          getUserStats(userData.id)
+            .then(stats => {
+              if (stats) {
+                setUserStats(stats);
+                
+                // Сохраняем статистику в localStorage для быстрого доступа
+                if (typeof window !== 'undefined') {
+                  localStorage.setItem(`user_stats_${userData.id}`, JSON.stringify(stats));
+                }
+              }
+            })
+            .catch(statsError => console.error('Ошибка при загрузке статистики пользователя:', statsError))
+        ]);
+        
+        // Загружаем фолловеров с принудительным обновлением
+        if (userData.id) {
+          try {
+            // Используем новый API endpoint для принудительного обновления
+            const response = await fetch(`/api/twitch/refresh-followers?userId=${userData.id}`, {
+              method: 'GET',
+              headers: {
+                'Cache-Control': 'no-cache',
+                'Pragma': 'no-cache'
+              }
+            });
+            
+            if (!response.ok) {
+              throw new Error(`Ошибка при обновлении фолловеров: ${response.status}`);
+            }
+            
+            const followersData = await response.json();
+            console.log('Загружены данные фолловеров через API:', followersData);
+            
+            if (followersData.success && followersData.followers) {
+              setFollowers(followersData.followers);
+            } else {
+              console.warn('Ошибка API при загрузке фолловеров:', followersData.error);
+              
+              // Пробуем использовать старый метод
+              const oldFollowersData = await getUserFollowers(userData.id);
+              
+              // Проверяем формат данных и адаптируем для отображения
+              if (oldFollowersData) {
+                // Проверяем, есть ли свойство followers в ответе
+                if (oldFollowersData.followers && Array.isArray(oldFollowersData.followers)) {
+                  setFollowers(oldFollowersData.followers);
+                } 
+                // Проверяем, является ли сам ответ массивом
+                else if (Array.isArray(oldFollowersData)) {
+                  setFollowers(oldFollowersData);
+                } 
+                // Если нет ни того, ни другого, устанавливаем пустой массив
+                else {
+                  console.warn('Некорректный формат данных фолловеров:', oldFollowersData);
+                  setFollowers([]);
+                }
+              } else {
+                console.warn('Пустые данные фолловеров:', oldFollowersData);
+                setFollowers([]);
+              }
+            }
+          } catch (error) {
+            console.error('Ошибка при загрузке фолловеров:', error);
+            setFollowers([]);
+          }
+          
+          // Здесь будет загрузка фолловингов, когда будет готово API
+        }
+      } catch (error) {
+        console.error('Ошибка при получении данных пользователя:', error);
+        setError('Ошибка при загрузке данных профиля');
       }
-      
-      // Снимаем состояние загрузки после первичного отображения контента,
-      // не дожидаясь завершения всех запросов
-      setLoading(false);
-      
-      // Дожидаемся завершения всех операций в фоне
-      await Promise.allSettled(dataPromises);
-      
     } catch (error) {
-      console.error('Ошибка при загрузке данных пользователя:', error);
-      setError('Не удалось загрузить данные профиля');
+      console.error('Ошибка при загрузке данных:', error);
+      setError('Не удалось загрузить данные');
+    } finally {
       setLoading(false);
-      
-      // Увеличиваем счетчик попыток загрузки
-      setLoadAttempts(prev => prev + 1);
-      
-      // Если было сделано 3 попытки загрузки и все они завершились ошибкой,
-      // перенаправляем пользователя на страницу авторизации
-      if (loadAttempts >= 2) {
-        console.log('Превышено количество попыток загрузки, перенаправляем на страницу авторизации');
-        router.push('/auth');
-      }
     }
   };
   
@@ -774,6 +752,45 @@ export default function Profile() {
     return words[(number % 100 > 4 && number % 100 < 20) ? 2 : cases[(number % 10 < 5) ? number % 10 : 5]];
   };
 
+  // Функция для принудительного обновления фолловеров
+  const refreshFollowers = async () => {
+    setLoading(true);
+    try {
+      if (!profileData || !profileData.id) {
+        console.error('Нет данных пользователя для обновления фолловеров');
+        return;
+      }
+      
+      console.log('Принудительное обновление данных о фолловерах для ID:', profileData.id);
+      
+      // Вызов нового API для принудительного обновления фолловеров
+      const response = await fetch(`/api/twitch/refresh-followers?userId=${profileData.id}`, {
+        method: 'GET',
+        headers: {
+          'Cache-Control': 'no-cache',
+          'Pragma': 'no-cache'
+        }
+      });
+      
+      if (!response.ok) {
+        throw new Error(`Ошибка при обновлении фолловеров: ${response.status}`);
+      }
+      
+      const refreshedData = await response.json();
+      console.log('Получены обновленные данные фолловеров:', refreshedData);
+      
+      if (refreshedData.success && refreshedData.followers) {
+        setFollowers(refreshedData.followers);
+      } else {
+        console.warn('Ошибка при обновлении фолловеров:', refreshedData.error);
+      }
+    } catch (error) {
+      console.error('Ошибка при обновлении фолловеров:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <div className={styles.profileContainer}>
       <div className={styles.profileHeader}>
@@ -942,7 +959,7 @@ export default function Profile() {
               <p>У вас пока нет фолловеров</p>
               <button 
                 className={styles.button}
-                onClick={loadUserData}
+                onClick={refreshFollowers}
                 style={{ marginTop: '15px' }}
               >
                 Обновить данные
@@ -952,15 +969,28 @@ export default function Profile() {
             <div className={styles.followersGrid}>
               {followers.map((follower, index) => (
                 <div key={follower.id || `follower-${index}`} className={styles.followerCard}>
+                  {/* Бейдж для зарегистрированных пользователей */}
+                  {follower.isRegisteredOnSU && follower.suUserType === 'streamer' && (
+                    <span className={styles.streamerBadge}>Стример SU</span>
+                  )}
+                  {follower.isRegisteredOnSU && follower.suUserType !== 'streamer' && (
+                    <span className={styles.registeredBadge}>SU</span>
+                  )}
+                  
                   <img 
-                    src={follower.profile_image_url || '/images/default-avatar.png'} 
-                    alt={follower.display_name || follower.login || 'Фолловер'} 
+                    src={follower.profile_image_url || follower.profileImageUrl || '/images/default-avatar.png'} 
+                    alt={follower.display_name || follower.name || follower.login || 'Фолловер'} 
                     className={styles.followerAvatar}
                   />
                   <div className={styles.followerName}>
-                    {follower.display_name || follower.login || `Пользователь ${index + 1}`}
+                    {follower.display_name || follower.name || follower.login || `Пользователь ${index + 1}`}
                   </div>
-                  <button className={styles.viewProfileButton}>Профиль</button>
+                  <button 
+                    className={styles.viewProfileButton}
+                    onClick={() => window.open(`https://twitch.tv/${follower.login}`, '_blank')}
+                  >
+                    Профиль
+                  </button>
                 </div>
               ))}
             </div>

@@ -7,6 +7,39 @@ import styles from './settings.module.css';
 import { Suspense } from 'react';
 import { saveSettingsToServer, getUserSettingsFromServer } from './actions';
 
+// Массив часовых поясов
+const TIMEZONES = [
+  { value: 'Europe/Moscow', label: 'Москва (MSK)' },
+  { value: 'Europe/Kaliningrad', label: 'Калининград (EET)' },
+  { value: 'Europe/Samara', label: 'Самара (SAMT)' },
+  { value: 'Asia/Yekaterinburg', label: 'Екатеринбург (YEKT)' },
+  { value: 'Asia/Omsk', label: 'Омск (OMST)' },
+  { value: 'Asia/Krasnoyarsk', label: 'Красноярск (KRAT)' },
+  { value: 'Asia/Irkutsk', label: 'Иркутск (IRKT)' },
+  { value: 'Asia/Yakutsk', label: 'Якутск (YAKT)' },
+  { value: 'Asia/Vladivostok', label: 'Владивосток (VLAT)' },
+  { value: 'Asia/Magadan', label: 'Магадан (MAGT)' },
+  { value: 'Asia/Kamchatka', label: 'Камчатка (PETT)' },
+  { value: 'Europe/London', label: 'Лондон (GMT)' },
+  { value: 'Europe/Paris', label: 'Париж (CET)' },
+  { value: 'Europe/Berlin', label: 'Берлин (CET)' },
+  { value: 'Europe/Rome', label: 'Рим (CET)' },
+  { value: 'Europe/Madrid', label: 'Мадрид (CET)' },
+  { value: 'Europe/Athens', label: 'Афины (EET)' },
+  { value: 'America/New_York', label: 'Нью-Йорк (EST)' },
+  { value: 'America/Chicago', label: 'Чикаго (CST)' },
+  { value: 'America/Denver', label: 'Денвер (MST)' },
+  { value: 'America/Los_Angeles', label: 'Лос-Анджелес (PST)' },
+  { value: 'America/Anchorage', label: 'Анкоридж (AKST)' },
+  { value: 'Pacific/Honolulu', label: 'Гонолулу (HST)' },
+  { value: 'Asia/Tokyo', label: 'Токио (JST)' },
+  { value: 'Asia/Shanghai', label: 'Шанхай (CST)' },
+  { value: 'Asia/Singapore', label: 'Сингапур (SGT)' },
+  { value: 'Australia/Sydney', label: 'Сидней (AEST)' },
+  { value: 'Pacific/Auckland', label: 'Окленд (NZST)' },
+  { value: 'UTC', label: 'UTC (Всемирное координированное время)' },
+];
+
 // Компонент для отображения загрузки
 function LoadingUI() {
   return (
@@ -216,11 +249,9 @@ export default function Settings() {
           value={timezone} 
           onChange={(e) => setTimezone(e.target.value)}
         >
-          <option value="Europe/Moscow">Москва (MSK)</option>
-          <option value="UTC">UTC</option>
-          <option value="America/New_York">Нью-Йорк (EST)</option>
-          <option value="Europe/London">Лондон (GMT)</option>
-          <option value="Asia/Tokyo">Токио (JST)</option>
+          {TIMEZONES.map(tz => (
+            <option key={tz.value} value={tz.value}>{tz.label}</option>
+          ))}
         </select>
       </div>
       
@@ -250,28 +281,6 @@ export default function Settings() {
         <button className={styles.button} onClick={() => router.push('/menu')}>
           Вернуться в меню
         </button>
-      </div>
-
-      <div className={styles.currentSettings}>
-        <p>Текущие настройки:</p>
-        <ul>
-          <li>
-            <span>Тема:</span> 
-            <span>{theme === 'base' ? 'Базовая' : theme === 'dark' ? 'Тёмная' : 'Светлая'}</span>
-          </li>
-          <li>
-            <span>Размер шрифта:</span> 
-            <span>{fontSize === 'small' ? 'Меньше' : fontSize === 'normal' ? 'Нормальный' : 'Больше'}</span>
-          </li>
-          <li>
-            <span>Часовой пояс:</span> 
-            <span>{timezone}</span>
-          </li>
-          <li>
-            <span>Язык:</span> 
-            <span>{language === 'ru' ? 'Русский' : 'Английский'}</span>
-          </li>
-        </ul>
       </div>
     </div>
   );

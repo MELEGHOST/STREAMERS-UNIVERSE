@@ -5,12 +5,12 @@
   font-family: var(--font-family, 'Arial', sans-serif);
   border-radius: 10px;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
-  background-color: var(--background-color, #fff);
+  background-color: var(--background-color, #1a1a1a);
   transition: all 0.3s ease;
 }
 
 .settingsContainer h1 {
-  color: var(--primary-color, #7B41C9);
+  color: var(--primary-color, #9b65e4);
   text-align: center;
   margin-bottom: 2rem;
   font-size: 2rem;
@@ -25,7 +25,7 @@
   transform: translateX(-50%);
   width: 100px;
   height: 3px;
-  background-color: var(--primary-color, #7B41C9);
+  background-color: var(--primary-color, #9b65e4);
   border-radius: 3px;
 }
 
@@ -42,25 +42,30 @@
   display: block;
   margin-bottom: 0.5rem;
   font-weight: 600;
-  color: var(--text-color, #333);
+  color: var(--text-color, #e0e0e0);
 }
 
 .select {
   width: 100%;
   padding: 0.75rem;
-  border: 1px solid var(--border-color, #ddd);
+  border: 1px solid var(--border-color, #444);
   border-radius: 6px;
-  background-color: var(--input-bg, white);
+  background-color: var(--input-bg, #2d2d2d);
   font-size: 1rem;
   margin-bottom: 1rem;
-  color: var(--text-color, #333);
+  color: var(--text-color, #e0e0e0);
   transition: all 0.2s ease;
 }
 
 .select:focus {
   outline: none;
-  border-color: var(--primary-color, #7B41C9);
+  border-color: var(--primary-color, #9b65e4);
   box-shadow: 0 0 0 3px rgba(123, 65, 201, 0.2);
+}
+
+.select option {
+  background-color: #2d2d2d;
+  color: #e0e0e0;
 }
 
 .actionButtons {
@@ -78,7 +83,7 @@
 
 .button {
   flex: 1;
-  background-color: var(--primary-color, #7B41C9);
+  background-color: var(--primary-color, #9b65e4);
   color: white;
   border: none;
   border-radius: 6px;
@@ -91,13 +96,19 @@
 }
 
 .button:hover {
-  background-color: var(--primary-dark, #5A2E94);
+  background-color: var(--primary-dark, #7b41c9);
   transform: translateY(-2px);
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
 }
 
 .button:active {
   transform: translateY(0);
+}
+
+.button:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+  transform: none;
 }
 
 .saveMessage {
@@ -160,7 +171,7 @@
   width: 36px;
   height: 36px;
   border-radius: 50%;
-  border-left-color: var(--primary-color, #7B41C9);
+  border-left-color: var(--primary-color, #9b65e4);
   animation: spin 1s linear infinite;
   margin-bottom: 20px;
 }
@@ -172,6 +183,50 @@
   100% {
     transform: rotate(360deg);
   }
+}
+
+/* Светлая тема */
+:global(.light-theme) .settingsContainer {
+  background-color: #ffffff;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+}
+
+:global(.light-theme) .settingsContainer h1,
+:global(.light-theme) .currentSettings p {
+  color: #7B41C9;
+}
+
+:global(.light-theme) .settingGroup label {
+  color: #333;
+}
+
+:global(.light-theme) .select {
+  background-color: #ffffff;
+  border-color: #ddd;
+  color: #333;
+}
+
+:global(.light-theme) .select option {
+  background-color: #ffffff;
+  color: #333;
+}
+
+:global(.light-theme) .button {
+  background-color: #7B41C9;
+}
+
+:global(.light-theme) .button:hover {
+  background-color: #5A2E94;
+}
+
+:global(.light-theme) .currentSettings {
+  background-color: rgba(123, 65, 201, 0.1);
+  border-left-color: #7B41C9;
+}
+
+:global(.light-theme) .currentSettings li {
+  border-bottom-color: rgba(123, 65, 201, 0.2);
+  color: #333;
 }
 
 /* Темная тема */
