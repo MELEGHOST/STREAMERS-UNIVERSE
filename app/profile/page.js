@@ -525,26 +525,31 @@ export default function Profile() {
   const renderChannelStats = () => {
     if (!userStats || !statsVisibility.channel) return null;
     
-    // Создаем тестовые данные для отображения, если реальных данных нет
-    const mockStats = {
-      user: {
-        viewCount: userStats.user.viewCount || 1250,
-        createdAt: userStats.user.createdAt || new Date().toISOString(),
-        broadcasterType: userStats.user.broadcasterType || 'affiliate'
-      },
-      followers: {
-        total: userStats.followers?.total || followers?.length || 42,
-        recentFollowers: userStats.followers?.recentFollowers || []
-      },
-      followings: {
-        total: userStats.followings?.total || 38,
-        recentFollowings: userStats.followings?.recentFollowings || []
-      },
-      channel: {
-        hasSubscriptionProgram: userStats.channel?.hasSubscriptionProgram || true,
-        subscribers: userStats.channel?.subscribers || 15
-      }
-    };
+    // Проверяем наличие реальных данных
+    const hasRealData = userStats && 
+      userStats.user && 
+      typeof userStats.user.viewCount === 'number' &&
+      userStats.followers && 
+      userStats.followings;
+    
+    // Если данных нет, показываем сообщение
+    if (!hasRealData) {
+      return (
+        <div className={styles.statsSection}>
+          <h3 className={styles.statsTitle}>Статистика канала</h3>
+          <div className={styles.emptyState}>
+            <p>Статистика пока недоступна. Попробуйте обновить страницу позже.</p>
+            <button 
+              className={styles.button}
+              onClick={loadUserData}
+              style={{ marginTop: '15px' }}
+            >
+              Обновить данные
+            </button>
+          </div>
+        </div>
+      );
+    }
     
     return (
       <div className={styles.statsSection}>
@@ -554,7 +559,7 @@ export default function Profile() {
           <div className={styles.statItem}>
             <div className={styles.statIcon}>👁️</div>
             <div className={styles.statInfo}>
-              <div className={styles.statValue}>{mockStats.user.viewCount.toLocaleString('ru-RU')}</div>
+              <div className={styles.statValue}>{userStats.user.viewCount.toLocaleString('ru-RU')}</div>
               <div className={styles.statLabel}>Просмотров</div>
             </div>
           </div>
@@ -562,7 +567,7 @@ export default function Profile() {
           <div className={styles.statItem}>
             <div className={styles.statIcon}>👥</div>
             <div className={styles.statInfo}>
-              <div className={styles.statValue}>{mockStats.followers.total.toLocaleString('ru-RU')}</div>
+              <div className={styles.statValue}>{userStats.followers.total.toLocaleString('ru-RU')}</div>
               <div className={styles.statLabel}>Подписчиков</div>
             </div>
           </div>
@@ -570,16 +575,16 @@ export default function Profile() {
           <div className={styles.statItem}>
             <div className={styles.statIcon}>📺</div>
             <div className={styles.statInfo}>
-              <div className={styles.statValue}>{mockStats.followings.total.toLocaleString('ru-RU')}</div>
+              <div className={styles.statValue}>{userStats.followings.total.toLocaleString('ru-RU')}</div>
               <div className={styles.statLabel}>Подписок</div>
             </div>
           </div>
           
-          {mockStats.channel.hasSubscriptionProgram && (
+          {userStats.channel && userStats.channel.hasSubscriptionProgram && (
             <div className={styles.statItem}>
               <div className={styles.statIcon}>💎</div>
               <div className={styles.statInfo}>
-                <div className={styles.statValue}>{mockStats.channel.subscribers.toLocaleString('ru-RU')}</div>
+                <div className={styles.statValue}>{userStats.channel.subscribers.toLocaleString('ru-RU')}</div>
                 <div className={styles.statLabel}>Платных подписчиков</div>
               </div>
             </div>
