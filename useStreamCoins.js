@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import StreamCoinsManager from '../services/streamCoins';
+import StreamCoinsManager from './streamCoins';
 
 // Custom React hook for using StreamCoins in components
 export default function useStreamCoins(userId) {
@@ -13,9 +13,9 @@ export default function useStreamCoins(userId) {
   const coinsManager = useRef(null);
   
   useEffect(() => {
+    if (!userId || typeof window === 'undefined') return;
+    
     const initializeCoins = async () => {
-      if (!userId) return;
-      
       try {
         coinsManager.current = new StreamCoinsManager(userId);
         const data = await coinsManager.current.loadData();
@@ -27,11 +27,12 @@ export default function useStreamCoins(userId) {
           error: null
         });
       } catch (error) {
+        console.error('Error initializing StreamCoins:', error);
         setCoinsData({
           isLoading: false,
           balance: 0,
           transactions: [],
-          error: error.message
+          error: error.message || 'Ошибка инициализации StreamCoins'
         });
       }
     };
@@ -40,7 +41,10 @@ export default function useStreamCoins(userId) {
   }, [userId]);
   
   const earnFromAd = async (adType) => {
-    if (!coinsManager.current) return;
+    if (!coinsManager.current || typeof window === 'undefined') {
+      console.error('StreamCoins not initialized or running on server');
+      return false;
+    }
     
     try {
       await coinsManager.current.earnFromAd(adType);
@@ -48,17 +52,25 @@ export default function useStreamCoins(userId) {
       setCoinsData({
         ...coinsData,
         balance: coinsManager.current.getBalance(),
-        transactions: coinsManager.current.getTransactions()
+        transactions: coinsManager.current.getTransactions(),
+        error: null
       });
       return true;
     } catch (error) {
       console.error('Error earning from ad:', error);
+      setCoinsData({
+        ...coinsData,
+        error: error.message || 'Ошибка при начислении монет за просмотр рекламы'
+      });
       return false;
     }
   };
   
   const spendOnQuestion = async (streamerId, questionText, amount) => {
-    if (!coinsManager.current) return;
+    if (!coinsManager.current || typeof window === 'undefined') {
+      console.error('StreamCoins not initialized or running on server');
+      return false;
+    }
     
     try {
       await coinsManager.current.spendOnQuestion(streamerId, questionText, amount);
@@ -66,17 +78,25 @@ export default function useStreamCoins(userId) {
       setCoinsData({
         ...coinsData,
         balance: coinsManager.current.getBalance(),
-        transactions: coinsManager.current.getTransactions()
+        transactions: coinsManager.current.getTransactions(),
+        error: null
       });
       return true;
     } catch (error) {
       console.error('Error spending on question:', error);
+      setCoinsData({
+        ...coinsData,
+        error: error.message || 'Ошибка при списании монет за вопрос'
+      });
       return false;
     }
   };
   
   const spendOnRequest = async (streamerId, requestType, details, amount) => {
-    if (!coinsManager.current) return;
+    if (!coinsManager.current || typeof window === 'undefined') {
+      console.error('StreamCoins not initialized or running on server');
+      return false;
+    }
     
     try {
       await coinsManager.current.spendOnRequest(streamerId, requestType, details, amount);
@@ -84,23 +104,40 @@ export default function useStreamCoins(userId) {
       setCoinsData({
         ...coinsData,
         balance: coinsManager.current.getBalance(),
-        transactions: coinsManager.current.getTransactions()
+        transactions: coinsManager.current.getTransactions(),
+        error: null
       });
       return true;
     } catch (error) {
       console.error('Error spending on request:', error);
+      setCoinsData({
+        ...coinsData,
+        error: error.message || 'Ошибка при списании монет за запрос'
+      });
       return false;
     }
   };
   
   const useReferralCode = async (referralCode) => {
-    if (!coinsManager.current) return;
+    if (!coinsManager.current || typeof window === 'undefined') {
+      console.error('StreamCoins not initialized or running on server');
+      return false;
+    }
     
     try {
       await coinsManager.current.useReferralCode(referralCode);
+      // Обновляем состояние после успешного использования реферального кода
+      setCoinsData({
+        ...coinsData,
+        error: null
+      });
       return true;
     } catch (error) {
       console.error('Error using referral code:', error);
+      setCoinsData({
+        ...coinsData,
+        error: error.message || 'Ошибка при использовании реферального кода'
+      });
       return false;
     }
   };

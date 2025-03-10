@@ -1,22 +1,64 @@
 // streamCoinsController.js (переименован в .js для ES-модулей)
 import { getSession } from 'next-auth/next'; // Для проверки авторизации через next-auth
 
-// Хранилище StreamCoins в localStorage
-const loadStreamCoins = (userId) => {
-  const data = localStorage.getItem(`streamCoins_${userId}`);
-  return data ? JSON.parse(data) : {
-    balance: 0,
-    totalEarned: 0,
-    totalSpent: 0,
-    transactions: [],
-    lastAdWatch: new Date(0),
-    referralCode: '',
-    referredBy: null
-  };
-};
-
-const saveStreamCoins = (userId, data) => {
-  localStorage.setItem(`streamCoins_${userId}`, JSON.stringify(data));
+// Вспомогательные функции для работы с данными
+const storage = {
+  // Функция для загрузки данных (с проверкой окружения)
+  loadStreamCoins: (userId) => {
+    // Проверяем, работаем ли мы на клиенте или на сервере
+    if (typeof window === 'undefined') {
+      // На сервере возвращаем пустой объект
+      return {
+        balance: 0,
+        totalEarned: 0,
+        totalSpent: 0,
+        transactions: [],
+        lastAdWatch: new Date(0),
+        referralCode: '',
+        referredBy: null
+      };
+    }
+    
+    try {
+      const data = localStorage.getItem(`streamCoins_${userId}`);
+      return data ? JSON.parse(data) : {
+        balance: 0,
+        totalEarned: 0,
+        totalSpent: 0,
+        transactions: [],
+        lastAdWatch: new Date(0),
+        referralCode: '',
+        referredBy: null
+      };
+    } catch (error) {
+      console.error('Error loading StreamCoins data:', error);
+      return {
+        balance: 0,
+        totalEarned: 0,
+        totalSpent: 0,
+        transactions: [],
+        lastAdWatch: new Date(0),
+        referralCode: '',
+        referredBy: null
+      };
+    }
+  },
+  
+  // Функция для сохранения данных (с проверкой окружения)
+  saveStreamCoins: (userId, data) => {
+    // Проверяем, работаем ли мы на клиенте или на сервере
+    if (typeof window === 'undefined') {
+      return false; // На сервере не сохраняем
+    }
+    
+    try {
+      localStorage.setItem(`streamCoins_${userId}`, JSON.stringify(data));
+      return true;
+    } catch (error) {
+      console.error('Error saving StreamCoins data:', error);
+      return false;
+    }
+  }
 };
 
 export async function getUserData(req, res) {
@@ -33,9 +75,10 @@ export async function getUserData(req, res) {
       return res.status(403).json({ error: 'Нет доступа к этим данным' });
     }
 
-    // Загружаем данные из localStorage
-    const userData = loadStreamCoins(userId);
+    // Загружаем данные
+    const userData = storage.loadStreamCoins(userId);
     
+    // Проверяем наличие данных
     if (!userData) {
       return res.status(404).json({ error: 'Пользователь не найден' });
     }
@@ -62,7 +105,7 @@ export async function updateUserData(req, res) {
     }
 
     // Загружаем текущие данные
-    const currentData = loadStreamCoins(userData.userId);
+    const currentData = storage.loadStreamCoins(userData.userId);
     if (!currentData) {
       return res.status(404).json({ error: 'Пользователь не найден' });
     }
@@ -80,10 +123,14 @@ export async function updateUserData(req, res) {
         .slice(0, 100) // Ограничиваем до 100 транзакций
     };
 
-    // Сохраняем в localStorage
-    saveStreamCoins(userData.userId, updatedData);
-
-    res.status(200).json({ success: true });
+    // Сохраняем данные
+    const saveResult = storage.saveStreamCoins(userData.userId, updatedData);
+    
+    if (saveResult) {
+      res.status(200).json({ success: true });
+    } else {
+      res.status(500).json({ error: 'Не удалось сохранить данные' });
+    }
   } catch (error) {
     console.error('Error updating StreamCoins data:', error);
     res.status(500).json({ error: 'Ошибка сервера' });
@@ -105,8 +152,8 @@ export async function processReferral(req, res) {
     }
 
     // Загружаем данные реферера и нового пользователя
-    const referrerData = loadStreamCoins(referralCode);
-    const newUserData = loadStreamCoins(newUserId);
+    const referrerData = storage.loadStreamCoins(referralCode);
+    const newUserData = storage.loadStreamCoins(newUserId);
 
     if (!referrerData) {
       return res.status(404).json({ error: 'Неверный реферальный код' });
@@ -145,10 +192,14 @@ export async function processReferral(req, res) {
       .slice(0, 100);
 
     // Сохраняем обновлённые данные
-    saveStreamCoins(referralCode, referrerData);
-    saveStreamCoins(newUserId, newUserData);
-
-    res.status(200).json({ success: true });
+    const saveReferrerResult = storage.saveStreamCoins(referralCode, referrerData);
+    const saveNewUserResult = storage.saveStreamCoins(newUserId, newUserData);
+    
+    if (saveReferrerResult && saveNewUserResult) {
+      res.status(200).json({ success: true });
+    } else {
+      res.status(500).json({ error: 'Не удалось сохранить данные' });
+    }
   } catch (error) {
     console.error('Error processing referral:', error);
     res.status(500).json({ error: 'Ошибка сервера' });

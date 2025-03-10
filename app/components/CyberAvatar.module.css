@@ -1,0 +1,464 @@
+.cyberAvatarWrapper {
+  position: relative;
+  display: inline-block;
+}
+
+.container {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  transition: 200ms;
+}
+
+.container:active {
+  transform: scale(0.95);
+}
+
+.card {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  border-radius: 20px;
+  transition: 700ms;
+  background: linear-gradient(45deg, #1a1a1a, #262626);
+  border: 2px solid rgba(255, 255, 255, 0.1);
+  overflow: hidden;
+  box-shadow:
+    0 0 20px rgba(0, 0, 0, 0.3),
+    inset 0 0 20px rgba(0, 0, 0, 0.2);
+}
+
+.cardContent {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.avatarImage {
+  width: 70%;
+  height: 70%;
+  border-radius: 50%;
+  overflow: hidden;
+  border: 2px solid rgba(92, 103, 255, 0.8);
+  box-shadow: 0 0 15px rgba(92, 103, 255, 0.3);
+  z-index: 2;
+  transition: all 0.3s ease;
+}
+
+.avatarImage img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: all 0.3s ease;
+}
+
+.glowingElements {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.glow1,
+.glow2,
+.glow3 {
+  position: absolute;
+  width: 100px;
+  height: 100px;
+  border-radius: 50%;
+  background: radial-gradient(
+    circle at center,
+    rgba(0, 255, 170, 0.3) 0%,
+    rgba(0, 255, 170, 0) 70%
+  );
+  filter: blur(15px);
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.glow1 {
+  top: -20px;
+  left: -20px;
+}
+.glow2 {
+  top: 50%;
+  right: -30px;
+  transform: translateY(-50%);
+}
+.glow3 {
+  bottom: -20px;
+  left: 30%;
+}
+
+.cardParticles span {
+  position: absolute;
+  width: 3px;
+  height: 3px;
+  background: #00ffaa;
+  border-radius: 50%;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+/* Hover effects */
+.tracker:hover ~ .card .glowingElements div {
+  opacity: 1;
+}
+
+.tracker:hover ~ .card .cardParticles span {
+  animation: particleFloat 2s infinite;
+}
+
+.tracker:hover ~ .card .avatarImage {
+  transform: scale(1.05);
+  border-color: #00ffaa;
+  box-shadow: 0 0 20px rgba(0, 255, 170, 0.5);
+}
+
+@keyframes particleFloat {
+  0% {
+    transform: translate(0, 0);
+    opacity: 0;
+  }
+  50% {
+    opacity: 1;
+  }
+  100% {
+    transform: translate(calc(var(--x, 0) * 30px), calc(var(--y, 0) * 30px));
+    opacity: 0;
+  }
+}
+
+/* Particle positions */
+.cardParticles span:nth-child(1) {
+  --x: 1;
+  --y: -1;
+  top: 40%;
+  left: 20%;
+}
+.cardParticles span:nth-child(2) {
+  --x: -1;
+  --y: -1;
+  top: 60%;
+  right: 20%;
+}
+.cardParticles span:nth-child(3) {
+  --x: 0.5;
+  --y: 1;
+  top: 20%;
+  left: 40%;
+}
+.cardParticles span:nth-child(4) {
+  --x: -0.5;
+  --y: 1;
+  top: 80%;
+  right: 40%;
+}
+.cardParticles span:nth-child(5) {
+  --x: 1;
+  --y: 0.5;
+  top: 30%;
+  left: 60%;
+}
+.cardParticles span:nth-child(6) {
+  --x: -1;
+  --y: 0.5;
+  top: 70%;
+  right: 60%;
+}
+
+.card::before {
+  content: "";
+  background: radial-gradient(
+    circle at center,
+    rgba(0, 255, 170, 0.1) 0%,
+    rgba(0, 162, 255, 0.05) 50%,
+    transparent 100%
+  );
+  filter: blur(20px);
+  opacity: 0;
+  width: 150%;
+  height: 150%;
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  transition: opacity 0.3s ease;
+}
+
+.tracker:hover ~ .card::before {
+  opacity: 1;
+}
+
+.tracker {
+  position: absolute;
+  z-index: 200;
+  width: 33.33%;
+  height: 33.33%;
+}
+
+.tracker:hover {
+  cursor: pointer;
+}
+
+.tracker:hover ~ .card {
+  transition: 300ms;
+  filter: brightness(1.1);
+}
+
+.container:hover .card::before {
+  transition: 200ms;
+  content: "";
+  opacity: 80%;
+}
+
+.canvas {
+  perspective: 800px;
+  inset: 0;
+  z-index: 200;
+  position: absolute;
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  grid-template-rows: 1fr 1fr 1fr;
+  gap: 0px 0px;
+  grid-template-areas:
+    "tr1 tr2 tr3"
+    "tr4 tr5 tr6"
+    "tr7 tr8 tr9";
+}
+
+.tr1 {
+  grid-area: tr1;
+}
+
+.tr2 {
+  grid-area: tr2;
+}
+
+.tr3 {
+  grid-area: tr3;
+}
+
+.tr4 {
+  grid-area: tr4;
+}
+
+.tr5 {
+  grid-area: tr5;
+}
+
+.tr6 {
+  grid-area: tr6;
+}
+
+.tr7 {
+  grid-area: tr7;
+}
+
+.tr8 {
+  grid-area: tr8;
+}
+
+.tr9 {
+  grid-area: tr9;
+}
+
+.tr1:hover ~ .card {
+  transition: 125ms ease-in-out;
+  transform: rotateX(20deg) rotateY(-20deg) rotateZ(0deg);
+}
+
+.tr2:hover ~ .card {
+  transition: 125ms ease-in-out;
+  transform: rotateX(20deg) rotateY(0deg) rotateZ(0deg);
+}
+
+.tr3:hover ~ .card {
+  transition: 125ms ease-in-out;
+  transform: rotateX(20deg) rotateY(20deg) rotateZ(0deg);
+}
+
+.tr4:hover ~ .card {
+  transition: 125ms ease-in-out;
+  transform: rotateX(0deg) rotateY(-20deg) rotateZ(0deg);
+}
+
+.tr5:hover ~ .card {
+  transition: 125ms ease-in-out;
+  transform: rotateX(0deg) rotateY(0deg) rotateZ(0deg);
+}
+
+.tr6:hover ~ .card {
+  transition: 125ms ease-in-out;
+  transform: rotateX(0deg) rotateY(20deg) rotateZ(0deg);
+}
+
+.tr7:hover ~ .card {
+  transition: 125ms ease-in-out;
+  transform: rotateX(-20deg) rotateY(-20deg) rotateZ(0deg);
+}
+
+.tr8:hover ~ .card {
+  transition: 125ms ease-in-out;
+  transform: rotateX(-20deg) rotateY(0deg) rotateZ(0deg);
+}
+
+.tr9:hover ~ .card {
+  transition: 125ms ease-in-out;
+  transform: rotateX(-20deg) rotateY(20deg) rotateZ(0deg);
+}
+
+.cardGlare {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    125deg,
+    rgba(255, 255, 255, 0) 0%,
+    rgba(255, 255, 255, 0.05) 45%,
+    rgba(255, 255, 255, 0.1) 50%,
+    rgba(255, 255, 255, 0.05) 55%,
+    rgba(255, 255, 255, 0) 100%
+  );
+  opacity: 0;
+  transition: opacity 300ms;
+}
+
+.cyberLines span {
+  position: absolute;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(92, 103, 255, 0.2),
+    transparent
+  );
+}
+
+.cyberLines span:nth-child(1) {
+  top: 20%;
+  left: 0;
+  width: 100%;
+  height: 1px;
+  transform: scaleX(0);
+  transform-origin: left;
+  animation: lineGrow 3s linear infinite;
+}
+
+.cyberLines span:nth-child(2) {
+  top: 40%;
+  right: 0;
+  width: 100%;
+  height: 1px;
+  transform: scaleX(0);
+  transform-origin: right;
+  animation: lineGrow 3s linear infinite 1s;
+}
+
+.cyberLines span:nth-child(3) {
+  top: 60%;
+  left: 0;
+  width: 100%;
+  height: 1px;
+  transform: scaleX(0);
+  transform-origin: left;
+  animation: lineGrow 3s linear infinite 2s;
+}
+
+.cyberLines span:nth-child(4) {
+  top: 80%;
+  right: 0;
+  width: 100%;
+  height: 1px;
+  transform: scaleX(0);
+  transform-origin: right;
+  animation: lineGrow 3s linear infinite 1.5s;
+}
+
+.cornerElements span {
+  position: absolute;
+  width: 15px;
+  height: 15px;
+  border: 2px solid rgba(92, 103, 255, 0.3);
+}
+
+.cornerElements span:nth-child(1) {
+  top: 10px;
+  left: 10px;
+  border-right: 0;
+  border-bottom: 0;
+}
+
+.cornerElements span:nth-child(2) {
+  top: 10px;
+  right: 10px;
+  border-left: 0;
+  border-bottom: 0;
+}
+
+.cornerElements span:nth-child(3) {
+  bottom: 10px;
+  left: 10px;
+  border-right: 0;
+  border-top: 0;
+}
+
+.cornerElements span:nth-child(4) {
+  bottom: 10px;
+  right: 10px;
+  border-left: 0;
+  border-top: 0;
+}
+
+.scanLine {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    to bottom,
+    transparent,
+    rgba(92, 103, 255, 0.1),
+    transparent
+  );
+  transform: translateY(-100%);
+  animation: scanMove 2s linear infinite;
+}
+
+@keyframes lineGrow {
+  0% {
+    transform: scaleX(0);
+    opacity: 0;
+  }
+  50% {
+    transform: scaleX(1);
+    opacity: 1;
+  }
+  100% {
+    transform: scaleX(0);
+    opacity: 0;
+  }
+}
+
+@keyframes scanMove {
+  0% {
+    transform: translateY(-100%);
+  }
+  100% {
+    transform: translateY(100%);
+  }
+}
+
+.card:hover .cardGlare {
+  opacity: 1;
+}
+
+.cornerElements span {
+  transition: all 0.3s ease;
+}
+
+.card:hover .cornerElements span {
+  border-color: rgba(92, 103, 255, 0.8);
+  box-shadow: 0 0 10px rgba(92, 103, 255, 0.5);
+} 

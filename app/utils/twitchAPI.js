@@ -230,11 +230,37 @@ export async function getAccessToken() {
  */
 export function getAccessTokenFromCookie() {
   try {
-    if (typeof document === 'undefined') return null; // Проверка, что выполняется на клиенте
+    // Проверяем, что мы находимся на клиенте
+    if (typeof window === 'undefined' || typeof document === 'undefined') {
+      return null; // Если нет доступа к window или document, значит мы на сервере
+    }
     
-    const value = `; ${document.cookie}`;
-    const parts = value.split(`; twitch_access_token=`);
-    if (parts.length === 2) return parts.pop().split(';').shift();
+    // Сначала пробуем через Cookies API (безопаснее)
+    try {
+      if (typeof Cookies !== 'undefined') {
+        const cookieToken = Cookies.get('twitch_access_token');
+        if (cookieToken) return cookieToken;
+      }
+    } catch (cookieError) {
+      console.warn('Ошибка при получении токена через Cookies API:', cookieError);
+    }
+    
+    // Запасной вариант: парсинг document.cookie
+    try {
+      const value = `; ${document.cookie}`;
+      const parts = value.split(`; twitch_access_token=`);
+      if (parts.length === 2) return parts.pop().split(';').shift();
+    } catch (docCookieError) {
+      console.warn('Ошибка при парсинге document.cookie:', docCookieError);
+    }
+    
+    // Если ничего не найдено, проверяем localStorage
+    try {
+      return localStorage.getItem('cookie_twitch_access_token');
+    } catch (localStorageError) {
+      console.warn('Ошибка при получении токена из localStorage:', localStorageError);
+    }
+    
     return null;
   } catch (error) {
     console.error('Ошибка при получении токена доступа из cookie:', error);

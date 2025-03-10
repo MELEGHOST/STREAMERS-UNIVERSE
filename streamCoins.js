@@ -52,19 +52,36 @@ class StreamCoinsManager {
   // Load user's currency data from server/localStorage
   async loadData() {
     try {
+      // Проверяем, доступен ли window объект (клиентская сторона)
+      if (typeof window === 'undefined') {
+        return this.data; // Вернуть данные по умолчанию на сервере
+      }
+      
       // First try to get from localStorage for quick loading
-      const cachedData = localStorage.getItem(`streamcoins_${this.userId}`);
-      if (cachedData) {
-        this.data = JSON.parse(cachedData);
+      try {
+        const cachedData = localStorage.getItem(`streamcoins_${this.userId}`);
+        if (cachedData) {
+          this.data = JSON.parse(cachedData);
+        }
+      } catch (error) {
+        console.warn('Failed to load from localStorage:', error);
       }
       
       // Then fetch latest from server
-      const response = await fetch(`${this.apiEndpoint}/${this.userId}`);
-      if (response.ok) {
-        const serverData = await response.json();
-        this.data = serverData;
-        // Update cache
-        localStorage.setItem(`streamcoins_${this.userId}`, JSON.stringify(this.data));
+      try {
+        const response = await fetch(`${this.apiEndpoint}/${this.userId}`);
+        if (response.ok) {
+          const serverData = await response.json();
+          this.data = serverData;
+          // Update cache
+          try {
+            localStorage.setItem(`streamcoins_${this.userId}`, JSON.stringify(this.data));
+          } catch (cacheError) {
+            console.warn('Failed to update cache:', cacheError);
+          }
+        }
+      } catch (fetchError) {
+        console.error('Failed to fetch from server:', fetchError);
       }
       
       return this.data;
@@ -78,25 +95,46 @@ class StreamCoinsManager {
   // Save updates to server
   async saveData() {
     try {
+      // Проверяем, доступен ли window объект (клиентская сторона)
+      if (typeof window === 'undefined') {
+        return false; // Не выполняем сохранение на сервере
+      }
+      
       // Получаем CSRF-токен из куки
-      const csrfToken = document.cookie
-        .split('; ')
-        .find(row => row.startsWith('csrf_token='))
-        ?.split('=')[1];
+      let csrfToken = '';
+      try {
+        csrfToken = document.cookie
+          .split('; ')
+          .find(row => row.startsWith('csrf_token='))
+          ?.split('=')[1] || '';
+      } catch (error) {
+        console.warn('Could not get CSRF token:', error);
+      }
+      
+      let token = '';
+      try {
+        token = localStorage.getItem('token') || '';
+      } catch (error) {
+        console.warn('Could not get auth token:', error);
+      }
         
       const response = await fetch(this.apiEndpoint, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('token')}`,
-          'X-CSRF-Token': csrfToken || '' // Добавляем CSRF-токен в заголовок
+          'Authorization': `Bearer ${token}`,
+          'X-CSRF-Token': csrfToken
         },
         body: JSON.stringify(this.data)
       });
       
       if (response.ok) {
         // Update cache with the latest data
-        localStorage.setItem(`streamcoins_${this.userId}`, JSON.stringify(this.data));
+        try {
+          localStorage.setItem(`streamcoins_${this.userId}`, JSON.stringify(this.data));
+        } catch (cacheError) {
+          console.warn('Failed to update cache:', cacheError);
+        }
         return true;
       }
       return false;
@@ -133,7 +171,12 @@ class StreamCoinsManager {
     this.addTransaction('earn', amount, 'ad_watch', { adType });
     this.data.lastAdWatch = now;
     
-    return await this.saveData();
+    try {
+      return await this.saveData();
+    } catch (error) {
+      console.error('Error saving after ad watch:', error);
+      throw new Error('Не удалось сохранить начисление за просмотр рекламы');
+    }
   }
   
   // Add coins for a successful referral
@@ -144,7 +187,12 @@ class StreamCoinsManager {
     // Add transaction and update balance
     this.addTransaction('earn', amount, 'referral', { referredUserId });
     
-    return await this.saveData();
+    try {
+      return await this.saveData();
+    } catch (error) {
+      console.error('Error saving referral reward:', error);
+      throw new Error('Не удалось сохранить начисление за реферала');
+    }
   }
   
   // Process a referral code used by a new user
@@ -154,13 +202,23 @@ class StreamCoinsManager {
     // by a server-side function that calls earnFromReferral
     
     this.data.referredBy = referralCode;
-    return await this.saveData();
+    try {
+      return await this.saveData();
+    } catch (error) {
+      console.error('Error saving referral code usage:', error);
+      throw new Error('Не удалось сохранить использование реферального кода');
+    }
   }
   
   // Add coins from other activities (login streak, participation, etc.)
   async earnFromActivity(activity, amount) {
     this.addTransaction('earn', amount, activity);
-    return await this.saveData();
+    try {
+      return await this.saveData();
+    } catch (error) {
+      console.error('Error saving activity reward:', error);
+      throw new Error('Не удалось сохранить начисление за активность');
+    }
   }
   
   // SPENDING METHODS
@@ -177,7 +235,12 @@ class StreamCoinsManager {
       questionText: questionText.substring(0, 50) // Store preview only
     });
     
-    return await this.saveData();
+    try {
+      return await this.saveData();
+    } catch (error) {
+      console.error('Error saving question spending:', error);
+      throw new Error('Не удалось сохранить списание за вопрос');
+    }
   }
   
   // Spend coins on special requests (like game suggestions, etc.)
@@ -193,7 +256,12 @@ class StreamCoinsManager {
       details: details.substring(0, 100) // Store preview only
     });
     
-    return await this.saveData();
+    try {
+      return await this.saveData();
+    } catch (error) {
+      console.error('Error saving request spending:', error);
+      throw new Error('Не удалось сохранить списание за запрос');
+    }
   }
   
   // HELPER METHODS
@@ -259,4 +327,13 @@ class StreamCoinsManager {
   }
 }
 
+// Экспортируем класс, если мы находимся в среде, поддерживающей модули
+if (typeof module !== 'undefined') {
+  module.exports = StreamCoinsManager;
+} else if (typeof window !== 'undefined') {
+  // Для использования в браузере без поддержки модулей
+  window.StreamCoinsManager = StreamCoinsManager;
+}
+
+// Для ES модулей
 export default StreamCoinsManager;

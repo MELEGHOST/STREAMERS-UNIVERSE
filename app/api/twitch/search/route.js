@@ -217,50 +217,48 @@ export async function GET(request) {
       console.error('Error fetching user followings:', error);
     }
     
+    // Получаем общих стримеров
     // Получаем список стримеров, на которых подписан текущий пользователь
     let currentUserFollowings = [];
+    
+    // Получаем ID текущего пользователя из куки
+    let currentUserId = null;
     try {
-      // Получаем ID текущего пользователя из куки
       const currentUserCookie = cookieStore.get('twitch_user')?.value;
       if (currentUserCookie) {
-        const currentUser = JSON.parse(currentUserCookie);
-        if (currentUser && currentUser.id) {
-          const currentUserFollowingsResponse = await fetch(
-            `https://api.twitch.tv/helix/users/follows?from_id=${currentUser.id}&first=100`, 
-            {
-              headers: {
-                'Client-ID': process.env.TWITCH_CLIENT_ID,
-                'Authorization': `Bearer ${accessToken}`,
-              },
+        try {
+          const currentUser = JSON.parse(currentUserCookie);
+          if (currentUser && currentUser.id) {
+            currentUserId = currentUser.id;
+            
+            // Получаем подписки текущего пользователя
+            const currentUserFollowingsResponse = await fetch(
+              `https://api.twitch.tv/helix/users/follows?from_id=${currentUser.id}&first=100`, 
+              {
+                headers: {
+                  'Client-ID': process.env.TWITCH_CLIENT_ID,
+                  'Authorization': `Bearer ${accessToken}`,
+                },
+              }
+            );
+            
+            if (currentUserFollowingsResponse.ok) {
+              const currentUserFollowingsData = await currentUserFollowingsResponse.json();
+              currentUserFollowings = currentUserFollowingsData.data.map(follow => follow.to_name);
             }
-          );
-          
-          if (currentUserFollowingsResponse.ok) {
-            const currentUserFollowingsData = await currentUserFollowingsResponse.json();
-            currentUserFollowings = currentUserFollowingsData.data.map(follow => follow.to_name);
           }
+        } catch (jsonError) {
+          console.error('Ошибка при парсинге данных пользователя из cookie:', jsonError);
         }
       }
     } catch (error) {
-      console.error('Error fetching current user followings:', error);
+      console.error('Ошибка при получении ID текущего пользователя:', error);
     }
     
     // Находим общих стримеров
     const commonStreamers = userFollowings.filter(streamer => 
       currentUserFollowings.includes(streamer)
     );
-    
-    // Получаем ID текущего пользователя
-    let currentUserId = null;
-    try {
-      const currentUserCookie = cookieStore.get('twitch_user')?.value;
-      if (currentUserCookie) {
-        const currentUser = JSON.parse(currentUserCookie);
-        currentUserId = currentUser?.id;
-      }
-    } catch (error) {
-      console.error('Error getting current user ID:', error);
-    }
     
     // Проверяем, подписан ли текущий пользователь на найденного пользователя
     const isFollowed = await checkIfUserIsFollowed(currentUserId, twitchUser.id, accessToken);

@@ -53,7 +53,7 @@ export default function StreamerCoins() {
   // Функция для загрузки данных о коинах
   const loadCoinsData = (userId) => {
     try {
-      // Проверяем наличие данных о коинах в localStorage
+      // Используем только внутри useEffect, чтобы избежать проблем с SSR
       const coinsDataKey = `streamcoins_${userId}`;
       DataStorage.getData(coinsDataKey)
         .then(storedData => {
@@ -140,9 +140,16 @@ export default function StreamerCoins() {
 
   // Функция для генерации реферального кода
   const generateReferralCode = (userId) => {
-    const base = userId.substring(0, 5);
-    const randomPart = Math.random().toString(36).substring(2, 6);
-    return `${base}-${randomPart}`.toUpperCase();
+    if (!userId) return 'STREAMER-CODE';
+    
+    try {
+      const base = userId.substring(0, 5);
+      const randomPart = Math.random().toString(36).substring(2, 6);
+      return `${base}-${randomPart}`.toUpperCase();
+    } catch (error) {
+      console.error('Ошибка при генерации реферального кода:', error);
+      return `STREAMER-${Date.now().toString(36).substring(-4)}`;
+    }
   };
 
   // Функция для получения ежедневного бонуса

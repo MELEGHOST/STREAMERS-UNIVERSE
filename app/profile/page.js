@@ -11,6 +11,7 @@ import { getUserData, getUserFollowers, getUserStats } from '../utils/twitchAPI'
 import { DataStorage } from '../utils/dataStorage';
 import { useAuth } from '../../contexts/AuthContext';
 import Cookies from 'js-cookie';
+import CyberAvatar from '../components/CyberAvatar';
 
 export default function Profile() {
   const [profileData, setProfileData] = useState(null);
@@ -794,11 +795,13 @@ export default function Profile() {
   return (
     <div className={styles.profileContainer}>
       <div className={styles.profileHeader}>
-        <img 
-          src={profileData.profile_image_url || '/default-avatar.png'} 
-          alt={profileData.display_name} 
-          className={styles.avatar}
-        />
+        <div className={styles.avatarContainer}>
+          <CyberAvatar 
+            imageUrl={profileData.profile_image_url || '/default-avatar.png'} 
+            alt={profileData.display_name}
+            size={150}
+          />
+        </div>
         <div className={styles.profileInfo}>
           <h1>{profileData.display_name || profileData.login}</h1>
           {renderUserStatus()}

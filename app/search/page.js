@@ -160,12 +160,33 @@ export default function Search() {
       router.push('/auth');
     } else {
       setIsAuthenticated(true);
-      try {
-        const storedUser = JSON.parse(localStorage.getItem('twitch_user') || '{}');
-        setUserId(storedUser.id || 'unknown');
-      } catch (e) {
-        console.error('Ошибка при обработке данных пользователя:', e);
-      }
+      
+      // Безопасно получаем данные пользователя
+      const getUserDataSafely = () => {
+        if (typeof window === 'undefined') return;
+        
+        try {
+          // Сначала пробуем через Cookies
+          const cookieUser = Cookies.get('twitch_user');
+          if (cookieUser) {
+            const userData = JSON.parse(cookieUser);
+            setUserId(userData.id || 'unknown');
+            return;
+          }
+          
+          // Затем пробуем через localStorage
+          const storedUser = localStorage.getItem('twitch_user');
+          if (storedUser) {
+            const userData = JSON.parse(storedUser);
+            setUserId(userData.id || 'unknown');
+          }
+        } catch (e) {
+          console.error('Ошибка при обработке данных пользователя:', e);
+          setUserId('unknown');
+        }
+      };
+      
+      getUserDataSafely();
     }
   }, [router]);
 

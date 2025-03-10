@@ -1,3 +1,17 @@
+.avatarContainer {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin-right: 30px;
+}
+
+@media (max-width: 768px) {
+  .avatarContainer {
+    margin-right: 0;
+    margin-bottom: 25px;
+  }
+}
+
 .avatar {
   width: 120px;
   height: 120px;
