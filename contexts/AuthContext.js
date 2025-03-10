@@ -111,31 +111,20 @@ export function AuthProvider({ children }) {
   const checkAuth = useCallback(() => {
     try {
       // Проверяем наличие токена в cookies или localStorage
-      const token = Cookies.get('auth_token') || 
-                    Cookies.get('twitch_access_token') || 
-                    localStorage.getItem('cookie_twitch_access_token') || 
-                    Cookies.get('twitch_token');
+      const token = Cookies.get('twitch_access_token') || 
+                    localStorage.getItem('cookie_twitch_access_token'); 
                     
       // Проверяем наличие данных пользователя
       const userData = Cookies.get('twitch_user') || 
-                       localStorage.getItem('cookie_twitch_user') || 
                        localStorage.getItem('twitch_user');
-      
-      // Логируем состояние аутентификации для отладки
-      console.log('Проверка аутентификации:', { 
-        hasToken: !!token, 
-        hasUserData: !!userData,
-        isInitialized
-      });
       
       // Если токен и данные пользователя отсутствуют, пользователь не аутентифицирован
       if (!token || !userData) {
         if (isAuthenticated) {
-          console.log('Пользователь не аутентифицирован: отсутствует токен или данные пользователя');
           setIsAuthenticated(false);
           localStorage.removeItem('is_authenticated');
         }
-        return;
+        return false;
       }
 
       // Пытаемся распарсить данные пользователя
@@ -146,19 +135,19 @@ export function AuthProvider({ children }) {
         console.error('Ошибка при парсинге данных пользователя:', e);
         setIsAuthenticated(false);
         localStorage.removeItem('is_authenticated');
-        return;
+        return false;
       }
 
       if (!user || !user.id) {
         console.warn('Данные пользователя некорректны');
         setIsAuthenticated(false);
         localStorage.removeItem('is_authenticated');
-        return;
+        return false;
       }
       
       // Если пользователь уже аутентифицирован с теми же данными, не обновляем состояние
-      if (isAuthenticated && userId === user.id && userLogin === (user.login || user.display_name)) {
-        return;
+      if (isAuthenticated && userId === user.id) {
+        return true;
       }
       
       // Устанавливаем состояние авторизации
@@ -170,29 +159,14 @@ export function AuthProvider({ children }) {
       // Устанавливаем флаг авторизации в localStorage
       localStorage.setItem('is_authenticated', 'true');
       
-      // Создаем JWT токен, если его еще нет
-      if (!Cookies.get('auth_token') && token) {
-        try {
-          // Пропускаем создание JWT токена на клиенте, чтобы избежать ошибок
-          if (typeof window === 'undefined') {
-            createAndSetJwtToken(user);
-          }
-        } catch (error) {
-          console.warn('Не удалось создать JWT токен, но авторизация продолжена:', error);
-          // Игнорируем ошибку, продолжаем работу без JWT токена
-        }
-      }
-      
-      console.log('Пользователь успешно аутентифицирован:', { 
-        id: user.id, 
-        login: user.login || user.display_name 
-      });
+      return true;
     } catch (error) {
       console.error('Ошибка при проверке авторизации:', error);
       setIsAuthenticated(false);
       localStorage.removeItem('is_authenticated');
+      return false;
     }
-  }, [createAndSetJwtToken, isAuthenticated, userId, userLogin]);
+  }, [isAuthenticated, userId]);
   
   // Проверяем авторизацию при загрузке
   useEffect(() => {
@@ -204,49 +178,15 @@ export function AuthProvider({ children }) {
       if (!isInitialized) {
         console.warn('Таймаут инициализации аутентификации, принудительно устанавливаем isInitialized = true');
         setIsInitialized(true);
-        
-        // Проверяем, есть ли какие-либо признаки аутентификации
-        const hasToken = !!Cookies.get('twitch_access_token') || 
-                       !!localStorage.getItem('cookie_twitch_access_token') ||
-                       !!Cookies.get('auth_token');
-                       
-        // Если есть токен, но isAuthenticated не установлен, выполняем одну попытку установки
-        if (hasToken && !isAuthenticated) {
-          try {
-            // Получаем данные пользователя из хранилища
-            const userData = localStorage.getItem('twitch_user') || Cookies.get('twitch_user');
-            if (userData) {
-              try {
-                const parsedUser = JSON.parse(userData);
-                if (parsedUser && parsedUser.id) {
-                  setIsAuthenticated(true);
-                  setUserId(parsedUser.id);
-                  setUserLogin(parsedUser.login || parsedUser.display_name);
-                  setUserAvatar(parsedUser.profile_image_url);
-                  localStorage.setItem('is_authenticated', 'true');
-                }
-              } catch (e) {
-                console.error('Ошибка при парсинге данных пользователя при таймауте:', e);
-              }
-            }
-          } catch (e) {
-            console.error('Ошибка при принудительной установке аутентификации:', e);
-          }
-        }
       }
-    }, 4000); // Увеличиваем таймаут до 4 секунд
+    }, 2000); // 2 секунды достаточно, не нужно долго ждать
     
     const checkAuthOnce = () => {
       if (!isCheckingAuth) {
         isCheckingAuth = true;
-        try {
-          checkAuth();
-        } catch (e) {
-          console.error('Ошибка при проверке аутентификации:', e);
-        } finally {
-          setIsInitialized(true);
-          isCheckingAuth = false;
-        }
+        checkAuth();
+        setIsInitialized(true);
+        isCheckingAuth = false;
       }
     };
     
@@ -259,33 +199,12 @@ export function AuthProvider({ children }) {
         setIsInitialized(true);
       }
       
-      // Слушаем изменения в localStorage
-      const handleStorageChange = (event) => {
-        // Игнорируем события отладки и события, не связанные с аутентификацией
-        if (event.key === 'auth_debug_state' || 
-            (event.key !== 'is_authenticated' && 
-             event.key !== 'twitch_user' && 
-             event.key !== 'cookie_twitch_user' && 
-             event.key !== 'cookie_twitch_access_token')) {
-          return;
-        }
-        
-        // Проверяем аутентификацию при изменении данных
-        checkAuthOnce();
-      };
-      
-      // Добавляем слушатель события
-      window.addEventListener('storage', handleStorageChange);
-      
       // Удаляем слушатель при размонтировании
       return () => {
         clearTimeout(initTimeout);
-        window.removeEventListener('storage', handleStorageChange);
       };
     }
-    
-    return () => clearTimeout(initTimeout);
-  }, [checkAuth, isInitialized]);
+  }, [checkAuth]);
   
   // Мемоизируем значение контекста для предотвращения лишних ререндеров
   const contextValue = useMemo(() => ({

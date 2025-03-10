@@ -170,30 +170,109 @@ export default function Profile() {
   useEffect(() => {
     console.log('Инициализация профиля, isInitialized:', isInitialized, 'isAuthenticated:', isAuthenticated);
     
-    // Если пользователь не аутентифицирован и инициализация завершена, перенаправляем на страницу авторизации
-    if (isInitialized && !isAuthenticated) {
-      console.log('Пользователь не аутентифицирован, перенаправляем на /auth');
-      router.push('/auth');
-      return;
+    // Устанавливаем флаг загрузки
+    if (!loading) {
+      setLoading(true);
     }
     
-    // Проверяем, есть ли данные профиля или загрузка уже выполняется
-    if (profileData || loading) return;
-    
-    // Получаем токен доступа
+    // Немедленно проверяем наличие токена
     const accessToken = Cookies.get('twitch_access_token');
     
-    // Если токен отсутствует, перенаправляем на страницу авторизации
     if (!accessToken) {
       console.warn('Отсутствует токен доступа, перенаправление на /auth');
       router.push('/auth');
       return;
     }
     
-    // Загружаем данные профиля
-    loadUserData();
+    // Функция для безопасного получения данных пользователя из localStorage
+    const getSafeUserData = () => {
+      try {
+        const userDataStr = localStorage.getItem('twitch_user') || Cookies.get('twitch_user');
+        if (!userDataStr) return null;
+        return JSON.parse(userDataStr);
+      } catch (e) {
+        console.error('Ошибка при получении данных пользователя:', e);
+        return null;
+      }
+    };
     
-  }, [isInitialized, isAuthenticated, userId, router, profileData, loading]);
+    const userData = getSafeUserData();
+    
+    // Устанавливаем данные профиля сразу, если они есть в localStorage
+    if (userData && !profileData) {
+      setProfileData(userData);
+      console.log('Установлены данные профиля из localStorage:', userData.login);
+    }
+    
+    // Функция инициализации данных пользователя
+    const initializeUserData = async () => {
+      try {
+        // Устанавливаем таймаут для предотвращения бесконечной загрузки
+        const timeoutPromise = new Promise((_, reject) => 
+          setTimeout(() => reject(new Error('Таймаут загрузки данных')), 10000)
+        );
+        
+        // Создаем промис для запроса данных пользователя
+        const fetchPromise = (async () => {
+          const token = Cookies.get('twitch_access_token');
+          
+          if (!token) {
+            throw new Error('Отсутствует токен доступа');
+          }
+          
+          // Делаем запрос к API с актуальным токеном
+          const response = await fetch('/api/twitch/profile', {
+            headers: {
+              'Authorization': `Bearer ${token}`,
+              'Cache-Control': 'no-cache'
+            }
+          });
+          
+          if (!response.ok) {
+            // Если ответ не 200, пытаемся прочитать сообщение об ошибке
+            const errorText = await response.text();
+            throw new Error(`Ошибка API: ${response.status}. ${errorText}`);
+          }
+          
+          return await response.json();
+        })();
+        
+        // Используем Promise.race для установки таймаута
+        const data = await Promise.race([fetchPromise, timeoutPromise]);
+        
+        if (data) {
+          // Сохраняем данные в localStorage для быстрого доступа в будущем
+          localStorage.setItem('twitch_user', JSON.stringify(data));
+          setProfileData(data);
+          
+          // Загружаем дополнительные данные в фоне
+          if (data.id) {
+            fetchFollowings().catch(err => console.error('Ошибка при загрузке фолловингов:', err));
+            fetchTierlists().catch(err => console.error('Ошибка при загрузке тирлистов:', err));
+          }
+        }
+      } catch (error) {
+        console.error('Ошибка при инициализации данных:', error);
+        
+        // Если у нас уже есть данные из localStorage, не показываем ошибку
+        if (!profileData) {
+          setError('Не удалось загрузить данные профиля. Попробуйте еще раз или обновите страницу.');
+        }
+      } finally {
+        // В любом случае заканчиваем загрузку
+        setLoading(false);
+      }
+    };
+    
+    // Запуск инициализации с небольшой задержкой, чтобы UI успел отрендериться
+    const timer = setTimeout(() => {
+      initializeUserData();
+    }, 100);
+    
+    // Очистка таймера при размонтировании компонента
+    return () => clearTimeout(timer);
+    
+  }, [isInitialized, isAuthenticated, router, userId]);
 
   // Если данные загружаются, не показываем экран загрузки, а рендерим контейнер с плавной анимацией
   if (loading && !profileData) {
@@ -206,6 +285,11 @@ export default function Profile() {
     );
   }
 
+  // Вместо кнопки "Попробовать снова" с loadUserData используем функцию для перезагрузки страницы
+  const retryLoading = () => {
+    window.location.reload();
+  };
+
   // Если произошла ошибка, показываем сообщение об ошибке
   if (error) {
     return (
@@ -213,7 +297,7 @@ export default function Profile() {
         <div className={styles.error}>
           <h2>Произошла ошибка</h2>
           <p>{error}</p>
-          <button onClick={loadUserData} className={styles.button}>
+          <button onClick={retryLoading} className={styles.button}>
             Попробовать снова
           </button>
         </div>
@@ -924,13 +1008,6 @@ export default function Profile() {
       console.error('Ошибка при загрузке тирлистов:', error);
     }
   };
-
-  // Загружаем тирлисты при получении данных профиля
-  useEffect(() => {
-    if (profileData && profileData.id) {
-      fetchTierlists();
-    }
-  }, [profileData]);
 
   return (
     <div className={styles.profileContainer}>
