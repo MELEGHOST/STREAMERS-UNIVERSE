@@ -1,41 +1,48 @@
 import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
-import axios from 'axios';
-import { refreshToken } from '../auth/refresh-token';
-import { getAccessToken } from '../../../utils/twitchAPI';
+import { DataStorage } from '../../../utils/dataStorage';
 
 // Функция для экранирования HTML-тегов
 function escapeHtml(text) {
-  if (typeof text !== 'string') return text;
+  if (!text) return '';
   return text
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#039;');
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
 }
 
-// Функция для очистки объекта от потенциально опасных данных
+// Функция для санитизации объекта (рекурсивно)
 function sanitizeObject(obj) {
-  if (!obj || typeof obj !== 'object') return obj;
+  if (typeof obj !== 'object' || obj === null) {
+    return typeof obj === 'string' ? escapeHtml(obj) : obj;
+  }
   
-  const result = Array.isArray(obj) ? [] : {};
+  if (Array.isArray(obj)) {
+    return obj.map(item => sanitizeObject(item));
+  }
   
+  const sanitized = {};
   for (const key in obj) {
     if (Object.prototype.hasOwnProperty.call(obj, key)) {
-      const value = obj[key];
-      
-      if (typeof value === 'string') {
-        result[key] = escapeHtml(value);
-      } else if (typeof value === 'object' && value !== null) {
-        result[key] = sanitizeObject(value);
-      } else {
-        result[key] = value;
-      }
+      sanitized[key] = sanitizeObject(obj[key]);
     }
   }
   
-  return result;
+  return sanitized;
+}
+
+// Получаем токен доступа из cookie
+function getAccessTokenFromCookie() {
+  try {
+    const cookieStore = cookies();
+    const token = cookieStore.get('twitch_access_token')?.value;
+    return token || null;
+  } catch (error) {
+    console.error('Ошибка при получении токена доступа из cookie:', error);
+    return null;
+  }
 }
 
 export async function GET(request) {
@@ -50,20 +57,15 @@ export async function GET(request) {
       );
     }
     
-    // Получаем токен доступа
-    let accessToken = await getAccessToken();
+    // Получаем токен доступа из cookie
+    let accessToken = getAccessTokenFromCookie();
     
-    // Если токен отсутствует, пытаемся обновить его
+    // Если токен не найден, возвращаем ошибку
     if (!accessToken) {
-      const refreshResult = await refreshToken();
-      if (refreshResult.success) {
-        accessToken = refreshResult.accessToken;
-      } else {
-        return NextResponse.json(
-          { error: 'Не удалось получить токен доступа' },
-          { status: 401 }
-        );
-      }
+      return NextResponse.json(
+        { error: 'Не авторизован', message: 'Токен доступа не найден. Пожалуйста, войдите снова.' },
+        { status: 401 }
+      );
     }
     
     // Заголовки для запросов к Twitch API
@@ -79,6 +81,14 @@ export async function GET(request) {
     );
     
     if (!userResponse.ok) {
+      // Если получили ошибку 401, возможно, токен устарел
+      if (userResponse.status === 401) {
+        return NextResponse.json(
+          { error: 'Срок действия токена истек', message: 'Пожалуйста, войдите снова.' },
+          { status: 401 }
+        );
+      }
+      
       return NextResponse.json(
         { error: 'Не удалось получить данные пользователя' },
         { status: userResponse.status }
@@ -86,82 +96,101 @@ export async function GET(request) {
     }
     
     const userData = await userResponse.json();
+    
+    if (!userData.data || userData.data.length === 0) {
+      return NextResponse.json(
+        { error: 'Пользователь не найден' },
+        { status: 404 }
+      );
+    }
+    
     const user = userData.data[0];
     
     // Получаем фолловеров
-    const followersResponse = await fetch(
-      `https://api.twitch.tv/helix/channels/followers?broadcaster_id=${userId}&first=5`,
-      { headers }
-    );
-    
     let followers = { total: 0, recentFollowers: [] };
-    
-    if (followersResponse.ok) {
-      const followersData = await followersResponse.json();
-      followers = {
-        total: followersData.total || 0,
-        recentFollowers: followersData.data || []
-      };
+    try {
+      const followersResponse = await fetch(
+        `https://api.twitch.tv/helix/channels/followers?broadcaster_id=${userId}&first=5`,
+        { headers }
+      );
+      
+      if (followersResponse.ok) {
+        const followersData = await followersResponse.json();
+        followers = {
+          total: followersData.total || 0,
+          recentFollowers: followersData.data || []
+        };
+      }
+    } catch (error) {
+      console.error('Ошибка при получении фолловеров:', error);
     }
     
     // Получаем подписки пользователя
-    const followingsResponse = await fetch(
-      `https://api.twitch.tv/helix/channels/followed?user_id=${userId}&first=5`,
-      { headers }
-    );
-    
     let followings = { total: 0, recentFollowings: [] };
-    
-    if (followingsResponse.ok) {
-      const followingsData = await followingsResponse.json();
-      followings = {
-        total: followingsData.total || 0,
-        recentFollowings: followingsData.data || []
-      };
+    try {
+      const followingsResponse = await fetch(
+        `https://api.twitch.tv/helix/channels/followed?user_id=${userId}&first=5`,
+        { headers }
+      );
+      
+      if (followingsResponse.ok) {
+        const followingsData = await followingsResponse.json();
+        followings = {
+          total: followingsData.total || 0,
+          recentFollowings: followingsData.data || []
+        };
+      }
+    } catch (error) {
+      console.error('Ошибка при получении фолловингов:', error);
     }
     
     // Проверяем, находится ли канал в эфире
-    const streamResponse = await fetch(
-      `https://api.twitch.tv/helix/streams?user_id=${userId}`,
-      { headers }
-    );
-    
     let stream = { isLive: false, currentStream: null };
-    
-    if (streamResponse.ok) {
-      const streamData = await streamResponse.json();
-      if (streamData.data && streamData.data.length > 0) {
-        stream = {
-          isLive: true,
-          currentStream: streamData.data[0]
-        };
+    try {
+      const streamResponse = await fetch(
+        `https://api.twitch.tv/helix/streams?user_id=${userId}`,
+        { headers }
+      );
+      
+      if (streamResponse.ok) {
+        const streamData = await streamResponse.json();
+        if (streamData.data && streamData.data.length > 0) {
+          stream = {
+            isLive: true,
+            currentStream: streamData.data[0]
+          };
+        }
       }
+    } catch (error) {
+      console.error('Ошибка при проверке состояния стрима:', error);
     }
     
     // Получаем информацию о канале
-    const channelResponse = await fetch(
-      `https://api.twitch.tv/helix/channels?broadcaster_id=${userId}`,
-      { headers }
-    );
-    
     let channel = { hasSubscriptionProgram: false, subscribers: 0 };
-    
-    if (channelResponse.ok) {
-      const channelData = await channelResponse.json();
-      if (channelData.data && channelData.data.length > 0) {
-        const channelInfo = channelData.data[0];
-        
-        // Проверяем, есть ли у канала программа подписки
-        // (partner или affiliate могут иметь подписчиков)
-        const hasSubProgram = 
-          user.broadcaster_type === 'partner' || 
-          user.broadcaster_type === 'affiliate';
-        
-        channel = {
-          hasSubscriptionProgram: hasSubProgram,
-          subscribers: hasSubProgram ? Math.floor(Math.random() * 50) + 1 : 0 // Для демонстрации, так как API не дает эти данные напрямую
-        };
+    try {
+      const channelResponse = await fetch(
+        `https://api.twitch.tv/helix/channels?broadcaster_id=${userId}`,
+        { headers }
+      );
+      
+      if (channelResponse.ok) {
+        const channelData = await channelResponse.json();
+        if (channelData.data && channelData.data.length > 0) {
+          const channelInfo = channelData.data[0];
+          
+          // Проверяем, есть ли у канала программа подписки
+          const hasSubProgram = 
+            user.broadcaster_type === 'partner' || 
+            user.broadcaster_type === 'affiliate';
+          
+          channel = {
+            hasSubscriptionProgram: hasSubProgram,
+            subscribers: hasSubProgram ? 15 : 0 // Для демонстрации
+          };
+        }
       }
+    } catch (error) {
+      console.error('Ошибка при получении информации о канале:', error);
     }
     
     // Составляем полный ответ
@@ -180,7 +209,17 @@ export async function GET(request) {
       channel
     };
     
-    return NextResponse.json(response);
+    // Сохраняем в кэш для быстрого доступа в будущем
+    try {
+      await DataStorage.saveData('user_stats', {
+        ...response,
+        timestamp: Date.now()
+      });
+    } catch (e) {
+      console.warn('Не удалось сохранить статистику в кэш:', e);
+    }
+    
+    return NextResponse.json(sanitizeObject(response));
   } catch (error) {
     console.error('Ошибка при получении статистики пользователя:', error);
     return NextResponse.json(
