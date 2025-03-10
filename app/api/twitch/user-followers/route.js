@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
+import { prisma } from '../../../utils/prisma';
 
 export async function GET(request) {
   try {
@@ -90,19 +91,27 @@ export async function GET(request) {
       // Собираем ID пользователей для получения детальной информации
       const userIds = data.data.map(follower => follower.user_id);
       
-      // Получаем детальную информацию о пользователях
+      // Получаем детальную информацию о пользователях с Twitch
       const usersInfo = await fetchUsersDetails(userIds, accessToken, TWITCH_CLIENT_ID);
+      
+      // Получаем список пользователей Streamers Universe с Twitch ID
+      const registeredUsers = await getRegisteredUsers(userIds);
       
       // Объединяем информацию о подписчиках с их деталями
       const followers = data.data.map(follower => {
         const userInfo = usersInfo.find(user => user.id === follower.user_id) || {};
+        const isRegistered = registeredUsers.some(ru => ru.twitchId === follower.user_id);
+        const userType = registeredUsers.find(ru => ru.twitchId === follower.user_id)?.userType || 'viewer';
+        
         return {
           id: follower.user_id,
           name: follower.user_name || follower.user_login,
           login: follower.user_login,
           followedAt: follower.followed_at,
           profileImageUrl: userInfo.profile_image_url || '',
-          broadcasterType: userInfo.broadcaster_type || ''
+          broadcasterType: userInfo.broadcaster_type || '',
+          isRegisteredOnSU: isRegistered,
+          suUserType: userType
         };
       });
       
@@ -162,6 +171,37 @@ async function fetchUsersDetails(userIds, accessToken, clientId) {
     return data.data || [];
   } catch (error) {
     console.error('Ошибка при получении данных пользователей:', error);
+    return [];
+  }
+}
+
+// Функция для проверки, зарегистрированы ли пользователи на Streamers Universe
+async function getRegisteredUsers(twitchIds) {
+  if (!twitchIds || twitchIds.length === 0) {
+    return [];
+  }
+  
+  try {
+    // Используем prisma для доступа к базе данных
+    // Ищем всех пользователей, чей twitchId есть в списке
+    const users = await prisma.user.findMany({
+      where: {
+        twitchId: {
+          in: twitchIds
+        }
+      },
+      select: {
+        id: true,
+        twitchId: true,
+        username: true,
+        userType: true
+      }
+    });
+    
+    return users;
+  } catch (error) {
+    console.error('Ошибка при проверке регистрации пользователей:', error);
+    // В случае ошибки возвращаем пустой массив
     return [];
   }
 } 

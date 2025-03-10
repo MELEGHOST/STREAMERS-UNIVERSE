@@ -230,6 +230,17 @@
   .roleSelector {
     margin-top: 10px;
   }
+  
+  .infoBar {
+    flex-direction: column;
+    gap: 10px;
+    align-items: flex-start;
+  }
+  
+  .navigationLinks {
+    flex-direction: column;
+    gap: 10px;
+  }
 }
 
 .totalCount {
@@ -268,4 +279,103 @@
 
 .errorContainer .button {
   margin: 10px;
+}
+
+/* Информационная панель */
+.infoBar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.statsInfo p {
+  margin: 0;
+  font-size: 0.95rem;
+  color: #ddd;
+}
+
+.filterOptions select {
+  background: rgba(0, 0, 0, 0.3);
+  color: #fff;
+  border: 1px solid rgba(145, 70, 255, 0.5);
+  border-radius: 5px;
+  padding: 8px 12px;
+  font-size: 0.9rem;
+  cursor: pointer;
+}
+
+.filterOptions select:hover {
+  border-color: #9146FF;
+}
+
+/* Бэйдж зарегистрированного пользователя */
+.registeredBadge {
+  position: absolute;
+  bottom: -5px;
+  right: -5px;
+  background: #9146FF;
+  color: white;
+  border-radius: 50%;
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.7rem;
+  font-weight: bold;
+  border: 2px solid #1a1a2e;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
+}
+
+/* Стиль блока статуса */
+.followerStatus {
+  margin-bottom: 8px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  font-size: 0.85rem;
+}
+
+.registeredStatus {
+  color: #4CAF50;
+}
+
+.notRegisteredStatus {
+  color: #ff7e7e;
+}
+
+/* Навигационные ссылки */
+.navigationLinks {
+  display: flex;
+  gap: 15px;
+  margin-top: 20px;
+  justify-content: center;
+}
+
+.suButton {
+  background-color: #7224d4;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  padding: 12px 24px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.suButton:hover {
+  background-color: #9146FF;
+}
+
+.emptyStateInfo {
+  margin-top: 10px;
+  font-size: 0.9rem;
+  color: #aaa;
+  max-width: 500px;
+  margin-left: auto;
+  margin-right: auto;
 } 

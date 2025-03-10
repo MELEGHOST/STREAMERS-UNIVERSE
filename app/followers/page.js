@@ -16,6 +16,7 @@ export default function Followers() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [totalFollowers, setTotalFollowers] = useState(0);
+  const [profileData, setProfileData] = useState(null);
 
   useEffect(() => {
     const loadData = async () => {
@@ -51,6 +52,10 @@ export default function Followers() {
         
         // Загружаем данные о фолловерах
         await loadFollowers(userData.id);
+
+        // Получаем данные профиля пользователя
+        const profileData = await getUserData();
+        setProfileData(profileData);
       } catch (error) {
         console.error('Ошибка при загрузке данных:', error);
         setError('Не удалось загрузить данные. Пожалуйста, попробуйте позже.');
@@ -114,15 +119,49 @@ export default function Followers() {
           profileImageUrl: follower.profileImageUrl || '/images/default-avatar.png'
         }));
         
-        setFollowers(followersWithAvatars);
-        setTotalFollowers(followersData.total || followersWithAvatars.length);
-        
-        // Сохраняем в кэш для будущего использования
-        await DataStorage.saveData('followers', {
-          ...followersData,
-          followers: followersWithAvatars,
-          timestamp: Date.now()
-        });
+        // Проверяем регистрацию на Streamers Universe для каждого фолловера
+        try {
+          const response = await fetch('/api/su/registered-users', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+              twitchIds: followersWithAvatars.map(f => f.id)
+            })
+          });
+          
+          if (response.ok) {
+            const registeredData = await response.json();
+            
+            // Обновляем информацию о регистрации для каждого фолловера
+            const followersWithRegistrationInfo = followersWithAvatars.map(follower => ({
+              ...follower,
+              isRegisteredOnSU: registeredData.registeredIds.includes(follower.id),
+              suUserType: registeredData.userTypes[follower.id] || 'viewer'
+            }));
+            
+            setFollowers(followersWithRegistrationInfo);
+            setTotalFollowers(followersData.total || followersWithRegistrationInfo.length);
+            
+            // Сохраняем в кэш для будущего использования
+            await DataStorage.saveData('followers', {
+              ...followersData,
+              followers: followersWithRegistrationInfo,
+              timestamp: Date.now()
+            });
+          } else {
+            console.error('Не удалось получить данные о регистрации на SU:', response.status);
+            // Продолжаем без данных о регистрации
+            setFollowers(followersWithAvatars);
+            setTotalFollowers(followersData.total || followersWithAvatars.length);
+          }
+        } catch (error) {
+          console.error('Ошибка при проверке регистрации на SU:', error);
+          // Продолжаем без данных о регистрации
+          setFollowers(followersWithAvatars);
+          setTotalFollowers(followersData.total || followersWithAvatars.length);
+        }
       } else {
         // Если данные не получены, показываем пустой список
         setFollowers([]);
@@ -200,7 +239,7 @@ export default function Followers() {
   return (
     <div className={styles.followersPage}>
       <h1 className={styles.title}>Фолловеры Twitch</h1>
-      <p className={styles.subtitle}>Здесь отображаются пользователи, которые подписаны на ваш канал на Twitch (фолловеры).</p>
+      <p className={styles.subtitle}>Список пользователей, подписанных на ваш канал Twitch. {totalFollowers > 0 && <span>Всего: <strong>{totalFollowers}</strong></span>}</p>
       
       {loading ? (
         <div className={styles.loading}>
@@ -214,8 +253,22 @@ export default function Followers() {
         </div>
       ) : followers.length > 0 ? (
         <div className={styles.followersContainer}>
-          <div className={styles.followersCount}>
-            <span>Всего фолловеров: <strong>{totalFollowers}</strong></span>
+          <div className={styles.infoBar}>
+            <div className={styles.statsInfo}>
+              <p>Отображаются фолловеры Twitch с канала: <strong>{profileData?.displayName || profileData?.login || userId}</strong></p>
+            </div>
+            <div className={styles.filterOptions}>
+              <select 
+                className={styles.filterSelect}
+                onChange={(e) => {
+                  // TODO: добавить фильтрацию
+                }}
+              >
+                <option value="all">Все фолловеры</option>
+                <option value="registered">Только зарегистрированные в SU</option>
+                <option value="notRegistered">Только незарегистрированные в SU</option>
+              </select>
+            </div>
           </div>
           
           <div className={styles.followersGrid}>
@@ -227,6 +280,9 @@ export default function Followers() {
                     alt={follower.name} 
                     onError={(e) => {e.target.src = '/images/default-avatar.png'}}
                   />
+                  {follower.isRegisteredOnSU && (
+                    <div className={styles.registeredBadge} title="Пользователь зарегистрирован на Streamers Universe">SU</div>
+                  )}
                 </div>
                 <div className={styles.followerInfo}>
                   <div className={styles.followerName}>{follower.name}</div>
@@ -236,16 +292,27 @@ export default function Followers() {
                   <div className={styles.followerDate}>
                     Подписан с {new Date(follower.followedAt).toLocaleDateString('ru-RU')}
                   </div>
-                  {follower.broadcasterType && (
-                    <div className={styles.broadcasterType}>
-                      {follower.broadcasterType === 'partner' ? 'Партнер' : 
-                       follower.broadcasterType === 'affiliate' ? 'Аффилейт' : ''}
-                    </div>
-                  )}
+                  <div className={styles.followerStatus}>
+                    {follower.isRegisteredOnSU ? (
+                      <span className={styles.registeredStatus}>
+                        Зарегистрирован на SU {follower.suUserType === 'streamer' ? '• Стример' : '• Зритель'}
+                      </span>
+                    ) : (
+                      <span className={styles.notRegisteredStatus}>Не зарегистрирован на SU</span>
+                    )}
+                    
+                    {follower.broadcasterType && (
+                      <span className={styles.broadcasterType}>
+                        {follower.broadcasterType === 'partner' ? '• Партнер Twitch' : 
+                         follower.broadcasterType === 'affiliate' ? '• Аффилейт Twitch' : ''}
+                      </span>
+                    )}
+                  </div>
                   <div className={styles.roleSelector}>
                     <select 
                       value={roles[follower.id] || ''} 
                       onChange={(e) => handleAssignRole(follower.id, e.target.value)}
+                      disabled={!follower.isRegisteredOnSU}
                     >
                       <option value="">Роль не назначена</option>
                       <option value="moderator">Модератор</option>
@@ -265,9 +332,14 @@ export default function Followers() {
         </div>
       )}
       
-      <button onClick={() => router.push('/menu')} className={styles.menuButton}>
-        Вернуться в меню
-      </button>
+      <div className={styles.navigationLinks}>
+        <button onClick={() => router.push('/menu')} className={styles.menuButton}>
+          Вернуться в меню
+        </button>
+        <button onClick={() => router.push('/followers/su')} className={styles.suButton}>
+          Показать последователей Streamers Universe
+        </button>
+      </div>
     </div>
   );
 } 
