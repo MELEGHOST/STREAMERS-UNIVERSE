@@ -175,6 +175,27 @@ export default function Profile() {
       setLoading(true);
     }
     
+    // Устанавливаем специальные куки для middleware
+    try {
+      // Проверяем наличие токена в localStorage
+      const hasLocalToken = !!localStorage.getItem('cookie_twitch_access_token') || 
+                           !!localStorage.getItem('twitch_token');
+                           
+      // Проверяем наличие данных пользователя в localStorage
+      const hasUserData = !!localStorage.getItem('twitch_user');
+      
+      // Устанавливаем куки-флаги для middleware
+      if (hasLocalToken) {
+        document.cookie = 'has_local_storage_token=true; path=/;';
+      }
+      
+      if (hasUserData) {
+        document.cookie = 'has_user_data=true; path=/;';
+      }
+    } catch (e) {
+      console.error('Ошибка при установке куки-флагов:', e);
+    }
+    
     // Немедленно проверяем наличие токена
     const accessToken = Cookies.get('twitch_access_token');
     

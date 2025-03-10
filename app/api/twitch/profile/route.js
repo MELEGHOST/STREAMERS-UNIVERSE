@@ -95,14 +95,48 @@ export async function GET(request) {
 
       const user = response.data.data[0];
       
+      // Обогащаем данные пользователя для фронтенда
+      const enhancedUserData = {
+        ...user,
+        id: user.id,
+        login: user.login,
+        twitchName: user.display_name,
+        profile_image_url: user.profile_image_url,
+        followersCount: 0,  // Эти данные будут загружены на фронтенде
+        followers: [],
+        followingsCount: 0,
+        followings: [],
+        email: user.email || '',
+        description: user.description || '',
+        // По умолчанию считаем пользователя зрителем, не стримером
+        isStreamer: false
+      };
+      
       // Очищаем таймаут, так как получили данные
       clearTimeout(timeoutId);
       
-      return user;
+      return enhancedUserData;
     })();
 
     // Ожидаем либо успешное получение данных, либо таймаут
     const userData = await Promise.race([fetchProfilePromise, timeoutPromise]);
+    
+    // Устанавливаем куки с данными о пользователе
+    const simplifiedUserData = {
+      id: userData.id,
+      login: userData.login,
+      display_name: userData.display_name,
+      profile_image_url: userData.profile_image_url,
+    };
+    
+    // Устанавливаем куку с данными пользователя
+    cookies().set('twitch_user', JSON.stringify(simplifiedUserData), { 
+      expires: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 дней
+      path: '/',
+      sameSite: 'lax',
+      secure: process.env.NODE_ENV === 'production',
+      httpOnly: false // Делаем доступным для JavaScript
+    });
     
     // Отправляем данные пользователя
     return NextResponse.json(userData);

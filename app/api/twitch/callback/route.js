@@ -164,7 +164,7 @@ export async function GET(request) {
         path: '/',
         sameSite: 'lax',
         secure: process.env.NODE_ENV === 'production',
-        httpOnly: true
+        httpOnly: false
       });
       
       if (refreshToken) {
