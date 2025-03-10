@@ -135,17 +135,24 @@ export default function Profile() {
           .catch(statsError => console.error('Ошибка при загрузке статистики пользователя:', statsError))
       );
       
-      // Загружаем фолловеров
+      // Загружаем фолловеров с принудительным обновлением
       if (userData.id) {
         try {
           const followersData = await getUserFollowers(userData.id);
-          setFollowers(followersData.data || []);
+          console.log('Загружены данные фолловеров:', followersData);
+          
+          if (followersData && followersData.followers) {
+            setFollowers(followersData.followers || []);
+          } else {
+            console.warn('Некорректные данные фолловеров:', followersData);
+            setFollowers([]);
+          }
         } catch (error) {
           console.error('Ошибка при загрузке фолловеров:', error);
+          setFollowers([]);
         }
         
         // Здесь будет загрузка фолловингов, когда будет готово API
-        // Пока используем пустой массив
         setFollowings([]);
       }
       
@@ -191,7 +198,7 @@ export default function Profile() {
     if (!isInitialized) return;
     
     loadUserData();
-  }, [isInitialized, isAuthenticated, userId]);
+  }, [isInitialized, isAuthenticated, router]);
 
   // Если данные загружаются, показываем индикатор загрузки
   if (loading) {
@@ -207,10 +214,10 @@ export default function Profile() {
   if (error) {
     return (
       <div className={styles.error}>
-        <h2>Ошибка загрузки профиля</h2>
+        <h2>Произошла ошибка</h2>
         <p>{error}</p>
-        <button onClick={() => router.push('/auth')} className={styles.button}>
-          Вернуться на страницу авторизации
+        <button onClick={loadUserData} className={styles.button}>
+          Попробовать снова
         </button>
       </div>
     );
@@ -417,19 +424,26 @@ export default function Profile() {
   // Функция для отображения статуса пользователя
   const renderUserStatus = () => {
     // Определяем статус стримера на основе данных профиля
-    const isStreamer = profileData?.isStreamer || 
+    const isStreamerStatus = profileData?.isStreamer || 
                       profileData?.broadcaster_type === 'partner' || 
                       profileData?.broadcaster_type === 'affiliate' || 
                       (profileData?.follower_count && profileData.follower_count >= 265);
     
+    // Получаем количество фолловеров из разных возможных источников
+    const followerCount = 
+      profileData?.follower_count || 
+      (userStats?.followers?.total) || 
+      (followers?.length) || 
+      0;
+    
     return (
       <div className={styles.statusContainer}>
         <span className={styles.statusText}>Статус:</span>
-        <span className={styles.statusValue} style={{ color: isStreamer ? '#9146FF' : '#4CAF50' }}>
-          {isStreamer ? 'Стример' : 'Зритель'}
+        <span className={styles.statusValue} style={{ color: isStreamerStatus ? '#9146FF' : '#4CAF50' }}>
+          {isStreamerStatus ? 'Стример' : 'Зритель'}
         </span>
         <span className={styles.followersCount}>
-          (Фолловеров: {profileData?.follower_count || 0})
+          (Фолловеров: {followerCount})
         </span>
       </div>
     );
@@ -743,9 +757,52 @@ export default function Profile() {
           className={styles.avatar}
         />
         <div className={styles.profileInfo}>
-          <h1>{profileData.display_name}</h1>
+          <h1>{profileData.display_name || profileData.login}</h1>
           {renderUserStatus()}
-          {renderBirthday()}
+          
+          {/* Добавляем блок с социальными сетями сразу под статусом */}
+          <div className={styles.profileSocialLinks}>
+            {renderSocialLinks()}
+          </div>
+          
+          {/* Добавляем кнопки для быстрого перехода к фолловерам и подпискам */}
+          <div className={styles.profileQuickLinks}>
+            <button 
+              className={`${styles.quickLinkButton} ${showFollowers ? styles.activeQuickLink : ''}`} 
+              onClick={toggleFollowers}
+            >
+              👥 Фолловеры
+            </button>
+            <button 
+              className={`${styles.quickLinkButton} ${showFollowings ? styles.activeQuickLink : ''}`} 
+              onClick={toggleFollowings}
+            >
+              👀 Подписки
+            </button>
+          </div>
+          
+          {isBirthday && (
+            <div className={styles.birthdayContainer}>
+              <span className={styles.birthdayIcon}>🎂</span>
+              <span className={styles.birthdayText}>С днем рождения! +100 стример-коинов!</span>
+            </div>
+          )}
+          
+          {daysToBirthday !== null && (
+            <div className={styles.birthdayContainer}>
+              <span className={styles.birthdayIcon}>🎂</span>
+              <span className={styles.birthdayText}>
+                День рождения через {daysToBirthday} {getDayWord(daysToBirthday)}!
+              </span>
+            </div>
+          )}
+          
+          {profileData.birthday && (
+            <div className={styles.birthdayContainer}>
+              <span className={styles.birthdayIcon}>🎂</span>
+              <span className={styles.birthdayText}>День рождения: {formatDate(profileData.birthday)}</span>
+            </div>
+          )}
         </div>
         <div className={styles.profileActions}>
           <button 
@@ -854,20 +911,29 @@ export default function Profile() {
       ) : showFollowers ? (
         <div className={styles.sectionContainer}>
           <h2 className={styles.sectionTitle}>Фолловеры</h2>
-          {followers.length === 0 ? (
+          {(!followers || followers.length === 0) ? (
             <div className={styles.emptyState}>
               <p>У вас пока нет фолловеров</p>
+              <button 
+                className={styles.button}
+                onClick={loadUserData}
+                style={{ marginTop: '15px' }}
+              >
+                Обновить данные
+              </button>
             </div>
           ) : (
             <div className={styles.followersGrid}>
-              {followers.map(follower => (
-                <div key={follower.id} className={styles.followerCard}>
+              {followers.map((follower, index) => (
+                <div key={follower.id || `follower-${index}`} className={styles.followerCard}>
                   <img 
                     src={follower.profile_image_url || '/images/default-avatar.png'} 
-                    alt={follower.display_name} 
+                    alt={follower.display_name || follower.login || 'Фолловер'} 
                     className={styles.followerAvatar}
                   />
-                  <div className={styles.followerName}>{follower.display_name}</div>
+                  <div className={styles.followerName}>
+                    {follower.display_name || follower.login || `Пользователь ${index + 1}`}
+                  </div>
                   <button className={styles.viewProfileButton}>Профиль</button>
                 </div>
               ))}
