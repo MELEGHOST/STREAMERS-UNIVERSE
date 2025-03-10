@@ -15,9 +15,8 @@ export async function POST(request) {
     
     if (!suFollowerIds || !Array.isArray(suFollowerIds) || suFollowerIds.length === 0) {
       return NextResponse.json({
-        error: 'Требуется массив ID пользователей SU',
         followerIds: []
-      }, { status: 400 });
+      }, { status: 200 });
     }
     
     // Получаем токен доступа из cookies
@@ -58,7 +57,7 @@ export async function POST(request) {
       return NextResponse.json({ 
         error: `Ошибка при получении фолловеров: ${followersResponse.status}`,
         followerIds: [] 
-      }, { status: followersResponse.status });
+      }, { status: 200 });
     }
     
     const followersData = await followersResponse.json();
@@ -73,7 +72,7 @@ export async function POST(request) {
     const followerIds = followersData.data.map(follower => follower.user_id);
     
     // Фильтруем только те ID, которые есть в списке suFollowerIds
-    const matchingFollowerIds = suFollowerIds.filter(id => followerIds.includes(id));
+    const matchingFollowerIds = suFollowerIds.filter(id => id && followerIds.includes(id));
     
     return NextResponse.json({
       followerIds: matchingFollowerIds
@@ -84,6 +83,6 @@ export async function POST(request) {
     return NextResponse.json({
       error: 'Ошибка при проверке фолловеров',
       followerIds: []
-    }, { status: 500 });
+    }, { status: 200 });
   }
 } 

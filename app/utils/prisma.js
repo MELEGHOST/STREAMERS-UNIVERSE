@@ -9,9 +9,8 @@ const prismaClientSingleton = () => {
 
 // Используем глобальную переменную для сохранения экземпляра клиента
 // в режиме разработки Next.js (это предотвращает создание множества соединений)
-const globalForPrisma = global as unknown as {
-  prisma: PrismaClient | undefined;
-};
+const globalForPrisma = global;
+globalForPrisma.prisma = globalForPrisma.prisma || undefined;
 
 // Экспортируем экземпляр клиента - создаем новый или используем существующий
 export const prisma = globalForPrisma.prisma ?? prismaClientSingleton();

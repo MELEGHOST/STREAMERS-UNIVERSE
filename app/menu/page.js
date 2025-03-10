@@ -7,7 +7,6 @@ import Image from 'next/image';
 import styles from '../../styles/menu.module.css';
 import { useAuth } from '../../contexts/AuthContext';
 import clientStorage from '../utils/clientStorage';
-import { UserCircleIcon, UserIcon, Cog6ToothIcon, UsersIcon, HeartIcon, RectangleStackIcon, StarIcon } from '@heroicons/react/24/outline';
 
 export default function Menu() {
   const router = useRouter();
@@ -226,9 +225,7 @@ export default function Menu() {
             className={styles.menuItem}
             onClick={() => router.push('/followers')}
           >
-            <div className={styles.menuIcon}>
-              <UsersIcon className={styles.heroIcon} />
-            </div>
+            <div className={styles.menuIcon}>👥</div>
             <div className={styles.menuContent}>
               <h2>3. Последователи</h2>
               <p>Посмотреть кто подписан на вас на Twitch (фолловеры) и на Streamers Universe (последователи)</p>

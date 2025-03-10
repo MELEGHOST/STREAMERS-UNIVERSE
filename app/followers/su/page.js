@@ -59,52 +59,67 @@ export default function FollowersSU() {
       setLoading(true);
       
       // Делаем запрос к API для получения последователей Streamers Universe
-      const response = await fetch(`/api/su/followers?userId=${userId}`, {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json'
-        }
-      });
-      
-      if (!response.ok) {
-        console.error('Ошибка при получении последователей SU:', response.status);
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Не удалось получить данные о последователях');
-      }
-      
-      const followersData = await response.json();
-      
-      if (followersData.followers && followersData.followers.length > 0) {
-        // Проверяем регистрацию на Twitch для каждого последователя
-        const twitchFollowersResponse = await fetch(`/api/twitch/check-followers`, {
-          method: 'POST',
+      try {
+        const response = await fetch(`/api/su/followers?userId=${userId}`, {
+          method: 'GET',
           headers: {
             'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({
-            userId: userId,
-            suFollowerIds: followersData.followers.map(f => f.twitchId).filter(id => id)
-          })
+          }
         });
         
-        let twitchFollowerIds = [];
-        
-        if (twitchFollowersResponse.ok) {
-          const twitchData = await twitchFollowersResponse.json();
-          twitchFollowerIds = twitchData.followerIds || [];
+        if (!response.ok) {
+          console.error('Ошибка при получении последователей SU:', response.status);
+          const errorData = await response.json();
+          throw new Error(errorData.error || 'Не удалось получить данные о последователях');
         }
         
-        // Обновляем информацию о фолловерах
-        const updatedFollowers = followersData.followers.map(follower => ({
-          ...follower,
-          isTwitchFollower: follower.twitchId && twitchFollowerIds.includes(follower.twitchId)
-        }));
+        const followersData = await response.json();
         
-        setFollowers(updatedFollowers);
-        setTotalFollowers(updatedFollowers.length);
-      } else {
+        if (followersData.followers && followersData.followers.length > 0) {
+          // Проверяем регистрацию на Twitch для каждого последователя
+          try {
+            const twitchFollowersResponse = await fetch(`/api/twitch/check-followers`, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json'
+              },
+              body: JSON.stringify({
+                userId: userId,
+                suFollowerIds: followersData.followers.map(f => f.twitchId).filter(id => id)
+              })
+            });
+            
+            let twitchFollowerIds = [];
+            
+            if (twitchFollowersResponse.ok) {
+              const twitchData = await twitchFollowersResponse.json();
+              twitchFollowerIds = twitchData.followerIds || [];
+            }
+            
+            // Обновляем информацию о фолловерах
+            const updatedFollowers = followersData.followers.map(follower => ({
+              ...follower,
+              isTwitchFollower: follower.twitchId && twitchFollowerIds.includes(follower.twitchId)
+            }));
+            
+            setFollowers(updatedFollowers);
+            setTotalFollowers(updatedFollowers.length);
+          } catch (twitchError) {
+            console.error('Ошибка при проверке Twitch фолловеров:', twitchError);
+            // Если не удалось проверить Twitch, просто отображаем последователей SU
+            setFollowers(followersData.followers);
+            setTotalFollowers(followersData.followers.length);
+          }
+        } else {
+          setFollowers([]);
+          setTotalFollowers(0);
+        }
+      } catch (apiError) {
+        console.error('Ошибка при запросе к API:', apiError);
+        // В случае ошибки показываем пустой список
         setFollowers([]);
         setTotalFollowers(0);
+        setError('Не удалось загрузить данные о последователях. Пожалуйста, попробуйте позже.');
       }
       
       setLoading(false);
