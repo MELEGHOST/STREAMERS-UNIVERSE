@@ -212,12 +212,21 @@
 }
 
 .closeButton:hover {
-  background-color: #f0f0f0;
-  color: #333;
+  background: rgba(255, 255, 255, 0.1);
 }
 
 .modalContent {
   padding: 20px;
+}
+
+.errorMessage {
+  background-color: rgba(255, 0, 0, 0.1);
+  border-left: 4px solid #ff3b30;
+  color: #ff3b30;
+  padding: 10px 15px;
+  margin-bottom: 15px;
+  border-radius: 0 4px 4px 0;
+  font-size: 14px;
 }
 
 .formGroup {
@@ -259,11 +268,13 @@
   cursor: pointer;
   margin-right: 5px;
   transition: color 0.2s;
+  user-select: none;
 }
 
 .ratingStar:hover,
 .ratingStar.active {
   color: #FFD700;
+  text-shadow: 0 0 5px rgba(255, 215, 0, 0.5);
 }
 
 .formActions {
@@ -294,14 +305,20 @@
   border: none;
   border-radius: 8px;
   padding: 10px 20px;
-  font-size: 1rem;
+  font-size: 16px;
   font-weight: 600;
   cursor: pointer;
   transition: background-color 0.2s;
 }
 
 .submitButton:hover {
-  background-color: #7722CC;
+  background-color: #7c2cf2;
+}
+
+.submitButton:disabled,
+.cancelButton:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
 }
 
 /* Адаптивность */

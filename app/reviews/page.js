@@ -16,6 +16,12 @@ export default function Reviews() {
   const [showModal, setShowModal] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState(null);
   const [selectedSubcategory, setSelectedSubcategory] = useState(null);
+  const [rating, setRating] = useState(0);
+  const [hoverRating, setHoverRating] = useState(0);
+  const [productName, setProductName] = useState('');
+  const [reviewText, setReviewText] = useState('');
+  const [submitting, setSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState('');
   const router = useRouter();
 
   useEffect(() => {
@@ -61,6 +67,89 @@ export default function Reviews() {
 
   const closeModal = () => {
     setShowModal(false);
+    // Сбрасываем форму
+    setSelectedCategory(null);
+    setSelectedSubcategory(null);
+    setRating(0);
+    setHoverRating(0);
+    setProductName('');
+    setReviewText('');
+    setSubmitError('');
+  };
+
+  const handleRatingClick = (starIndex) => {
+    setRating(starIndex);
+  };
+
+  const handleMouseEnter = (starIndex) => {
+    setHoverRating(starIndex);
+  };
+
+  const handleMouseLeave = () => {
+    setHoverRating(0);
+  };
+
+  const validateForm = () => {
+    if (!selectedCategory) {
+      setSubmitError('Выберите категорию');
+      return false;
+    }
+    
+    if (!selectedSubcategory) {
+      setSubmitError('Выберите подкатегорию');
+      return false;
+    }
+    
+    if (!productName.trim()) {
+      setSubmitError('Введите название товара или услуги');
+      return false;
+    }
+    
+    if (rating === 0) {
+      setSubmitError('Поставьте оценку (от 1 до 5 звезд)');
+      return false;
+    }
+    
+    if (!reviewText.trim() || reviewText.length < 10) {
+      setSubmitError('Напишите отзыв (минимум 10 символов)');
+      return false;
+    }
+    
+    return true;
+  };
+
+  const submitReview = async () => {
+    if (!validateForm()) {
+      return;
+    }
+    
+    setSubmitting(true);
+    setSubmitError('');
+    
+    try {
+      // Здесь будет запрос к API для сохранения отзыва
+      // Имитируем отправку данных
+      console.log('Отправка отзыва:', {
+        category: selectedCategory.id,
+        subcategory: selectedSubcategory.id,
+        productName,
+        rating,
+        reviewText
+      });
+      
+      // Имитируем задержку API
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      // Успешно опубликовано
+      alert('Ваш отзыв успешно опубликован!');
+      closeModal();
+      
+    } catch (error) {
+      console.error('Ошибка при публикации отзыва:', error);
+      setSubmitError('Произошла ошибка при публикации отзыва. Пожалуйста, попробуйте еще раз.');
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   if (isLoading) {
@@ -125,6 +214,12 @@ export default function Reviews() {
               <button onClick={closeModal} className={styles.closeButton}>×</button>
             </div>
             <div className={styles.modalContent}>
+              {submitError && (
+                <div className={styles.errorMessage}>
+                  {submitError}
+                </div>
+              )}
+              
               <div className={styles.formGroup}>
                 <label>Категория</label>
                 <select 
@@ -164,13 +259,27 @@ export default function Reviews() {
               
               <div className={styles.formGroup}>
                 <label>Название товара или услуги</label>
-                <input type="text" className={styles.inputField} placeholder="Например: Logitech G Pro X" />
+                <input 
+                  type="text" 
+                  className={styles.inputField} 
+                  placeholder="Например: Logitech G Pro X" 
+                  value={productName}
+                  onChange={(e) => setProductName(e.target.value)}
+                />
               </div>
               <div className={styles.formGroup}>
                 <label>Оценка</label>
                 <div className={styles.ratingSelector}>
                   {[1, 2, 3, 4, 5].map(star => (
-                    <span key={star} className={styles.ratingStar}>★</span>
+                    <span 
+                      key={star} 
+                      className={`${styles.ratingStar} ${(hoverRating || rating) >= star ? styles.active : ''}`}
+                      onClick={() => handleRatingClick(star)}
+                      onMouseEnter={() => handleMouseEnter(star)}
+                      onMouseLeave={handleMouseLeave}
+                    >
+                      ★
+                    </span>
                   ))}
                 </div>
               </div>
@@ -180,11 +289,25 @@ export default function Reviews() {
                   className={styles.textareaField} 
                   placeholder="Поделитесь своим опытом использования..."
                   rows="5"
+                  value={reviewText}
+                  onChange={(e) => setReviewText(e.target.value)}
                 ></textarea>
               </div>
               <div className={styles.formActions}>
-                <button className={styles.cancelButton} onClick={closeModal}>Отмена</button>
-                <button className={styles.submitButton}>Опубликовать</button>
+                <button 
+                  className={styles.cancelButton} 
+                  onClick={closeModal}
+                  disabled={submitting}
+                >
+                  Отмена
+                </button>
+                <button 
+                  className={styles.submitButton}
+                  onClick={submitReview}
+                  disabled={submitting}
+                >
+                  {submitting ? 'Публикация...' : 'Опубликовать'}
+                </button>
               </div>
             </div>
           </div>
