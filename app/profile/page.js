@@ -53,51 +53,51 @@ export default function Profile() {
   });
   const [loadAttempts, setLoadAttempts] = useState(0);
 
-  // Исправляем проблему с хуками - перемещаем useEffect для socialLinks
-  // Проблема в том, что мы используем зависимость [socialLinks], но внутри эффекта проверяем !socialLinks
-  // Это может вызвать бесконечный цикл и нарушает правила хуков
+  // Загрузка данных при монтировании компонента
   useEffect(() => {
-    // Инициализация socialLinks при первой загрузке
-    const initSocialLinks = () => {
+    try {
+      console.log('Профиль: начало инициализации');
+      
+      // Получаем данные пользователя из localStorage
+      let userData = null;
       try {
-        const storedSocialLinks = localStorage.getItem('social_links');
-        if (storedSocialLinks) {
-          const parsedLinks = JSON.parse(storedSocialLinks);
-          setSocialLinks(parsedLinks);
-          console.log('Загружены социальные ссылки из localStorage в эффекте');
-        } else {
-          // Если нет в localStorage, создаем пустой объект
-          setSocialLinks({
-            twitch: '',
-            youtube: '',
-            discord: '',
-            telegram: '',
-            vk: '',
-            isMusician: false,
-            yandexMusic: '',
-            description: ''
-          });
+        const storedUser = localStorage.getItem('twitch_user');
+        if (storedUser) {
+          userData = JSON.parse(storedUser);
+          console.log('Получены данные из localStorage:', userData.login || userData.display_name);
         }
       } catch (error) {
-        console.error('Ошибка при загрузке социальных ссылок:', error);
-        // Инициализируем пустым объектом в случае ошибки
-        setSocialLinks({
-          twitch: '',
-          youtube: '',
-          discord: '',
-          telegram: '',
-          vk: '',
-          isMusician: false,
-          yandexMusic: '',
-          description: ''
-        });
+        console.error('Ошибка при получении данных из localStorage:', error);
       }
-    };
-
-    if (!socialLinks) {
-      initSocialLinks();
+      
+      // Если данные есть в localStorage, устанавливаем их сразу
+      if (userData && userData.id) {
+        setProfileData(userData);
+        setLoading(false);
+        console.log('Установлены данные профиля из localStorage');
+        
+        // Загружаем социальные ссылки из localStorage
+        try {
+          const storedSocialLinks = localStorage.getItem('social_links');
+          if (storedSocialLinks) {
+            const parsedLinks = JSON.parse(storedSocialLinks);
+            setSocialLinks(parsedLinks);
+            console.log('Загружены социальные ссылки из localStorage');
+          }
+        } catch (error) {
+          console.error('Ошибка при загрузке социальных ссылок:', error);
+        }
+      }
+      
+      // В любом случае загружаем актуальные данные с сервера
+      loadUserData();
+      
+    } catch (error) {
+      console.error('Критическая ошибка при инициализации:', error);
+      setError('Произошла непредвиденная ошибка. Пожалуйста, обновите страницу.');
+      setLoading(false);
     }
-  }, []); // Пустой массив зависимостей, чтобы эффект выполнился только один раз
+  }, []);
 
   // Исправляем проблему с авторизацией - добавляем проверку токена перед запросами
   const fetchUserData = async () => {
@@ -147,16 +147,79 @@ export default function Profile() {
     }
   };
 
-  // Обновляем функцию loadUserData для использования fetchUserData
+  // Обновляем функцию loadUserData для загрузки актуальных данных профиля и социальных ссылок
   const loadUserData = async () => {
     setLoading(true);
     setError(null);
     
     try {
-      await fetchUserData();
+      // Получаем токен доступа
+      const accessToken = localStorage.getItem('cookie_twitch_access_token') || 
+                         localStorage.getItem('twitch_token') || 
+                         Cookies.get('twitch_access_token');
+      
+      if (!accessToken) {
+        throw new Error('Отсутствует токен доступа');
+      }
+      
+      // Загружаем данные профиля
+      const profileResponse = await fetch('/api/twitch/profile', {
+        headers: {
+          'Authorization': `Bearer ${accessToken}`,
+          'Cache-Control': 'no-cache'
+        }
+      });
+      
+      if (!profileResponse.ok) {
+        if (profileResponse.status === 401) {
+          router.push('/auth');
+          return;
+        }
+        throw new Error(`Ошибка API: ${profileResponse.status}`);
+      }
+      
+      const profileData = await profileResponse.json();
+      setProfileData(profileData);
+      localStorage.setItem('twitch_user', JSON.stringify(profileData));
+      
+      // Загружаем социальные ссылки
+      try {
+        const socialResponse = await fetch(`/api/user/social?userId=${profileData.id}`, {
+          headers: {
+            'Authorization': `Bearer ${accessToken}`,
+            'Cache-Control': 'no-cache'
+          }
+        });
+        
+        if (socialResponse.ok) {
+          const socialData = await socialResponse.json();
+          setSocialLinks(socialData);
+          localStorage.setItem('social_links', JSON.stringify(socialData));
+          console.log('Обновлены социальные ссылки:', socialData);
+        }
+      } catch (socialError) {
+        console.error('Ошибка при загрузке социальных ссылок:', socialError);
+        
+        // Пробуем загрузить из localStorage
+        const storedSocialLinks = localStorage.getItem('social_links');
+        if (storedSocialLinks) {
+          try {
+            const parsedLinks = JSON.parse(storedSocialLinks);
+            setSocialLinks(parsedLinks);
+          } catch (parseError) {
+            console.error('Ошибка при парсинге социальных ссылок из localStorage:', parseError);
+          }
+        }
+      }
+      
+      // Загружаем дополнительные данные
+      fetchFollowings();
+      fetchTierlists();
+      
     } catch (error) {
       console.error('Ошибка при загрузке данных пользователя:', error);
       setError(error.message);
+    } finally {
       setLoading(false);
     }
   };
@@ -206,102 +269,6 @@ export default function Profile() {
       alert('Не удалось сохранить социальные ссылки. Пожалуйста, попробуйте позже.');
     }
   };
-
-  // Загрузка данных при монтировании компонента
-  useEffect(() => {
-    try {
-      console.log('Профиль: начало инициализации');
-      
-      // Получаем данные пользователя из localStorage
-      let userData = null;
-      try {
-        const storedUser = localStorage.getItem('twitch_user');
-        if (storedUser) {
-          userData = JSON.parse(storedUser);
-          console.log('Получены данные из localStorage:', userData.login || userData.display_name);
-        }
-      } catch (error) {
-        console.error('Ошибка при получении данных из localStorage:', error);
-      }
-      
-      // Если данные есть в localStorage, устанавливаем их сразу
-      if (userData && userData.id) {
-        setProfileData(userData);
-        setLoading(false);
-        console.log('Установлены данные профиля из localStorage');
-        
-        // Загружаем социальные ссылки из localStorage
-        try {
-          const storedSocialLinks = localStorage.getItem('social_links');
-          if (storedSocialLinks) {
-            const parsedLinks = JSON.parse(storedSocialLinks);
-            setSocialLinks(parsedLinks);
-            console.log('Загружены социальные ссылки из localStorage');
-          }
-        } catch (error) {
-          console.error('Ошибка при загрузке социальных ссылок:', error);
-        }
-      }
-      
-      // Получаем токен
-      const accessToken = localStorage.getItem('cookie_twitch_access_token') || 
-                          localStorage.getItem('twitch_token') || 
-                          Cookies.get('twitch_access_token');
-      
-      if (!accessToken) {
-        console.warn('Отсутствует токен доступа для API запросов');
-        if (!userData) {
-          setError('Не удалось получить данные профиля. Пожалуйста, авторизуйтесь.');
-          setLoading(false);
-        }
-        return;
-      }
-      
-      // Делаем прямой fetch запрос с абсолютным таймаутом
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 10000);
-      
-      fetch('/api/twitch/profile', {
-        headers: {
-          'Authorization': `Bearer ${accessToken}`,
-          'Cache-Control': 'no-cache'
-        },
-        signal: controller.signal
-      })
-      .then(response => {
-        if (!response.ok) {
-          throw new Error(`Ошибка API: ${response.status}`);
-        }
-        return response.json();
-      })
-      .then(data => {
-        // Сохраняем данные в localStorage и устанавливаем их в state
-        localStorage.setItem('twitch_user', JSON.stringify(data));
-        setProfileData(data);
-        setLoading(false);
-        
-        // После успешной загрузки профиля запускаем подгрузку дополнительных данных
-        fetchFollowings();
-        fetchTierlists();
-      })
-      .catch(error => {
-        console.error('Ошибка при загрузке профиля:', error);
-        // Если у нас уже есть данные из localStorage, то не показываем ошибку
-        if (!userData) {
-          setError('Ошибка при загрузке данных профиля. Пожалуйста, обновите страницу.');
-          setLoading(false);
-        }
-      })
-      .finally(() => {
-        clearTimeout(timeoutId);
-      });
-      
-    } catch (error) {
-      console.error('Критическая ошибка:', error);
-      setError('Произошла непредвиденная ошибка. Пожалуйста, обновите страницу.');
-      setLoading(false);
-    }
-  }, []);
 
   // Если данные загружаются, не показываем экран загрузки, а рендерим контейнер с плавной анимацией
   if (loading && !profileData) {
@@ -420,8 +387,18 @@ export default function Profile() {
     // Получаем количество фолловеров из userStats или profileData
     const followersCount = userStats?.followers?.total || 
                           profileData.followersCount || 
+                          profileData.follower_count || 
                           followers?.length || 
                           0;
+    
+    // Переводим тип канала на русский
+    const getBroadcasterTypeInRussian = (type) => {
+      switch(type) {
+        case 'affiliate': return 'Компаньон';
+        case 'partner': return 'Партнер';
+        default: return type || 'Стандартный';
+      }
+    };
     
     return (
       <div className={styles.profileInfoContainer}>
@@ -431,6 +408,7 @@ export default function Profile() {
               src={profileData.profile_image_url || '/images/default-avatar.png'} 
               alt={profileData.display_name || 'Пользователь'} 
               size={150}
+              className={styles.profileAvatar}
             />
           </div>
           <div className={styles.profileDetails}>
@@ -444,7 +422,7 @@ export default function Profile() {
               {profileData.broadcaster_type && (
                 <div className={styles.profileStat}>
                   <span className={styles.statIcon}>📺</span>
-                  <span className={styles.statValue}>{profileData.broadcaster_type}</span>
+                  <span className={styles.statValue}>{getBroadcasterTypeInRussian(profileData.broadcaster_type)}</span>
                   <span className={styles.statLabel}>Тип канала</span>
                 </div>
               )}
@@ -642,7 +620,7 @@ export default function Profile() {
             {/* Отображаем описание и социальные сети только если не показываем другие секции */}
             <div className={styles.profileInfoSection}>
               {/* Отображаем описание профиля */}
-              {socialLinks.description ? (
+              {socialLinks && socialLinks.description ? (
                 <div className={styles.profileDescription}>
                   <h3 className={styles.sectionTitle}>Описание</h3>
                   <p>{socialLinks.description}</p>
@@ -1051,7 +1029,7 @@ export default function Profile() {
               <div className={styles.accountInfoLabel}>Тип вещателя:</div>
               <div className={styles.accountInfoValue}>
                 {userStats.user.broadcasterType === 'partner' ? 'Партнер' : 
-                 userStats.user.broadcasterType === 'affiliate' ? 'Аффилиат' : 
+                 userStats.user.broadcasterType === 'affiliate' ? 'Компаньон' : 
                  'Стандартный'}
               </div>
             </div>
@@ -1389,6 +1367,36 @@ export default function Profile() {
       </div>
     );
   };
+
+  // Добавляем эффект для обновления данных при возвращении на страницу
+  useEffect(() => {
+    // Функция для проверки, были ли обновлены данные профиля
+    const checkForProfileUpdates = () => {
+      const lastEditTime = localStorage.getItem('profile_last_edit_time');
+      const currentProfileUpdateTime = localStorage.getItem('profile_update_timestamp');
+      
+      if (lastEditTime && (!currentProfileUpdateTime || lastEditTime > currentProfileUpdateTime)) {
+        console.log('Обнаружены изменения в профиле, обновляем данные...');
+        loadUserData();
+        localStorage.setItem('profile_update_timestamp', Date.now().toString());
+      }
+    };
+    
+    // Проверяем обновления при монтировании компонента
+    checkForProfileUpdates();
+    
+    // Добавляем обработчик события для проверки обновлений при фокусе на окне
+    const handleFocus = () => {
+      checkForProfileUpdates();
+    };
+    
+    window.addEventListener('focus', handleFocus);
+    
+    // Очищаем обработчик при размонтировании
+    return () => {
+      window.removeEventListener('focus', handleFocus);
+    };
+  }, []);
 
   return (
     <div className={styles.container}>

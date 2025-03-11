@@ -1759,3 +1759,29 @@
     justify-content: center;
   }
 }
+
+/* Стили для аватара профиля */
+.profileAvatar {
+  width: 150px;
+  height: 150px;
+  border-radius: 50%;
+  border: 3px solid rgba(156, 39, 176, 0.7);
+  box-shadow: 0 0 15px rgba(156, 39, 176, 0.5);
+  object-fit: cover;
+  background-color: #1a1a2e;
+}
+
+.profileAvatar img {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+/* Анимация для аватара при наведении */
+.profileAvatar:hover {
+  transform: scale(1.05);
+  border-color: rgba(156, 39, 176, 1);
+  box-shadow: 0 0 20px rgba(156, 39, 176, 0.8);
+  transition: all 0.3s ease;
+}
