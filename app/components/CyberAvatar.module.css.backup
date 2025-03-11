@@ -8,18 +8,10 @@
   width: 100%;
   height: 100%;
   transition: 200ms;
-  cursor: pointer;
-  perspective: 1000px;
 }
 
 .container:active {
   transform: scale(0.95);
-}
-
-.canvas {
-  position: absolute;
-  inset: 0;
-  z-index: 200;
 }
 
 .card {
@@ -30,15 +22,13 @@
   justify-content: center;
   align-items: center;
   border-radius: 20px;
-  transition: transform 350ms ease, filter 350ms ease, box-shadow 350ms ease;
+  transition: 700ms;
   background: linear-gradient(45deg, #1a1a1a, #262626);
   border: 2px solid rgba(255, 255, 255, 0.1);
   overflow: hidden;
   box-shadow:
     0 0 20px rgba(0, 0, 0, 0.3),
     inset 0 0 20px rgba(0, 0, 0, 0.2);
-  transform-style: preserve-3d;
-  will-change: transform, filter;
 }
 
 .cardContent {
@@ -59,8 +49,6 @@
   box-shadow: 0 0 15px rgba(92, 103, 255, 0.3);
   z-index: 2;
   transition: all 0.3s ease;
-  transform-style: preserve-3d;
-  transform: translateZ(20px);
 }
 
 .avatarImage img {
@@ -115,6 +103,22 @@
   border-radius: 50%;
   opacity: 0;
   transition: opacity 0.3s ease;
+}
+
+/* Hover effects */
+.tracker:hover ~ .card .glowingElements div {
+  opacity: 1;
+}
+
+.tracker:hover ~ .card .cardParticles span {
+  animation: particleFloat 2s infinite;
+}
+
+.tracker:hover ~ .card .avatarImage {
+  transform: scale(1.05);
+  border-color: #00ffaa;
+  box-shadow: 0 0 20px rgba(0, 255, 170, 0.5);
+  border-radius: 15px;
 }
 
 @keyframes particleFloat {
@@ -188,30 +192,126 @@
   transition: opacity 0.3s ease;
 }
 
+.tracker:hover ~ .card::before {
+  opacity: 1;
+}
+
+.tracker {
+  position: absolute;
+  z-index: 200;
+  width: 33.33%;
+  height: 33.33%;
+}
+
+.tracker:hover {
+  cursor: pointer;
+}
+
+.tracker:hover ~ .card {
+  transition: 300ms;
+  filter: brightness(1.1);
+}
+
 .container:hover .card::before {
-  opacity: 0.8;
-  transition: opacity 0.3s ease;
+  transition: 200ms;
+  content: "";
+  opacity: 80%;
 }
 
-.container:hover .card {
-  box-shadow:
-    0 0 30px rgba(0, 0, 0, 0.4),
-    inset 0 0 20px rgba(0, 0, 0, 0.2),
-    0 0 15px rgba(0, 255, 170, 0.3);
+.canvas {
+  perspective: 800px;
+  inset: 0;
+  z-index: 200;
+  position: absolute;
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  grid-template-rows: 1fr 1fr 1fr;
+  gap: 0px 0px;
+  grid-template-areas:
+    "tr1 tr2 tr3"
+    "tr4 tr5 tr6"
+    "tr7 tr8 tr9";
 }
 
-.container:hover .glowingElements div {
-  opacity: 0.6;
+.tr1 {
+  grid-area: tr1;
 }
 
-.container:hover .cardParticles span {
-  opacity: 0.2;
+.tr2 {
+  grid-area: tr2;
 }
 
-.container:hover .avatarImage {
-  transform: translateZ(25px) scale(1.02);
-  border-color: rgba(0, 255, 170, 0.7);
-  box-shadow: 0 0 15px rgba(0, 255, 170, 0.3);
+.tr3 {
+  grid-area: tr3;
+}
+
+.tr4 {
+  grid-area: tr4;
+}
+
+.tr5 {
+  grid-area: tr5;
+}
+
+.tr6 {
+  grid-area: tr6;
+}
+
+.tr7 {
+  grid-area: tr7;
+}
+
+.tr8 {
+  grid-area: tr8;
+}
+
+.tr9 {
+  grid-area: tr9;
+}
+
+.tr1:hover ~ .card {
+  transform: rotateX(8deg) rotateY(-8deg);
+  filter: brightness(1.15);
+}
+
+.tr2:hover ~ .card {
+  transform: rotateX(8deg) rotateY(0deg);
+  filter: brightness(1.1);
+}
+
+.tr3:hover ~ .card {
+  transform: rotateX(8deg) rotateY(8deg);
+  filter: brightness(1.15);
+}
+
+.tr4:hover ~ .card {
+  transform: rotateX(0deg) rotateY(-8deg);
+  filter: brightness(1.1);
+}
+
+.tr5:hover ~ .card {
+  transform: rotateX(0deg) rotateY(0deg);
+  filter: brightness(1.05);
+}
+
+.tr6:hover ~ .card {
+  transform: rotateX(0deg) rotateY(8deg);
+  filter: brightness(1.1);
+}
+
+.tr7:hover ~ .card {
+  transform: rotateX(-8deg) rotateY(-8deg);
+  filter: brightness(1.15);
+}
+
+.tr8:hover ~ .card {
+  transform: rotateX(-8deg) rotateY(0deg);
+  filter: brightness(1.1);
+}
+
+.tr9:hover ~ .card {
+  transform: rotateX(-8deg) rotateY(8deg);
+  filter: brightness(1.15);
 }
 
 .cardGlare {
@@ -225,7 +325,6 @@
   );
   transform: translateY(-100%);
   transition: all 0.5s ease;
-  pointer-events: none;
 }
 
 .cyberLines span {
@@ -242,7 +341,6 @@
   );
   opacity: 0.3;
   transition: all 0.5s ease;
-  pointer-events: none;
 }
 
 .cyberLines span:nth-child(1) {
@@ -252,7 +350,6 @@
   animation: lineGrow 3s infinite alternate;
   animation-delay: 0s;
   height: 1px;
-  transform: translateZ(5px);
 }
 
 .cyberLines span:nth-child(2) {
@@ -262,7 +359,6 @@
   animation: lineGrow 3s infinite alternate;
   animation-delay: 0.5s;
   height: 1px;
-  transform: translateZ(5px);
 }
 
 .cyberLines span:nth-child(3) {
@@ -272,7 +368,6 @@
   animation: lineGrow 3s infinite alternate;
   animation-delay: 1s;
   height: 1px;
-  transform: translateZ(5px);
 }
 
 .cyberLines span:nth-child(4) {
@@ -282,7 +377,6 @@
   animation: lineGrow 3s infinite alternate;
   animation-delay: 1.5s;
   height: 1px;
-  transform: translateZ(5px);
 }
 
 .cornerElements span {
@@ -292,8 +386,6 @@
   border: 2px solid rgba(92, 103, 255, 0.5);
   opacity: 0.6;
   transition: all 0.3s ease;
-  pointer-events: none;
-  transform: translateZ(10px);
 }
 
 .cornerElements span:nth-child(1) {
@@ -337,20 +429,19 @@
   );
   animation: scanMove 3s linear infinite;
   opacity: 0.4;
-  pointer-events: none;
 }
 
 @keyframes lineGrow {
   0% {
-    transform: scaleX(0.8) translateZ(5px);
+    transform: scaleX(0.8);
     opacity: 0.2;
   }
   50% {
-    transform: scaleX(1) translateZ(5px);
+    transform: scaleX(1);
     opacity: 0.6;
   }
   100% {
-    transform: scaleX(0.9) translateZ(5px);
+    transform: scaleX(0.9);
     opacity: 0.4;
   }
 }
@@ -374,4 +465,4 @@
 
 .card:hover .cornerElements span {
   opacity: 1;
-}
+} 

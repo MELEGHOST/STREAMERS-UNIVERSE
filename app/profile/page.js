@@ -76,6 +76,18 @@ export default function Profile() {
             setProfileData(userData);
             // Продолжаем загрузку свежих данных в фоне
             console.log('Загружены данные из localStorage, продолжаем загрузку свежих данных');
+            
+            // Загружаем социальные ссылки из localStorage
+            try {
+              const storedSocialLinks = localStorage.getItem('social_links');
+              if (storedSocialLinks) {
+                const parsedLinks = JSON.parse(storedSocialLinks);
+                setSocialLinks(parsedLinks);
+                console.log('Загружены социальные ссылки из localStorage');
+              }
+            } catch (error) {
+              console.error('Ошибка при загрузке социальных ссылок:', error);
+            }
           }
         }
       } catch (localError) {
@@ -188,6 +200,18 @@ export default function Profile() {
         setProfileData(userData);
         setLoading(false);
         console.log('Установлены данные профиля из localStorage');
+        
+        // Загружаем социальные ссылки из localStorage
+        try {
+          const storedSocialLinks = localStorage.getItem('social_links');
+          if (storedSocialLinks) {
+            const parsedLinks = JSON.parse(storedSocialLinks);
+            setSocialLinks(parsedLinks);
+            console.log('Загружены социальные ссылки из localStorage');
+          }
+        } catch (error) {
+          console.error('Ошибка при загрузке социальных ссылок:', error);
+        }
       }
       
       // Получаем токен
@@ -510,7 +534,7 @@ export default function Profile() {
           {isStreamerStatus ? 'Стример' : 'Зритель'}
         </span>
         <span className={styles.followersCount}>
-          (Фолловеров: {followerCount})
+          Фолловеров: {followerCount}
         </span>
       </div>
     );
@@ -1119,21 +1143,6 @@ export default function Profile() {
           <button className={styles.logoutButton} onClick={handleLogout}>
             Выйти из аккаунта
           </button>
-          <a 
-            href="/auth?logged_out=true" 
-            className={styles.logoutButton} 
-            style={{ marginLeft: '10px', textDecoration: 'none', textAlign: 'center' }}
-            onClick={(e) => {
-              e.preventDefault();
-              localStorage.removeItem('twitch_user');
-              localStorage.removeItem('twitch_token');
-              localStorage.removeItem('is_authenticated');
-              localStorage.setItem('logged_out', 'true');
-              window.location.href = '/auth?logged_out=true';
-            }}
-          >
-            Альтернативный выход
-          </a>
         </div>
       </div>
       
