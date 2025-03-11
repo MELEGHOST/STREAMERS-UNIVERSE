@@ -168,132 +168,87 @@ export default function Profile() {
 
   // Загрузка данных при монтировании компонента
   useEffect(() => {
-    console.log('Инициализация профиля, isInitialized:', isInitialized, 'isAuthenticated:', isAuthenticated);
-    
-    // Устанавливаем флаг загрузки
-    if (!loading) {
-      setLoading(true);
-    }
-    
-    // Устанавливаем специальные куки для middleware
     try {
-      // Проверяем наличие токена в localStorage
-      const hasLocalToken = !!localStorage.getItem('cookie_twitch_access_token') || 
-                           !!localStorage.getItem('twitch_token');
-                           
-      // Проверяем наличие данных пользователя в localStorage
-      const hasUserData = !!localStorage.getItem('twitch_user');
+      console.log('Профиль: начало инициализации');
       
-      // Устанавливаем куки-флаги для middleware
-      if (hasLocalToken) {
-        document.cookie = 'has_local_storage_token=true; path=/;';
-      }
-      
-      if (hasUserData) {
-        document.cookie = 'has_user_data=true; path=/;';
-      }
-    } catch (e) {
-      console.error('Ошибка при установке куки-флагов:', e);
-    }
-    
-    // Немедленно проверяем наличие токена
-    const accessToken = Cookies.get('twitch_access_token');
-    
-    if (!accessToken) {
-      console.warn('Отсутствует токен доступа, перенаправление на /auth');
-      router.push('/auth');
-      return;
-    }
-    
-    // Функция для безопасного получения данных пользователя из localStorage
-    const getSafeUserData = () => {
+      // Получаем данные пользователя из localStorage
+      let userData = null;
       try {
-        const userDataStr = localStorage.getItem('twitch_user') || Cookies.get('twitch_user');
-        if (!userDataStr) return null;
-        return JSON.parse(userDataStr);
-      } catch (e) {
-        console.error('Ошибка при получении данных пользователя:', e);
-        return null;
-      }
-    };
-    
-    const userData = getSafeUserData();
-    
-    // Устанавливаем данные профиля сразу, если они есть в localStorage
-    if (userData && !profileData) {
-      setProfileData(userData);
-      console.log('Установлены данные профиля из localStorage:', userData.login);
-    }
-    
-    // Функция инициализации данных пользователя
-    const initializeUserData = async () => {
-      try {
-        // Устанавливаем таймаут для предотвращения бесконечной загрузки
-        const timeoutPromise = new Promise((_, reject) => 
-          setTimeout(() => reject(new Error('Таймаут загрузки данных')), 10000)
-        );
-        
-        // Создаем промис для запроса данных пользователя
-        const fetchPromise = (async () => {
-          const token = Cookies.get('twitch_access_token');
-          
-          if (!token) {
-            throw new Error('Отсутствует токен доступа');
-          }
-          
-          // Делаем запрос к API с актуальным токеном
-          const response = await fetch('/api/twitch/profile', {
-            headers: {
-              'Authorization': `Bearer ${token}`,
-              'Cache-Control': 'no-cache'
-            }
-          });
-          
-          if (!response.ok) {
-            // Если ответ не 200, пытаемся прочитать сообщение об ошибке
-            const errorText = await response.text();
-            throw new Error(`Ошибка API: ${response.status}. ${errorText}`);
-          }
-          
-          return await response.json();
-        })();
-        
-        // Используем Promise.race для установки таймаута
-        const data = await Promise.race([fetchPromise, timeoutPromise]);
-        
-        if (data) {
-          // Сохраняем данные в localStorage для быстрого доступа в будущем
-          localStorage.setItem('twitch_user', JSON.stringify(data));
-          setProfileData(data);
-          
-          // Загружаем дополнительные данные в фоне
-          if (data.id) {
-            fetchFollowings().catch(err => console.error('Ошибка при загрузке фолловингов:', err));
-            fetchTierlists().catch(err => console.error('Ошибка при загрузке тирлистов:', err));
-          }
+        const storedUser = localStorage.getItem('twitch_user');
+        if (storedUser) {
+          userData = JSON.parse(storedUser);
+          console.log('Получены данные из localStorage:', userData.login || userData.display_name);
         }
       } catch (error) {
-        console.error('Ошибка при инициализации данных:', error);
-        
-        // Если у нас уже есть данные из localStorage, не показываем ошибку
-        if (!profileData) {
-          setError('Не удалось загрузить данные профиля. Попробуйте еще раз или обновите страницу.');
-        }
-      } finally {
-        // В любом случае заканчиваем загрузку
-        setLoading(false);
+        console.error('Ошибка при получении данных из localStorage:', error);
       }
-    };
-    
-    // Запуск инициализации с небольшой задержкой, чтобы UI успел отрендериться
-    const timer = setTimeout(() => {
-      initializeUserData();
-    }, 100);
-    
-    // Очистка таймера при размонтировании компонента
-    return () => clearTimeout(timer);
-    
-  }, [isInitialized, isAuthenticated, router, userId]);
+      
+      // Если данные есть в localStorage, устанавливаем их сразу
+      if (userData && userData.id) {
+        setProfileData(userData);
+        setLoading(false);
+        console.log('Установлены данные профиля из localStorage');
+      }
+      
+      // Получаем токен
+      const accessToken = localStorage.getItem('cookie_twitch_access_token') || 
+                          localStorage.getItem('twitch_token') || 
+                          Cookies.get('twitch_access_token');
+      
+      if (!accessToken) {
+        console.warn('Отсутствует токен доступа для API запросов');
+        if (!userData) {
+          setError('Не удалось получить данные профиля. Пожалуйста, авторизуйтесь.');
+          setLoading(false);
+        }
+        return;
+      }
+      
+      // Делаем прямой fetch запрос с абсолютным таймаутом
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 10000);
+      
+      fetch('/api/twitch/profile', {
+        headers: {
+          'Authorization': `Bearer ${accessToken}`,
+          'Cache-Control': 'no-cache'
+        },
+        signal: controller.signal
+      })
+      .then(response => {
+        if (!response.ok) {
+          throw new Error(`Ошибка API: ${response.status}`);
+        }
+        return response.json();
+      })
+      .then(data => {
+        // Сохраняем данные в localStorage и устанавливаем их в state
+        localStorage.setItem('twitch_user', JSON.stringify(data));
+        setProfileData(data);
+        setLoading(false);
+        
+        // После успешной загрузки профиля запускаем подгрузку дополнительных данных
+        fetchFollowings();
+        fetchTierlists();
+      })
+      .catch(error => {
+        console.error('Ошибка при загрузке профиля:', error);
+        // Если у нас уже есть данные из localStorage, то не показываем ошибку
+        if (!userData) {
+          setError('Ошибка при загрузке данных профиля. Пожалуйста, обновите страницу.');
+          setLoading(false);
+        }
+      })
+      .finally(() => {
+        clearTimeout(timeoutId);
+      });
+      
+    } catch (error) {
+      console.error('Критическая ошибка:', error);
+      setError('Произошла непредвиденная ошибка. Пожалуйста, обновите страницу.');
+      setLoading(false);
+    }
+  }, []);
 
   // Если данные загружаются, не показываем экран загрузки, а рендерим контейнер с плавной анимацией
   if (loading && !profileData) {
@@ -972,40 +927,63 @@ export default function Profile() {
 
   // Функция для загрузки фолловингов
   const fetchFollowings = async () => {
+    if (!profileData || !profileData.id) {
+      console.warn('Невозможно загрузить фолловингов: нет данных профиля');
+      return;
+    }
+    
     try {
-      const myUserId = userId || profileData?.id;
+      console.log('Загрузка фолловингов для пользователя:', profileData.id);
       
-      if (!myUserId) {
-        console.error('Нет ID пользователя для загрузки фолловингов');
+      // Получаем токен
+      const accessToken = localStorage.getItem('cookie_twitch_access_token') || 
+                         localStorage.getItem('twitch_token') || 
+                         Cookies.get('twitch_access_token');
+      
+      if (!accessToken) {
+        console.warn('Отсутствует токен доступа для загрузки фолловингов');
         return;
       }
       
-      console.log('Загрузка фолловингов для ID:', myUserId);
+      // Делаем прямой fetch запрос с абсолютным таймаутом
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 10000);
       
-      // Вызов API для получения фолловингов
-      const response = await fetch(`/api/twitch/user-followings?userId=${myUserId}`, {
-        method: 'GET',
-        headers: {
-          'Cache-Control': 'no-cache', 
-          'Pragma': 'no-cache'
+      const url = `/api/twitch/user-followings?userId=${profileData.id}`;
+      
+      try {
+        const response = await fetch(url, {
+          headers: {
+            'Authorization': `Bearer ${accessToken}`,
+            'Cache-Control': 'no-cache'
+          },
+          signal: controller.signal
+        });
+        
+        clearTimeout(timeoutId);
+        
+        if (!response.ok) {
+          throw new Error(`Ошибка API: ${response.status}`);
         }
-      });
-      
-      if (!response.ok) {
-        throw new Error(`Ошибка при загрузке фолловингов: ${response.status}`);
-      }
-      
-      const data = await response.json();
-      console.log('Получены данные фолловингов:', data);
-      
-      if (data && data.followings) {
-        setFollowings(data.followings);
-      } else {
-        console.warn('Некорректный формат данных фолловингов:', data);
+        
+        const data = await response.json();
+        console.log('Получены данные о фолловингах:', data);
+        
+        // Проверяем структуру данных и устанавливаем их
+        if (data && Array.isArray(data)) {
+          setFollowings(data);
+        } else if (data && Array.isArray(data.followings)) {
+          setFollowings(data.followings);
+        } else {
+          console.warn('Некорректный формат данных о фолловингах:', data);
+          setFollowings([]);
+        }
+      } catch (error) {
+        console.error('Ошибка при загрузке фолловингов:', error);
         setFollowings([]);
       }
     } catch (error) {
-      console.error('Ошибка при загрузке фолловингов:', error);
+      console.error('Критическая ошибка при загрузке фолловингов:', error);
       setFollowings([]);
     }
   };
@@ -1030,13 +1008,28 @@ export default function Profile() {
     }
   };
 
+  const getUserAvatar = () => {
+    if (!profileData) return '/default-avatar.png';
+    
+    // Проверяем различные варианты хранения URL аватара
+    if (profileData.profile_image_url) {
+      return profileData.profile_image_url;
+    } else if (profileData.profileImageUrl) {
+      return profileData.profileImageUrl;
+    } else if (userAvatar) {
+      return userAvatar;
+    }
+    
+    return '/default-avatar.png';
+  };
+
   return (
     <div className={styles.profileContainer}>
       <div className={styles.profileHeader}>
         <div className={styles.avatarContainer}>
           <CyberAvatar 
-            imageUrl={profileData.profile_image_url || '/default-avatar.png'} 
-            alt={profileData.display_name}
+            imageUrl={getUserAvatar()} 
+            alt={profileData?.login || profileData?.twitchName || 'Пользователь'}
             size={150}
           />
         </div>

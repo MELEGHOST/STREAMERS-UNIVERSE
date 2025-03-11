@@ -158,7 +158,7 @@ export default function StreamerCoins() {
     
     try {
       // Получаем текущие данные о коинах
-      const coinsDataKey = `streamcoins_${userData.id}`;
+      const coinsDataKey = `data_streamcoins_${userData.id}`;
       
       DataStorage.getData(coinsDataKey)
         .then(storedData => {
@@ -189,6 +189,11 @@ export default function StreamerCoins() {
             
             // Сохраняем обновленные данные
             DataStorage.saveData(coinsDataKey, updatedData);
+            
+            // Также обновляем данные в старом формате для совместимости с меню
+            if (typeof window !== 'undefined' && window.localStorage) {
+              localStorage.setItem(`streamcoins_${userData.id}`, '100');
+            }
             
             // Обновляем состояние
             setCoinsData({

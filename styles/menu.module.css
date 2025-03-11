@@ -71,18 +71,34 @@
   align-items: center;
   gap: 8px;
   background-color: rgba(123, 65, 201, 0.2);
-  padding: 4px 10px;
+  padding: 6px 12px;
   border-radius: 20px;
   border: 1px solid var(--primary-color, #7B41C9);
   cursor: pointer;
   transition: transform 0.3s, background-color 0.3s, box-shadow 0.3s;
   width: fit-content;
+  position: relative;
 }
 
 .coinsContainer:hover {
   transform: scale(1.05);
   background-color: rgba(123, 65, 201, 0.3);
   box-shadow: 0 0 10px rgba(123, 65, 201, 0.5);
+}
+
+.coinsContainer:hover::after {
+  content: 'Перейти к управлению коинами →';
+  position: absolute;
+  top: -25px;
+  left: 0;
+  background-color: rgba(0, 0, 0, 0.8);
+  color: #fff;
+  padding: 3px 8px;
+  border-radius: 4px;
+  font-size: 12px;
+  white-space: nowrap;
+  opacity: 0.9;
+  pointer-events: none;
 }
 
 .coinIcon {
@@ -98,13 +114,12 @@
 .coinIcon img {
   width: 100%;
   height: 100%;
-  object-fit: contain;
 }
 
 .coinsAmount {
-  font-size: 16px;
   font-weight: bold;
   color: var(--primary-color, #7B41C9);
+  font-size: 16px;
 }
 
 .menuSubtitle {

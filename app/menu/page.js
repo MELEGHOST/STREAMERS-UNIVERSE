@@ -42,13 +42,32 @@ export default function Menu() {
         }
       };
       
-      const storedCoins = safeGetFromStorage(`streamcoins_${userId}`);
+      // Проверяем как новый формат данных о коинах, так и старый
+      const coinsDataKey = `data_streamcoins_${userId}`;
+      const oldCoinsKey = `streamcoins_${userId}`;
       
+      let coinsData = null;
+      // Сначала проверяем новый формат
+      const storedCoinsData = safeGetFromStorage(coinsDataKey);
+      if (storedCoinsData) {
+        try {
+          const parsedData = JSON.parse(storedCoinsData);
+          if (parsedData && typeof parsedData.balance === 'number') {
+            setStreamCoins(parsedData.balance);
+            return;
+          }
+        } catch (e) {
+          console.warn('Ошибка при парсинге данных о коинах из нового формата:', e);
+        }
+      }
+      
+      // Если новый формат не найден, проверяем старый
+      const storedCoins = safeGetFromStorage(oldCoinsKey);
       if (storedCoins && !isNaN(parseInt(storedCoins, 10))) {
         setStreamCoins(parseInt(storedCoins, 10));
       } else {
         // Если стример-коинов нет или значение некорректно, устанавливаем начальное значение
-        safeSetToStorage(`streamcoins_${userId}`, '100');
+        safeSetToStorage(oldCoinsKey, '100');
         setStreamCoins(100);
       }
     } catch (error) {
@@ -153,6 +172,20 @@ export default function Menu() {
     }
   };
   
+  // Функция для перехода на страницу коинов
+  const goToCoinsPage = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (userId) {
+      console.log("Переход на страницу коинов. userId:", userId);
+      router.push('/coins');
+    } else {
+      console.error("Не удалось определить userId для перехода на страницу коинов");
+      alert("Не удалось определить ваш ID. Пожалуйста, попробуйте войти снова.");
+      router.push('/auth');
+    }
+  };
+  
   // Если есть ошибка, показываем сообщение об ошибке
   if (error) {
     return (
@@ -189,7 +222,7 @@ export default function Menu() {
             )}
             <div className={styles.userDetails}>
               <h1>Привет, {userLogin || 'Гость'}!</h1>
-              <div className={styles.coinsContainer}>
+              <div className={styles.coinsContainer} onClick={goToCoinsPage} title="Перейти к Стример-коинам">
                 <div className={styles.coinIcon}>
                   <Image 
                     src="/images/stream-coin.svg" 
@@ -264,22 +297,11 @@ export default function Menu() {
           
           <div 
             className={styles.menuItem}
-            onClick={() => router.push('/coins')}
-          >
-            <div className={styles.menuIcon}>💰</div>
-            <div className={styles.menuContent}>
-              <h2>6. Стример-коины</h2>
-              <p>Получайте ежедневный бонус в 100 стример-коинов для альфа-тестеров и следите за своими транзакциями</p>
-            </div>
-          </div>
-          
-          <div 
-            className={styles.menuItem}
             onClick={() => router.push('/settings')}
           >
             <div className={styles.menuIcon}>⚙️</div>
             <div className={styles.menuContent}>
-              <h2>7. Настройки</h2>
+              <h2>6. Настройки</h2>
               <p>Возможность сменить тему (тёмная/светлая), поменять шрифт, часовой пояс, язык и другие настройки</p>
             </div>
           </div>

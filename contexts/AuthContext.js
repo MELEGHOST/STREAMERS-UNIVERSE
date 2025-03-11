@@ -107,104 +107,66 @@ export function AuthProvider({ children }) {
     }
   }, []);
   
-  // Проверяем авторизацию
-  const checkAuth = useCallback(() => {
-    try {
-      // Проверяем наличие токена в cookies или localStorage
-      const token = Cookies.get('twitch_access_token') || 
-                    localStorage.getItem('cookie_twitch_access_token'); 
-                    
-      // Проверяем наличие данных пользователя
-      const userData = Cookies.get('twitch_user') || 
-                       localStorage.getItem('twitch_user');
-      
-      // Если токен и данные пользователя отсутствуют, пользователь не аутентифицирован
-      if (!token || !userData) {
-        if (isAuthenticated) {
-          setIsAuthenticated(false);
-          localStorage.removeItem('is_authenticated');
-        }
-        return false;
-      }
-
-      // Пытаемся распарсить данные пользователя
-      let user;
-      try {
-        user = typeof userData === 'string' ? JSON.parse(userData) : userData;
-      } catch (e) {
-        console.error('Ошибка при парсинге данных пользователя:', e);
-        setIsAuthenticated(false);
-        localStorage.removeItem('is_authenticated');
-        return false;
-      }
-
-      if (!user || !user.id) {
-        console.warn('Данные пользователя некорректны');
-        setIsAuthenticated(false);
-        localStorage.removeItem('is_authenticated');
-        return false;
-      }
-      
-      // Если пользователь уже аутентифицирован с теми же данными, не обновляем состояние
-      if (isAuthenticated && userId === user.id) {
-        return true;
-      }
-      
-      // Устанавливаем состояние авторизации
-      setIsAuthenticated(true);
-      setUserId(user.id);
-      setUserLogin(user.login || user.display_name);
-      setUserAvatar(user.profile_image_url);
-      
-      // Устанавливаем флаг авторизации в localStorage
-      localStorage.setItem('is_authenticated', 'true');
-      
-      return true;
-    } catch (error) {
-      console.error('Ошибка при проверке авторизации:', error);
-      setIsAuthenticated(false);
-      localStorage.removeItem('is_authenticated');
-      return false;
-    }
-  }, [isAuthenticated, userId]);
-  
   // Проверяем авторизацию при загрузке
   useEffect(() => {
-    // Флаг для предотвращения повторной проверки аутентификации
-    let isCheckingAuth = false;
-    
-    // Устанавливаем таймаут для инициализации, чтобы избежать бесконечной загрузки
-    const initTimeout = setTimeout(() => {
-      if (!isInitialized) {
-        console.warn('Таймаут инициализации аутентификации, принудительно устанавливаем isInitialized = true');
+    const initializeAuth = () => {
+      console.log('Инициализация AuthContext');
+      
+      try {
+        // Сначала проверяем наличие токена и данных пользователя в localStorage
+        const hasToken = !!localStorage.getItem('cookie_twitch_access_token') || 
+                         !!localStorage.getItem('twitch_token') || 
+                         !!Cookies.get('twitch_access_token');
+                         
+        const userDataStr = localStorage.getItem('twitch_user') || Cookies.get('twitch_user');
+        
+        if (!hasToken || !userDataStr) {
+          console.log('Токен или данные пользователя отсутствуют, пользователь не аутентифицирован');
+          setIsAuthenticated(false);
+          setIsInitialized(true);
+          return;
+        }
+        
+        // Пытаемся распарсить данные пользователя
+        let userData;
+        try {
+          userData = JSON.parse(userDataStr);
+        } catch (e) {
+          console.error('Ошибка при парсинге данных пользователя:', e);
+          setIsAuthenticated(false);
+          setIsInitialized(true);
+          return;
+        }
+        
+        if (!userData || !userData.id) {
+          console.warn('Данные пользователя некорректны');
+          setIsAuthenticated(false);
+          setIsInitialized(true);
+          return;
+        }
+        
+        // Устанавливаем состояние авторизации
+        setIsAuthenticated(true);
+        setUserId(userData.id);
+        setUserLogin(userData.login || userData.display_name);
+        setUserAvatar(userData.profile_image_url);
+        
+        // Устанавливаем флаг авторизации в localStorage
+        localStorage.setItem('is_authenticated', 'true');
+        
+        console.log('AuthContext: пользователь успешно аутентифицирован:', userData.id);
+      } catch (error) {
+        console.error('Ошибка при инициализации AuthContext:', error);
+        setIsAuthenticated(false);
+      } finally {
+        // В любом случае устанавливаем флаг инициализации
         setIsInitialized(true);
-      }
-    }, 2000); // 2 секунды достаточно, не нужно долго ждать
-    
-    const checkAuthOnce = () => {
-      if (!isCheckingAuth) {
-        isCheckingAuth = true;
-        checkAuth();
-        setIsInitialized(true);
-        isCheckingAuth = false;
       }
     };
     
-    if (typeof window !== 'undefined') {
-      try {
-        // Выполняем проверку аутентификации только один раз при загрузке
-        checkAuthOnce();
-      } catch (error) {
-        console.error('Ошибка при проверке аутентификации:', error);
-        setIsInitialized(true);
-      }
-      
-      // Удаляем слушатель при размонтировании
-      return () => {
-        clearTimeout(initTimeout);
-      };
-    }
-  }, [checkAuth]);
+    // Запускаем инициализацию с небольшой задержкой
+    setTimeout(initializeAuth, 100);
+  }, []);
   
   // Мемоизируем значение контекста для предотвращения лишних ререндеров
   const contextValue = useMemo(() => ({

@@ -160,22 +160,9 @@ export function middleware(request) {
       pathname === '/questions' || 
       pathname === '/settings') {
     
-    // Проверяем наличие токена доступа в cookies
-    const hasTwitchAccessToken = cookies.has('twitch_access_token');
-    const hasTwitchToken = cookies.has('twitch_token');
-    const hasTwitchUser = cookies.has('twitch_user');
-    
-    // Проверяем наличие localStorage token через специальную куку
-    const hasLocalStorageToken = cookies.has('has_local_storage_token');
-    
-    // Проверяем данные пользователя
-    const hasUserData = cookies.has('has_user_data');
-    
-    // Если нет токена доступа и нет указания, что он есть в localStorage, перенаправляем на страницу авторизации
-    if (!hasTwitchAccessToken && !hasTwitchToken && !hasTwitchUser && !hasLocalStorageToken && !hasUserData) {
-      console.log(`Middleware: доступ к защищенной странице ${pathname} без авторизации, перенаправление на /auth`);
-      return NextResponse.redirect(new URL('/auth', request.url));
-    }
+    // ОТКЛЮЧАЕМ ПРОВЕРКИ И ПЕРЕНАПРАВЛЕНИЯ ДЛЯ ЗАЩИЩЕННЫХ СТРАНИЦ
+    // Просто пропускаем запрос дальше
+    return NextResponse.next();
   }
   
   return response;
