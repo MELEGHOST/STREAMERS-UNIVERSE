@@ -46,7 +46,6 @@ export default function Menu() {
       const coinsDataKey = `data_streamcoins_${userId}`;
       const oldCoinsKey = `streamcoins_${userId}`;
       
-      let coinsData = null;
       // Сначала проверяем новый формат
       const storedCoinsData = safeGetFromStorage(coinsDataKey);
       if (storedCoinsData) {
@@ -54,6 +53,9 @@ export default function Menu() {
           const parsedData = JSON.parse(storedCoinsData);
           if (parsedData && typeof parsedData.balance === 'number') {
             setStreamCoins(parsedData.balance);
+            
+            // Синхронизируем со старым форматом для совместимости
+            safeSetToStorage(oldCoinsKey, parsedData.balance.toString());
             return;
           }
         } catch (e) {
@@ -64,10 +66,28 @@ export default function Menu() {
       // Если новый формат не найден, проверяем старый
       const storedCoins = safeGetFromStorage(oldCoinsKey);
       if (storedCoins && !isNaN(parseInt(storedCoins, 10))) {
-        setStreamCoins(parseInt(storedCoins, 10));
+        const coinsValue = parseInt(storedCoins, 10);
+        setStreamCoins(coinsValue);
+        
+        // Создаем новый формат данных
+        const newFormatData = {
+          balance: coinsValue,
+          lastUpdated: new Date().toISOString(),
+          transactions: []
+        };
+        safeSetToStorage(coinsDataKey, JSON.stringify(newFormatData));
       } else {
         // Если стример-коинов нет или значение некорректно, устанавливаем начальное значение
         safeSetToStorage(oldCoinsKey, '100');
+        
+        // Создаем новый формат данных
+        const newFormatData = {
+          balance: 100,
+          lastUpdated: new Date().toISOString(),
+          transactions: []
+        };
+        safeSetToStorage(coinsDataKey, JSON.stringify(newFormatData));
+        
         setStreamCoins(100);
       }
     } catch (error) {
@@ -257,7 +277,7 @@ export default function Menu() {
           >
             <div className={styles.menuIcon}>📋</div>
             <div className={styles.menuContent}>
-              <h2>2. Фолловинги Twitch</h2>
+              <h2>2. Интересные каналы</h2>
               <p>Посмотреть на каких стримеров вы подписаны на Twitch (фолловите)</p>
             </div>
           </div>
@@ -268,8 +288,8 @@ export default function Menu() {
           >
             <div className={styles.menuIcon}>👥</div>
             <div className={styles.menuContent}>
-              <h2>3. Последователи</h2>
-              <p>Посмотреть кто подписан на вас на Twitch (фолловеры) и на Streamers Universe (последователи)</p>
+              <h2>3. Сообщество</h2>
+              <p>Посмотреть кто подписан на вас на Streamers Universe (последователи) и ваши достижения в сообществе</p>
             </div>
           </div>
           
@@ -280,7 +300,7 @@ export default function Menu() {
             <div className={styles.menuIcon}>⭐</div>
             <div className={styles.menuContent}>
               <h2>4. Отзывы</h2>
-              <p>Отзывы стримеров о товарах и сервисах: периферия, компьютеры, аксессуары и многое другое</p>
+              <p>Отзывы пользователей о товарах, сервисах и других пользователях: периферия, компьютеры, аксессуары и многое другое</p>
             </div>
           </div>
           

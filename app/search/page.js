@@ -6,7 +6,7 @@ import Cookies from 'js-cookie';
 import styles from './search.module.css';
 import { getAccessTokenFromCookie } from '../utils/twitchAPI';
 import SynthwaveButton from '../components/SynthwaveButton';
-import SearchInput from '../components/SearchInput';
+import Input from '../components/Input';
 import NeonCheckbox from '../components/NeonCheckbox';
 
 export default function Search() {
@@ -71,7 +71,9 @@ export default function Search() {
       const accessToken = getAccessTokenFromCookie();
       
       if (!accessToken) {
-        throw new Error('Не авторизован. Пожалуйста, войдите в систему.');
+        console.warn('Поиск без авторизации. Перенаправление на страницу авторизации.');
+        router.push('/auth');
+        return;
       }
       
       const sanitizedSearchTerm = searchTerm.trim().toLowerCase();
@@ -84,11 +86,20 @@ export default function Search() {
         method: 'GET',
         credentials: 'include',
         headers: {
-          'Content-Type': 'application/json'
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${accessToken}`
         }
       });
       
       if (!response.ok) {
+        if (response.status === 401) {
+          console.error('Ошибка авторизации при поиске. Перенаправление на страницу авторизации.');
+          // Очищаем токен, так как он недействителен
+          document.cookie = 'twitch_access_token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
+          router.push('/auth');
+          return;
+        }
+        
         if (response.status === 404) {
           setResults({ error: 'Пользователь не найден на Twitch' });
         } else {
@@ -139,6 +150,25 @@ export default function Search() {
 
   const toggleFilters = () => {
     setShowFilters(!showFilters);
+  };
+
+  const applyFilters = () => {
+    if (!results || !results.twitchData) return;
+    
+    let filteredResults = { ...results };
+    
+    if (filters.category === 'streamer' && 
+        !(results.twitchData.broadcaster_type || 
+         (results.twitchData.follower_count && results.twitchData.follower_count >= 265))) {
+      filteredResults = { filtered: true, error: 'Нет результатов, соответствующих фильтрам' };
+    } else if (filters.category === 'viewer' && 
+              (results.twitchData.broadcaster_type || 
+              (results.twitchData.follower_count && results.twitchData.follower_count >= 265))) {
+      filteredResults = { filtered: true, error: 'Нет результатов, соответствующих фильтрам' };
+    }
+    
+    setResults(filteredResults);
+    setShowFilters(false);
   };
 
   const goToUserProfile = (userId) => {
@@ -193,11 +223,23 @@ export default function Search() {
     <div className={styles.searchContainer}>
       <h1>Поиск пользователя</h1>
       
-      <SearchInput 
-        value={searchTerm}
-        onChange={(e) => setSearchTerm(e.target.value)}
-        onSearch={handleSearch}
-      />
+      <div className={styles.searchInputContainer}>
+        <Input 
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          onSearch={handleSearch}
+          placeholder="Введите никнейм с Twitch..."
+        />
+        <button 
+          className={styles.filtersButton} 
+          onClick={toggleFilters}
+          title="Открыть фильтры"
+        >
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M22 3H2L10 12.46V19L14 21V12.46L22 3Z" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+          </svg>
+        </button>
+      </div>
       
       {loading && (
         <div className={styles.loadingContainer}>
@@ -336,12 +378,7 @@ export default function Search() {
           <div className={styles.filterActions}>
             <button
               className={styles.applyFiltersButton}
-              onClick={() => {
-                if (results && results.twitchData) {
-                  handleSearch();
-                }
-                setShowFilters(false);
-              }}
+              onClick={applyFilters}
             >
               Применить
             </button>

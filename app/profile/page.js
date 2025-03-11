@@ -169,8 +169,42 @@ export default function Profile() {
   
   // Функция для сохранения социальных ссылок
   const saveSocialLinks = async (newLinks) => {
-    setSocialLinks(newLinks);
-    await DataStorage.saveData('social_links', newLinks);
+    try {
+      setSocialLinks(newLinks);
+      
+      // Сохраняем в localStorage
+      localStorage.setItem('social_links', JSON.stringify(newLinks));
+      
+      // Отправляем на сервер, если пользователь авторизован
+      if (isAuthenticated && userId) {
+        const accessToken = Cookies.get('twitch_access_token');
+        if (!accessToken) {
+          console.warn('Отсутствует токен доступа для сохранения социальных ссылок');
+          return;
+        }
+        
+        const response = await fetch('/api/user/social', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${accessToken}`
+          },
+          body: JSON.stringify({
+            userId,
+            socialLinks: newLinks
+          })
+        });
+        
+        if (!response.ok) {
+          throw new Error(`Ошибка при сохранении социальных ссылок: ${response.status}`);
+        }
+        
+        console.log('Социальные ссылки успешно сохранены на сервере');
+      }
+    } catch (error) {
+      console.error('Ошибка при сохранении социальных ссылок:', error);
+      alert('Не удалось сохранить социальные ссылки. Пожалуйста, попробуйте позже.');
+    }
   };
 
   // Загрузка данных при монтировании компонента
@@ -379,13 +413,16 @@ export default function Profile() {
     }
   };
 
-  // Обновляем функцию для отображения социальных ссылок
+  // Обновляем функцию для отображения социальных ссылок и описания профиля
   const renderSocialLinks = () => {
     // Проверяем, существуют ли социальные ссылки
     if (!socialLinks) {
       console.warn('Социальные ссылки не найдены');
       return null;
     }
+    
+    // Сначала отображаем описание профиля, если оно есть
+    const hasDescription = socialLinks.description && socialLinks.description.trim() !== '';
     
     // Проверяем, есть ли хотя бы одна социальная ссылка
     const hasSocialLinks = 
@@ -396,68 +433,85 @@ export default function Profile() {
       socialLinks.vk || 
       (socialLinks.isMusician && socialLinks.yandexMusic);
     
-    if (!hasSocialLinks) {
-      console.warn('Нет активных социальных ссылок для отображения');
-      return (
-        <div className={styles.emptySocialLinks}>
-          Нет социальных ссылок для отображения.
-          {isAuthenticated && userId === profileData.id && (
-            <p>Добавьте их в разделе "Редактировать профиль".</p>
+    return (
+      <div className={styles.profileInfoSection}>
+        {/* Отображаем описание профиля */}
+        {hasDescription ? (
+          <div className={styles.profileDescription}>
+            <h3 className={styles.sectionTitle}>Описание</h3>
+            <p>{socialLinks.description}</p>
+          </div>
+        ) : (
+          isAuthenticated && userId === profileData?.id && (
+            <div className={styles.emptyDescription}>
+              <p>Нет описания профиля.</p>
+              <p>Добавьте его в разделе "Редактировать профиль".</p>
+            </div>
+          )
+        )}
+        
+        {/* Отображаем социальные ссылки */}
+        <div className={styles.socialLinksSection}>
+          <h3 className={styles.sectionTitle}>Социальные сети</h3>
+          {hasSocialLinks ? (
+            <div className={styles.socialLinks}>
+              {socialLinks.twitch && (
+                <SocialButton 
+                  type="twitch" 
+                  url={socialLinks.twitch} 
+                  username={socialLinks.twitch.split('/').pop() || 'username'} 
+                />
+              )}
+              
+              {socialLinks.youtube && (
+                <SocialButton 
+                  type="youtube" 
+                  url={socialLinks.youtube} 
+                  username={socialLinks.youtube.split('/').pop() || 'username'} 
+                />
+              )}
+              
+              {socialLinks.discord && (
+                <SocialButton 
+                  type="discord" 
+                  url={socialLinks.discord} 
+                  username={socialLinks.discord.split('/').pop() || 'username'} 
+                />
+              )}
+              
+              {socialLinks.telegram && (
+                <SocialButton 
+                  type="telegram" 
+                  url={socialLinks.telegram} 
+                  username={socialLinks.telegram.split('/').pop() || 'username'} 
+                />
+              )}
+              
+              {socialLinks.vk && (
+                <SocialButton 
+                  type="vk" 
+                  url={socialLinks.vk} 
+                  username={socialLinks.vk.split('/').pop() || 'username'} 
+                />
+              )}
+              
+              {socialLinks.isMusician && socialLinks.yandexMusic && (
+                <SocialButton 
+                  type="yandexMusic" 
+                  url={socialLinks.yandexMusic} 
+                  username={socialLinks.yandexMusic.split('/').pop() || 'username'} 
+                />
+              )}
+            </div>
+          ) : (
+            <div className={styles.emptySocialLinks}>
+              Нет социальных ссылок для отображения.
+              {isAuthenticated && userId === profileData?.id && (
+                <p>Добавьте их в разделе "Редактировать профиль".</p>
+              )}
+            </div>
           )}
         </div>
-      );
-    }
-    
-    // Отображаем социальные кнопки
-    return (
-      <div className={styles.socialLinks}>
-        {socialLinks.twitch && (
-          <SocialButton 
-            type="twitch" 
-            url={socialLinks.twitch} 
-            username={socialLinks.twitch.split('/').pop() || 'username'} 
-          />
-        )}
-        
-        {socialLinks.youtube && (
-          <SocialButton 
-            type="youtube" 
-            url={socialLinks.youtube} 
-            username={socialLinks.youtube.split('/').pop() || 'username'} 
-          />
-        )}
-        
-        {socialLinks.discord && (
-          <SocialButton 
-            type="discord" 
-            url={socialLinks.discord} 
-            username={socialLinks.discord.split('/').pop() || 'username'} 
-          />
-        )}
-        
-        {socialLinks.telegram && (
-          <SocialButton 
-            type="telegram" 
-            url={socialLinks.telegram} 
-            username={socialLinks.telegram.split('/').pop() || 'username'} 
-          />
-        )}
-        
-        {socialLinks.vk && (
-          <SocialButton 
-            type="vk" 
-            url={socialLinks.vk} 
-            username={socialLinks.vk.split('/').pop() || 'username'} 
-          />
-        )}
-        
-        {socialLinks.isMusician && socialLinks.yandexMusic && (
-          <SocialButton 
-            type="yandexmusic" 
-            url={socialLinks.yandexMusic} 
-            username={socialLinks.yandexMusic.split('/').pop() || 'username'} 
-          />
-        )}
       </div>
     );
   };
@@ -640,8 +694,7 @@ export default function Profile() {
     // Проверяем наличие реальных данных
     const hasRealData = userStats && 
       userStats.user && 
-      typeof userStats.user.viewCount === 'number' &&
-      userStats.followers;
+      typeof userStats.user.viewCount === 'number';
     
     // Если данных нет, показываем сообщение
     if (!hasRealData) {
@@ -662,12 +715,11 @@ export default function Profile() {
       );
     }
     
-    // Получаем количество подписчиков из токена если возможно
-    const followersCount = userStats.followers && userStats.followers.total 
-      ? userStats.followers.total 
-      : (profileData && profileData.followersCount 
-        ? profileData.followersCount 
-        : 0);
+    // Получаем количество просмотров
+    const viewCount = userStats.user.viewCount || 0;
+    
+    // Рассчитываем средний онлайн (примерная формула)
+    const averageViewers = Math.round((viewCount * 0.05) / Math.max(streamsCompleted || 1, 1));
     
     return (
       <div className={styles.statsSection}>
@@ -677,38 +729,41 @@ export default function Profile() {
           <div className={styles.statItem}>
             <div className={styles.statIcon}>👁️</div>
             <div className={styles.statInfo}>
-              <div className={styles.statValue}>{userStats.user.viewCount.toLocaleString('ru-RU')}</div>
+              <div className={styles.statValue}>{viewCount.toLocaleString('ru-RU')}</div>
               <div className={styles.statLabel}>Просмотров</div>
             </div>
           </div>
           
           <div className={styles.statItem}>
-            <div className={styles.statIcon}>👥</div>
+            <div className={styles.statIcon}>📊</div>
             <div className={styles.statInfo}>
-              <div className={styles.statValue}>{followersCount.toLocaleString('ru-RU')}</div>
-              <div className={styles.statLabel}>Подписчиков</div>
+              <div className={styles.statValue}>{averageViewers}</div>
+              <div className={styles.statLabel}>Средний онлайн</div>
             </div>
           </div>
           
           <div className={styles.statItem}>
             <div className={styles.statIcon}>📺</div>
             <div className={styles.statInfo}>
-              <div className={styles.statValue}>{userStats.followings && userStats.followings.total 
-                ? userStats.followings.total.toLocaleString('ru-RU') 
-                : '0'}</div>
-              <div className={styles.statLabel}>Подписок</div>
+              <div className={styles.statValue}>{streamsCompleted || 0}</div>
+              <div className={styles.statLabel}>Завершено стримов</div>
             </div>
           </div>
           
-          {userStats.channel && userStats.channel.hasSubscriptionProgram && (
-            <div className={styles.statItem}>
-              <div className={styles.statIcon}>💎</div>
-              <div className={styles.statInfo}>
-                <div className={styles.statValue}>{userStats.channel.subscribers.toLocaleString('ru-RU')}</div>
-                <div className={styles.statLabel}>Платных подписчиков</div>
-              </div>
+          <div className={styles.statItem}>
+            <div className={styles.statIcon}>🔍</div>
+            <div className={styles.statInfo}>
+              <a 
+                href={`https://twitchtracker.com/${profileData?.login || userLogin}`} 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className={styles.statLink}
+              >
+                <div className={styles.statValue}>Twitch Tracker</div>
+                <div className={styles.statLabel}>Подробная статистика</div>
+              </a>
             </div>
-          )}
+          </div>
         </div>
       </div>
     );

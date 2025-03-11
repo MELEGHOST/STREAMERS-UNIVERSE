@@ -1475,3 +1475,179 @@
   transform: translateY(-3px);
   box-shadow: 0 6px 10px rgba(0, 0, 0, 0.15);
 }
+
+/* Стили для секции с описанием и социальными сетями */
+.profileInfoSection {
+  background-color: rgba(30, 30, 40, 0.7);
+  border-radius: 12px;
+  padding: 20px;
+  margin-bottom: 20px;
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.sectionTitle {
+  font-size: 1.2rem;
+  color: #b3b3b3;
+  margin-top: 0;
+  margin-bottom: 15px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  padding-bottom: 5px;
+}
+
+.profileDescription {
+  margin-bottom: 20px;
+}
+
+.profileDescription p {
+  color: #e0e0e0;
+  line-height: 1.6;
+  margin: 0;
+}
+
+.emptyDescription {
+  color: #888;
+  font-style: italic;
+  margin-bottom: 20px;
+  text-align: center;
+  padding: 15px;
+  background-color: rgba(0, 0, 0, 0.2);
+  border-radius: 8px;
+}
+
+.socialLinksSection {
+  margin-top: 20px;
+}
+
+.socialLinks {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.emptySocialLinks {
+  color: #888;
+  font-style: italic;
+  text-align: center;
+  padding: 15px;
+  background-color: rgba(0, 0, 0, 0.2);
+  border-radius: 8px;
+}
+
+/* Стили для статистики канала */
+.statsSection {
+  background-color: rgba(30, 30, 40, 0.7);
+  border-radius: 12px;
+  padding: 20px;
+  margin-bottom: 20px;
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.statsTitle {
+  font-size: 1.2rem;
+  color: #b3b3b3;
+  margin-top: 0;
+  margin-bottom: 15px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  padding-bottom: 5px;
+}
+
+.statsGrid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 15px;
+}
+
+@media (min-width: 768px) {
+  .statsGrid {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+
+.statItem {
+  background-color: rgba(20, 20, 30, 0.5);
+  border-radius: 8px;
+  padding: 15px;
+  display: flex;
+  align-items: center;
+  transition: all 0.3s ease;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.statItem:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+  border-color: rgba(156, 39, 176, 0.3);
+}
+
+.statIcon {
+  font-size: 1.8rem;
+  margin-right: 15px;
+  opacity: 0.8;
+}
+
+.statInfo {
+  flex: 1;
+}
+
+.statValue {
+  font-size: 1.2rem;
+  font-weight: bold;
+  color: white;
+  margin-bottom: 5px;
+}
+
+.statLabel {
+  font-size: 0.8rem;
+  color: #b3b3b3;
+}
+
+.statLink {
+  text-decoration: none;
+  color: inherit;
+  display: block;
+  width: 100%;
+}
+
+.statLink:hover .statValue {
+  color: #9c27b0;
+  text-shadow: 0 0 5px rgba(156, 39, 176, 0.5);
+}
+
+.emptyState {
+  text-align: center;
+  padding: 20px;
+  color: #888;
+}
+
+/* Стили для кнопки баланса */
+.balanceButton {
+  background: linear-gradient(135deg, #6a11cb 0%, #2575fc 100%);
+  color: white;
+  border: none;
+  border-radius: 25px;
+  padding: 10px 20px;
+  font-weight: bold;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 0 15px rgba(106, 17, 203, 0.3);
+  margin: 10px 0;
+}
+
+.balanceButton:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 0 20px rgba(106, 17, 203, 0.5);
+}
+
+.balanceIcon {
+  margin-right: 10px;
+  font-size: 1.2rem;
+}
+
+.balanceAmount {
+  font-size: 1.2rem;
+}
