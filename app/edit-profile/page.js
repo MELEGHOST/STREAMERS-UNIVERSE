@@ -3,6 +3,8 @@
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import styles from './edit-profile.module.css';
+import Cookies from 'js-cookie';
+import NeonCheckbox from '../components/NeonCheckbox';
 
 export default function EditProfile() {
   const [userData, setUserData] = useState(null);
@@ -240,15 +242,12 @@ export default function EditProfile() {
             </p>
           </div>
           <div className={styles.checkboxGroup}>
-            <input
-              type="checkbox"
-              id="showBirthday"
-              name="showBirthday"
-              className={styles.checkbox}
+            <NeonCheckbox
+              label="Показывать день рождения другим пользователям"
               checked={showBirthday}
               onChange={handleShowBirthdayChange}
+              name="showBirthday"
             />
-            <label htmlFor="showBirthday">Показывать день рождения другим пользователям</label>
           </div>
         </div>
         
@@ -261,63 +260,48 @@ export default function EditProfile() {
           
           <div className={styles.checkboxGrid}>
             <div className={styles.checkboxGroup}>
-              <input
-                type="checkbox"
-                id="followers"
-                name="followers"
-                className={styles.checkbox}
+              <NeonCheckbox
+                label="Подписчики"
                 checked={statsVisibility.followers}
-                onChange={handleStatsVisibilityChange}
+                onChange={(e) => handleStatsVisibilityChange({ target: { name: 'followers', checked: e.target.checked } })}
+                name="followers"
               />
-              <label htmlFor="followers">Подписчики</label>
             </div>
             
             <div className={styles.checkboxGroup}>
-              <input
-                type="checkbox"
-                id="followings"
-                name="followings"
-                className={styles.checkbox}
+              <NeonCheckbox
+                label="Подписки"
                 checked={statsVisibility.followings}
-                onChange={handleStatsVisibilityChange}
+                onChange={(e) => handleStatsVisibilityChange({ target: { name: 'followings', checked: e.target.checked } })}
+                name="followings"
               />
-              <label htmlFor="followings">Подписки</label>
             </div>
             
             <div className={styles.checkboxGroup}>
-              <input
-                type="checkbox"
-                id="streams"
-                name="streams"
-                className={styles.checkbox}
+              <NeonCheckbox
+                label="Стримы"
                 checked={statsVisibility.streams}
-                onChange={handleStatsVisibilityChange}
+                onChange={(e) => handleStatsVisibilityChange({ target: { name: 'streams', checked: e.target.checked } })}
+                name="streams"
               />
-              <label htmlFor="streams">Стримы</label>
             </div>
             
             <div className={styles.checkboxGroup}>
-              <input
-                type="checkbox"
-                id="channel"
-                name="channel"
-                className={styles.checkbox}
+              <NeonCheckbox
+                label="Статистика канала"
                 checked={statsVisibility.channel}
-                onChange={handleStatsVisibilityChange}
+                onChange={(e) => handleStatsVisibilityChange({ target: { name: 'channel', checked: e.target.checked } })}
+                name="channel"
               />
-              <label htmlFor="channel">Статистика канала</label>
             </div>
             
             <div className={styles.checkboxGroup}>
-              <input
-                type="checkbox"
-                id="accountInfo"
-                name="accountInfo"
-                className={styles.checkbox}
+              <NeonCheckbox
+                label="Информация об аккаунте"
                 checked={statsVisibility.accountInfo}
-                onChange={handleStatsVisibilityChange}
+                onChange={(e) => handleStatsVisibilityChange({ target: { name: 'accountInfo', checked: e.target.checked } })}
+                name="accountInfo"
               />
-              <label htmlFor="accountInfo">Информация об аккаунте</label>
             </div>
           </div>
         </div>
@@ -407,15 +391,12 @@ export default function EditProfile() {
           </div>
           
           <div className={styles.checkboxGroup}>
-            <input
-              type="checkbox"
-              id="isMusician"
-              name="isMusician"
-              className={styles.checkbox}
+            <NeonCheckbox
+              label="Я музыкант"
               checked={socialLinks.isMusician}
-              onChange={handleSocialLinksChange}
+              onChange={(e) => handleSocialLinksChange({ target: { name: 'isMusician', value: e.target.checked } })}
+              name="isMusician"
             />
-            <label htmlFor="isMusician">Я музыкант</label>
           </div>
           
           {socialLinks.isMusician && (

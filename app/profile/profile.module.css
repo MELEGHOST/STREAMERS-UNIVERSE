@@ -444,7 +444,7 @@
     padding: 0 10px;
   }
   
-  .statsButton {
+  .statsButton, .tierlistButton {
     padding: 8px 12px;
     font-size: 14px;
     margin-right: 0;
@@ -484,7 +484,7 @@
     width: 100%;
   }
   
-  .statsButton {
+  .statsButton, .tierlistButton {
     padding: 6px 10px;
     font-size: 12px;
     margin-bottom: 8px;
@@ -1087,10 +1087,13 @@
     grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
   }
   
-  .statsButton {
+  .statsButton, .tierlistButton {
     padding: 8px 12px;
     font-size: 14px;
-    margin-right: 8px;
+    margin-right: 0;
+    margin-bottom: 10px;
+    flex: 0 0 auto;
+    white-space: nowrap;
   }
   
   .statsActions {
@@ -1118,12 +1121,6 @@
   
   .streamsList {
     grid-template-columns: 1fr;
-  }
-  
-  .statsButton {
-    padding: 6px 10px;
-    font-size: 12px;
-    margin-right: 5px;
   }
   
   .accountInfoItem {
@@ -1343,26 +1340,26 @@
 
 /* Стиль для кнопки тирлистов */
 .tierlistButton {
-  background: linear-gradient(145deg, #384a81, #2d3a5a);
-  color: white;
-  border: none;
-  padding: 12px 20px;
-  border-radius: 8px;
-  font-size: 16px;
-  cursor: pointer;
-  transition: all 0.3s ease;
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 10px;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
-  margin: 5px;
+  background-color: #4CAF50; /* Зеленый цвет для тирлистов */
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  padding: 10px 15px;
+  font-size: 16px;
+  font-weight: bold;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  margin-right: 10px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
 }
 
 .tierlistButton:hover {
-  background: linear-gradient(145deg, #3d5296, #304063);
+  background-color: #43A047;
   transform: translateY(-3px);
-  box-shadow: 0 6px 10px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 6px 10px rgba(0, 0, 0, 0.15);
 }
 
 /* Стили для отображения тирлистов */
@@ -1431,4 +1428,27 @@
 .viewTierlistButton:hover {
   background: linear-gradient(145deg, #3d5296, #304063);
   transform: translateY(-2px);
-} 
+}
+
+.statsButton {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: #2196F3; /* Синий цвет для статистики */
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  padding: 10px 15px;
+  font-size: 16px;
+  font-weight: bold;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  margin-right: 10px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.statsButton:hover {
+  background-color: #1E88E5;
+  transform: translateY(-3px);
+  box-shadow: 0 6px 10px rgba(0, 0, 0, 0.15);
+}

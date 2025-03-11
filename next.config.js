@@ -2,6 +2,9 @@
 const nextConfig = {
   reactStrictMode: true,
   output: 'standalone',
+  compiler: {
+    styledComponents: true, // Включаем поддержку styled-components
+  },
   env: {
     // Явно указываем переменные окружения, которые должны быть доступны на клиенте и сервере
     NEXT_PUBLIC_TWITCH_CLIENT_ID: process.env.NEXT_PUBLIC_TWITCH_CLIENT_ID,

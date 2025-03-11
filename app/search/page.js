@@ -7,97 +7,7 @@ import styles from './search.module.css';
 import { getAccessTokenFromCookie } from '../utils/twitchAPI';
 import SynthwaveButton from '../components/SynthwaveButton';
 import SearchInput from '../components/SearchInput';
-
-// Добавляем CSS для красивых чекбоксов
-const checkboxStyles = {
-  checkboxWrapper: {
-    position: 'relative',
-    marginBottom: '0.75rem',
-    display: 'flex',
-    alignItems: 'center',
-    cursor: 'pointer',
-  },
-  checkbox: {
-    position: 'absolute',
-    opacity: '0',
-    cursor: 'pointer',
-    height: '0',
-    width: '0',
-  },
-  checkmark: {
-    position: 'relative',
-    height: '1.5em',
-    width: '1.5em',
-    backgroundColor: 'transparent',
-    borderRadius: '0.2em',
-    transition: 'all 0.1s ease-in',
-    marginRight: '0.5rem',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    border: '1px solid #ffffffb0',
-  },
-  checkmarkActive: {
-    backgroundColor: '#9146FF',
-    border: '1px solid #9146FF',
-  },
-  checkmarkCheckIcon: {
-    color: 'white',
-    transform: 'scale(0)',
-    transition: 'all 0.1s ease-in',
-  },
-  checkmarkCheckIconActive: {
-    transform: 'scale(1)',
-  },
-  labelText: {
-    color: '#fff',
-    userSelect: 'none',
-    cursor: 'pointer',
-  }
-};
-
-// Компонент стилизованного чекбокса
-const StyledCheckbox = ({ label, checked, onChange, name, value }) => {
-  return (
-    <label style={checkboxStyles.checkboxWrapper}>
-      <input
-        type="checkbox"
-        style={checkboxStyles.checkbox}
-        checked={checked}
-        onChange={onChange}
-        name={name}
-        value={value}
-      />
-      <div
-        style={{
-          ...checkboxStyles.checkmark,
-          ...(checked ? checkboxStyles.checkmarkActive : {})
-        }}
-      >
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          fill="none"
-          viewBox="0 0 24 24"
-          strokeWidth={1.5}
-          stroke="currentColor"
-          width="1em"
-          height="1em"
-          style={{
-            ...checkboxStyles.checkmarkCheckIcon,
-            ...(checked ? checkboxStyles.checkmarkCheckIconActive : {})
-          }}
-        >
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            d="M4.5 12.75l6 6 9-13.5"
-          />
-        </svg>
-      </div>
-      <span style={checkboxStyles.labelText}>{label}</span>
-    </label>
-  );
-};
+import NeonCheckbox from '../components/NeonCheckbox';
 
 export default function Search() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -395,7 +305,7 @@ export default function Search() {
             <h3>Категория</h3>
             <div className={styles.filterOptions}>
               <div className={styles.filterOption}>
-                <StyledCheckbox
+                <NeonCheckbox
                   label="Все"
                   checked={filters.category === 'all'}
                   onChange={() => setFilters({ ...filters, category: 'all' })}
@@ -404,7 +314,7 @@ export default function Search() {
                 />
               </div>
               <div className={styles.filterOption}>
-                <StyledCheckbox
+                <NeonCheckbox
                   label="Стримеры"
                   checked={filters.category === 'streamer'}
                   onChange={() => setFilters({ ...filters, category: 'streamer' })}
@@ -413,7 +323,7 @@ export default function Search() {
                 />
               </div>
               <div className={styles.filterOption}>
-                <StyledCheckbox
+                <NeonCheckbox
                   label="Зрители"
                   checked={filters.category === 'viewer'}
                   onChange={() => setFilters({ ...filters, category: 'viewer' })}
