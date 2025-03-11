@@ -384,17 +384,43 @@ export default function Profile() {
     }
   };
 
-  // Функция для отображения социальных ссылок
+  // Обновляем функцию для отображения социальных ссылок
   const renderSocialLinks = () => {
-    if (!socialLinks) return null;
+    // Проверяем, существуют ли социальные ссылки
+    if (!socialLinks) {
+      console.warn('Социальные ссылки не найдены');
+      return null;
+    }
     
+    // Проверяем, есть ли хотя бы одна социальная ссылка
+    const hasSocialLinks = 
+      socialLinks.twitch || 
+      socialLinks.youtube || 
+      socialLinks.discord || 
+      socialLinks.telegram || 
+      socialLinks.vk || 
+      (socialLinks.isMusician && socialLinks.yandexMusic);
+    
+    if (!hasSocialLinks) {
+      console.warn('Нет активных социальных ссылок для отображения');
+      return (
+        <div className={styles.emptySocialLinks}>
+          Нет социальных ссылок для отображения.
+          {isAuthenticated && userId === profileData.id && (
+            <p>Добавьте их в разделе "Редактировать профиль".</p>
+          )}
+        </div>
+      );
+    }
+    
+    // Отображаем социальные кнопки
     return (
       <div className={styles.socialLinks}>
         {socialLinks.twitch && (
           <SocialButton 
             type="twitch" 
             url={socialLinks.twitch} 
-            username={socialLinks.twitch.split('/').pop()} 
+            username={socialLinks.twitch.split('/').pop() || 'username'} 
           />
         )}
         
@@ -402,7 +428,7 @@ export default function Profile() {
           <SocialButton 
             type="youtube" 
             url={socialLinks.youtube} 
-            username={socialLinks.youtube.split('/').pop()} 
+            username={socialLinks.youtube.split('/').pop() || 'username'} 
           />
         )}
         
@@ -410,7 +436,7 @@ export default function Profile() {
           <SocialButton 
             type="discord" 
             url={socialLinks.discord} 
-            username={socialLinks.discord.split('/').pop()} 
+            username={socialLinks.discord.split('/').pop() || 'username'} 
           />
         )}
         
@@ -418,7 +444,7 @@ export default function Profile() {
           <SocialButton 
             type="telegram" 
             url={socialLinks.telegram} 
-            username={socialLinks.telegram.split('/').pop()} 
+            username={socialLinks.telegram.split('/').pop() || 'username'} 
           />
         )}
         
@@ -426,7 +452,7 @@ export default function Profile() {
           <SocialButton 
             type="vk" 
             url={socialLinks.vk} 
-            username={socialLinks.vk.split('/').pop()} 
+            username={socialLinks.vk.split('/').pop() || 'username'} 
           />
         )}
         
@@ -434,12 +460,52 @@ export default function Profile() {
           <SocialButton 
             type="yandexmusic" 
             url={socialLinks.yandexMusic} 
-            username={socialLinks.yandexMusic.split('/').pop()} 
+            username={socialLinks.yandexMusic.split('/').pop() || 'username'} 
           />
         )}
       </div>
     );
   };
+
+  // Добавляем проверку для инициализации socialLinks
+  useEffect(() => {
+    if (!socialLinks) {
+      // Пытаемся загрузить из localStorage
+      try {
+        const storedSocialLinks = localStorage.getItem('social_links');
+        if (storedSocialLinks) {
+          const parsedLinks = JSON.parse(storedSocialLinks);
+          setSocialLinks(parsedLinks);
+          console.log('Загружены социальные ссылки из localStorage в эффекте');
+        } else {
+          // Если нет в localStorage, создаем пустой объект
+          setSocialLinks({
+            twitch: '',
+            youtube: '',
+            discord: '',
+            telegram: '',
+            vk: '',
+            isMusician: false,
+            yandexMusic: '',
+            description: ''
+          });
+        }
+      } catch (error) {
+        console.error('Ошибка при загрузке социальных ссылок:', error);
+        // Инициализируем пустым объектом в случае ошибки
+        setSocialLinks({
+          twitch: '',
+          youtube: '',
+          discord: '',
+          telegram: '',
+          vk: '',
+          isMusician: false,
+          yandexMusic: '',
+          description: ''
+        });
+      }
+    }
+  }, [socialLinks]);
 
   // Функция для переключения отображения достижений
   const toggleAchievements = () => {
