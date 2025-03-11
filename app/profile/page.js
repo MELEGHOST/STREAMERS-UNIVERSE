@@ -620,8 +620,7 @@ export default function Profile() {
     const hasRealData = userStats && 
       userStats.user && 
       typeof userStats.user.viewCount === 'number' &&
-      userStats.followers && 
-      userStats.followings;
+      userStats.followers;
     
     // Если данных нет, показываем сообщение
     if (!hasRealData) {
@@ -642,6 +641,13 @@ export default function Profile() {
       );
     }
     
+    // Получаем количество подписчиков из токена если возможно
+    const followersCount = userStats.followers && userStats.followers.total 
+      ? userStats.followers.total 
+      : (profileData && profileData.followersCount 
+        ? profileData.followersCount 
+        : 0);
+    
     return (
       <div className={styles.statsSection}>
         <h3 className={styles.statsTitle}>Статистика канала</h3>
@@ -658,7 +664,7 @@ export default function Profile() {
           <div className={styles.statItem}>
             <div className={styles.statIcon}>👥</div>
             <div className={styles.statInfo}>
-              <div className={styles.statValue}>{userStats.followers.total.toLocaleString('ru-RU')}</div>
+              <div className={styles.statValue}>{followersCount.toLocaleString('ru-RU')}</div>
               <div className={styles.statLabel}>Подписчиков</div>
             </div>
           </div>
@@ -666,7 +672,9 @@ export default function Profile() {
           <div className={styles.statItem}>
             <div className={styles.statIcon}>📺</div>
             <div className={styles.statInfo}>
-              <div className={styles.statValue}>{userStats.followings.total.toLocaleString('ru-RU')}</div>
+              <div className={styles.statValue}>{userStats.followings && userStats.followings.total 
+                ? userStats.followings.total.toLocaleString('ru-RU') 
+                : '0'}</div>
               <div className={styles.statLabel}>Подписок</div>
             </div>
           </div>
@@ -1047,6 +1055,24 @@ export default function Profile() {
     return '/default-avatar.png';
   };
 
+  // Исправляем функцию для отображения отзывов
+  // В компоненте ReviewSection добавляем обработку обновления после добавления отзыва
+  const renderReviews = () => {
+    if (!showReviews) return null;
+    
+    return (
+      <div className={styles.reviewsContainer}>
+        <div className={styles.sectionHeader}>
+          <h2>Отзывы о вас</h2>
+        </div>
+        <ReviewSection 
+          userId={profileData.id} 
+          onReviewAdded={() => loadUserData()} // Перезагружаем данные после добавления отзыва
+        />
+      </div>
+    );
+  };
+
   return (
     <div className={styles.profileContainer}>
       <div className={styles.profileHeader}>
@@ -1162,7 +1188,10 @@ export default function Profile() {
           <div className={styles.sectionHeader}>
             <h2>Отзывы о вас</h2>
           </div>
-          <ReviewSection userId={profileData.id} />
+          <ReviewSection 
+            userId={profileData.id} 
+            onReviewAdded={() => loadUserData()} // Перезагружаем данные после добавления отзыва
+          />
         </div>
       ) : showStats ? (
         <div className={styles.statsContainer}>

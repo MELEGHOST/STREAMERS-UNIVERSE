@@ -49,7 +49,7 @@ const StyledWrapper = styled.div`
     --primary: #00ffaa;
     --primary-dark: #00cc88;
     --primary-light: #88ffdd;
-    --size: 30px;
+    --size: 45px;
     position: relative;
     width: var(--size);
     height: var(--size);
@@ -57,12 +57,14 @@ const StyledWrapper = styled.div`
     -webkit-tap-highlight-color: transparent;
     display: flex;
     align-items: center;
+    margin: 12px 0;
   }
 
   .checkbox-label {
-    margin-left: 10px;
+    margin-left: 15px;
     color: white;
-    font-size: 14px;
+    font-size: 16px;
+    font-weight: 500;
   }
 
   .neon-checkbox input {
@@ -79,14 +81,14 @@ const StyledWrapper = styled.div`
     position: absolute;
     inset: 0;
     background: rgba(0, 0, 0, 0.8);
-    border-radius: 4px;
+    border-radius: 6px;
     border: 2px solid var(--primary-dark);
     transition: all 0.4s ease;
   }
 
   .neon-checkbox__check-container {
     position: absolute;
-    inset: 2px;
+    inset: 3px;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -109,7 +111,7 @@ const StyledWrapper = styled.div`
   .neon-checkbox__glow {
     position: absolute;
     inset: -2px;
-    border-radius: 6px;
+    border-radius: 8px;
     background: var(--primary);
     opacity: 0;
     filter: blur(8px);
@@ -120,7 +122,7 @@ const StyledWrapper = styled.div`
   .neon-checkbox__borders {
     position: absolute;
     inset: 0;
-    border-radius: 4px;
+    border-radius: 6px;
     overflow: hidden;
   }
 

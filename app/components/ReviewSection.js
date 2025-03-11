@@ -2,8 +2,9 @@
 
 import React, { useState, useEffect } from 'react';
 import styles from './ReviewSection.module.css';
+import Cookies from 'js-cookie';
 
-const ReviewSection = ({ userId }) => {
+const ReviewSection = ({ userId, onReviewAdded }) => {
   const [reviews, setReviews] = useState([]);
   const [newReview, setNewReview] = useState('');
   const [rating, setRating] = useState(5);
@@ -12,6 +13,7 @@ const ReviewSection = ({ userId }) => {
   const [currentUser, setCurrentUser] = useState(null);
   const [successMessage, setSuccessMessage] = useState('');
   const [averageRating, setAverageRating] = useState(0);
+  const [submitting, setSubmitting] = useState(false);
 
   // Загрузка текущего пользователя из localStorage
   useEffect(() => {
@@ -60,77 +62,58 @@ const ReviewSection = ({ userId }) => {
   }, [userId]);
 
   // Отправка нового отзыва
-  const handleSubmitReview = async (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    
-    if (!newReview.trim()) {
-      setError('Пожалуйста, введите текст отзыва');
-      return;
-    }
+    setSubmitting(true);
     
     try {
-      // Проверяем, авторизован ли пользователь
-      if (!currentUser || !currentUser.id) {
-        setError('Необходимо авторизоваться, чтобы оставить отзыв');
+      const accessToken = Cookies.get('twitch_access_token');
+      if (!accessToken) {
+        setError('Для отправки отзыва необходимо авторизоваться');
         return;
       }
       
-      // Проверяем, не пытается ли пользователь оставить отзыв себе
-      if (currentUser.id === userId) {
-        setError('Вы не можете оставить отзыв самому себе');
+      const reviewerId = currentUser.id;
+      if (reviewerId === userId) {
+        setError('Вы не можете оставить отзыв о себе');
         return;
       }
       
-      // Проверяем, не оставлял ли пользователь уже отзыв для этого пользователя
-      const hasExistingReview = reviews.some(review => review.authorId === currentUser.id);
-      if (hasExistingReview) {
-        setError('Вы уже оставили отзыв для этого пользователя');
-        return;
-      }
-      
-      // Отправляем запрос к API для сохранения отзыва
-      const response = await fetch('/api/reviews', {
+      const response = await fetch('/api/reviews/create', {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json'
+          'Content-Type': 'application/json',
         },
         body: JSON.stringify({
           targetUserId: userId,
-          text: newReview,
-          rating
-        })
+          reviewerId,
+          rating,
+          comment: newReview,
+          categories: [],
+        }),
       });
       
+      const data = await response.json();
+      
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Ошибка при отправке отзыва');
+        throw new Error(data.message || 'Ошибка при отправке отзыва');
       }
       
-      const newReviewData = await response.json();
-      
-      // Обновляем список отзывов
-      setReviews([newReviewData, ...reviews]);
-      
-      // Пересчитываем средний рейтинг
-      const sum = [...reviews, newReviewData].reduce((acc, review) => acc + review.rating, 0);
-      setAverageRating((sum / (reviews.length + 1)).toFixed(1));
-      
-      setNewReview('');
-      setRating(5);
       setSuccessMessage('Отзыв успешно добавлен!');
       
-      // Скрываем сообщение об успехе через 3 секунды
-      setTimeout(() => {
-        setSuccessMessage('');
-      }, 3000);
-    } catch (err) {
-      console.error('Ошибка при отправке отзыва:', err);
-      setError(err.message || 'Не удалось отправить отзыв. Пожалуйста, попробуйте позже.');
+      // Перезагружаем отзывы после успешного добавления
+      fetchReviews();
       
-      // Скрываем сообщение об ошибке через 5 секунд
-      setTimeout(() => {
-        setError(null);
-      }, 5000);
+      // Вызываем колбэк, если он предоставлен
+      if (typeof onReviewAdded === 'function') {
+        onReviewAdded();
+      }
+      
+    } catch (error) {
+      console.error('Ошибка при отправке отзыва:', error);
+      setError(error.message || 'Произошла ошибка при отправке отзыва');
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -190,7 +173,7 @@ const ReviewSection = ({ userId }) => {
       {/* Форма для добавления отзыва (только если пользователь не оставлял отзыв и это не его профиль) */}
       {currentUser && currentUser.id && currentUser.id !== userId && 
        !reviews.some(review => review.authorId === currentUser.id) && (
-        <form className={styles.reviewForm} onSubmit={handleSubmitReview}>
+        <form className={styles.reviewForm} onSubmit={handleSubmit}>
           <div className={styles.ratingInput}>
             <label>Ваша оценка:</label>
             {renderStars(rating, true)}
@@ -212,7 +195,7 @@ const ReviewSection = ({ userId }) => {
           {error && <div className={styles.error}>{error}</div>}
           {successMessage && <div className={styles.success}>{successMessage}</div>}
           
-          <button type="submit" className={styles.submitButton}>
+          <button type="submit" className={styles.submitButton} disabled={submitting}>
             Отправить отзыв
           </button>
         </form>
@@ -257,5 +240,10 @@ function getDeclension(number, words) {
   const cases = [2, 0, 1, 1, 1, 2];
   return words[(number % 100 > 4 && number % 100 < 20) ? 2 : cases[(number % 10 < 5) ? number % 10 : 5]];
 }
+
+// Устанавливаем defaultProps для компонента
+ReviewSection.defaultProps = {
+  onReviewAdded: () => {} // Пустая функция по умолчанию
+};
 
 export default ReviewSection; 

@@ -449,4 +449,25 @@ export default function EditProfile() {
       </form>
     </div>
   );
-} 
+}
+
+<style jsx>{`
+  .checkbox-container {
+    margin: 15px 0;
+    width: 100%;
+  }
+  
+  .checkboxGrid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 20px;
+    margin-top: 15px;
+  }
+
+  .checkboxGroup {
+    margin: 10px 0;
+    min-height: 60px; /* Увеличиваем минимальную высоту для предотвращения "сжатия" */
+    display: flex;
+    align-items: center;
+  }
+`}</style> 
