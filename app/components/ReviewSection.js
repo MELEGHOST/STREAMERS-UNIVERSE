@@ -14,6 +14,14 @@ const ReviewSection = ({ userId, onReviewAdded }) => {
   const [successMessage, setSuccessMessage] = useState('');
   const [averageRating, setAverageRating] = useState(0);
   const [submitting, setSubmitting] = useState(false);
+  const [categories, setCategories] = useState([
+    { id: 'friendly', name: 'Дружелюбный', selected: false },
+    { id: 'helpful', name: 'Полезный', selected: false },
+    { id: 'knowledgeable', name: 'Знающий', selected: false },
+    { id: 'entertaining', name: 'Развлекательный', selected: false },
+    { id: 'professional', name: 'Профессиональный', selected: false },
+    { id: 'creative', name: 'Креативный', selected: false },
+  ]);
 
   // Загрузка текущего пользователя из localStorage
   useEffect(() => {
@@ -65,6 +73,14 @@ const ReviewSection = ({ userId, onReviewAdded }) => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setSubmitting(true);
+    setError(null); // Очищаем предыдущие ошибки
+    
+    // Проверяем, что отзыв не пустой
+    if (!newReview || newReview.trim() === '') {
+      setError('Пожалуйста, введите текст отзыва');
+      setSubmitting(false);
+      return;
+    }
     
     try {
       const accessToken = Cookies.get('twitch_access_token');
@@ -79,6 +95,13 @@ const ReviewSection = ({ userId, onReviewAdded }) => {
         return;
       }
       
+      // Проверяем, не оставлял ли пользователь уже отзыв
+      const hasExistingReview = reviews.some(review => review.reviewerId === reviewerId);
+      if (hasExistingReview) {
+        setError('Вы уже оставили отзыв для этого пользователя');
+        return;
+      }
+      
       const response = await fetch('/api/reviews/create', {
         method: 'POST',
         headers: {
@@ -89,7 +112,7 @@ const ReviewSection = ({ userId, onReviewAdded }) => {
           reviewerId,
           rating,
           comment: newReview,
-          categories: [],
+          categories: categories.filter(cat => cat.selected).map(cat => cat.id),
         }),
       });
       
@@ -99,15 +122,41 @@ const ReviewSection = ({ userId, onReviewAdded }) => {
         throw new Error(data.message || 'Ошибка при отправке отзыва');
       }
       
-      setSuccessMessage('Отзыв успешно добавлен!');
+      // Очищаем форму после успешной отправки
+      setNewReview('');
+      setRating(5);
       
-      // Перезагружаем отзывы после успешного добавления
+      // Устанавливаем сообщение об успехе и автоматически скрываем его через 5 секунд
+      setSuccessMessage('Отзыв успешно добавлен!');
+      setTimeout(() => {
+        setSuccessMessage('');
+      }, 5000);
+      
+      // Добавляем новый отзыв в список без перезагрузки всех отзывов
+      const newReviewData = {
+        ...data.review,
+        authorName: currentUser.display_name || currentUser.login,
+        authorAvatar: currentUser.profile_image_url || '/default-avatar.png',
+        createdAt: new Date().toISOString()
+      };
+      
+      setReviews([newReviewData, ...reviews]);
+      
+      // Обновляем средний рейтинг
+      const newTotal = reviews.reduce((sum, review) => sum + review.rating, 0) + rating;
+      const newCount = reviews.length + 1;
+      setAverageRating((newTotal / newCount).toFixed(1));
+      
+      // Перезагружаем отзывы для получения актуальных данных
       fetchReviews();
       
       // Вызываем колбэк, если он предоставлен
       if (typeof onReviewAdded === 'function') {
         onReviewAdded();
       }
+      
+      // Сбрасываем выбранные категории после отправки
+      setCategories(categories.map(cat => ({ ...cat, selected: false })));
       
     } catch (error) {
       console.error('Ошибка при отправке отзыва:', error);
@@ -147,6 +196,15 @@ const ReviewSection = ({ userId, onReviewAdded }) => {
     });
   };
 
+  // Функция для переключения выбора категории
+  const toggleCategory = (id) => {
+    setCategories(prevCategories => 
+      prevCategories.map(cat => 
+        cat.id === id ? { ...cat, selected: !cat.selected } : cat
+      )
+    );
+  };
+
   if (loading) {
     return (
       <div className={styles.reviewSection}>
@@ -179,6 +237,21 @@ const ReviewSection = ({ userId, onReviewAdded }) => {
             {renderStars(rating, true)}
           </div>
           
+          <div className={styles.categoriesContainer}>
+            <label>Выберите категории, которые подходят:</label>
+            <div className={styles.categoriesList}>
+              {categories.map(category => (
+                <div 
+                  key={category.id} 
+                  className={`${styles.categoryTag} ${category.selected ? styles.categorySelected : ''}`}
+                  onClick={() => toggleCategory(category.id)}
+                >
+                  {category.name}
+                </div>
+              ))}
+            </div>
+          </div>
+          
           <div className={styles.textareaContainer}>
             <textarea
               className={styles.reviewTextarea}
@@ -186,6 +259,7 @@ const ReviewSection = ({ userId, onReviewAdded }) => {
               onChange={(e) => setNewReview(e.target.value)}
               placeholder="Напишите ваш отзыв..."
               maxLength={500}
+              required
             />
             <div className={styles.charCount}>
               {newReview.length}/500
@@ -195,8 +269,12 @@ const ReviewSection = ({ userId, onReviewAdded }) => {
           {error && <div className={styles.error}>{error}</div>}
           {successMessage && <div className={styles.success}>{successMessage}</div>}
           
-          <button type="submit" className={styles.submitButton} disabled={submitting}>
-            Отправить отзыв
+          <button 
+            type="submit" 
+            className={styles.submitButton} 
+            disabled={submitting || !newReview.trim()}
+          >
+            {submitting ? 'Отправка...' : 'Отправить отзыв'}
           </button>
         </form>
       )}

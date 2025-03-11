@@ -50,11 +50,19 @@
 }
 
 .reviewForm {
-  background-color: rgba(255, 255, 255, 0.1);
+  background-color: rgba(30, 30, 40, 0.3);
   padding: 20px;
-  border-radius: 15px;
-  margin-bottom: 30px;
-  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.1);
+  border-radius: 12px;
+  margin-top: 20px;
+  margin-bottom: 40px;
+  border: 1px solid rgba(145, 70, 255, 0.2);
+  transition: all 0.3s ease;
+}
+
+.reviewForm:hover {
+  background-color: rgba(30, 30, 40, 0.4);
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+  border-color: rgba(145, 70, 255, 0.3);
 }
 
 .ratingInput {
@@ -135,24 +143,32 @@
 }
 
 .submitButton {
-  background-color: #9146FF;
+  background: linear-gradient(to right, #9146FF, #7431d3);
   color: white;
   border: none;
-  padding: 12px 20px;
-  border-radius: 8px;
+  border-radius: 30px;
+  padding: 12px 30px;
   font-size: 16px;
   font-weight: bold;
   cursor: pointer;
-  transition: background-color 0.3s ease, transform 0.2s ease;
+  transition: all 0.3s ease;
+  display: block;
+  margin: 20px auto 0;
+  box-shadow: 0 4px 10px rgba(145, 70, 255, 0.3);
 }
 
 .submitButton:hover {
-  background-color: #7b41c9;
-  transform: translateY(-2px);
+  background: linear-gradient(to right, #a35eff, #8442e6);
+  transform: translateY(-3px);
+  box-shadow: 0 6px 12px rgba(145, 70, 255, 0.4);
 }
 
-.submitButton:active {
-  transform: translateY(0);
+.submitButton:disabled {
+  background: linear-gradient(to right, #6b6b6b, #4c4c4c);
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+  opacity: 0.7;
 }
 
 .reviewsList {
@@ -232,6 +248,51 @@
   font-size: 16px;
 }
 
+.categoriesContainer {
+  margin: 15px 0;
+}
+
+.categoriesContainer label {
+  display: block;
+  font-size: 16px;
+  margin-bottom: 8px;
+  color: #f8f8f8;
+}
+
+.categoriesList {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 8px;
+}
+
+.categoryTag {
+  background-color: rgba(145, 70, 255, 0.1);
+  color: #f0f0f0;
+  border: 1px solid rgba(145, 70, 255, 0.3);
+  border-radius: 20px;
+  padding: 5px 12px;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.categoryTag:hover {
+  background-color: rgba(145, 70, 255, 0.2);
+  transform: translateY(-2px);
+}
+
+.categorySelected {
+  background-color: rgba(145, 70, 255, 0.8);
+  color: white;
+  border-color: rgba(145, 70, 255, 1);
+  box-shadow: 0 3px 8px rgba(145, 70, 255, 0.3);
+}
+
+.categorySelected:hover {
+  background-color: rgba(145, 70, 255, 0.9);
+}
+
 @media (max-width: 768px) {
   .reviewSection {
     padding: 15px;
@@ -257,6 +318,15 @@
   .star {
     font-size: 20px;
   }
+  
+  .categoriesList {
+    gap: 8px;
+  }
+  
+  .categoryTag {
+    font-size: 12px;
+    padding: 4px 10px;
+  }
 }
 
 @media (max-width: 480px) {
@@ -275,5 +345,14 @@
   
   .reviewText {
     font-size: 14px;
+  }
+  
+  .categoriesList {
+    gap: 6px;
+  }
+  
+  .categoryTag {
+    font-size: 11px;
+    padding: 3px 8px;
   }
 } 
