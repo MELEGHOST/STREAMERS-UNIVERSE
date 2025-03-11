@@ -53,119 +53,114 @@ export default function Profile() {
   });
   const [loadAttempts, setLoadAttempts] = useState(0);
 
-  // Функция для загрузки данных пользователя
+  // Исправляем проблему с хуками - перемещаем useEffect для socialLinks
+  // Проблема в том, что мы используем зависимость [socialLinks], но внутри эффекта проверяем !socialLinks
+  // Это может вызвать бесконечный цикл и нарушает правила хуков
+  useEffect(() => {
+    // Инициализация socialLinks при первой загрузке
+    const initSocialLinks = () => {
+      try {
+        const storedSocialLinks = localStorage.getItem('social_links');
+        if (storedSocialLinks) {
+          const parsedLinks = JSON.parse(storedSocialLinks);
+          setSocialLinks(parsedLinks);
+          console.log('Загружены социальные ссылки из localStorage в эффекте');
+        } else {
+          // Если нет в localStorage, создаем пустой объект
+          setSocialLinks({
+            twitch: '',
+            youtube: '',
+            discord: '',
+            telegram: '',
+            vk: '',
+            isMusician: false,
+            yandexMusic: '',
+            description: ''
+          });
+        }
+      } catch (error) {
+        console.error('Ошибка при загрузке социальных ссылок:', error);
+        // Инициализируем пустым объектом в случае ошибки
+        setSocialLinks({
+          twitch: '',
+          youtube: '',
+          discord: '',
+          telegram: '',
+          vk: '',
+          isMusician: false,
+          yandexMusic: '',
+          description: ''
+        });
+      }
+    };
+
+    if (!socialLinks) {
+      initSocialLinks();
+    }
+  }, []); // Пустой массив зависимостей, чтобы эффект выполнился только один раз
+
+  // Исправляем проблему с авторизацией - добавляем проверку токена перед запросами
+  const fetchUserData = async () => {
+    try {
+      // Проверяем наличие токена
+      const accessToken = Cookies.get('twitch_access_token');
+      if (!accessToken) {
+        throw new Error('Отсутствует токен доступа');
+      }
+
+      // Выполняем запрос с токеном
+      const response = await fetch('/api/user/profile', {
+        headers: {
+          'Authorization': `Bearer ${accessToken}`
+        }
+      });
+
+      if (!response.ok) {
+        if (response.status === 401) {
+          // Если токен недействителен, перенаправляем на страницу авторизации
+          console.error('Токен недействителен, перенаправление на страницу авторизации');
+          router.push('/auth');
+          return;
+        }
+        throw new Error(`Ошибка API: ${response.status}`);
+      }
+
+      const data = await response.json();
+      setProfileData(data);
+      
+      // Также загружаем социальные ссылки
+      const socialResponse = await fetch(`/api/user/social?userId=${data.id}`, {
+        headers: {
+          'Authorization': `Bearer ${accessToken}`
+        }
+      });
+      
+      if (socialResponse.ok) {
+        const socialData = await socialResponse.json();
+        setSocialLinks(socialData);
+      }
+    } catch (error) {
+      console.error('Ошибка при загрузке профиля:', error);
+      setError(error.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Обновляем функцию loadUserData для использования fetchUserData
   const loadUserData = async () => {
     setLoading(true);
     setError(null);
     
     try {
-      // Проверяем токен
-      const accessToken = Cookies.get('twitch_access_token');
-      if (!accessToken) {
-        console.error('Отсутствует токен доступа, перенаправление на страницу авторизации');
-        router.push('/auth');
-        return;
-      }
-      
-      // Сначала пытаемся загрузить данные из локального хранилища
-      try {
-        const localUser = localStorage.getItem('twitch_user');
-        if (localUser) {
-          const userData = JSON.parse(localUser);
-          if (userData && userData.id) {
-            setProfileData(userData);
-            // Продолжаем загрузку свежих данных в фоне
-            console.log('Загружены данные из localStorage, продолжаем загрузку свежих данных');
-            
-            // Загружаем социальные ссылки из localStorage
-            try {
-              const storedSocialLinks = localStorage.getItem('social_links');
-              if (storedSocialLinks) {
-                const parsedLinks = JSON.parse(storedSocialLinks);
-                setSocialLinks(parsedLinks);
-                console.log('Загружены социальные ссылки из localStorage');
-              }
-            } catch (error) {
-              console.error('Ошибка при загрузке социальных ссылок:', error);
-            }
-          }
-        }
-      } catch (localError) {
-        console.warn('Не удалось получить данные из localStorage:', localError);
-      }
-      
-      // Получаем данные пользователя из API
-      try {
-        // Установим таймаут для запроса, чтобы избежать бесконечной загрузки
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 10000); // 10-секундный таймаут
-        
-        const response = await fetch('/api/twitch/profile', {
-          credentials: 'include',
-          headers: {
-            'Authorization': `Bearer ${accessToken}`,
-            'Cache-Control': 'no-cache',
-            'Pragma': 'no-cache'
-          },
-          signal: controller.signal
-        });
-        
-        clearTimeout(timeoutId);
-        
-        if (!response.ok) {
-          const errorData = await response.json();
-          throw new Error(errorData.message || 'Ошибка при получении данных профиля');
-        }
-        
-        const userData = await response.json();
-        
-        if (!userData || !userData.id) {
-          setError('Не удалось получить данные профиля');
-          setLoading(false);
-          return;
-        }
-        
-        setProfileData(userData);
-        
-        // Загружаем дополнительные данные в фоне
-        setTimeout(() => {
-          Promise.all([
-            getUserStats(userData.id)
-              .then(stats => {
-                if (stats) {
-                  setUserStats(stats);
-                  
-                  // Сохраняем статистику в localStorage для быстрого доступа
-                  if (typeof window !== 'undefined') {
-                    localStorage.setItem(`user_stats_${userData.id}`, JSON.stringify(stats));
-                  }
-                }
-              })
-              .catch(statsError => console.error('Ошибка при загрузке статистики пользователя:', statsError)),
-            
-            // Запускаем загрузку фолловеров в фоне
-            fetchFollowings()
-          ]).catch(err => console.error('Ошибка при загрузке дополнительных данных:', err));
-        }, 300);
-        
-      } catch (apiError) {
-        console.error('Ошибка при получении данных пользователя из API:', apiError);
-        
-        // Если уже установлены данные из localStorage, просто показываем их
-        if (!profileData) {
-          setError('Ошибка при загрузке данных профиля');
-        }
-      }
+      await fetchUserData();
     } catch (error) {
-      console.error('Ошибка при загрузке данных:', error);
-      if (!profileData) {
-        setError('Не удалось загрузить данные');
-      }
-    } finally {
+      console.error('Ошибка при загрузке данных пользователя:', error);
+      setError(error.message);
       setLoading(false);
     }
   };
-  
+
   // Функция для сохранения настроек видимости статистики
   const saveStatsVisibility = async (newVisibility) => {
     setStatsVisibility(newVisibility);
@@ -466,46 +461,6 @@ export default function Profile() {
       </div>
     );
   };
-
-  // Добавляем проверку для инициализации socialLinks
-  useEffect(() => {
-    if (!socialLinks) {
-      // Пытаемся загрузить из localStorage
-      try {
-        const storedSocialLinks = localStorage.getItem('social_links');
-        if (storedSocialLinks) {
-          const parsedLinks = JSON.parse(storedSocialLinks);
-          setSocialLinks(parsedLinks);
-          console.log('Загружены социальные ссылки из localStorage в эффекте');
-        } else {
-          // Если нет в localStorage, создаем пустой объект
-          setSocialLinks({
-            twitch: '',
-            youtube: '',
-            discord: '',
-            telegram: '',
-            vk: '',
-            isMusician: false,
-            yandexMusic: '',
-            description: ''
-          });
-        }
-      } catch (error) {
-        console.error('Ошибка при загрузке социальных ссылок:', error);
-        // Инициализируем пустым объектом в случае ошибки
-        setSocialLinks({
-          twitch: '',
-          youtube: '',
-          discord: '',
-          telegram: '',
-          vk: '',
-          isMusician: false,
-          yandexMusic: '',
-          description: ''
-        });
-      }
-    }
-  }, [socialLinks]);
 
   // Функция для переключения отображения достижений
   const toggleAchievements = () => {

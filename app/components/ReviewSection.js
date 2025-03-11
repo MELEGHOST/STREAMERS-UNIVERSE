@@ -37,16 +37,36 @@ const ReviewSection = ({ userId, onReviewAdded }) => {
   useEffect(() => {
     if (!userId) return;
     
-    const fetchReviews = async () => {
-      try {
-        setLoading(true);
-        // Запрос к нашему API для получения отзывов
-        const response = await fetch(`/api/reviews?targetUserId=${userId}`);
-        
-        if (!response.ok) {
+    fetchReviews();
+  }, [userId]);
+
+  // Выносим функцию fetchReviews за пределы useEffect для возможности повторного использования
+  const fetchReviews = async () => {
+    try {
+      setLoading(true);
+      
+      // Проверяем наличие токена
+      const accessToken = Cookies.get('twitch_access_token');
+      if (!accessToken) {
+        console.warn('Отсутствует токен доступа для загрузки отзывов');
+        // Продолжаем загрузку без токена, так как отзывы могут быть публичными
+      }
+      
+      // Запрос к нашему API для получения отзывов
+      const response = await fetch(`/api/reviews?targetUserId=${userId}`, {
+        headers: accessToken ? {
+          'Authorization': `Bearer ${accessToken}`
+        } : {}
+      });
+      
+      if (!response.ok) {
+        if (response.status === 401) {
+          console.warn('Требуется авторизация для загрузки отзывов');
+          setError('Для просмотра отзывов необходимо авторизоваться');
+        } else {
           throw new Error('Ошибка загрузки отзывов');
         }
-        
+      } else {
         const reviewsData = await response.json();
         console.log('Загружены отзывы:', reviewsData);
         
@@ -57,17 +77,14 @@ const ReviewSection = ({ userId, onReviewAdded }) => {
           const sum = reviewsData.reduce((acc, review) => acc + review.rating, 0);
           setAverageRating((sum / reviewsData.length).toFixed(1));
         }
-        
-        setLoading(false);
-      } catch (err) {
-        console.error('Ошибка при загрузке отзывов:', err);
-        setError('Не удалось загрузить отзывы. Пожалуйста, попробуйте позже.');
-        setLoading(false);
       }
-    };
-
-    fetchReviews();
-  }, [userId]);
+    } catch (error) {
+      console.error('Ошибка при загрузке отзывов:', error);
+      setError('Не удалось загрузить отзывы. Пожалуйста, попробуйте позже.');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   // Отправка нового отзыва
   const handleSubmit = async (e) => {
@@ -89,7 +106,12 @@ const ReviewSection = ({ userId, onReviewAdded }) => {
         return;
       }
       
-      const reviewerId = currentUser.id;
+      const reviewerId = currentUser?.id;
+      if (!reviewerId) {
+        setError('Не удалось определить ваш ID. Пожалуйста, авторизуйтесь заново.');
+        return;
+      }
+      
       if (reviewerId === userId) {
         setError('Вы не можете оставить отзыв о себе');
         return;
@@ -106,6 +128,7 @@ const ReviewSection = ({ userId, onReviewAdded }) => {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': `Bearer ${accessToken}`
         },
         body: JSON.stringify({
           targetUserId: userId,
@@ -119,45 +142,49 @@ const ReviewSection = ({ userId, onReviewAdded }) => {
       const data = await response.json();
       
       if (!response.ok) {
-        throw new Error(data.message || 'Ошибка при отправке отзыва');
+        if (response.status === 401) {
+          setError('Ваша сессия истекла. Пожалуйста, авторизуйтесь заново.');
+          // Можно добавить перенаправление на страницу авторизации
+        } else {
+          throw new Error(data.message || 'Ошибка при отправке отзыва');
+        }
+      } else {
+        // Очищаем форму после успешной отправки
+        setNewReview('');
+        setRating(5);
+        
+        // Сбрасываем выбранные категории после отправки
+        setCategories(categories.map(cat => ({ ...cat, selected: false })));
+        
+        // Устанавливаем сообщение об успехе и автоматически скрываем его через 5 секунд
+        setSuccessMessage('Отзыв успешно добавлен!');
+        setTimeout(() => {
+          setSuccessMessage('');
+        }, 5000);
+        
+        // Добавляем новый отзыв в список без перезагрузки всех отзывов
+        const newReviewData = {
+          ...data.review,
+          authorName: currentUser.display_name || currentUser.login,
+          authorAvatar: currentUser.profile_image_url || '/default-avatar.png',
+          createdAt: new Date().toISOString()
+        };
+        
+        setReviews([newReviewData, ...reviews]);
+        
+        // Обновляем средний рейтинг
+        const newTotal = reviews.reduce((sum, review) => sum + review.rating, 0) + rating;
+        const newCount = reviews.length + 1;
+        setAverageRating((newTotal / newCount).toFixed(1));
+        
+        // Перезагружаем отзывы для получения актуальных данных
+        fetchReviews();
+        
+        // Вызываем колбэк, если он предоставлен
+        if (typeof onReviewAdded === 'function') {
+          onReviewAdded();
+        }
       }
-      
-      // Очищаем форму после успешной отправки
-      setNewReview('');
-      setRating(5);
-      
-      // Устанавливаем сообщение об успехе и автоматически скрываем его через 5 секунд
-      setSuccessMessage('Отзыв успешно добавлен!');
-      setTimeout(() => {
-        setSuccessMessage('');
-      }, 5000);
-      
-      // Добавляем новый отзыв в список без перезагрузки всех отзывов
-      const newReviewData = {
-        ...data.review,
-        authorName: currentUser.display_name || currentUser.login,
-        authorAvatar: currentUser.profile_image_url || '/default-avatar.png',
-        createdAt: new Date().toISOString()
-      };
-      
-      setReviews([newReviewData, ...reviews]);
-      
-      // Обновляем средний рейтинг
-      const newTotal = reviews.reduce((sum, review) => sum + review.rating, 0) + rating;
-      const newCount = reviews.length + 1;
-      setAverageRating((newTotal / newCount).toFixed(1));
-      
-      // Перезагружаем отзывы для получения актуальных данных
-      fetchReviews();
-      
-      // Вызываем колбэк, если он предоставлен
-      if (typeof onReviewAdded === 'function') {
-        onReviewAdded();
-      }
-      
-      // Сбрасываем выбранные категории после отправки
-      setCategories(categories.map(cat => ({ ...cat, selected: false })));
-      
     } catch (error) {
       console.error('Ошибка при отправке отзыва:', error);
       setError(error.message || 'Произошла ошибка при отправке отзыва');
