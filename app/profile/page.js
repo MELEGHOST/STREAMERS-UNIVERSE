@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import styles from './profile.module.css';
 import SocialButton from '../components/SocialButton';
@@ -148,7 +148,7 @@ export default function Profile() {
   };
 
   // Обновляем функцию loadUserData для загрузки актуальных данных профиля и социальных ссылок
-  const loadUserData = async () => {
+  const loadUserData = useCallback(async () => {
     setLoading(true);
     setError(null);
     
@@ -222,7 +222,7 @@ export default function Profile() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [router, fetchFollowings, fetchTierlists]);
 
   // Функция для сохранения настроек видимости статистики
   const saveStatsVisibility = async (newVisibility) => {
@@ -1253,7 +1253,7 @@ export default function Profile() {
   };
 
   // Функция для загрузки фолловингов
-  const fetchFollowings = async () => {
+  const fetchFollowings = useCallback(async () => {
     if (!profileData || !profileData.id) {
       console.warn('Невозможно загрузить фолловингов: нет данных профиля');
       return;
@@ -1313,10 +1313,10 @@ export default function Profile() {
       console.error('Критическая ошибка при загрузке фолловингов:', error);
       setFollowings([]);
     }
-  };
+  }, [profileData]);
 
   // Функция для загрузки тирлистов пользователя
-  const fetchTierlists = async () => {
+  const fetchTierlists = useCallback(async () => {
     if (!profileData || !profileData.id) return;
     
     try {
@@ -1333,7 +1333,7 @@ export default function Profile() {
     } catch (error) {
       console.error('Ошибка при загрузке тирлистов:', error);
     }
-  };
+  }, [profileData]);
 
   const getUserAvatar = () => {
     if (!profileData) return '/default-avatar.png';
@@ -1396,7 +1396,7 @@ export default function Profile() {
     return () => {
       window.removeEventListener('focus', handleFocus);
     };
-  }, []);
+  }, [loadUserData]);
 
   return (
     <div className={styles.container}>
