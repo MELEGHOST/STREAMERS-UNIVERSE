@@ -147,7 +147,90 @@ export default function Profile() {
     }
   };
 
-  // Обновляем функцию loadUserData для загрузки актуальных данных профиля и социальных ссылок
+  // Функция для загрузки фолловингов
+  const fetchFollowings = useCallback(async () => {
+    if (!profileData || !profileData.id) {
+      console.warn('Невозможно загрузить фолловингов: нет данных профиля');
+      return;
+    }
+    
+    try {
+      console.log('Загрузка фолловингов для пользователя:', profileData.id);
+      
+      // Получаем токен
+      const accessToken = localStorage.getItem('cookie_twitch_access_token') || 
+                         localStorage.getItem('twitch_token') || 
+                         Cookies.get('twitch_access_token');
+      
+      if (!accessToken) {
+        console.warn('Отсутствует токен доступа для загрузки фолловингов');
+        return;
+      }
+      
+      // Делаем прямой fetch запрос с абсолютным таймаутом
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 10000);
+      
+      const url = `/api/twitch/user-followings?userId=${profileData.id}`;
+      
+      try {
+        const response = await fetch(url, {
+          headers: {
+            'Authorization': `Bearer ${accessToken}`,
+            'Cache-Control': 'no-cache'
+          },
+          signal: controller.signal
+        });
+        
+        clearTimeout(timeoutId);
+        
+        if (!response.ok) {
+          throw new Error(`Ошибка API: ${response.status}`);
+        }
+        
+        const data = await response.json();
+        console.log('Получены данные о фолловингах:', data);
+        
+        // Проверяем структуру данных и устанавливаем их
+        if (data && Array.isArray(data)) {
+          setFollowings(data);
+        } else if (data && Array.isArray(data.followings)) {
+          setFollowings(data.followings);
+        } else {
+          console.warn('Некорректный формат данных о фолловингах:', data);
+          setFollowings([]);
+        }
+      } catch (error) {
+        console.error('Ошибка при загрузке фолловингов:', error);
+        setFollowings([]);
+      }
+    } catch (error) {
+      console.error('Критическая ошибка при загрузке фолловингов:', error);
+      setFollowings([]);
+    }
+  }, [profileData]);
+
+  // Функция для загрузки тирлистов пользователя
+  const fetchTierlists = useCallback(async () => {
+    if (!profileData || !profileData.id) return;
+    
+    try {
+      const response = await fetch(`/api/tierlists?userId=${profileData.id}`);
+      
+      if (!response.ok) {
+        console.error('Ошибка при загрузке тирлистов:', await response.text());
+        return;
+      }
+      
+      const data = await response.json();
+      console.log('Загружены тирлисты:', data);
+      setTierlists(data);
+    } catch (error) {
+      console.error('Ошибка при загрузке тирлистов:', error);
+    }
+  }, [profileData]);
+
+  // Теперь объявляем loadUserData после fetchFollowings и fetchTierlists
   const loadUserData = useCallback(async () => {
     setLoading(true);
     setError(null);
@@ -1251,89 +1334,6 @@ export default function Profile() {
       setLoading(false);
     }
   };
-
-  // Функция для загрузки фолловингов
-  const fetchFollowings = useCallback(async () => {
-    if (!profileData || !profileData.id) {
-      console.warn('Невозможно загрузить фолловингов: нет данных профиля');
-      return;
-    }
-    
-    try {
-      console.log('Загрузка фолловингов для пользователя:', profileData.id);
-      
-      // Получаем токен
-      const accessToken = localStorage.getItem('cookie_twitch_access_token') || 
-                         localStorage.getItem('twitch_token') || 
-                         Cookies.get('twitch_access_token');
-      
-      if (!accessToken) {
-        console.warn('Отсутствует токен доступа для загрузки фолловингов');
-        return;
-      }
-      
-      // Делаем прямой fetch запрос с абсолютным таймаутом
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 10000);
-      
-      const url = `/api/twitch/user-followings?userId=${profileData.id}`;
-      
-      try {
-        const response = await fetch(url, {
-          headers: {
-            'Authorization': `Bearer ${accessToken}`,
-            'Cache-Control': 'no-cache'
-          },
-          signal: controller.signal
-        });
-        
-        clearTimeout(timeoutId);
-        
-        if (!response.ok) {
-          throw new Error(`Ошибка API: ${response.status}`);
-        }
-        
-        const data = await response.json();
-        console.log('Получены данные о фолловингах:', data);
-        
-        // Проверяем структуру данных и устанавливаем их
-        if (data && Array.isArray(data)) {
-          setFollowings(data);
-        } else if (data && Array.isArray(data.followings)) {
-          setFollowings(data.followings);
-        } else {
-          console.warn('Некорректный формат данных о фолловингах:', data);
-          setFollowings([]);
-        }
-      } catch (error) {
-        console.error('Ошибка при загрузке фолловингов:', error);
-        setFollowings([]);
-      }
-    } catch (error) {
-      console.error('Критическая ошибка при загрузке фолловингов:', error);
-      setFollowings([]);
-    }
-  }, [profileData]);
-
-  // Функция для загрузки тирлистов пользователя
-  const fetchTierlists = useCallback(async () => {
-    if (!profileData || !profileData.id) return;
-    
-    try {
-      const response = await fetch(`/api/tierlists?userId=${profileData.id}`);
-      
-      if (!response.ok) {
-        console.error('Ошибка при загрузке тирлистов:', await response.text());
-        return;
-      }
-      
-      const data = await response.json();
-      console.log('Загружены тирлисты:', data);
-      setTierlists(data);
-    } catch (error) {
-      console.error('Ошибка при загрузке тирлистов:', error);
-    }
-  }, [profileData]);
 
   const getUserAvatar = () => {
     if (!profileData) return '/default-avatar.png';
