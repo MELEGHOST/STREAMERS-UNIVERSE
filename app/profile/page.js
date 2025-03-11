@@ -413,16 +413,275 @@ export default function Profile() {
     }
   };
 
-  // Обновляем функцию для отображения социальных ссылок и описания профиля
+  // Обновляем функцию для отображения информации о профиле
+  const renderProfileInfo = () => {
+    if (!profileData) return null;
+    
+    // Получаем количество фолловеров из userStats или profileData
+    const followersCount = userStats?.followers?.total || 
+                          profileData.followersCount || 
+                          followers?.length || 
+                          0;
+    
+    return (
+      <div className={styles.profileInfoContainer}>
+        <div className={styles.profileHeader}>
+          <div className={styles.avatarContainer}>
+            <CyberAvatar 
+              src={profileData.profile_image_url || '/images/default-avatar.png'} 
+              alt={profileData.display_name || 'Пользователь'} 
+              size={150}
+            />
+          </div>
+          <div className={styles.profileDetails}>
+            <h1 className={styles.displayName}>{profileData.display_name || profileData.login}</h1>
+            <div className={styles.profileStats}>
+              <div className={styles.profileStat}>
+                <span className={styles.statIcon}>👥</span>
+                <span className={styles.statValue}>{followersCount.toLocaleString('ru-RU')}</span>
+                <span className={styles.statLabel}>Подписчиков</span>
+              </div>
+              {profileData.broadcaster_type && (
+                <div className={styles.profileStat}>
+                  <span className={styles.statIcon}>📺</span>
+                  <span className={styles.statValue}>{profileData.broadcaster_type}</span>
+                  <span className={styles.statLabel}>Тип канала</span>
+                </div>
+              )}
+            </div>
+            {profileData.birthday && (
+              <div className={styles.birthdayContainer}>
+                <span className={styles.birthdayIcon}>🎂</span>
+                <span className={styles.birthdayText}>День рождения: {formatDate(profileData.birthday)}</span>
+              </div>
+            )}
+          </div>
+          <div className={styles.profileActions}>
+            <button 
+              className={styles.achievementsButton} 
+              onClick={toggleAchievements}
+              title="Посмотреть достижения"
+            >
+              🏆 Достижения
+            </button>
+            <button 
+              className={styles.reviewsButton} 
+              onClick={toggleReviews}
+              title="Отзывы о вас"
+            >
+              ⭐ Отзывы
+            </button>
+            <button 
+              className={styles.tierlistButton} 
+              onClick={toggleTierlists}
+              title="Тирлисты пользователя"
+            >
+              📋 Тирлисты
+            </button>
+            <button 
+              className={styles.statsButton} 
+              onClick={toggleStats}
+              title="Статистика канала"
+            >
+              📊 Статистика
+            </button>
+            <button className={styles.button} onClick={() => router.push('/edit-profile')}>
+              Редактировать профиль
+            </button>
+            <button className={styles.button} onClick={() => router.push('/menu')}>
+              Вернуться в меню
+            </button>
+            <button className={styles.logoutButton} onClick={handleLogout}>
+              Выйти из аккаунта
+            </button>
+          </div>
+        </div>
+        
+        {showAchievements ? (
+          <div className={styles.achievementsSection}>
+            <div className={styles.sectionHeader}>
+              <h2>Достижения</h2>
+            </div>
+            <AchievementsSystem 
+              userId={profileData.id}
+              streamsCompleted={streamsCompleted}
+              hasCollaborations={hasCollaborations}
+            />
+          </div>
+        ) : showReviews ? (
+          <div className={styles.reviewsContainer}>
+            <div className={styles.sectionHeader}>
+              <h2>Отзывы о вас</h2>
+            </div>
+            <ReviewSection 
+              userId={profileData.id} 
+              onReviewAdded={() => loadUserData()} // Перезагружаем данные после добавления отзыва
+            />
+          </div>
+        ) : showStats ? (
+          <div className={styles.statsContainer}>
+            <div className={styles.sectionHeader}>
+              <h2>Статистика канала</h2>
+              <div className={styles.statsActions}>
+                {statsVisibility.followers && (
+                  <button 
+                    className={styles.statsActionButton}
+                    onClick={toggleFollowers}
+                  >
+                    👥 Подписчики
+                  </button>
+                )}
+                
+                {statsVisibility.followings && (
+                  <button 
+                    className={styles.statsActionButton}
+                    onClick={toggleFollowings}
+                  >
+                    📺 Подписки
+                  </button>
+                )}
+                
+                {statsVisibility.streams && (
+                  <button 
+                    className={styles.statsActionButton}
+                    onClick={toggleStreams}
+                  >
+                    🎬 Стримы
+                  </button>
+                )}
+              </div>
+            </div>
+            
+            {renderChannelStats()}
+            {renderAccountInfo()}
+          </div>
+        ) : showFollowers ? (
+          <div className={styles.sectionContainer}>
+            <h2 className={styles.sectionTitle}>Фолловеры</h2>
+            {(!followers || followers.length === 0) ? (
+              <div className={styles.emptyState}>
+                <p>У вас пока нет фолловеров</p>
+                <button 
+                  className={styles.button}
+                  onClick={refreshFollowers}
+                  style={{ marginTop: '15px' }}
+                >
+                  Обновить данные
+                </button>
+              </div>
+            ) : (
+              <div className={styles.followersGrid}>
+                {followers.map((follower, index) => (
+                  <div key={follower.id || `follower-${index}`} className={styles.followerCard}>
+                    {/* Бейдж для зарегистрированных пользователей */}
+                    {follower.isRegisteredOnSU && follower.suUserType === 'streamer' && (
+                      <span className={styles.streamerBadge}>Стример SU</span>
+                    )}
+                    {follower.isRegisteredOnSU && follower.suUserType !== 'streamer' && (
+                      <span className={styles.registeredBadge}>SU</span>
+                    )}
+                    
+                    <img 
+                      src={follower.profile_image_url || follower.profileImageUrl || '/images/default-avatar.png'} 
+                      alt={follower.display_name || follower.name || follower.login || 'Фолловер'} 
+                      className={styles.followerAvatar}
+                    />
+                    <div className={styles.followerName}>
+                      {follower.display_name || follower.name || follower.login || `Пользователь ${index + 1}`}
+                    </div>
+                    <button 
+                      className={styles.viewProfileButton}
+                      onClick={() => window.open(`https://twitch.tv/${follower.login}`, '_blank')}
+                    >
+                      Профиль
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+            <button className={styles.sectionToggleButton} onClick={() => setShowFollowers(false)}>
+              Скрыть фолловеров
+            </button>
+          </div>
+        ) : showFollowings ? (
+          <div className={styles.sectionContainer}>
+            <h2 className={styles.sectionTitle}>Подписки</h2>
+            {renderRecentFollowings()}
+            <button className={styles.sectionToggleButton} onClick={() => setShowFollowings(false)}>
+              Скрыть подписки
+            </button>
+          </div>
+        ) : showStreams ? (
+          <div className={styles.streamsContainer}>
+            <div className={styles.sectionHeader}>
+              <h2>Ваши стримы</h2>
+              <div className={styles.statsActions}>
+                <button 
+                  className={styles.statsActionButton}
+                  onClick={() => setShowStats(true)}
+                >
+                  📊 К статистике
+                </button>
+              </div>
+            </div>
+            {renderRecentStreams()}
+          </div>
+        ) : showTierlists ? (
+          <div className={styles.section}>
+            <div className={styles.sectionHeader}>
+              <h2>Тирлисты</h2>
+              <button className={styles.backToProfileButton} onClick={toggleTierlists}>
+                <i className="fas fa-arrow-left"></i> Вернуться
+              </button>
+            </div>
+            
+            {renderTierlists()}
+          </div>
+        ) : (
+          <>
+            {/* Отображаем описание и социальные сети только если не показываем другие секции */}
+            <div className={styles.profileInfoSection}>
+              {/* Отображаем описание профиля */}
+              {socialLinks.description ? (
+                <div className={styles.profileDescription}>
+                  <h3 className={styles.sectionTitle}>Описание</h3>
+                  <p>{socialLinks.description}</p>
+                </div>
+              ) : (
+                isAuthenticated && userId === profileData?.id && (
+                  <div className={styles.emptyDescription}>
+                    <p>Нет описания профиля.</p>
+                    <p>Добавьте его в разделе "Редактировать профиль".</p>
+                  </div>
+                )
+              )}
+              
+              {/* Отображаем социальные сети */}
+              <div className={styles.socialLinksSection}>
+                <h3 className={styles.sectionTitle}>Социальные сети</h3>
+                {renderSocialLinks()}
+              </div>
+            </div>
+          </>
+        )}
+      </div>
+    );
+  };
+
+  // Обновляем функцию для отображения социальных ссылок
   const renderSocialLinks = () => {
     // Проверяем, существуют ли социальные ссылки
     if (!socialLinks) {
       console.warn('Социальные ссылки не найдены');
-      return null;
+      return (
+        <div className={styles.emptySocialLinks}>
+          Нет социальных ссылок для отображения.
+          {isAuthenticated && userId === profileData?.id && (
+            <p>Добавьте их в разделе "Редактировать профиль".</p>
+          )}
+        </div>
+      );
     }
-    
-    // Сначала отображаем описание профиля, если оно есть
-    const hasDescription = socialLinks.description && socialLinks.description.trim() !== '';
     
     // Проверяем, есть ли хотя бы одна социальная ссылка
     const hasSocialLinks = 
@@ -433,85 +692,67 @@ export default function Profile() {
       socialLinks.vk || 
       (socialLinks.isMusician && socialLinks.yandexMusic);
     
-    return (
-      <div className={styles.profileInfoSection}>
-        {/* Отображаем описание профиля */}
-        {hasDescription ? (
-          <div className={styles.profileDescription}>
-            <h3 className={styles.sectionTitle}>Описание</h3>
-            <p>{socialLinks.description}</p>
-          </div>
-        ) : (
-          isAuthenticated && userId === profileData?.id && (
-            <div className={styles.emptyDescription}>
-              <p>Нет описания профиля.</p>
-              <p>Добавьте его в разделе "Редактировать профиль".</p>
-            </div>
-          )
-        )}
-        
-        {/* Отображаем социальные ссылки */}
-        <div className={styles.socialLinksSection}>
-          <h3 className={styles.sectionTitle}>Социальные сети</h3>
-          {hasSocialLinks ? (
-            <div className={styles.socialLinks}>
-              {socialLinks.twitch && (
-                <SocialButton 
-                  type="twitch" 
-                  url={socialLinks.twitch} 
-                  username={socialLinks.twitch.split('/').pop() || 'username'} 
-                />
-              )}
-              
-              {socialLinks.youtube && (
-                <SocialButton 
-                  type="youtube" 
-                  url={socialLinks.youtube} 
-                  username={socialLinks.youtube.split('/').pop() || 'username'} 
-                />
-              )}
-              
-              {socialLinks.discord && (
-                <SocialButton 
-                  type="discord" 
-                  url={socialLinks.discord} 
-                  username={socialLinks.discord.split('/').pop() || 'username'} 
-                />
-              )}
-              
-              {socialLinks.telegram && (
-                <SocialButton 
-                  type="telegram" 
-                  url={socialLinks.telegram} 
-                  username={socialLinks.telegram.split('/').pop() || 'username'} 
-                />
-              )}
-              
-              {socialLinks.vk && (
-                <SocialButton 
-                  type="vk" 
-                  url={socialLinks.vk} 
-                  username={socialLinks.vk.split('/').pop() || 'username'} 
-                />
-              )}
-              
-              {socialLinks.isMusician && socialLinks.yandexMusic && (
-                <SocialButton 
-                  type="yandexMusic" 
-                  url={socialLinks.yandexMusic} 
-                  username={socialLinks.yandexMusic.split('/').pop() || 'username'} 
-                />
-              )}
-            </div>
-          ) : (
-            <div className={styles.emptySocialLinks}>
-              Нет социальных ссылок для отображения.
-              {isAuthenticated && userId === profileData?.id && (
-                <p>Добавьте их в разделе "Редактировать профиль".</p>
-              )}
-            </div>
+    if (!hasSocialLinks) {
+      return (
+        <div className={styles.emptySocialLinks}>
+          Нет социальных ссылок для отображения.
+          {isAuthenticated && userId === profileData?.id && (
+            <p>Добавьте их в разделе "Редактировать профиль".</p>
           )}
         </div>
+      );
+    }
+    
+    // Отображаем социальные кнопки
+    return (
+      <div className={styles.socialLinks}>
+        {socialLinks.twitch && (
+          <SocialButton 
+            type="twitch" 
+            url={socialLinks.twitch} 
+            username={socialLinks.twitch.split('/').pop() || 'username'} 
+          />
+        )}
+        
+        {socialLinks.youtube && (
+          <SocialButton 
+            type="youtube" 
+            url={socialLinks.youtube} 
+            username={socialLinks.youtube.split('/').pop() || 'username'} 
+          />
+        )}
+        
+        {socialLinks.discord && (
+          <SocialButton 
+            type="discord" 
+            url={socialLinks.discord} 
+            username={socialLinks.discord.split('/').pop() || 'username'} 
+          />
+        )}
+        
+        {socialLinks.telegram && (
+          <SocialButton 
+            type="telegram" 
+            url={socialLinks.telegram} 
+            username={socialLinks.telegram.split('/').pop() || 'username'} 
+          />
+        )}
+        
+        {socialLinks.vk && (
+          <SocialButton 
+            type="vk" 
+            url={socialLinks.vk} 
+            username={socialLinks.vk.split('/').pop() || 'username'} 
+          />
+        )}
+        
+        {socialLinks.isMusician && socialLinks.yandexMusic && (
+          <SocialButton 
+            type="yandexMusic" 
+            url={socialLinks.yandexMusic} 
+            username={socialLinks.yandexMusic.split('/').pop() || 'username'} 
+          />
+        )}
       </div>
     );
   };
@@ -1150,254 +1391,27 @@ export default function Profile() {
   };
 
   return (
-    <div className={styles.profileContainer}>
-      <div className={styles.profileHeader}>
-        <div className={styles.avatarContainer}>
-          <CyberAvatar 
-            imageUrl={getUserAvatar()} 
-            alt={profileData?.login || profileData?.twitchName || 'Пользователь'}
-            size={150}
-          />
+    <div className={styles.container}>
+      {loading ? (
+        <div className={styles.loadingContainer}>
+          <div className={styles.loadingSpinner}></div>
+          <p>Загрузка профиля...</p>
         </div>
-        <div className={styles.profileInfo}>
-          <h1>{profileData.display_name || profileData.login}</h1>
-          {renderUserStatus()}
-          
-          {/* Добавляем блок с социальными сетями сразу под статусом */}
-          <div className={styles.profileSocialLinks}>
-            {renderSocialLinks()}
-          </div>
-          
-          {/* Добавляем кнопки для быстрого перехода к фолловерам и подпискам */}
-          <div className={styles.profileQuickLinks}>
-            <button 
-              className={`${styles.quickLinkButton} ${showFollowers ? styles.activeQuickLink : ''}`} 
-              onClick={toggleFollowers}
-            >
-              👥 Фолловеры
+      ) : error ? (
+        <div className={styles.errorContainer}>
+          <h2>Ошибка при загрузке профиля</h2>
+          <p>{error}</p>
+          <div className={styles.errorActions}>
+            <button className={styles.button} onClick={loadUserData}>
+              Попробовать снова
             </button>
-            <button 
-              className={`${styles.quickLinkButton} ${showFollowings ? styles.activeQuickLink : ''}`} 
-              onClick={toggleFollowings}
-            >
-              👀 Подписки
+            <button className={styles.button} onClick={() => router.push('/menu')}>
+              Вернуться в меню
             </button>
           </div>
-          
-          {isBirthday && (
-            <div className={styles.birthdayContainer}>
-              <span className={styles.birthdayIcon}>🎂</span>
-              <span className={styles.birthdayText}>С днем рождения! +100 стример-коинов!</span>
-            </div>
-          )}
-          
-          {daysToBirthday !== null && (
-            <div className={styles.birthdayContainer}>
-              <span className={styles.birthdayIcon}>🎂</span>
-              <span className={styles.birthdayText}>
-                День рождения через {daysToBirthday} {getDayWord(daysToBirthday)}!
-              </span>
-            </div>
-          )}
-          
-          {profileData.birthday && (
-            <div className={styles.birthdayContainer}>
-              <span className={styles.birthdayIcon}>🎂</span>
-              <span className={styles.birthdayText}>День рождения: {formatDate(profileData.birthday)}</span>
-            </div>
-          )}
-        </div>
-        <div className={styles.profileActions}>
-          <button 
-            className={styles.achievementsButton} 
-            onClick={toggleAchievements}
-            title="Посмотреть достижения"
-          >
-            🏆 Достижения
-          </button>
-          <button 
-            className={styles.reviewsButton} 
-            onClick={toggleReviews}
-            title="Отзывы о вас"
-          >
-            ⭐ Отзывы
-          </button>
-          <button 
-            className={styles.tierlistButton} 
-            onClick={toggleTierlists}
-            title="Тирлисты пользователя"
-          >
-            📋 Тирлисты
-          </button>
-          <button 
-            className={styles.statsButton} 
-            onClick={toggleStats}
-            title="Статистика канала"
-          >
-            📊 Статистика
-          </button>
-          <button className={styles.button} onClick={() => router.push('/edit-profile')}>
-            Редактировать профиль
-          </button>
-          <button className={styles.button} onClick={() => router.push('/menu')}>
-            Вернуться в меню
-          </button>
-          <button className={styles.logoutButton} onClick={handleLogout}>
-            Выйти из аккаунта
-          </button>
-        </div>
-      </div>
-      
-      {showAchievements ? (
-        <div className={styles.achievementsSection}>
-          <div className={styles.sectionHeader}>
-            <h2>Достижения</h2>
-          </div>
-          <AchievementsSystem 
-            userId={profileData.id}
-            streamsCompleted={streamsCompleted}
-            hasCollaborations={hasCollaborations}
-          />
-        </div>
-      ) : showReviews ? (
-        <div className={styles.reviewsContainer}>
-          <div className={styles.sectionHeader}>
-            <h2>Отзывы о вас</h2>
-          </div>
-          <ReviewSection 
-            userId={profileData.id} 
-            onReviewAdded={() => loadUserData()} // Перезагружаем данные после добавления отзыва
-          />
-        </div>
-      ) : showStats ? (
-        <div className={styles.statsContainer}>
-          <div className={styles.sectionHeader}>
-            <h2>Статистика канала</h2>
-            <div className={styles.statsActions}>
-              {statsVisibility.followers && (
-                <button 
-                  className={styles.statsActionButton}
-                  onClick={toggleFollowers}
-                >
-                  👥 Подписчики
-                </button>
-              )}
-              
-              {statsVisibility.followings && (
-                <button 
-                  className={styles.statsActionButton}
-                  onClick={toggleFollowings}
-                >
-                  📺 Подписки
-                </button>
-              )}
-              
-              {statsVisibility.streams && (
-                <button 
-                  className={styles.statsActionButton}
-                  onClick={toggleStreams}
-                >
-                  🎬 Стримы
-                </button>
-              )}
-            </div>
-          </div>
-          
-          {renderChannelStats()}
-          {renderAccountInfo()}
-        </div>
-      ) : showFollowers ? (
-        <div className={styles.sectionContainer}>
-          <h2 className={styles.sectionTitle}>Фолловеры</h2>
-          {(!followers || followers.length === 0) ? (
-            <div className={styles.emptyState}>
-              <p>У вас пока нет фолловеров</p>
-              <button 
-                className={styles.button}
-                onClick={refreshFollowers}
-                style={{ marginTop: '15px' }}
-              >
-                Обновить данные
-              </button>
-            </div>
-          ) : (
-            <div className={styles.followersGrid}>
-              {followers.map((follower, index) => (
-                <div key={follower.id || `follower-${index}`} className={styles.followerCard}>
-                  {/* Бейдж для зарегистрированных пользователей */}
-                  {follower.isRegisteredOnSU && follower.suUserType === 'streamer' && (
-                    <span className={styles.streamerBadge}>Стример SU</span>
-                  )}
-                  {follower.isRegisteredOnSU && follower.suUserType !== 'streamer' && (
-                    <span className={styles.registeredBadge}>SU</span>
-                  )}
-                  
-                  <img 
-                    src={follower.profile_image_url || follower.profileImageUrl || '/images/default-avatar.png'} 
-                    alt={follower.display_name || follower.name || follower.login || 'Фолловер'} 
-                    className={styles.followerAvatar}
-                  />
-                  <div className={styles.followerName}>
-                    {follower.display_name || follower.name || follower.login || `Пользователь ${index + 1}`}
-                  </div>
-                  <button 
-                    className={styles.viewProfileButton}
-                    onClick={() => window.open(`https://twitch.tv/${follower.login}`, '_blank')}
-                  >
-                    Профиль
-                  </button>
-                </div>
-              ))}
-            </div>
-          )}
-          <button className={styles.sectionToggleButton} onClick={() => setShowFollowers(false)}>
-            Скрыть фолловеров
-          </button>
-        </div>
-      ) : showFollowings ? (
-        <div className={styles.sectionContainer}>
-          <h2 className={styles.sectionTitle}>Подписки</h2>
-          {renderRecentFollowings()}
-          <button className={styles.sectionToggleButton} onClick={() => setShowFollowings(false)}>
-            Скрыть подписки
-          </button>
-        </div>
-      ) : showStreams ? (
-        <div className={styles.streamsContainer}>
-          <div className={styles.sectionHeader}>
-            <h2>Ваши стримы</h2>
-            <div className={styles.statsActions}>
-              <button 
-                className={styles.statsActionButton}
-                onClick={() => setShowStats(true)}
-              >
-                📊 К статистике
-              </button>
-            </div>
-          </div>
-          {renderRecentStreams()}
-        </div>
-      ) : showTierlists ? (
-        <div className={styles.section}>
-          <div className={styles.sectionHeader}>
-            <h2>Тирлисты</h2>
-            <button className={styles.backToProfileButton} onClick={toggleTierlists}>
-              <i className="fas fa-arrow-left"></i> Вернуться
-            </button>
-          </div>
-          
-          {renderTierlists()}
         </div>
       ) : (
-        <>
-          {socialLinks.description && (
-            <div className={styles.description}>
-              <p>{socialLinks.description}</p>
-            </div>
-          )}
-          
-          {renderSocialLinks()}
-        </>
+        renderProfileInfo()
       )}
     </div>
   );

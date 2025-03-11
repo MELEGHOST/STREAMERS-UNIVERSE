@@ -1651,3 +1651,111 @@
 .balanceAmount {
   font-size: 1.2rem;
 }
+
+/* Стили для статистики профиля */
+.profileStats {
+  display: flex;
+  gap: 20px;
+  margin: 15px 0;
+}
+
+.profileStat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  background-color: rgba(20, 20, 30, 0.5);
+  border-radius: 8px;
+  padding: 10px 15px;
+  min-width: 100px;
+  transition: all 0.3s ease;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.profileStat:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+  border-color: rgba(156, 39, 176, 0.3);
+}
+
+.statIcon {
+  font-size: 1.5rem;
+  margin-bottom: 5px;
+}
+
+.statValue {
+  font-size: 1.2rem;
+  font-weight: bold;
+  color: white;
+  margin-bottom: 3px;
+}
+
+.statLabel {
+  font-size: 0.8rem;
+  color: #b3b3b3;
+}
+
+/* Стили для контейнера профиля */
+.profileInfoContainer {
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.profileHeader {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 20px;
+  margin-bottom: 30px;
+  background-color: rgba(30, 30, 40, 0.7);
+  border-radius: 12px;
+  padding: 20px;
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.avatarContainer {
+  flex: 0 0 150px;
+}
+
+.profileDetails {
+  flex: 1;
+  min-width: 250px;
+}
+
+.displayName {
+  font-size: 2rem;
+  margin: 0 0 10px 0;
+  color: white;
+}
+
+.profileActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 20px;
+  justify-content: flex-start;
+  width: 100%;
+}
+
+@media (min-width: 768px) {
+  .profileActions {
+    justify-content: flex-end;
+    width: auto;
+  }
+}
+
+/* Адаптивность для мобильных устройств */
+@media (max-width: 768px) {
+  .profileHeader {
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+  }
+  
+  .profileStats {
+    justify-content: center;
+  }
+  
+  .profileActions {
+    justify-content: center;
+  }
+}
