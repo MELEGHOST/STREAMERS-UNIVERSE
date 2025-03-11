@@ -1,5 +1,9 @@
 import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
+import { PrismaClient } from '@prisma/client';
+import { verifyToken } from '@/lib/auth';
+
+const prisma = new PrismaClient();
 
 // Временное хранилище данных (в реальном приложении будет база данных)
 let tierlists = [];
@@ -36,114 +40,203 @@ function isStreamer(userId) {
 // GET - получение тирлистов
 export async function GET(request) {
   try {
-    const url = new URL(request.url);
-    const tierlistId = url.searchParams.get('id');
-    const userId = url.searchParams.get('userId');
-    const category = url.searchParams.get('category');
+    const { searchParams } = new URL(request.url);
+    const userId = searchParams.get('userId');
     
-    // Если указан ID тирлиста, возвращаем конкретный тирлист с его элементами
-    if (tierlistId) {
-      const tierlist = tierlists.find(item => item.id === tierlistId);
-      if (!tierlist) {
-        return NextResponse.json({ error: 'Tierlist not found' }, { status: 404 });
-      }
-      
-      // Получаем элементы для этого тирлиста
-      const items = tierlistItems.filter(item => item.tierlistId === tierlistId);
-      
-      return NextResponse.json({
-        ...tierlist,
-        items
-      });
-    }
-    
-    // Фильтруем тирлисты
-    let filteredTierlists = [...tierlists];
+    let whereClause = {};
     
     if (userId) {
-      filteredTierlists = filteredTierlists.filter(tierlist => tierlist.userId === userId);
+      whereClause.userId = userId;
     }
     
-    if (category) {
-      filteredTierlists = filteredTierlists.filter(tierlist => tierlist.category === category);
+    // По умолчанию показываем только публичные тир-листы
+    whereClause.isPublic = true;
+    
+    // Если пользователь авторизован, показываем также его приватные тир-листы
+    const authHeader = request.headers.get('authorization');
+    if (authHeader && authHeader.startsWith('Bearer ')) {
+      const token = authHeader.split(' ')[1];
+      try {
+        const userData = await verifyToken(token);
+        if (userData && userData.id) {
+          if (userId === userData.id) {
+            // Если запрашиваются тир-листы текущего пользователя, показываем все
+            delete whereClause.isPublic;
+          } else {
+            // Иначе показываем публичные и те, где пользователь является создателем
+            whereClause = {
+              OR: [
+                { isPublic: true },
+                { createdBy: userData.id }
+              ],
+              ...(userId ? { userId } : {})
+            };
+          }
+        }
+      } catch (error) {
+        console.error('Ошибка проверки токена:', error);
+      }
     }
     
-    // Для каждого тирлиста добавляем количество элементов
-    const tierlitsWithItemCount = filteredTierlists.map(tierlist => {
-      const itemCount = tierlistItems.filter(item => item.tierlistId === tierlist.id).length;
-      return {
-        ...tierlist,
-        itemCount
-      };
+    const tierlists = await prisma.tierlist.findMany({
+      where: whereClause,
+      orderBy: {
+        createdAt: 'desc'
+      },
+      include: {
+        user: {
+          select: {
+            id: true,
+            login: true,
+            display_name: true,
+            profile_image_url: true
+          }
+        }
+      }
     });
     
-    return NextResponse.json(tierlitsWithItemCount);
+    return NextResponse.json(tierlists);
+    
   } catch (error) {
-    console.error('Error fetching tierlists:', error);
-    return NextResponse.json({ error: 'Server error' }, { status: 500 });
+    console.error('Ошибка при получении тир-листов:', error);
+    return NextResponse.json({ message: 'Внутренняя ошибка сервера' }, { status: 500 });
+  } finally {
+    await prisma.$disconnect();
   }
 }
 
 // POST - создание нового тирлиста
 export async function POST(request) {
   try {
-    const userId = getUserIdFromCookies();
-    if (!userId) {
-      return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
+    // Проверка авторизации
+    const authHeader = request.headers.get('authorization');
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return NextResponse.json({ message: 'Отсутствует токен авторизации' }, { status: 401 });
     }
     
-    // Проверяем, является ли пользователь стримером
-    if (!isStreamer(userId)) {
-      return NextResponse.json({ error: 'Only streamers can create tierlists' }, { status: 403 });
+    const token = authHeader.split(' ')[1];
+    const userData = await verifyToken(token);
+    
+    if (!userData || !userData.id) {
+      return NextResponse.json({ message: 'Недействительный токен' }, { status: 401 });
     }
     
+    // Получение данных из запроса
     const data = await request.json();
+    const { userId, title, description, categories, isPublic } = data;
     
-    // Валидация данных
-    if (!data.title || !data.category) {
-      return NextResponse.json({ error: 'Title and category are required' }, { status: 400 });
+    // Проверка обязательных полей
+    if (!userId || !title || !categories || !Array.isArray(categories)) {
+      return NextResponse.json({ message: 'Отсутствуют обязательные поля' }, { status: 400 });
     }
     
-    // Создаем новый тирлист
-    const newTierlist = {
-      id: Date.now().toString(),
-      userId,
-      title: data.title,
-      category: data.category,
-      description: data.description || '',
-      tiers: data.tiers || ['S', 'A', 'B', 'C', 'D', 'F'],
-      isPublic: data.isPublic !== undefined ? data.isPublic : true,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString()
-    };
-    
-    // Добавляем в хранилище
-    tierlists.push(newTierlist);
-    
-    // Если указаны элементы, добавляем их
-    if (data.items && Array.isArray(data.items)) {
-      const newItems = data.items.map((item, index) => ({
-        id: `${newTierlist.id}_${index}`,
-        tierlistId: newTierlist.id,
-        mediaId: item.mediaId,
-        tier: item.tier,
-        position: index,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString()
-      }));
-      
-      tierlistItems.push(...newItems);
-      
-      return NextResponse.json({
-        ...newTierlist,
-        items: newItems
-      }, { status: 201 });
+    // Проверка прав на создание тир-листа
+    // Пользователь может создать тир-лист для себя или для другого пользователя, если у него есть права
+    if (userId !== userData.id) {
+      // Здесь можно добавить проверку прав, если нужно
+      // Например, проверить, является ли пользователь модератором
     }
     
-    return NextResponse.json(newTierlist, { status: 201 });
+    // Создание тир-листа
+    const tierlist = await prisma.tierlist.create({
+      data: {
+        userId,
+        title,
+        description: description || '',
+        categories,
+        isPublic: isPublic === undefined ? true : isPublic,
+        createdBy: userData.id
+      }
+    });
+    
+    // Если тир-лист создан на основе отзывов, добавляем стримеров в тир-лист
+    if (categories && categories.length > 0) {
+      // Получаем всех стримеров, у которых есть отзывы с указанными категориями
+      const reviews = await prisma.review.findMany({
+        where: {
+          categories: {
+            hasSome: categories
+          }
+        },
+        include: {
+          targetUser: {
+            select: {
+              id: true,
+              login: true,
+              display_name: true,
+              profile_image_url: true,
+              averageRating: true
+            }
+          }
+        }
+      });
+      
+      // Группируем стримеров по среднему рейтингу
+      const streamers = {};
+      reviews.forEach(review => {
+        if (review.targetUser) {
+          const streamerId = review.targetUser.id;
+          if (!streamers[streamerId]) {
+            streamers[streamerId] = {
+              ...review.targetUser,
+              reviewCount: 0,
+              totalRating: 0
+            };
+          }
+          streamers[streamerId].reviewCount++;
+          streamers[streamerId].totalRating += review.rating;
+        }
+      });
+      
+      // Вычисляем средний рейтинг для каждого стримера и сортируем
+      const streamersList = Object.values(streamers)
+        .map(streamer => ({
+          ...streamer,
+          averageRating: streamer.totalRating / streamer.reviewCount
+        }))
+        .filter(streamer => streamer.reviewCount >= 3) // Минимум 3 отзыва для включения в тир-лист
+        .sort((a, b) => b.averageRating - a.averageRating);
+      
+      // Распределяем стримеров по тирам на основе рейтинга
+      const tiers = {
+        S: [],
+        A: [],
+        B: [],
+        C: [],
+        D: []
+      };
+      
+      streamersList.forEach(streamer => {
+        const rating = streamer.averageRating;
+        if (rating >= 4.5) {
+          tiers.S.push(streamer.id);
+        } else if (rating >= 4.0) {
+          tiers.A.push(streamer.id);
+        } else if (rating >= 3.5) {
+          tiers.B.push(streamer.id);
+        } else if (rating >= 3.0) {
+          tiers.C.push(streamer.id);
+        } else {
+          tiers.D.push(streamer.id);
+        }
+      });
+      
+      // Обновляем тир-лист с распределением стримеров
+      await prisma.tierlist.update({
+        where: { id: tierlist.id },
+        data: {
+          tiers: tiers
+        }
+      });
+    }
+    
+    return NextResponse.json(tierlist, { status: 201 });
+    
   } catch (error) {
-    console.error('Error creating tierlist:', error);
-    return NextResponse.json({ error: 'Server error' }, { status: 500 });
+    console.error('Ошибка при создании тир-листа:', error);
+    return NextResponse.json({ message: 'Внутренняя ошибка сервера' }, { status: 500 });
+  } finally {
+    await prisma.$disconnect();
   }
 }
 

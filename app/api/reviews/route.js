@@ -1,5 +1,8 @@
 import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
+import { PrismaClient } from '@prisma/client';
+
+const prisma = new PrismaClient();
 
 // Временное хранилище данных (в реальном приложении будет база данных)
 let reviews = [];
@@ -38,35 +41,58 @@ function getUserDataFromCookies() {
 // GET - получение отзывов
 export async function GET(request) {
   try {
-    const url = new URL(request.url);
-    const reviewId = url.searchParams.get('id');
-    const targetUserId = url.searchParams.get('targetUserId'); // ID пользователя, для которого получаем отзывы
-    const authorId = url.searchParams.get('authorId');  // ID автора отзыва
+    const { searchParams } = new URL(request.url);
+    const userId = searchParams.get('userId');
     
-    // Если указан ID отзыва, возвращаем конкретный отзыв
-    if (reviewId) {
-      const review = reviews.find(item => item.id === reviewId);
-      if (!review) {
-        return NextResponse.json({ error: 'Review not found' }, { status: 404 });
+    if (!userId) {
+      return NextResponse.json({ message: 'ID пользователя не указан' }, { status: 400 });
+    }
+    
+    // Получение всех отзывов для указанного пользователя
+    const reviews = await prisma.review.findMany({
+      where: {
+        targetUserId: userId
+      },
+      orderBy: {
+        createdAt: 'desc'
       }
-      return NextResponse.json(review);
-    }
+    });
     
-    // Фильтруем отзывы
-    let filteredReviews = [...reviews];
+    // Получение информации об авторах отзывов
+    const reviewsWithAuthorInfo = await Promise.all(
+      reviews.map(async (review) => {
+        const author = await prisma.user.findUnique({
+          where: { id: review.reviewerId },
+          select: {
+            id: true,
+            login: true,
+            display_name: true,
+            profile_image_url: true
+          }
+        });
+        
+        return {
+          id: review.id,
+          text: review.text,
+          rating: review.rating,
+          categories: review.categories || [],
+          createdAt: review.createdAt,
+          updatedAt: review.updatedAt,
+          reviewerId: review.reviewerId,
+          targetUserId: review.targetUserId,
+          authorName: author?.display_name || author?.login || review.authorName || 'Неизвестный пользователь',
+          authorImage: author?.profile_image_url || review.authorImage || '/images/default-avatar.png'
+        };
+      })
+    );
     
-    if (targetUserId) {
-      filteredReviews = filteredReviews.filter(review => review.targetUserId === targetUserId);
-    }
+    return NextResponse.json(reviewsWithAuthorInfo);
     
-    if (authorId) {
-      filteredReviews = filteredReviews.filter(review => review.authorId === authorId);
-    }
-    
-    return NextResponse.json(filteredReviews);
   } catch (error) {
-    console.error('Error fetching reviews:', error);
-    return NextResponse.json({ error: 'Server error' }, { status: 500 });
+    console.error('Ошибка при получении отзывов:', error);
+    return NextResponse.json({ message: 'Внутренняя ошибка сервера' }, { status: 500 });
+  } finally {
+    await prisma.$disconnect();
   }
 }
 

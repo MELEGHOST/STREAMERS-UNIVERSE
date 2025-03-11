@@ -355,4 +355,142 @@
     font-size: 11px;
     padding: 3px 8px;
   }
+}
+
+/* Стили для кнопок редактирования и удаления отзывов */
+.reviewActions {
+  display: flex;
+  gap: 10px;
+  margin-top: 15px;
+  justify-content: flex-end;
+}
+
+.editButton, .deleteButton {
+  padding: 6px 12px;
+  border-radius: 4px;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  border: none;
+}
+
+.editButton {
+  background-color: rgba(33, 150, 243, 0.1);
+  color: #2196F3;
+  border: 1px solid rgba(33, 150, 243, 0.3);
+}
+
+.editButton:hover {
+  background-color: rgba(33, 150, 243, 0.2);
+  transform: translateY(-2px);
+}
+
+.deleteButton {
+  background-color: rgba(244, 67, 54, 0.1);
+  color: #F44336;
+  border: 1px solid rgba(244, 67, 54, 0.3);
+}
+
+.deleteButton:hover {
+  background-color: rgba(244, 67, 54, 0.2);
+  transform: translateY(-2px);
+}
+
+/* Стили для категорий в отзывах */
+.reviewCategories {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 10px 0;
+}
+
+.reviewCategory {
+  background-color: rgba(156, 39, 176, 0.1);
+  color: #9c27b0;
+  padding: 4px 10px;
+  border-radius: 12px;
+  font-size: 12px;
+  border: 1px solid rgba(156, 39, 176, 0.2);
+}
+
+/* Стили для популярных категорий */
+.categoryStats {
+  margin: 15px 0;
+  padding: 15px;
+  background-color: rgba(0, 0, 0, 0.1);
+  border-radius: 8px;
+}
+
+.categoryStats h3 {
+  margin-top: 0;
+  margin-bottom: 10px;
+  font-size: 16px;
+  color: #e0e0e0;
+}
+
+.categoryTags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.popularCategory {
+  display: flex;
+  align-items: center;
+  background: linear-gradient(135deg, rgba(156, 39, 176, 0.1) 0%, rgba(156, 39, 176, 0.2) 100%);
+  border-radius: 20px;
+  padding: 5px 12px;
+  border: 1px solid rgba(156, 39, 176, 0.3);
+}
+
+.categoryName {
+  color: #e0e0e0;
+  font-size: 14px;
+  margin-right: 8px;
+}
+
+.categoryCount {
+  background-color: rgba(156, 39, 176, 0.3);
+  color: white;
+  border-radius: 50%;
+  width: 20px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: bold;
+}
+
+/* Стили для формы редактирования */
+.formActions {
+  display: flex;
+  gap: 10px;
+  justify-content: flex-end;
+}
+
+.cancelButton {
+  background-color: rgba(158, 158, 158, 0.1);
+  color: #9e9e9e;
+  border: 1px solid rgba(158, 158, 158, 0.3);
+  padding: 10px 15px;
+  border-radius: 4px;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.cancelButton:hover {
+  background-color: rgba(158, 158, 158, 0.2);
+  transform: translateY(-2px);
+}
+
+/* Обновленные стили для формы отзывов */
+.reviewForm h3 {
+  margin-top: 0;
+  margin-bottom: 15px;
+  font-size: 18px;
+  color: #e0e0e0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  padding-bottom: 8px;
 } 

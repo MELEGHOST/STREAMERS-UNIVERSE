@@ -185,6 +185,40 @@ export default function Profile() {
         clearTimeout(timeoutId);
         
         if (!response.ok) {
+          if (response.status === 401) {
+            console.error('Токен недействителен при загрузке фолловингов, пробуем обновить токен...');
+            
+            // Пробуем обновить токен
+            const refreshResponse = await fetch('/api/auth/refresh-token', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json'
+              },
+              body: JSON.stringify({
+                refresh_token: localStorage.getItem('twitch_refresh_token') || Cookies.get('twitch_refresh_token')
+              })
+            });
+            
+            if (refreshResponse.ok) {
+              const refreshData = await refreshResponse.json();
+              
+              // Сохраняем новый токен
+              if (refreshData.access_token) {
+                localStorage.setItem('twitch_token', refreshData.access_token);
+                localStorage.setItem('cookie_twitch_access_token', refreshData.access_token);
+                Cookies.set('twitch_access_token', refreshData.access_token, { expires: 7 });
+                
+                // Повторяем запрос с новым токеном
+                console.log('Токен обновлен, повторяем запрос фолловингов...');
+                return fetchFollowings();
+              }
+            }
+            
+            // Если не удалось обновить токен, просто логируем ошибку
+            console.error('Не удалось обновить токен для загрузки фолловингов');
+            return;
+          }
+          
           throw new Error(`Ошибка API: ${response.status}`);
         }
         
@@ -255,9 +289,40 @@ export default function Profile() {
       
       if (!profileResponse.ok) {
         if (profileResponse.status === 401) {
+          console.error('Токен недействителен, пробуем обновить токен...');
+          
+          // Пробуем обновить токен
+          const refreshResponse = await fetch('/api/auth/refresh-token', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+              refresh_token: localStorage.getItem('twitch_refresh_token') || Cookies.get('twitch_refresh_token')
+            })
+          });
+          
+          if (refreshResponse.ok) {
+            const refreshData = await refreshResponse.json();
+            
+            // Сохраняем новый токен
+            if (refreshData.access_token) {
+              localStorage.setItem('twitch_token', refreshData.access_token);
+              localStorage.setItem('cookie_twitch_access_token', refreshData.access_token);
+              Cookies.set('twitch_access_token', refreshData.access_token, { expires: 7 });
+              
+              // Повторяем запрос с новым токеном
+              console.log('Токен обновлен, повторяем запрос...');
+              return loadUserData();
+            }
+          }
+          
+          // Если не удалось обновить токен, перенаправляем на страницу авторизации
+          console.error('Не удалось обновить токен, перенаправление на страницу авторизации');
           router.push('/auth');
           return;
         }
+        
         throw new Error(`Ошибка API: ${profileResponse.status}`);
       }
       
@@ -279,6 +344,10 @@ export default function Profile() {
           setSocialLinks(socialData);
           localStorage.setItem('social_links', JSON.stringify(socialData));
           console.log('Обновлены социальные ссылки:', socialData);
+        } else if (socialResponse.status === 401) {
+          // Если ошибка 401 при загрузке социальных ссылок, но профиль уже загружен,
+          // просто логируем ошибку и продолжаем
+          console.warn('Ошибка авторизации при загрузке социальных ссылок');
         }
       } catch (socialError) {
         console.error('Ошибка при загрузке социальных ссылок:', socialError);
@@ -293,6 +362,25 @@ export default function Profile() {
             console.error('Ошибка при парсинге социальных ссылок из localStorage:', parseError);
           }
         }
+      }
+      
+      // Загружаем фолловеров
+      try {
+        const followersResponse = await fetch(`/api/twitch/followers?userId=${profileData.id}`, {
+          headers: {
+            'Authorization': `Bearer ${accessToken}`,
+            'Cache-Control': 'no-cache'
+          }
+        });
+        
+        if (followersResponse.ok) {
+          const followersData = await followersResponse.json();
+          if (followersData && followersData.followers) {
+            setFollowers(followersData.followers);
+          }
+        }
+      } catch (followersError) {
+        console.error('Ошибка при загрузке фолловеров:', followersError);
       }
       
       // Загружаем дополнительные данные
@@ -474,6 +562,12 @@ export default function Profile() {
                           followers?.length || 
                           0;
     
+    // Получаем количество просмотров
+    const viewCount = userStats?.user?.viewCount || 
+                     profileData.view_count || 
+                     profileData.viewCount || 
+                     0;
+    
     // Переводим тип канала на русский
     const getBroadcasterTypeInRussian = (type) => {
       switch(type) {
@@ -502,6 +596,13 @@ export default function Profile() {
                 <span className={styles.statValue}>{followersCount.toLocaleString('ru-RU')}</span>
                 <span className={styles.statLabel}>Подписчиков</span>
               </div>
+              {viewCount > 0 && (
+                <div className={styles.profileStat}>
+                  <span className={styles.statIcon}>👁️</span>
+                  <span className={styles.statValue}>{viewCount.toLocaleString('ru-RU')}</span>
+                  <span className={styles.statLabel}>Просмотров</span>
+                </div>
+              )}
               {profileData.broadcaster_type && (
                 <div className={styles.profileStat}>
                   <span className={styles.statIcon}>📺</span>
@@ -703,10 +804,10 @@ export default function Profile() {
             {/* Отображаем описание и социальные сети только если не показываем другие секции */}
             <div className={styles.profileInfoSection}>
               {/* Отображаем описание профиля */}
-              {socialLinks && socialLinks.description ? (
+              {(socialLinks && socialLinks.description) || profileData.description ? (
                 <div className={styles.profileDescription}>
                   <h3 className={styles.sectionTitle}>Описание</h3>
-                  <p>{socialLinks.description}</p>
+                  <p>{socialLinks?.description || profileData.description}</p>
                 </div>
               ) : (
                 isAuthenticated && userId === profileData?.id && (
@@ -991,12 +1092,9 @@ export default function Profile() {
 
   // Функция для отображения статистики канала
   const renderChannelStats = () => {
-    if (!userStats || !statsVisibility.channel) return null;
-    
-    // Проверяем наличие реальных данных
-    const hasRealData = userStats && 
-      userStats.user && 
-      typeof userStats.user.viewCount === 'number';
+    // Проверяем наличие реальных данных из разных источников
+    const hasRealData = (userStats && userStats.user && typeof userStats.user.viewCount === 'number') || 
+                       (profileData && (profileData.view_count || profileData.viewCount));
     
     // Если данных нет, показываем сообщение
     if (!hasRealData) {
@@ -1017,11 +1115,44 @@ export default function Profile() {
       );
     }
     
-    // Получаем количество просмотров
-    const viewCount = userStats.user.viewCount || 0;
+    // Получаем количество просмотров из разных источников
+    const viewCount = (userStats?.user?.viewCount) || 
+                     profileData.view_count || 
+                     profileData.viewCount || 
+                     0;
+    
+    // Получаем количество фолловеров из разных источников
+    const followersCount = userStats?.followers?.total || 
+                          profileData.followersCount || 
+                          profileData.follower_count || 
+                          followers?.length || 
+                          0;
     
     // Рассчитываем средний онлайн (примерная формула)
     const averageViewers = Math.round((viewCount * 0.05) / Math.max(streamsCompleted || 1, 1));
+    
+    // Получаем дату создания аккаунта
+    const createdAt = userStats?.user?.createdAt || profileData.created_at;
+    
+    // Рассчитываем возраст аккаунта
+    let accountAge = '';
+    if (createdAt) {
+      const createdDate = new Date(createdAt);
+      const now = new Date();
+      const diffTime = Math.abs(now - createdDate);
+      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+      const diffYears = Math.floor(diffDays / 365);
+      const remainingDays = diffDays % 365;
+      
+      if (diffYears > 0) {
+        accountAge = `${diffYears} ${getDeclension(diffYears, ['год', 'года', 'лет'])}`;
+        if (remainingDays > 0) {
+          accountAge += ` и ${remainingDays} ${getDeclension(remainingDays, ['день', 'дня', 'дней'])}`;
+        }
+      } else {
+        accountAge = `${diffDays} ${getDeclension(diffDays, ['день', 'дня', 'дней'])}`;
+      }
+    }
     
     return (
       <div className={styles.statsSection}>
@@ -1033,6 +1164,14 @@ export default function Profile() {
             <div className={styles.statInfo}>
               <div className={styles.statValue}>{viewCount.toLocaleString('ru-RU')}</div>
               <div className={styles.statLabel}>Просмотров</div>
+            </div>
+          </div>
+          
+          <div className={styles.statItem}>
+            <div className={styles.statIcon}>👥</div>
+            <div className={styles.statInfo}>
+              <div className={styles.statValue}>{followersCount.toLocaleString('ru-RU')}</div>
+              <div className={styles.statLabel}>Подписчиков</div>
             </div>
           </div>
           
@@ -1051,6 +1190,26 @@ export default function Profile() {
               <div className={styles.statLabel}>Завершено стримов</div>
             </div>
           </div>
+          
+          {createdAt && (
+            <div className={styles.statItem}>
+              <div className={styles.statIcon}>📅</div>
+              <div className={styles.statInfo}>
+                <div className={styles.statValue}>{formatDate(createdAt)}</div>
+                <div className={styles.statLabel}>Дата создания</div>
+              </div>
+            </div>
+          )}
+          
+          {accountAge && (
+            <div className={styles.statItem}>
+              <div className={styles.statIcon}>⏳</div>
+              <div className={styles.statInfo}>
+                <div className={styles.statValue}>{accountAge}</div>
+                <div className={styles.statLabel}>Возраст аккаунта</div>
+              </div>
+            </div>
+          )}
           
           <div className={styles.statItem}>
             <div className={styles.statIcon}>🔍</div>
@@ -1073,56 +1232,82 @@ export default function Profile() {
   
   // Функция для отображения информации об аккаунте
   const renderAccountInfo = () => {
-    if (!userStats || !statsVisibility.accountInfo) return null;
+    if (!statsVisibility.accountInfo) return null;
     
-    const createdAt = new Date(userStats.user.createdAt);
-    const now = new Date();
-    const diffTime = Math.abs(now - createdAt);
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-    const diffYears = Math.floor(diffDays / 365);
-    const remainingDays = diffDays % 365;
+    // Получаем данные из разных источников
+    const broadcasterType = userStats?.user?.broadcasterType || profileData.broadcaster_type;
+    const description = profileData.description || socialLinks?.description;
+    const email = profileData.email;
+    const isPartner = broadcasterType === 'partner';
+    const isAffiliate = broadcasterType === 'affiliate';
+    const isVerified = profileData.verified;
+    const language = profileData.language || profileData.broadcaster_language;
     
-    let accountAge = '';
-    if (diffYears > 0) {
-      accountAge = `${diffYears} ${getDeclension(diffYears, ['год', 'года', 'лет'])}`;
-      if (remainingDays > 0) {
-        accountAge += ` и ${remainingDays} ${getDeclension(remainingDays, ['день', 'дня', 'дней'])}`;
-      }
-    } else {
-      accountAge = `${diffDays} ${getDeclension(diffDays, ['день', 'дня', 'дней'])}`;
-    }
+    // Получаем дату создания аккаунта
+    const createdAt = userStats?.user?.createdAt || profileData.created_at;
+    
+    // Проверяем, есть ли хоть какие-то данные для отображения
+    const hasAnyData = broadcasterType || description || email || createdAt || language;
+    
+    if (!hasAnyData) return null;
     
     return (
       <div className={styles.statsSection}>
         <h3 className={styles.statsTitle}>Информация об аккаунте</h3>
         
         <div className={styles.accountInfoList}>
-          <div className={styles.accountInfoItem}>
-            <div className={styles.accountInfoLabel}>Дата создания:</div>
-            <div className={styles.accountInfoValue}>{formatDate(userStats.user.createdAt)}</div>
-          </div>
+          {createdAt && (
+            <div className={styles.accountInfoItem}>
+              <div className={styles.accountInfoLabel}>Дата создания:</div>
+              <div className={styles.accountInfoValue}>{formatDate(createdAt)}</div>
+            </div>
+          )}
           
-          <div className={styles.accountInfoItem}>
-            <div className={styles.accountInfoLabel}>Возраст аккаунта:</div>
-            <div className={styles.accountInfoValue}>{accountAge}</div>
-          </div>
-          
-          {userStats.user.broadcasterType && (
+          {broadcasterType && (
             <div className={styles.accountInfoItem}>
               <div className={styles.accountInfoLabel}>Тип вещателя:</div>
               <div className={styles.accountInfoValue}>
-                {userStats.user.broadcasterType === 'partner' ? 'Партнер' : 
-                 userStats.user.broadcasterType === 'affiliate' ? 'Компаньон' : 
+                {isPartner ? 'Партнер' : 
+                 isAffiliate ? 'Компаньон' : 
                  'Стандартный'}
               </div>
             </div>
           )}
           
-          {userStats.stream.isLive && (
+          {language && (
+            <div className={styles.accountInfoItem}>
+              <div className={styles.accountInfoLabel}>Язык вещания:</div>
+              <div className={styles.accountInfoValue}>
+                {language === 'ru' ? 'Русский' : 
+                 language === 'en' ? 'Английский' : 
+                 language}
+              </div>
+            </div>
+          )}
+          
+          {isVerified !== undefined && (
+            <div className={styles.accountInfoItem}>
+              <div className={styles.accountInfoLabel}>Верификация:</div>
+              <div className={styles.accountInfoValue}>
+                {isVerified ? 'Подтвержден ✓' : 'Не подтвержден'}
+              </div>
+            </div>
+          )}
+          
+          {userStats?.stream?.isLive && (
             <div className={styles.accountInfoItem}>
               <div className={styles.accountInfoLabel}>Статус:</div>
               <div className={styles.accountInfoValue}>
                 <span className={styles.liveStatus}>В эфире</span>
+              </div>
+            </div>
+          )}
+          
+          {description && (
+            <div className={styles.accountInfoItem}>
+              <div className={styles.accountInfoLabel}>Описание:</div>
+              <div className={styles.accountInfoValue}>
+                <div className={styles.descriptionText}>{description}</div>
               </div>
             </div>
           )}
@@ -1307,16 +1492,62 @@ export default function Profile() {
       
       console.log('Принудительное обновление данных о фолловерах для ID:', profileData.id);
       
+      // Получаем актуальный токен доступа
+      const accessToken = localStorage.getItem('cookie_twitch_access_token') || 
+                         localStorage.getItem('twitch_token') || 
+                         Cookies.get('twitch_access_token');
+      
+      if (!accessToken) {
+        console.error('Отсутствует токен доступа для обновления фолловеров');
+        throw new Error('Отсутствует токен доступа');
+      }
+      
       // Вызов нового API для принудительного обновления фолловеров
       const response = await fetch(`/api/twitch/refresh-followers?userId=${profileData.id}`, {
         method: 'GET',
         headers: {
+          'Authorization': `Bearer ${accessToken}`,
           'Cache-Control': 'no-cache',
           'Pragma': 'no-cache'
         }
       });
       
       if (!response.ok) {
+        if (response.status === 401) {
+          console.error('Токен недействителен, пробуем обновить токен...');
+          
+          // Пробуем обновить токен
+          const refreshResponse = await fetch('/api/auth/refresh-token', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+              refresh_token: localStorage.getItem('twitch_refresh_token') || Cookies.get('twitch_refresh_token')
+            })
+          });
+          
+          if (refreshResponse.ok) {
+            const refreshData = await refreshResponse.json();
+            
+            // Сохраняем новый токен
+            if (refreshData.access_token) {
+              localStorage.setItem('twitch_token', refreshData.access_token);
+              localStorage.setItem('cookie_twitch_access_token', refreshData.access_token);
+              Cookies.set('twitch_access_token', refreshData.access_token, { expires: 7 });
+              
+              // Повторяем запрос с новым токеном
+              console.log('Токен обновлен, повторяем запрос...');
+              return refreshFollowers();
+            }
+          }
+          
+          // Если не удалось обновить токен, перенаправляем на страницу авторизации
+          console.error('Не удалось обновить токен, перенаправление на страницу авторизации');
+          router.push('/auth');
+          return;
+        }
+        
         throw new Error(`Ошибка при обновлении фолловеров: ${response.status}`);
       }
       
