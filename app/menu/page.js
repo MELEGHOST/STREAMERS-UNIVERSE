@@ -277,7 +277,7 @@ export default function Menu() {
           >
             <div className={styles.menuIcon}>📋</div>
             <div className={styles.menuContent}>
-              <h2>2. Интересные каналы</h2>
+              <h2>2. Вдохновители</h2>
               <p>Посмотреть на каких стримеров вы подписаны на Twitch (фолловите)</p>
             </div>
           </div>
@@ -288,7 +288,7 @@ export default function Menu() {
           >
             <div className={styles.menuIcon}>👥</div>
             <div className={styles.menuContent}>
-              <h2>3. Сообщество</h2>
+              <h2>3. Последователи</h2>
               <p>Посмотреть кто подписан на вас на Streamers Universe (последователи) и ваши достижения в сообществе</p>
             </div>
           </div>
