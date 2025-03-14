@@ -4,7 +4,7 @@
 
 import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
-import jwt from 'jsonwebtoken';
+import * as jwt from 'jsonwebtoken';
 import prisma from './prisma';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
@@ -15,7 +15,7 @@ const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
  */
 export async function isAuthenticated() {
   try {
-    const cookieStore = cookies();
+    const cookieStore = await cookies();
     const token = cookieStore.get('jwt_token')?.value;
     
     if (!token) {
@@ -35,7 +35,7 @@ export async function isAuthenticated() {
  */
 export async function getCurrentUser() {
   try {
-    const cookieStore = cookies();
+    const cookieStore = await cookies();
     const token = cookieStore.get('jwt_token')?.value;
     
     if (!token) {
@@ -64,7 +64,7 @@ export async function requireAuth() {
  * @returns {string|null} Токен доступа или null, если не авторизован
  */
 export async function getAccessToken() {
-  const cookieStore = cookies();
+  const cookieStore = await cookies();
   return cookieStore.get('twitch_access_token')?.value;
 }
 
@@ -73,7 +73,7 @@ export async function getAccessToken() {
  * @param {Object} userData - Данные пользователя
  * @returns {Promise<string>} JWT токен
  */
-export const createToken = async (userData) => {
+export const createToken = async (userData: Record<string, any>) => {
   const token = jwt.sign(userData, JWT_SECRET, {
     expiresIn: process.env.JWT_EXPIRES_IN || '7d'
   });
@@ -86,7 +86,7 @@ export const createToken = async (userData) => {
  * @param {string} token - JWT токен
  * @returns {Promise<Object|null>} Данные пользователя или null, если токен недействителен
  */
-export async function verifyToken(token) {
+export async function verifyToken(token: string) {
   try {
     const decoded = jwt.verify(token, JWT_SECRET);
     return decoded;
@@ -100,7 +100,13 @@ export async function verifyToken(token) {
  * @param {Object} twitchData - Данные пользователя из Twitch API
  * @returns {Promise<Object>} Данные пользователя
  */
-export const getOrCreateUser = async (twitchData) => {
+export const getOrCreateUser = async (twitchData: {
+  id: string;
+  login: string;
+  display_name: string;
+  email: string;
+  profile_image_url: string;
+}) => {
   try {
     // Ищем пользователя по Twitch ID
     let user = await prisma.user.findUnique({
