@@ -88,10 +88,56 @@ export default function Auth() {
   };
 
   return (
-    <div className={styles.oldContainer}>
+    <div className={styles.container}>
       <div className={styles.stars}></div>
-      <div className={styles.oldAuthButton} onClick={handleAuth} disabled={isLoading}>
-        {isLoading ? 'Загрузка...' : 'Войти через Twitch'}
+      
+      <div className={styles.authContent}>
+        <div className={styles.logo}></div>
+        
+        <h1 className={styles.welcomeTitle}>Добро пожаловать в Streamers Universe</h1>
+        
+        <p className={styles.description}>
+          Здесь вы сможете погрузиться в мир стриминга, найти своих любимых стримеров и стать частью сообщества.
+          Присоединяйтесь к нам и откройте для себя новые возможности!
+        </p>
+        
+        <div className={styles.authButtonWrapper} onClick={handleAuth} disabled={isLoading}>
+          <button className={styles.authButton}>
+            <div className={styles.authButtonGlitchMask}>
+              <span className={styles.authButtonText}>{isLoading ? 'Загрузка...' : 'Войти через Twitch'}</span>
+              <span className={styles.authButtonTextGlitch}>{isLoading ? 'Загрузка...' : 'Войти через Twitch'}</span>
+            </div>
+            <div className={styles.authButtonScanlines}></div>
+            <div className={styles.authButtonGlow}></div>
+            <div className={styles.authButtonGrid}></div>
+            <div className={styles.authButtonBorders}></div>
+            <div className={styles.authStars}>
+              <div className={styles.star}></div>
+              <div className={styles.star}></div>
+              <div className={styles.star}></div>
+              <div className={styles.star}></div>
+              <div className={styles.star}></div>
+            </div>
+            <div className={styles.authFlare}></div>
+            <div className={styles.authNoise}></div>
+            <div className={styles.authCircles}></div>
+          </button>
+        </div>
+        
+        <div className={styles.authInfo}>
+          <details className={styles.authDetails}>
+            <summary>Зачем нужна авторизация через Twitch?</summary>
+            <div className={styles.authDetailsContent}>
+              <p>Авторизация через Twitch нужна для получения базовой информации о вашем аккаунте:</p>
+              <ul>
+                <li>Имя пользователя и аватар</li>
+                <li>Список подписчиков и подписок</li>
+                <li>Статистика канала</li>
+              </ul>
+              <p>Мы не получаем доступ к вашему паролю и не можем управлять вашим каналом.</p>
+            </div>
+          </details>
+        </div>
       </div>
       
       {errorMessage && (

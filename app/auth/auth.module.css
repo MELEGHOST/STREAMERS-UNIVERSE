@@ -7,106 +7,511 @@
   background: linear-gradient(to bottom, #0f0c29, #302b63, #24243e);
   color: white;
   padding: 20px;
+  position: relative;
+  overflow: hidden;
 }
 
 .authContent {
-  background: rgba(255, 255, 255, 0.1);
-  border-radius: 10px;
-  padding: 30px;
-  max-width: 500px;
+  background: rgba(0, 0, 0, 0.6);
+  border-radius: 15px;
+  padding: 40px;
+  max-width: 600px;
   width: 90%;
   text-align: center;
-  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+  box-shadow: 
+    0 0 20px rgba(255, 0, 255, 0.3),
+    0 0 40px rgba(0, 255, 255, 0.2);
   backdrop-filter: blur(10px);
+  position: relative;
+  z-index: 10;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  overflow: hidden;
 }
 
-.title {
-  font-size: 2rem;
+.welcomeTitle {
+  font-size: 2.5rem;
   margin-bottom: 1.5rem;
   color: #fff;
+  text-shadow: 
+    0 0 10px rgba(255, 0, 255, 0.7),
+    0 0 20px rgba(0, 255, 255, 0.5);
+  font-weight: 800;
+  letter-spacing: 1px;
+  position: relative;
+}
+
+.description {
+  font-size: 1.1rem;
+  line-height: 1.6;
+  margin-bottom: 2rem;
+  color: rgba(255, 255, 255, 0.9);
+  text-shadow: 0 0 5px rgba(0, 255, 255, 0.3);
+}
+
+.authButtonWrapper {
+  display: inline-block;
+  margin: 1.5rem 0;
 }
 
 .authButton {
-  background-color: #9146FF; /* Twitch color */
-  color: white;
+  position: relative;
+  padding: 15px 40px;
+  background: linear-gradient(45deg, #ff00ff, #00ffff, #ff00ff, #00ffff);
+  background-size: 300% 300%;
   border: none;
-  border-radius: 5px;
-  padding: 12px 24px;
-  font-size: 1.1rem;
-  font-weight: bold;
+  border-radius: 8px;
   cursor: pointer;
-  transition: background-color 0.3s, transform 0.2s;
-  margin: 1.5rem 0;
-  width: 100%;
-  max-width: 300px;
+  overflow: hidden;
+  font-family: "Arial", sans-serif;
+  font-weight: 900;
+  font-size: 18px;
+  letter-spacing: 2px;
+  transform-style: preserve-3d;
+  transition: all 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
+  animation: gradientFlow 8s linear infinite;
 }
 
+.authButton::before {
+  content: "";
+  position: absolute;
+  inset: 2px;
+  background: linear-gradient(45deg, #000428, #000428);
+  border-radius: 6px;
+  opacity: 0.9;
+}
+
+.authButtonText {
+  position: relative;
+  z-index: 3;
+  background: linear-gradient(90deg, #fff, #fff, #f0f, #0ff, #fff);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-size: 200% auto;
+  text-shadow:
+    0 0 10px #ff00ff,
+    0 0 20px #ff00ff,
+    0 0 40px #ff00ff;
+  animation: shine 3s linear infinite;
+}
+
+.authButtonBorders {
+  position: absolute;
+  inset: -2px;
+  border: 2px solid transparent;
+  border-radius: 10px;
+  background: linear-gradient(45deg, #ff00ff, #00ffff, #ff00ff) border-box;
+  -webkit-mask:
+    linear-gradient(#fff 0 0) padding-box,
+    linear-gradient(#fff 0 0);
+  -webkit-mask-composite: destination-out;
+  mask-composite: exclude;
+  opacity: 0.8;
+  animation: borderGlow 2s infinite;
+}
+
+.authButtonGrid {
+  position: absolute;
+  inset: -150%;
+  background:
+    linear-gradient(90deg, rgba(255, 0, 255, 0.3) 1px, transparent 1px) 0 0 /
+      20px 20px,
+    linear-gradient(0deg, rgba(0, 255, 255, 0.3) 1px, transparent 1px) 0 0 /
+      20px 20px;
+  transform: perspective(500px) rotateX(60deg);
+  transform-origin: center 150%;
+  opacity: 0;
+  transition: all 0.5s ease;
+}
+
+.authFlare {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 255, 255, 0.2),
+    transparent
+  );
+  transform: translateX(-100%);
+  opacity: 0;
+}
+
+.star {
+  position: absolute;
+  width: 3px;
+  height: 3px;
+  background: #fff;
+  border-radius: 50%;
+  box-shadow:
+    0 0 10px #fff,
+    0 0 20px #fff,
+    0 0 30px rgba(255, 0, 255, 0.8);
+  opacity: 0;
+  transition: all 0.3s ease;
+}
+
+.star:nth-child(1) {
+  top: 20%;
+  left: 20%;
+}
+.star:nth-child(2) {
+  top: 40%;
+  left: 40%;
+}
+.star:nth-child(3) {
+  top: 60%;
+  left: 60%;
+}
+.star:nth-child(4) {
+  top: 30%;
+  left: 70%;
+}
+.star:nth-child(5) {
+  top: 70%;
+  left: 30%;
+}
+
+/* Hover effects */
 .authButton:hover {
-  background-color: #7224d4;
-  transform: translateY(-2px);
+  transform: translateY(-5px) scale(1.02);
+  box-shadow:
+    0 0 30px rgba(255, 0, 255, 0.8),
+    0 0 60px rgba(0, 255, 255, 0.6),
+    0 0 100px rgba(255, 0, 255, 0.4),
+    inset 0 0 20px rgba(255, 255, 255, 0.2);
+}
+
+.authButton:hover .authButtonGrid {
+  opacity: 1;
+  animation: gridMove 20s linear infinite;
+}
+
+.authButton:hover .star {
+  animation: starTwinkle 2s infinite;
+}
+
+.authButton:hover .authFlare {
+  animation: flareSwipe 2s infinite;
 }
 
 .authButton:active {
-  transform: translateY(1px);
+  transform: scale(0.97);
+  box-shadow:
+    0 0 50px rgba(255, 0, 255, 1),
+    0 0 100px rgba(0, 255, 255, 0.8),
+    inset 0 0 30px rgba(255, 255, 255, 0.3);
 }
 
-.authButton:disabled {
-  background-color: #6c6c6c;
-  cursor: not-allowed;
-  transform: none;
+/* Animations */
+@keyframes gradientFlow {
+  0%,
+  100% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
 }
 
-.authInfo {
-  margin-top: 1.5rem;
-  font-size: 0.9rem;
-  opacity: 0.8;
-  line-height: 1.5;
+@keyframes shine {
+  0% {
+    background-position: 0% 50%;
+  }
+  100% {
+    background-position: 200% 50%;
+  }
 }
+
+@keyframes borderGlow {
+  0%,
+  100% {
+    opacity: 0.8;
+  }
+  50% {
+    opacity: 0.4;
+  }
+}
+
+@keyframes starTwinkle {
+  0%,
+  100% {
+    opacity: 0;
+    transform: scale(0.5) rotate(0deg);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.5) rotate(180deg);
+  }
+}
+
+@keyframes gridMove {
+  0% {
+    transform: perspective(500px) rotateX(60deg) translateY(0%);
+  }
+  100% {
+    transform: perspective(500px) rotateX(60deg) translateY(100%);
+  }
+}
+
+@keyframes flareSwipe {
+  0% {
+    transform: translateX(-100%);
+    opacity: 0;
+  }
+  20% {
+    opacity: 0.5;
+  }
+  80% {
+    opacity: 0.5;
+  }
+  100% {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+}
+
+.authButtonScanlines {
+  position: absolute;
+  inset: 0;
+  background: repeating-linear-gradient(
+    0deg,
+    transparent,
+    transparent 2px,
+    rgba(255, 255, 255, 0.1) 2px,
+    rgba(255, 255, 255, 0.1) 4px
+  );
+  opacity: 0.1;
+  mix-blend-mode: overlay;
+  pointer-events: none;
+}
+
+.authButtonTextGlitch {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #0ff;
+  opacity: 0;
+  z-index: 2;
+  text-shadow: 2px 2px #f0f;
+}
+
+.authNoise {
+  position: absolute;
+  inset: 0;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
+  opacity: 0.05;
+  mix-blend-mode: overlay;
+  pointer-events: none;
+}
+
+.authCircles {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.authCircles::before,
+.authCircles::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(255, 0, 255, 0.2) 0%, transparent 70%);
+  transform: scale(0);
+}
+
+.authButton:hover .authCircles {
+  opacity: 1;
+}
+
+@keyframes circleExpand {
+  0% {
+    transform: scale(0);
+    opacity: 0.8;
+  }
+  100% {
+    transform: scale(3);
+    opacity: 0;
+  }
+}
+
+.authButton:hover .authButtonTextGlitch {
+  animation: glitchText 0.3s infinite;
+}
+
+@keyframes glitchText {
+  0% {
+    opacity: 0;
+    transform: translate(0);
+  }
+  20% {
+    opacity: 0.5;
+    transform: translate(-2px, 2px);
+  }
+  40% {
+    opacity: 0;
+    transform: translate(0);
+  }
+  60% {
+    opacity: 0.5;
+    transform: translate(2px, -2px);
+  }
+  80% {
+    opacity: 0;
+    transform: translate(0);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(0);
+  }
+}
+
+.authButton:active .authButtonText {
+  animation: textPulse 0.2s ease-in-out;
+}
+
+@keyframes textPulse {
+  0% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.1);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+.authStars {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+}
+
+.authStars .star {
+  animation: starFloat 5s infinite linear;
+}
+
+@keyframes starFloat {
+  0% {
+    transform: translateY(0) rotate(0deg);
+  }
+  100% {
+    transform: translateY(-100px) rotate(360deg);
+  }
+}
+
+.star:nth-child(1) { animation-delay: 0s; }
+.star:nth-child(2) { animation-delay: 1s; }
+.star:nth-child(3) { animation-delay: 2s; }
+.star:nth-child(4) { animation-delay: 3s; }
+.star:nth-child(5) { animation-delay: 4s; }
 
 .errorMessage {
   background-color: rgba(255, 0, 0, 0.2);
   border-left: 4px solid red;
   padding: 10px 15px;
-  margin-bottom: 20px;
+  margin-top: 20px;
   border-radius: 0 4px 4px 0;
   text-align: left;
   font-size: 0.9rem;
+  max-width: 600px;
+  width: 90%;
+  z-index: 10;
 }
 
-.successMessage {
-  background-color: rgba(0, 255, 0, 0.1);
-  border-left: 4px solid #00c851;
-  padding: 10px 15px;
-  margin-bottom: 20px;
-  border-radius: 0 4px 4px 0;
-  text-align: left;
+.stars {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-image: 
+    radial-gradient(2px 2px at 20px 30px, #eee, rgba(0, 0, 0, 0)),
+    radial-gradient(2px 2px at 40px 70px, #fff, rgba(0, 0, 0, 0)),
+    radial-gradient(2px 2px at 50px 160px, #ddd, rgba(0, 0, 0, 0)),
+    radial-gradient(2px 2px at 90px 40px, #fff, rgba(0, 0, 0, 0)),
+    radial-gradient(2px 2px at 130px 80px, #fff, rgba(0, 0, 0, 0)),
+    radial-gradient(2px 2px at 160px 120px, #ddd, rgba(0, 0, 0, 0)),
+    radial-gradient(2px 2px at 200px 50px, #eee, rgba(0, 0, 0, 0)),
+    radial-gradient(2px 2px at 250px 180px, #fff, rgba(0, 0, 0, 0)),
+    radial-gradient(2px 2px at 300px 100px, #ddd, rgba(0, 0, 0, 0)),
+    radial-gradient(2px 2px at 350px 150px, #fff, rgba(0, 0, 0, 0)),
+    radial-gradient(2px 2px at 400px 50px, #ddd, rgba(0, 0, 0, 0)),
+    radial-gradient(2px 2px at 450px 120px, #fff, rgba(0, 0, 0, 0)),
+    radial-gradient(2px 2px at 500px 80px, #eee, rgba(0, 0, 0, 0));
+  background-repeat: repeat;
+  background-size: 550px 550px;
+  animation: twinkle 10s ease-in-out infinite;
+  z-index: 0;
+}
+
+@keyframes twinkle {
+  0% { opacity: 0.3; }
+  50% { opacity: 0.6; }
+  100% { opacity: 0.3; }
+}
+
+.logo {
+  width: 150px;
+  height: 150px;
+  margin: 0 auto 30px;
+  background-image: url('/logo.png');
+  background-size: contain;
+  background-position: center;
+  background-repeat: no-repeat;
+  filter: drop-shadow(0 0 10px rgba(0, 255, 255, 0.5));
+}
+
+.authInfo {
+  margin-top: 2rem;
   font-size: 0.9rem;
+  opacity: 0.8;
+  line-height: 1.5;
 }
 
-.loadingContainer {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  height: 100vh;
+.authDetails {
+  text-align: left;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  padding: 10px;
+  background-color: rgba(0, 0, 0, 0.3);
+  transition: all 0.3s ease;
 }
 
-.loadingSpinner {
-  width: 50px;
-  height: 50px;
-  border: 5px solid rgba(255, 255, 255, 0.3);
-  border-top: 5px solid white;
-  border-radius: 50%;
-  animation: spin 1s linear infinite;
-  margin-bottom: 20px;
+.authDetails:hover {
+  border-color: rgba(0, 255, 255, 0.3);
+  box-shadow: 0 0 10px rgba(0, 255, 255, 0.2);
 }
 
-@keyframes spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
+.authDetails summary {
+  cursor: pointer;
+  padding: 5px;
+  font-weight: bold;
+  color: rgba(0, 255, 255, 0.8);
 }
 
-/* Стили для старой версии страницы авторизации */
+.authDetailsContent {
+  padding: 10px 5px;
+}
+
+.authDetailsContent ul {
+  padding-left: 20px;
+  margin: 10px 0;
+}
+
+.authDetailsContent li {
+  margin-bottom: 5px;
+}
+
+/* Сохраняем стили для старой версии страницы авторизации */
 .oldContainer {
   background: linear-gradient(to bottom, #0a0a2a, #1a1a4a);
   min-height: 100vh;
@@ -118,31 +523,6 @@
   font-family: 'Arial', sans-serif;
   overflow: hidden;
   position: relative;
-}
-
-.stars {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background-image: radial-gradient(2px 2px at 20px 30px, #eee, rgba(0, 0, 0, 0)),
-                    radial-gradient(2px 2px at 40px 70px, #fff, rgba(0, 0, 0, 0)),
-                    radial-gradient(2px 2px at 50px 160px, #ddd, rgba(0, 0, 0, 0)),
-                    radial-gradient(2px 2px at 90px 40px, #fff, rgba(0, 0, 0, 0)),
-                    radial-gradient(2px 2px at 130px 80px, #fff, rgba(0, 0, 0, 0)),
-                    radial-gradient(2px 2px at 160px 120px, #ddd, rgba(0, 0, 0, 0));
-  background-repeat: repeat;
-  background-size: 200px 200px;
-  opacity: 0.3;
-  animation: twinkle 5s ease-in-out infinite;
-  z-index: 0;
-}
-
-@keyframes twinkle {
-  0% { opacity: 0.2; }
-  50% { opacity: 0.5; }
-  100% { opacity: 0.2; }
 }
 
 .oldAuthButton {

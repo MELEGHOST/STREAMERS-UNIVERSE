@@ -71,23 +71,23 @@ export default function Profile() {
       }
       
       // Если данные есть в localStorage, устанавливаем их сразу
-      if (userData && userData.id) {
-        setProfileData(userData);
+          if (userData && userData.id) {
+            setProfileData(userData);
         setLoading(false);
         console.log('Установлены данные профиля из localStorage');
-        
-        // Загружаем социальные ссылки из localStorage
-        try {
-          const storedSocialLinks = localStorage.getItem('social_links');
-          if (storedSocialLinks) {
-            const parsedLinks = JSON.parse(storedSocialLinks);
-            setSocialLinks(parsedLinks);
-            console.log('Загружены социальные ссылки из localStorage');
+            
+            // Загружаем социальные ссылки из localStorage
+            try {
+              const storedSocialLinks = localStorage.getItem('social_links');
+              if (storedSocialLinks) {
+                const parsedLinks = JSON.parse(storedSocialLinks);
+                setSocialLinks(parsedLinks);
+                console.log('Загружены социальные ссылки из localStorage');
+              }
+            } catch (error) {
+              console.error('Ошибка при загрузке социальных ссылок:', error);
+            }
           }
-        } catch (error) {
-          console.error('Ошибка при загрузке социальных ссылок:', error);
-        }
-      }
       
       // В любом случае загружаем актуальные данные с сервера
       loadUserData();
@@ -168,7 +168,7 @@ export default function Profile() {
       }
       
       // Делаем прямой fetch запрос с абсолютным таймаутом
-      const controller = new AbortController();
+        const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 10000);
       
       const url = `/api/twitch/user-followings?userId=${profileData.id}`;
@@ -216,9 +216,9 @@ export default function Profile() {
             
             // Если не удалось обновить токен, просто логируем ошибку
             console.error('Не удалось обновить токен для загрузки фолловингов');
-            return;
-          }
-          
+          return;
+        }
+        
           throw new Error(`Ошибка API: ${response.status}`);
         }
         
@@ -353,8 +353,8 @@ export default function Profile() {
         console.error('Ошибка при загрузке социальных ссылок:', socialError);
         
         // Пробуем загрузить из localStorage
-        const storedSocialLinks = localStorage.getItem('social_links');
-        if (storedSocialLinks) {
+          const storedSocialLinks = localStorage.getItem('social_links');
+          if (storedSocialLinks) {
           try {
             const parsedLinks = JSON.parse(storedSocialLinks);
             setSocialLinks(parsedLinks);
@@ -391,8 +391,8 @@ export default function Profile() {
       console.error('Ошибка при загрузке данных пользователя:', error);
       setError(error.message);
     } finally {
-      setLoading(false);
-    }
+          setLoading(false);
+        }
   }, [router, fetchFollowings, fetchTierlists]);
 
   // Функция для сохранения настроек видимости статистики
@@ -414,19 +414,19 @@ export default function Profile() {
         const accessToken = Cookies.get('twitch_access_token');
         if (!accessToken) {
           console.warn('Отсутствует токен доступа для сохранения социальных ссылок');
-          return;
-        }
-        
+        return;
+      }
+      
         const response = await fetch('/api/user/social', {
           method: 'POST',
-          headers: {
+        headers: {
             'Content-Type': 'application/json',
             'Authorization': `Bearer ${accessToken}`
-          },
+        },
           body: JSON.stringify({
             userId,
             socialLinks: newLinks
-          })
+      })
         });
         
         if (!response.ok) {
@@ -1257,20 +1257,20 @@ export default function Profile() {
         
         <div className={styles.accountInfoList}>
           {createdAt && (
-            <div className={styles.accountInfoItem}>
-              <div className={styles.accountInfoLabel}>Дата создания:</div>
+          <div className={styles.accountInfoItem}>
+            <div className={styles.accountInfoLabel}>Дата создания:</div>
               <div className={styles.accountInfoValue}>{formatDate(createdAt)}</div>
-            </div>
+          </div>
           )}
           
           {broadcasterType && (
-            <div className={styles.accountInfoItem}>
+          <div className={styles.accountInfoItem}>
               <div className={styles.accountInfoLabel}>Тип вещателя:</div>
               <div className={styles.accountInfoValue}>
                 {isPartner ? 'Партнер' : 
                  isAffiliate ? 'Компаньон' : 
                  'Стандартный'}
-              </div>
+          </div>
             </div>
           )}
           
@@ -1585,8 +1585,8 @@ export default function Profile() {
   // В компоненте ReviewSection добавляем обработку обновления после добавления отзыва
   const renderReviews = () => {
     if (!showReviews) return null;
-    
-    return (
+
+  return (
       <div className={styles.reviewsContainer}>
         <div className={styles.sectionHeader}>
           <h2>Отзывы о вас</h2>
@@ -1594,8 +1594,8 @@ export default function Profile() {
         <ReviewSection 
           userId={profileData.id} 
           onReviewAdded={() => loadUserData()} // Перезагружаем данные после добавления отзыва
-        />
-      </div>
+          />
+        </div>
     );
   };
 
@@ -1635,7 +1635,7 @@ export default function Profile() {
         <div className={styles.loadingContainer}>
           <div className={styles.loadingSpinner}></div>
           <p>Загрузка профиля...</p>
-        </div>
+            </div>
       ) : error ? (
         <div className={styles.errorContainer}>
           <h2>Ошибка при загрузке профиля</h2>
@@ -1643,13 +1643,13 @@ export default function Profile() {
           <div className={styles.errorActions}>
             <button className={styles.button} onClick={loadUserData}>
               Попробовать снова
-            </button>
-            <button className={styles.button} onClick={() => router.push('/menu')}>
-              Вернуться в меню
-            </button>
-          </div>
+          </button>
+          <button className={styles.button} onClick={() => router.push('/menu')}>
+            Вернуться в меню
+          </button>
         </div>
-      ) : (
+            </div>
+          ) : (
         renderProfileInfo()
       )}
     </div>

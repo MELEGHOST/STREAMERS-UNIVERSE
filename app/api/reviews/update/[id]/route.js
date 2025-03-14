@@ -1,11 +1,10 @@
 import { NextResponse } from 'next/server';
-import { PrismaClient } from '@prisma/client';
-import { verifyToken } from '@/lib/auth';
-
-const prisma = new PrismaClient();
+import prisma from '@/app/lib/prisma';
+import { verifyToken } from '@/app/lib/auth';
 
 export async function PUT(request, { params }) {
   try {
+    // Получаем ID отзыва из параметров
     const { id } = params;
     
     if (!id) {
@@ -25,106 +24,51 @@ export async function PUT(request, { params }) {
       return NextResponse.json({ message: 'Недействительный токен' }, { status: 401 });
     }
     
-    // Получение данных из запроса
-    const data = await request.json();
-    const { text, rating, categories } = data;
+    // Получаем данные из запроса
+    const { content, rating, categories } = await request.json();
     
-    // Проверка обязательных полей
-    if (!text || !rating) {
-      return NextResponse.json({ message: 'Отсутствуют обязательные поля' }, { status: 400 });
+    // Проверяем наличие обязательных полей
+    if (!content && !rating && !categories) {
+      return NextResponse.json({ message: 'Не указаны поля для обновления' }, { status: 400 });
     }
     
-    // Проверка существования отзыва и прав на его редактирование
-    const existingReview = await prisma.review.findUnique({
+    // Проверяем, что рейтинг находится в допустимом диапазоне
+    if (rating !== undefined && (rating < 1 || rating > 5)) {
+      return NextResponse.json({ message: 'Рейтинг должен быть от 1 до 5' }, { status: 400 });
+    }
+    
+    // Находим отзыв
+    const review = await prisma.review.findUnique({
       where: { id }
     });
     
-    if (!existingReview) {
+    if (!review) {
       return NextResponse.json({ message: 'Отзыв не найден' }, { status: 404 });
     }
     
-    if (existingReview.reviewerId !== userData.id) {
+    // Проверяем, является ли пользователь автором отзыва
+    if (review.authorId !== userData.id) {
       return NextResponse.json({ message: 'У вас нет прав на редактирование этого отзыва' }, { status: 403 });
     }
     
-    // Обновление отзыва
+    // Подготавливаем данные для обновления
+    const updateData = {};
+    if (content !== undefined) updateData.content = content;
+    if (rating !== undefined) updateData.rating = rating;
+    if (categories !== undefined) updateData.categories = categories;
+    
+    // Обновляем отзыв
     const updatedReview = await prisma.review.update({
       where: { id },
-      data: {
-        text,
-        rating: parseInt(rating),
-        categories: categories || [],
-        updatedAt: new Date()
-      }
+      data: updateData
     });
     
-    // Обновление статистики отзывов для пользователя
-    const targetUserId = existingReview.targetUserId;
-    const allReviews = await prisma.review.findMany({
-      where: { targetUserId }
+    return NextResponse.json({ 
+      message: 'Отзыв успешно обновлен',
+      review: updatedReview
     });
-    
-    const totalRating = allReviews.reduce((sum, review) => sum + review.rating, 0);
-    const averageRating = allReviews.length > 0 ? totalRating / allReviews.length : 0;
-    
-    await prisma.user.update({
-      where: { id: targetUserId },
-      data: {
-        averageRating
-      }
-    });
-    
-    // Анализ категорий для создания тир-листа
-    if (categories && categories.length > 0) {
-      const categoryStats = {};
-      
-      // Собираем все отзывы с категориями
-      allReviews.forEach(review => {
-        if (review.categories && review.categories.length > 0) {
-          review.categories.forEach(category => {
-            if (!categoryStats[category]) {
-              categoryStats[category] = 0;
-            }
-            categoryStats[category]++;
-          });
-        }
-      });
-      
-      // Проверяем, есть ли категории с более чем 5 отзывами
-      const popularCategories = Object.entries(categoryStats)
-        .filter(([_, count]) => count >= 5)
-        .map(([category]) => category);
-      
-      // Если есть популярные категории, создаем автоматический тир-лист
-      if (popularCategories.length > 0) {
-        // Проверяем, не создан ли уже тир-лист для этих категорий
-        const existingTierlist = await prisma.tierlist.findFirst({
-          where: {
-            userId: targetUserId,
-            title: { contains: popularCategories[0] }
-          }
-        });
-        
-        if (!existingTierlist) {
-          await prisma.tierlist.create({
-            data: {
-              userId: targetUserId,
-              title: `Топ стримеров по категориям: ${popularCategories.join(', ')}`,
-              description: `Автоматически созданный тир-лист на основе отзывов в категориях: ${popularCategories.join(', ')}`,
-              categories: popularCategories,
-              isPublic: true
-            }
-          });
-        }
-      }
-    }
-    
-    return NextResponse.json(updatedReview);
-    
   } catch (error) {
     console.error('Ошибка при обновлении отзыва:', error);
-    return NextResponse.json({ message: 'Внутренняя ошибка сервера' }, { status: 500 });
-  } finally {
-    await prisma.$disconnect();
+    return NextResponse.json({ message: 'Произошла ошибка при обновлении отзыва' }, { status: 500 });
   }
 } 

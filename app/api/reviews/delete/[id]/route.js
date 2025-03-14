@@ -1,11 +1,10 @@
 import { NextResponse } from 'next/server';
-import { PrismaClient } from '@prisma/client';
-import { verifyToken } from '@/lib/auth';
-
-const prisma = new PrismaClient();
+import prisma from '@/app/lib/prisma';
+import { verifyToken } from '@/app/lib/auth';
 
 export async function DELETE(request, { params }) {
   try {
+    // Получаем ID отзыва из параметров
     const { id } = params;
     
     if (!id) {
@@ -25,49 +24,51 @@ export async function DELETE(request, { params }) {
       return NextResponse.json({ message: 'Недействительный токен' }, { status: 401 });
     }
     
-    // Проверка существования отзыва и прав на его удаление
-    const existingReview = await prisma.review.findUnique({
+    // Находим отзыв
+    const review = await prisma.review.findUnique({
       where: { id }
     });
     
-    if (!existingReview) {
+    if (!review) {
       return NextResponse.json({ message: 'Отзыв не найден' }, { status: 404 });
     }
     
-    if (existingReview.reviewerId !== userData.id) {
+    // Проверяем, является ли пользователь автором отзыва
+    if (review.authorId !== userData.id) {
       return NextResponse.json({ message: 'У вас нет прав на удаление этого отзыва' }, { status: 403 });
     }
     
-    // Сохраняем ID пользователя, которому был оставлен отзыв, для обновления статистики
-    const targetUserId = existingReview.targetUserId;
-    
-    // Удаление отзыва
+    // Удаляем отзыв
     await prisma.review.delete({
       where: { id }
     });
     
-    // Обновление статистики отзывов для пользователя
-    const allReviews = await prisma.review.findMany({
-      where: { targetUserId }
-    });
-    
-    const totalRating = allReviews.reduce((sum, review) => sum + review.rating, 0);
-    const averageRating = allReviews.length > 0 ? totalRating / allReviews.length : 0;
-    
+    // Вычитаем StreamCoins за удаление отзыва
     await prisma.user.update({
-      where: { id: targetUserId },
+      where: { id: userData.id },
       data: {
-        reviewCount: allReviews.length,
-        averageRating
+        streamCoins: {
+          decrement: 5 // Вычитаем 5 монет за удаление отзыва
+        }
       }
     });
     
-    return NextResponse.json({ message: 'Отзыв успешно удален' });
+    // Создаем запись о транзакции
+    await prisma.streamCoinsTransaction.create({
+      data: {
+        userId: userData.id,
+        amount: 5,
+        type: 'SPEND',
+        description: 'Списание за удаление отзыва'
+      }
+    });
     
+    return NextResponse.json({ 
+      message: 'Отзыв успешно удален',
+      coinsSpent: 5
+    });
   } catch (error) {
     console.error('Ошибка при удалении отзыва:', error);
-    return NextResponse.json({ message: 'Внутренняя ошибка сервера' }, { status: 500 });
-  } finally {
-    await prisma.$disconnect();
+    return NextResponse.json({ message: 'Произошла ошибка при удалении отзыва' }, { status: 500 });
   }
 } 

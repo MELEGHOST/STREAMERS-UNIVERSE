@@ -1,8 +1,9 @@
 import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { PrismaClient } from '@prisma/client';
+import prisma from '@/app/lib/prisma';
 
-const prisma = new PrismaClient();
+const prismaClient = new PrismaClient();
 
 // Временное хранилище данных (в реальном приложении будет база данных)
 let reviews = [];
@@ -41,58 +42,98 @@ function getUserDataFromCookies() {
 // GET - получение отзывов
 export async function GET(request) {
   try {
+    // Получаем параметры из URL
     const { searchParams } = new URL(request.url);
-    const userId = searchParams.get('userId');
+    const streamerId = searchParams.get('streamerId');
+    const authorId = searchParams.get('authorId');
+    const limit = parseInt(searchParams.get('limit') || '10');
+    const page = parseInt(searchParams.get('page') || '1');
+    const skip = (page - 1) * limit;
     
-    if (!userId) {
-      return NextResponse.json({ message: 'ID пользователя не указан' }, { status: 400 });
-    }
+    // Формируем условия запроса
+    const where = {};
+    if (streamerId) where.streamerId = streamerId;
+    if (authorId) where.authorId = authorId;
     
-    // Получение всех отзывов для указанного пользователя
+    // Получаем общее количество отзывов
+    const totalReviews = await prisma.review.count({ where });
+    
+    // Получаем отзывы с пагинацией
     const reviews = await prisma.review.findMany({
-      where: {
-        targetUserId: userId
+      where,
+      include: {
+        author: {
+          select: {
+            id: true,
+            username: true,
+            displayName: true,
+            avatar: true
+          }
+        },
+        streamer: {
+          select: {
+            id: true,
+            username: true,
+            displayName: true,
+            avatar: true
+          }
+        }
       },
       orderBy: {
         createdAt: 'desc'
-      }
+      },
+      skip,
+      take: limit
     });
     
-    // Получение информации об авторах отзывов
-    const reviewsWithAuthorInfo = await Promise.all(
-      reviews.map(async (review) => {
-        const author = await prisma.user.findUnique({
-          where: { id: review.reviewerId },
-          select: {
-            id: true,
-            login: true,
-            display_name: true,
-            profile_image_url: true
-          }
-        });
-        
-        return {
-          id: review.id,
-          text: review.text,
-          rating: review.rating,
-          categories: review.categories || [],
-          createdAt: review.createdAt,
-          updatedAt: review.updatedAt,
-          reviewerId: review.reviewerId,
-          targetUserId: review.targetUserId,
-          authorName: author?.display_name || author?.login || review.authorName || 'Неизвестный пользователь',
-          authorImage: author?.profile_image_url || review.authorImage || '/images/default-avatar.png'
-        };
-      })
-    );
+    // Если запрашиваются отзывы для конкретного стримера, получаем статистику
+    let stats = null;
+    if (streamerId) {
+      const allReviews = await prisma.review.findMany({
+        where: { streamerId },
+        select: { rating: true }
+      });
+      
+      // Рассчитываем статистику
+      const totalRating = allReviews.reduce((sum, review) => sum + review.rating, 0);
+      const averageRating = allReviews.length > 0 ? totalRating / allReviews.length : 0;
+      
+      // Рассчитываем распределение рейтингов
+      const ratingDistribution = {
+        1: 0, 2: 0, 3: 0, 4: 0, 5: 0
+      };
+      
+      allReviews.forEach(review => {
+        ratingDistribution[review.rating]++;
+      });
+      
+      stats = {
+        totalReviews: allReviews.length,
+        averageRating,
+        ratingDistribution
+      };
+    }
     
-    return NextResponse.json(reviewsWithAuthorInfo);
+    // Формируем метаданные для пагинации
+    const totalPages = Math.ceil(totalReviews / limit);
+    const hasNextPage = page < totalPages;
+    const hasPrevPage = page > 1;
     
+    return NextResponse.json({
+      reviews,
+      stats,
+      pagination: {
+        totalReviews,
+        totalPages,
+        currentPage: page,
+        limit,
+        hasNextPage,
+        hasPrevPage
+      }
+    });
   } catch (error) {
     console.error('Ошибка при получении отзывов:', error);
-    return NextResponse.json({ message: 'Внутренняя ошибка сервера' }, { status: 500 });
-  } finally {
-    await prisma.$disconnect();
+    return NextResponse.json({ message: 'Произошла ошибка при получении отзывов' }, { status: 500 });
   }
 }
 
