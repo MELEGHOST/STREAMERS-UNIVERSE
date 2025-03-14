@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { PrismaClient } from '@prisma/client';
-import prisma from '@/app/lib/prisma';
+import prisma from '../../../lib/prisma';
 
 const prismaClient = new PrismaClient();
 
