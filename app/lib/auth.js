@@ -4,62 +4,69 @@
 
 import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
-import { jwtVerify, SignJWT } from 'jose';
+import jwt from 'jsonwebtoken';
 import prisma from './prisma';
 
-// Секретный ключ для JWT
-const JWT_SECRET = new TextEncoder().encode(
-  process.env.JWT_SECRET || 'default_jwt_secret_key_min_32_chars_long'
-);
+const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
 
 /**
  * Проверяет, авторизован ли пользователь
  * @returns {boolean} Статус авторизации
  */
-export const isAuthenticated = () => {
-  const cookieStore = cookies();
-  const token = cookieStore.get('twitch_access_token');
-  return !!token;
-};
+export async function isAuthenticated() {
+  try {
+    const cookieStore = cookies();
+    const token = cookieStore.get('jwt_token')?.value;
+    
+    if (!token) {
+      return false;
+    }
+    
+    const decoded = jwt.verify(token, JWT_SECRET);
+    return !!decoded;
+  } catch (error) {
+    return false;
+  }
+}
 
 /**
  * Получает данные текущего пользователя
  * @returns {Object|null} Данные пользователя или null, если не авторизован
  */
-export const getCurrentUser = () => {
+export async function getCurrentUser() {
   try {
     const cookieStore = cookies();
-    const userDataCookie = cookieStore.get('twitch_user');
+    const token = cookieStore.get('jwt_token')?.value;
     
-    if (!userDataCookie) {
+    if (!token) {
       return null;
     }
     
-    return JSON.parse(userDataCookie.value);
+    const decoded = jwt.verify(token, JWT_SECRET);
+    return decoded;
   } catch (error) {
-    console.error('Ошибка при получении данных пользователя:', error);
     return null;
   }
-};
+}
 
 /**
  * Проверяет авторизацию и перенаправляет на страницу авторизации, если пользователь не авторизован
  */
-export const requireAuth = () => {
-  if (!isAuthenticated()) {
-    redirect('/auth');
+export async function requireAuth() {
+  const isAuth = await isAuthenticated();
+  if (!isAuth) {
+    throw new Error('Unauthorized');
   }
-};
+}
 
 /**
  * Получает токен доступа
  * @returns {string|null} Токен доступа или null, если не авторизован
  */
-export const getAccessToken = () => {
+export async function getAccessToken() {
   const cookieStore = cookies();
-  const token = cookieStore.get('twitch_access_token');
-  return token ? token.value : null;
-};
+  return cookieStore.get('twitch_access_token')?.value;
+}
 
 /**
  * Создает JWT токен для пользователя
@@ -67,15 +74,9 @@ export const getAccessToken = () => {
  * @returns {Promise<string>} JWT токен
  */
 export const createToken = async (userData) => {
-  const token = await new SignJWT({ 
-    id: userData.id,
-    twitchId: userData.twitchId,
-    username: userData.username
-  })
-    .setProtectedHeader({ alg: 'HS256' })
-    .setIssuedAt()
-    .setExpirationTime(process.env.JWT_EXPIRES_IN || '7d')
-    .sign(JWT_SECRET);
+  const token = jwt.sign(userData, JWT_SECRET, {
+    expiresIn: process.env.JWT_EXPIRES_IN || '7d'
+  });
   
   return token;
 };
@@ -85,21 +86,14 @@ export const createToken = async (userData) => {
  * @param {string} token - JWT токен
  * @returns {Promise<Object|null>} Данные пользователя или null, если токен недействителен
  */
-export const verifyToken = async (token) => {
+export async function verifyToken(token) {
   try {
-    const { payload } = await jwtVerify(token, JWT_SECRET);
-    
-    // Получаем пользователя из базы данных
-    const user = await prisma.user.findUnique({
-      where: { id: payload.id }
-    });
-    
-    return user;
+    const decoded = jwt.verify(token, JWT_SECRET);
+    return decoded;
   } catch (error) {
-    console.error('Ошибка при проверке токена:', error);
     return null;
   }
-};
+}
 
 /**
  * Получает или создает пользователя на основе данных Twitch
