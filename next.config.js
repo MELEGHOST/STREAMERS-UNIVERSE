@@ -17,6 +17,15 @@ const nextConfig = {
   },
   webpack: (config) => {
     config.resolve.fallback = { fs: false, path: false };
+    
+    // Добавляем алиасы для импортов
+    config.resolve.alias = {
+      ...config.resolve.alias,
+      '@': __dirname,
+      '@/lib': `${__dirname}/lib`,
+      '@/app': `${__dirname}/app`,
+    };
+    
     return config;
   },
   // Добавляем настройки для куков
