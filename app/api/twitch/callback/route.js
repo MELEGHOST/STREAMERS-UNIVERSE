@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
-import prisma from '../../../lib/prisma';
-import { createToken } from '../../../lib/auth';
+import prisma from '../../../../lib/prisma';
+import { createToken } from '../../../../lib/auth';
 
 /**
  * Обработчик GET запроса для обработки обратного вызова от Twitch

@@ -1,9 +1,6 @@
 import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
-import { PrismaClient } from '@prisma/client';
 import prisma from '../../../lib/prisma';
-
-const prismaClient = new PrismaClient();
 
 // Временное хранилище данных (в реальном приложении будет база данных)
 let reviews = [];
