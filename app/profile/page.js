@@ -97,13 +97,16 @@ export default function Profile() {
       setError('Произошла непредвиденная ошибка. Пожалуйста, обновите страницу.');
       setLoading(false);
     }
-  }, []);
+  }, [loadUserData]);
 
   // Исправляем проблему с авторизацией - добавляем проверку токена перед запросами
-  const fetchUserData = async () => {
+  const fetchUserData = useCallback(async () => {
     try {
       // Проверяем наличие токена
-      const accessToken = Cookies.get('twitch_access_token');
+      const accessToken = Cookies.get('twitch_access_token') || 
+                         localStorage.getItem('cookie_twitch_access_token') || 
+                         localStorage.getItem('twitch_token');
+      
       if (!accessToken) {
         throw new Error('Отсутствует токен доступа');
       }
@@ -117,10 +120,59 @@ export default function Profile() {
 
       if (!response.ok) {
         if (response.status === 401) {
-          // Если токен недействителен, перенаправляем на страницу авторизации
-          console.error('Токен недействителен, перенаправление на страницу авторизации');
-          router.push('/auth');
-          return;
+          // Если токен недействителен, пробуем обновить его
+          console.log('Токен недействителен, пробуем обновить токен...');
+          
+          // Получаем refresh_token
+          const refreshToken = localStorage.getItem('twitch_refresh_token') || 
+                              Cookies.get('twitch_refresh_token');
+          
+          if (!refreshToken) {
+            console.error('Отсутствует refresh_token, невозможно обновить токен');
+            router.push('/auth');
+            return;
+          }
+          
+          try {
+            const refreshResponse = await fetch('/api/auth/refresh-token', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json'
+              },
+              body: JSON.stringify({
+                refresh_token: refreshToken
+              })
+            });
+            
+            if (refreshResponse.ok) {
+              const refreshData = await refreshResponse.json();
+              
+              // Сохраняем новый токен
+              if (refreshData.access_token) {
+                localStorage.setItem('twitch_token', refreshData.access_token);
+                localStorage.setItem('cookie_twitch_access_token', refreshData.access_token);
+                Cookies.set('twitch_access_token', refreshData.access_token, { expires: 7 });
+                
+                // Сохраняем новый refresh_token, если он есть
+                if (refreshData.refresh_token) {
+                  localStorage.setItem('twitch_refresh_token', refreshData.refresh_token);
+                  Cookies.set('twitch_refresh_token', refreshData.refresh_token, { expires: 30 });
+                }
+                
+                // Повторяем запрос с новым токеном
+                return fetchUserData();
+              }
+            } else {
+              // Если не удалось обновить токен, перенаправляем на страницу авторизации
+              console.error('Не удалось обновить токен, перенаправление на страницу авторизации');
+              router.push('/auth');
+              return;
+            }
+          } catch (refreshError) {
+            console.error('Ошибка при обновлении токена:', refreshError);
+            router.push('/auth');
+            return;
+          }
         }
         throw new Error(`Ошибка API: ${response.status}`);
       }
@@ -145,7 +197,126 @@ export default function Profile() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [router]);
+
+  // Функция для загрузки фолловеров
+  const fetchFollowers = useCallback(async () => {
+    if (!profileData || !profileData.id) {
+      console.warn('Невозможно загрузить фолловеров: нет данных профиля');
+      return;
+    }
+    
+    try {
+      console.log('Загрузка фолловеров для пользователя:', profileData.id);
+      
+      // Получаем токен
+      const accessToken = localStorage.getItem('cookie_twitch_access_token') || 
+                         localStorage.getItem('twitch_token') || 
+                         Cookies.get('twitch_access_token');
+      
+      if (!accessToken) {
+        console.warn('Отсутствует токен доступа для загрузки фолловеров');
+        return;
+      }
+      
+      // Делаем прямой fetch запрос с абсолютным таймаутом
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 10000);
+      
+      const url = `/api/twitch/followers?userId=${profileData.id}`;
+      
+      try {
+        const response = await fetch(url, {
+          headers: {
+            'Authorization': `Bearer ${accessToken}`,
+            'Cache-Control': 'no-cache'
+          },
+          signal: controller.signal
+        });
+        
+        clearTimeout(timeoutId);
+        
+        if (!response.ok) {
+          if (response.status === 401) {
+            console.log('Токен недействителен, пробуем обновить токен...');
+            
+            // Получаем refresh_token
+            const refreshToken = localStorage.getItem('twitch_refresh_token') || 
+                                Cookies.get('twitch_refresh_token');
+            
+            if (!refreshToken) {
+              console.error('Отсутствует refresh_token, невозможно обновить токен');
+              router.push('/auth');
+              return;
+            }
+            
+            try {
+              const refreshResponse = await fetch('/api/auth/refresh-token', {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                  refresh_token: refreshToken
+                })
+              });
+              
+              if (refreshResponse.ok) {
+                const refreshData = await refreshResponse.json();
+                
+                // Сохраняем новый токен
+                if (refreshData.access_token) {
+                  localStorage.setItem('twitch_token', refreshData.access_token);
+                  localStorage.setItem('cookie_twitch_access_token', refreshData.access_token);
+                  Cookies.set('twitch_access_token', refreshData.access_token, { expires: 7 });
+                  
+                  // Сохраняем новый refresh_token, если он есть
+                  if (refreshData.refresh_token) {
+                    localStorage.setItem('twitch_refresh_token', refreshData.refresh_token);
+                    Cookies.set('twitch_refresh_token', refreshData.refresh_token, { expires: 30 });
+                  }
+                  
+                  // Повторяем запрос с новым токеном
+                  console.log('Токен обновлен, повторяем запрос фолловеров...');
+                  return fetchFollowers();
+                }
+              } else {
+                // Если не удалось обновить токен, перенаправляем на страницу авторизации
+                console.error('Не удалось обновить токен, перенаправление на страницу авторизации');
+                router.push('/auth');
+                return;
+              }
+            } catch (refreshError) {
+              console.error('Ошибка при обновлении токена:', refreshError);
+              router.push('/auth');
+              return;
+            }
+          }
+          
+          throw new Error(`Ошибка API: ${response.status}`);
+        }
+        
+        const data = await response.json();
+        console.log('Получены данные о фолловерах:', data);
+        
+        // Проверяем структуру данных и устанавливаем их
+        if (data && Array.isArray(data)) {
+          setFollowers(data);
+        } else if (data && Array.isArray(data.followers)) {
+          setFollowers(data.followers);
+        } else {
+          console.warn('Некорректный формат данных о фолловерах:', data);
+          setFollowers([]);
+        }
+      } catch (error) {
+        console.error('Ошибка при загрузке фолловеров:', error);
+        setFollowers([]);
+      }
+    } catch (error) {
+      console.error('Критическая ошибка при загрузке фолловеров:', error);
+      setFollowers([]);
+    }
+  }, [profileData, router]);
 
   // Функция для загрузки фолловингов
   const fetchFollowings = useCallback(async () => {
@@ -168,7 +339,7 @@ export default function Profile() {
       }
       
       // Делаем прямой fetch запрос с абсолютным таймаутом
-        const controller = new AbortController();
+      const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 10000);
       
       const url = `/api/twitch/user-followings?userId=${profileData.id}`;
@@ -186,39 +357,61 @@ export default function Profile() {
         
         if (!response.ok) {
           if (response.status === 401) {
-            console.error('Токен недействителен при загрузке фолловингов, пробуем обновить токен...');
+            console.log('Токен недействителен, пробуем обновить токен...');
             
-            // Пробуем обновить токен
-            const refreshResponse = await fetch('/api/auth/refresh-token', {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json'
-              },
-              body: JSON.stringify({
-                refresh_token: localStorage.getItem('twitch_refresh_token') || Cookies.get('twitch_refresh_token')
-              })
-            });
+            // Получаем refresh_token
+            const refreshToken = localStorage.getItem('twitch_refresh_token') || 
+                                Cookies.get('twitch_refresh_token');
             
-            if (refreshResponse.ok) {
-              const refreshData = await refreshResponse.json();
-              
-              // Сохраняем новый токен
-              if (refreshData.access_token) {
-                localStorage.setItem('twitch_token', refreshData.access_token);
-                localStorage.setItem('cookie_twitch_access_token', refreshData.access_token);
-                Cookies.set('twitch_access_token', refreshData.access_token, { expires: 7 });
-                
-                // Повторяем запрос с новым токеном
-                console.log('Токен обновлен, повторяем запрос фолловингов...');
-                return fetchFollowings();
-              }
+            if (!refreshToken) {
+              console.error('Отсутствует refresh_token, невозможно обновить токен');
+              router.push('/auth');
+              return;
             }
             
-            // Если не удалось обновить токен, просто логируем ошибку
-            console.error('Не удалось обновить токен для загрузки фолловингов');
-          return;
-        }
-        
+            try {
+              const refreshResponse = await fetch('/api/auth/refresh-token', {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                  refresh_token: refreshToken
+                })
+              });
+              
+              if (refreshResponse.ok) {
+                const refreshData = await refreshResponse.json();
+                
+                // Сохраняем новый токен
+                if (refreshData.access_token) {
+                  localStorage.setItem('twitch_token', refreshData.access_token);
+                  localStorage.setItem('cookie_twitch_access_token', refreshData.access_token);
+                  Cookies.set('twitch_access_token', refreshData.access_token, { expires: 7 });
+                  
+                  // Сохраняем новый refresh_token, если он есть
+                  if (refreshData.refresh_token) {
+                    localStorage.setItem('twitch_refresh_token', refreshData.refresh_token);
+                    Cookies.set('twitch_refresh_token', refreshData.refresh_token, { expires: 30 });
+                  }
+                  
+                  // Повторяем запрос с новым токеном
+                  console.log('Токен обновлен, повторяем запрос фолловингов...');
+                  return fetchFollowings();
+                }
+              } else {
+                // Если не удалось обновить токен, перенаправляем на страницу авторизации
+                console.error('Не удалось обновить токен, перенаправление на страницу авторизации');
+                router.push('/auth');
+                return;
+              }
+            } catch (refreshError) {
+              console.error('Ошибка при обновлении токена:', refreshError);
+              router.push('/auth');
+              return;
+            }
+          }
+          
           throw new Error(`Ошибка API: ${response.status}`);
         }
         
@@ -242,158 +435,156 @@ export default function Profile() {
       console.error('Критическая ошибка при загрузке фолловингов:', error);
       setFollowings([]);
     }
-  }, [profileData]);
+  }, [profileData, router]);
 
   // Функция для загрузки тирлистов пользователя
   const fetchTierlists = useCallback(async () => {
-    if (!profileData || !profileData.id) return;
-    
-    try {
-      const response = await fetch(`/api/tierlists?userId=${profileData.id}`);
-      
-      if (!response.ok) {
-        console.error('Ошибка при загрузке тирлистов:', await response.text());
-        return;
-      }
-      
-      const data = await response.json();
-      console.log('Загружены тирлисты:', data);
-      setTierlists(data);
-    } catch (error) {
-      console.error('Ошибка при загрузке тирлистов:', error);
+    if (!profileData || !profileData.id) {
+      console.warn('Невозможно загрузить тирлисты: нет данных профиля');
+      return;
     }
-  }, [profileData]);
-
-  // Теперь объявляем loadUserData после fetchFollowings и fetchTierlists
-  const loadUserData = useCallback(async () => {
-    setLoading(true);
-    setError(null);
     
     try {
-      // Получаем токен доступа
+      console.log('Загрузка тирлистов для пользователя:', profileData.id);
+      
+      // Получаем токен
       const accessToken = localStorage.getItem('cookie_twitch_access_token') || 
                          localStorage.getItem('twitch_token') || 
                          Cookies.get('twitch_access_token');
       
       if (!accessToken) {
-        throw new Error('Отсутствует токен доступа');
+        console.warn('Отсутствует токен доступа для загрузки тирлистов');
+        return;
       }
       
-      // Загружаем данные профиля
-      const profileResponse = await fetch('/api/twitch/profile', {
-        headers: {
-          'Authorization': `Bearer ${accessToken}`,
-          'Cache-Control': 'no-cache'
-        }
-      });
+      // Делаем прямой fetch запрос с абсолютным таймаутом
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 10000);
       
-      if (!profileResponse.ok) {
-        if (profileResponse.status === 401) {
-          console.error('Токен недействителен, пробуем обновить токен...');
-          
-          // Пробуем обновить токен
-          const refreshResponse = await fetch('/api/auth/refresh-token', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-              refresh_token: localStorage.getItem('twitch_refresh_token') || Cookies.get('twitch_refresh_token')
-            })
-          });
-          
-          if (refreshResponse.ok) {
-            const refreshData = await refreshResponse.json();
+      const url = `/api/tierlists?userId=${profileData.id}`;
+      
+      try {
+        const response = await fetch(url, {
+          headers: {
+            'Authorization': `Bearer ${accessToken}`,
+            'Cache-Control': 'no-cache'
+          },
+          signal: controller.signal
+        });
+        
+        clearTimeout(timeoutId);
+        
+        if (!response.ok) {
+          if (response.status === 401) {
+            console.log('Токен недействителен, пробуем обновить токен...');
             
-            // Сохраняем новый токен
-            if (refreshData.access_token) {
-              localStorage.setItem('twitch_token', refreshData.access_token);
-              localStorage.setItem('cookie_twitch_access_token', refreshData.access_token);
-              Cookies.set('twitch_access_token', refreshData.access_token, { expires: 7 });
+            // Получаем refresh_token
+            const refreshToken = localStorage.getItem('twitch_refresh_token') || 
+                                Cookies.get('twitch_refresh_token');
+            
+            if (!refreshToken) {
+              console.error('Отсутствует refresh_token, невозможно обновить токен');
+              router.push('/auth');
+              return;
+            }
+            
+            try {
+              const refreshResponse = await fetch('/api/auth/refresh-token', {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                  refresh_token: refreshToken
+                })
+              });
               
-              // Повторяем запрос с новым токеном
-              console.log('Токен обновлен, повторяем запрос...');
-              return loadUserData();
+              if (refreshResponse.ok) {
+                const refreshData = await refreshResponse.json();
+                
+                // Сохраняем новый токен
+                if (refreshData.access_token) {
+                  localStorage.setItem('twitch_token', refreshData.access_token);
+                  localStorage.setItem('cookie_twitch_access_token', refreshData.access_token);
+                  Cookies.set('twitch_access_token', refreshData.access_token, { expires: 7 });
+                  
+                  // Сохраняем новый refresh_token, если он есть
+                  if (refreshData.refresh_token) {
+                    localStorage.setItem('twitch_refresh_token', refreshData.refresh_token);
+                    Cookies.set('twitch_refresh_token', refreshData.refresh_token, { expires: 30 });
+                  }
+                  
+                  // Повторяем запрос с новым токеном
+                  console.log('Токен обновлен, повторяем запрос тирлистов...');
+                  return fetchTierlists();
+                }
+              } else {
+                // Если не удалось обновить токен, перенаправляем на страницу авторизации
+                console.error('Не удалось обновить токен, перенаправление на страницу авторизации');
+                router.push('/auth');
+                return;
+              }
+            } catch (refreshError) {
+              console.error('Ошибка при обновлении токена:', refreshError);
+              router.push('/auth');
+              return;
             }
           }
           
-          // Если не удалось обновить токен, перенаправляем на страницу авторизации
-          console.error('Не удалось обновить токен, перенаправление на страницу авторизации');
-          router.push('/auth');
-          return;
+          throw new Error(`Ошибка API: ${response.status}`);
         }
         
-        throw new Error(`Ошибка API: ${profileResponse.status}`);
+        const data = await response.json();
+        console.log('Получены данные о тирлистах:', data);
+        
+        // Устанавливаем данные
+        setTierlists(Array.isArray(data) ? data : []);
+      } catch (error) {
+        console.error('Ошибка при загрузке тирлистов:', error);
+        setTierlists([]);
+      }
+    } catch (error) {
+      console.error('Критическая ошибка при загрузке тирлистов:', error);
+      setTierlists([]);
+    }
+  }, [profileData, router]);
+
+  // Функция для загрузки данных пользователя
+  const loadUserData = useCallback(async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      
+      // Проверяем авторизацию
+      if (!isAuthenticated && isInitialized) {
+        console.log('Пользователь не авторизован, перенаправление на страницу авторизации');
+        router.push('/auth');
+        return;
       }
       
-      const profileData = await profileResponse.json();
-      setProfileData(profileData);
-      localStorage.setItem('twitch_user', JSON.stringify(profileData));
+      // Загружаем данные профиля
+      await fetchUserData();
       
-      // Загружаем социальные ссылки
-      try {
-        const socialResponse = await fetch(`/api/user/social?userId=${profileData.id}`, {
-          headers: {
-            'Authorization': `Bearer ${accessToken}`,
-            'Cache-Control': 'no-cache'
-          }
-        });
+      // Если данные профиля загружены успешно, загружаем дополнительные данные
+      if (profileData && profileData.id) {
+        // Загружаем фолловеров
+        await fetchFollowers();
         
-        if (socialResponse.ok) {
-          const socialData = await socialResponse.json();
-          setSocialLinks(socialData);
-          localStorage.setItem('social_links', JSON.stringify(socialData));
-          console.log('Обновлены социальные ссылки:', socialData);
-        } else if (socialResponse.status === 401) {
-          // Если ошибка 401 при загрузке социальных ссылок, но профиль уже загружен,
-          // просто логируем ошибку и продолжаем
-          console.warn('Ошибка авторизации при загрузке социальных ссылок');
-        }
-      } catch (socialError) {
-        console.error('Ошибка при загрузке социальных ссылок:', socialError);
+        // Загружаем фолловингов
+        await fetchFollowings();
         
-        // Пробуем загрузить из localStorage
-          const storedSocialLinks = localStorage.getItem('social_links');
-          if (storedSocialLinks) {
-          try {
-            const parsedLinks = JSON.parse(storedSocialLinks);
-            setSocialLinks(parsedLinks);
-          } catch (parseError) {
-            console.error('Ошибка при парсинге социальных ссылок из localStorage:', parseError);
-          }
-        }
+        // Загружаем тирлисты
+        await fetchTierlists();
+        
+        console.log('Все данные профиля загружены успешно');
       }
-      
-      // Загружаем фолловеров
-      try {
-        const followersResponse = await fetch(`/api/twitch/followers?userId=${profileData.id}`, {
-          headers: {
-            'Authorization': `Bearer ${accessToken}`,
-            'Cache-Control': 'no-cache'
-          }
-        });
-        
-        if (followersResponse.ok) {
-          const followersData = await followersResponse.json();
-          if (followersData && followersData.followers) {
-            setFollowers(followersData.followers);
-          }
-        }
-      } catch (followersError) {
-        console.error('Ошибка при загрузке фолловеров:', followersError);
-      }
-      
-      // Загружаем дополнительные данные
-      fetchFollowings();
-      fetchTierlists();
-      
     } catch (error) {
       console.error('Ошибка при загрузке данных пользователя:', error);
-      setError(error.message);
+      setError('Не удалось загрузить данные профиля. Пожалуйста, попробуйте позже.');
     } finally {
-          setLoading(false);
-        }
-  }, [router, fetchFollowings, fetchTierlists]);
+      setLoading(false);
+    }
+  }, [isAuthenticated, isInitialized, router, fetchUserData, profileData, fetchFollowers, fetchFollowings, fetchTierlists]);
 
   // Функция для сохранения настроек видимости статистики
   const saveStatsVisibility = async (newVisibility) => {
@@ -1581,24 +1772,6 @@ export default function Profile() {
     return '/default-avatar.png';
   };
 
-  // Исправляем функцию для отображения отзывов
-  // В компоненте ReviewSection добавляем обработку обновления после добавления отзыва
-  const renderReviews = () => {
-    if (!showReviews) return null;
-
-  return (
-      <div className={styles.reviewsContainer}>
-        <div className={styles.sectionHeader}>
-          <h2>Отзывы о вас</h2>
-        </div>
-        <ReviewSection 
-          userId={profileData.id} 
-          onReviewAdded={() => loadUserData()} // Перезагружаем данные после добавления отзыва
-          />
-        </div>
-    );
-  };
-
   // Добавляем эффект для обновления данных при возвращении на страницу
   useEffect(() => {
     // Функция для проверки, были ли обновлены данные профиля
@@ -1629,13 +1802,30 @@ export default function Profile() {
     };
   }, [loadUserData]);
 
+  // Функция для отображения отзывов
+  const renderReviews = () => {
+    if (!showReviews) return null;
+
+    return (
+      <div className={styles.reviewsContainer}>
+        <div className={styles.sectionHeader}>
+          <h2>Отзывы о вас</h2>
+        </div>
+        <ReviewSection 
+          userId={profileData.id} 
+          onReviewAdded={() => loadUserData()} // Перезагружаем данные после добавления отзыва
+        />
+      </div>
+    );
+  };
+
   return (
     <div className={styles.container}>
       {loading ? (
         <div className={styles.loadingContainer}>
           <div className={styles.loadingSpinner}></div>
           <p>Загрузка профиля...</p>
-            </div>
+        </div>
       ) : error ? (
         <div className={styles.errorContainer}>
           <h2>Ошибка при загрузке профиля</h2>
@@ -1643,13 +1833,13 @@ export default function Profile() {
           <div className={styles.errorActions}>
             <button className={styles.button} onClick={loadUserData}>
               Попробовать снова
-          </button>
-          <button className={styles.button} onClick={() => router.push('/menu')}>
-            Вернуться в меню
-          </button>
+            </button>
+            <button className={styles.button} onClick={() => router.push('/menu')}>
+              Вернуться в меню
+            </button>
+          </div>
         </div>
-            </div>
-          ) : (
+      ) : (
         renderProfileInfo()
       )}
     </div>
