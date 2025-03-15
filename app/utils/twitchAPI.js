@@ -5,6 +5,56 @@ import { DataStorage } from './dataStorage';
 import Cookies from 'js-cookie';
 
 /**
+ * Обновляет токен доступа при его истечении
+ * @returns {Promise<string|null>} - Новый токен доступа или null в случае ошибки
+ */
+export async function refreshAccessToken() {
+  try {
+    const refreshToken = Cookies.get('twitch_refresh_token') || localStorage.getItem('twitch_refresh_token');
+    
+    if (!refreshToken) {
+      console.error('Отсутствует refresh_token для обновления токена доступа');
+      return null;
+    }
+    
+    const response = await fetch('/api/twitch/refresh-token', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ refresh_token: refreshToken })
+    });
+    
+    if (!response.ok) {
+      console.error('Ошибка при обновлении токена:', await response.text());
+      return null;
+    }
+    
+    const data = await response.json();
+    
+    if (data.access_token) {
+      // Сохраняем новый токен в хранилище
+      Cookies.set('twitch_access_token', data.access_token, { expires: 7 });
+      localStorage.setItem('cookie_twitch_access_token', data.access_token);
+      await DataStorage.saveData('auth_token', data.access_token);
+      
+      // Если есть новый refresh_token, сохраняем и его
+      if (data.refresh_token) {
+        Cookies.set('twitch_refresh_token', data.refresh_token, { expires: 30 });
+        localStorage.setItem('twitch_refresh_token', data.refresh_token);
+      }
+      
+      return data.access_token;
+    }
+    
+    return null;
+  } catch (error) {
+    console.error('Ошибка при обновлении токена доступа:', error);
+    return null;
+  }
+}
+
+/**
  * Получает фолловеров пользователя
  * @param {string} userId - ID пользователя в Twitch
  * @param {string} accessToken - Токен доступа к Twitch API
@@ -23,56 +73,16 @@ export async function getUserFollowers(userId, accessToken) {
   }
 
   try {
-    // Сначала быстро проверяем кэш
-    const cachedFollowers = await DataStorage.getData('followers');
-    
-    // Если есть кэшированные данные, сразу их возвращаем и делаем обновление в фоне
-    if (cachedFollowers && cachedFollowers.followers) {
-      // Запускаем обновление данных в фоне, если они устарели
-      if (!cachedFollowers.timestamp || (Date.now() - cachedFollowers.timestamp > 3600000)) {
-        console.log('Кэшированные данные устарели, обновляю в фоне');
-        setTimeout(() => {
-          refreshFollowersData(userId).catch(e => 
-            console.warn('Ошибка при фоновом обновлении данных о фолловерах:', e)
-          );
-        }, 100);
-      }
-      
-      console.log('Использую кэшированные данные о фолловерах');
-      return cachedFollowers;
-    }
-    
-    // Если кэша нет, делаем запрос к API с таймаутом
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 5000); // 5-секундный таймаут
-    
-    const response = await fetch(`/api/twitch/user-followers?userId=${userId}`, {
-      method: 'GET',
-      credentials: 'include',
-      signal: controller.signal
-    });
-    
-    clearTimeout(timeoutId);
-
-    if (!response.ok) {
-      // В случае ошибки проверяем, есть ли хоть какие-то кэшированные данные
-      if (cachedFollowers) {
-        console.warn('API вернул ошибку, использую любые доступные кэшированные данные');
-        return cachedFollowers;
-      }
-      
-      // Если кэша нет, возвращаем пустой объект вместо ошибки
-      console.error('Ошибка при получении фолловеров:', await response.text());
-      return { total: 0, followers: [] };
-    }
-
-    const data = await response.json();
-    
-    // Сохраняем в нашем хранилище с меткой времени
-    await DataStorage.saveData('followers', {
-      ...data,
-      timestamp: Date.now()
-    });
+    // Используем новую функцию fetchWithTokenRefresh
+    const data = await fetchWithTokenRefresh(
+      `/api/twitch/user-followers?userId=${userId}`,
+      {
+        method: 'GET',
+      },
+      true, // Использовать кэш
+      'followers', // Ключ для кэширования
+      3600000 // Время жизни кэша (1 час)
+    );
     
     return data;
   } catch (error) {
@@ -93,24 +103,18 @@ export async function getUserFollowers(userId, accessToken) {
 // Вспомогательная функция для обновления данных о фолловерах в фоне
 async function refreshFollowersData(userId) {
   try {
-    const response = await fetch(`/api/twitch/user-followers?userId=${userId}`, {
-      method: 'GET',
-      credentials: 'include'
-    });
-
-    if (!response.ok) {
-      throw new Error(`HTTP ошибка: ${response.status}`);
-    }
-
-    const data = await response.json();
+    // Используем новую функцию fetchWithTokenRefresh
+    const data = await fetchWithTokenRefresh(
+      `/api/twitch/user-followers?userId=${userId}`,
+      {
+        method: 'GET',
+      },
+      true, // Использовать кэш
+      'followers', // Ключ для кэширования
+      3600000 // Время жизни кэша (1 час)
+    );
     
-    // Обновляем кэш с новыми данными
-    await DataStorage.saveData('followers', {
-      ...data,
-      timestamp: Date.now()
-    });
-    
-    console.log('Фоновое обновление данных о фолловерах завершено успешно');
+    console.log('Данные о фолловерах успешно обновлены в фоне');
     return data;
   } catch (error) {
     console.error('Ошибка при фоновом обновлении данных о фолловерах:', error);
@@ -124,42 +128,31 @@ async function refreshFollowersData(userId) {
  */
 export async function getUserData() {
   try {
-    // Устанавливаем таймаут для запроса, чтобы избежать бесконечной загрузки
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 5000); // 5-секундный таймаут
-    
-    // Сначала пытаемся получить данные из API напрямую
+    // Используем новую функцию fetchWithTokenRefresh
     try {
-      const accessToken = Cookies.get('twitch_access_token') || localStorage.getItem('cookie_twitch_access_token');
-      
-      if (accessToken) {
-        const response = await fetch('/api/twitch/profile', {
-          credentials: 'include',
+      const userData = await fetchWithTokenRefresh(
+        '/api/twitch/profile',
+        {
+          method: 'GET',
           headers: {
-            'Authorization': `Bearer ${accessToken}`,
             'Cache-Control': 'no-cache'
-          },
-          signal: controller.signal
-        });
-        
-        clearTimeout(timeoutId);
-        
-        if (response.ok) {
-          const userData = await response.json();
-          
-          // Сохраняем данные в localStorage для быстрого доступа в будущем
-          if (userData && userData.id) {
-            try {
-              localStorage.setItem('twitch_user', JSON.stringify(userData));
-              await DataStorage.saveData('user', userData);
-            } catch (storageError) {
-              console.warn('Не удалось сохранить данные пользователя в хранилище:', storageError);
-            }
           }
-          
-          return userData;
+        },
+        true, // Использовать кэш
+        'user', // Ключ для кэширования
+        3600000 // Время жизни кэша (1 час)
+      );
+      
+      // Сохраняем данные в localStorage для быстрого доступа в будущем
+      if (userData && userData.id) {
+        try {
+          localStorage.setItem('twitch_user', JSON.stringify(userData));
+        } catch (storageError) {
+          console.warn('Не удалось сохранить данные пользователя в localStorage:', storageError);
         }
       }
+      
+      return userData;
     } catch (apiError) {
       console.warn('Ошибка при получении данных из API:', apiError);
       // Продолжаем работу, пытаясь получить данные из хранилища
@@ -335,40 +328,16 @@ export async function getUserFollowings(userId) {
   }
 
   try {
-    // Попытка получить данные из нашего хранилища
-    const cachedFollowings = await DataStorage.getData('followings');
-    
-    if (cachedFollowings && cachedFollowings.timestamp && 
-        (Date.now() - cachedFollowings.timestamp < 3600000)) { // Данные не старше 1 часа
-      console.log('Использую кэшированные данные о фолловингах');
-      return cachedFollowings;
-    }
-    
-    // Если нет кэшированных данных или они устарели, делаем запрос к API
-    const response = await fetch(`/api/twitch/user-followings?userId=${userId}`, {
-      method: 'GET',
-      credentials: 'include',
-    });
-
-    if (!response.ok) {
-      const errorData = await response.json();
-      
-      // Если есть кэшированные данные, возвращаем их, даже если они устарели
-      if (cachedFollowings) {
-        console.warn('API вернул ошибку, использую устаревшие кэшированные данные');
-        return cachedFollowings;
-      }
-      
-      throw new Error(errorData.error || `HTTP ошибка: ${response.status}`);
-    }
-
-    const data = await response.json();
-    
-    // Сохраняем в нашем хранилище с меткой времени
-    await DataStorage.saveData('followings', {
-      ...data,
-      timestamp: Date.now()
-    });
+    // Используем новую функцию fetchWithTokenRefresh
+    const data = await fetchWithTokenRefresh(
+      `/api/twitch/user-followings?userId=${userId}`,
+      {
+        method: 'GET',
+      },
+      true, // Использовать кэш
+      'followings', // Ключ для кэширования
+      3600000 // Время жизни кэша (1 час)
+    );
     
     return data;
   } catch (error) {
@@ -422,40 +391,16 @@ export async function getUserStats(userId) {
   }
 
   try {
-    // Попытка получить данные из нашего хранилища
-    const cachedStats = await DataStorage.getData('user_stats');
-    
-    if (cachedStats && cachedStats.timestamp && 
-        (Date.now() - cachedStats.timestamp < 3600000)) { // Данные не старше 1 часа
-      console.log('Использую кэшированные данные о статистике пользователя');
-      return cachedStats;
-    }
-    
-    // Если нет кэшированных данных или они устарели, делаем запрос к API
-    const response = await fetch(`/api/twitch/user-stats?userId=${userId}`, {
-      method: 'GET',
-      credentials: 'include',
-    });
-
-    if (!response.ok) {
-      const errorData = await response.json();
-      
-      // Если есть кэшированные данные, возвращаем их, даже если они устарели
-      if (cachedStats) {
-        console.warn('API вернул ошибку, использую устаревшие кэшированные данные');
-        return cachedStats;
-      }
-      
-      throw new Error(errorData.error || `HTTP ошибка: ${response.status}`);
-    }
-
-    const data = await response.json();
-    
-    // Сохраняем в нашем хранилище с меткой времени
-    await DataStorage.saveData('user_stats', {
-      ...data,
-      timestamp: Date.now()
-    });
+    // Используем новую функцию fetchWithTokenRefresh
+    const data = await fetchWithTokenRefresh(
+      `/api/twitch/user-stats?userId=${userId}`,
+      {
+        method: 'GET',
+      },
+      true, // Использовать кэш
+      'user_stats', // Ключ для кэширования
+      3600000 // Время жизни кэша (1 час)
+    );
     
     return data;
   } catch (error) {
@@ -494,5 +439,128 @@ export async function getUserStats(userId) {
         subscribers: 0
       }
     };
+  }
+}
+
+/**
+ * Выполняет запрос к API с обработкой ошибок и обновлением токена
+ * @param {string} url - URL для запроса
+ * @param {Object} options - Опции запроса
+ * @param {boolean} useCache - Использовать ли кэш
+ * @param {string} cacheKey - Ключ для кэширования
+ * @param {number} cacheTime - Время жизни кэша в миллисекундах
+ * @returns {Promise<Object>} - Результат запроса
+ */
+export async function fetchWithTokenRefresh(url, options = {}, useCache = false, cacheKey = null, cacheTime = 3600000) {
+  try {
+    // Проверяем кэш, если нужно
+    if (useCache && cacheKey) {
+      const cachedData = await DataStorage.getData(cacheKey);
+      if (cachedData && cachedData.timestamp && (Date.now() - cachedData.timestamp < cacheTime)) {
+        console.log(`Использую кэшированные данные для ${cacheKey}`);
+        return cachedData;
+      }
+    }
+    
+    // Получаем токен доступа
+    const accessToken = Cookies.get('twitch_access_token') || 
+                       localStorage.getItem('cookie_twitch_access_token') || 
+                       await DataStorage.getData('auth_token');
+    
+    // Добавляем токен в заголовки, если он есть
+    const headers = {
+      ...options.headers,
+    };
+    
+    if (accessToken) {
+      headers['Authorization'] = `Bearer ${accessToken}`;
+    }
+    
+    // Устанавливаем таймаут для запроса
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 5000); // 5-секундный таймаут
+    
+    // Выполняем запрос
+    const response = await fetch(url, {
+      ...options,
+      headers,
+      credentials: 'include',
+      signal: controller.signal
+    });
+    
+    clearTimeout(timeoutId);
+    
+    // Если запрос успешен, возвращаем результат
+    if (response.ok) {
+      const data = await response.json();
+      
+      // Сохраняем в кэш, если нужно
+      if (useCache && cacheKey) {
+        await DataStorage.saveData(cacheKey, {
+          ...data,
+          timestamp: Date.now()
+        });
+      }
+      
+      return data;
+    }
+    
+    // Если токен недействителен, пытаемся обновить его
+    if (response.status === 401) {
+      console.log('Токен доступа истек, пытаюсь обновить...');
+      const newToken = await refreshAccessToken();
+      
+      if (newToken) {
+        // Повторяем запрос с новым токеном
+        const retryResponse = await fetch(url, {
+          ...options,
+          headers: {
+            ...options.headers,
+            'Authorization': `Bearer ${newToken}`
+          },
+          credentials: 'include'
+        });
+        
+        if (retryResponse.ok) {
+          const data = await retryResponse.json();
+          
+          // Сохраняем в кэш, если нужно
+          if (useCache && cacheKey) {
+            await DataStorage.saveData(cacheKey, {
+              ...data,
+              timestamp: Date.now()
+            });
+          }
+          
+          return data;
+        }
+      }
+    }
+    
+    // Если запрос не успешен и есть кэш, возвращаем кэш
+    if (useCache && cacheKey) {
+      const cachedData = await DataStorage.getData(cacheKey);
+      if (cachedData) {
+        console.warn(`API вернул ошибку, использую кэшированные данные для ${cacheKey}`);
+        return cachedData;
+      }
+    }
+    
+    // Если нет кэша, возвращаем ошибку
+    const errorData = await response.json().catch(() => ({ error: `HTTP ошибка: ${response.status}` }));
+    throw new Error(errorData.error || `HTTP ошибка: ${response.status}`);
+  } catch (error) {
+    console.error('Ошибка при выполнении запроса:', error);
+    
+    // Если есть кэш, возвращаем его
+    if (useCache && cacheKey) {
+      const cachedData = await DataStorage.getData(cacheKey);
+      if (cachedData) {
+        console.warn(`Произошла ошибка, использую кэшированные данные для ${cacheKey}`);
+        return cachedData;
+      }
+    }
+    
+    throw error;
   }
 } 
