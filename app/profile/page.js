@@ -71,183 +71,91 @@ export default function Profile() {
       }
       
       // Если данные есть в localStorage, устанавливаем их сразу
-          if (userData && userData.id) {
-            setProfileData(userData);
+      if (userData && userData.id) {
+        setProfileData(userData);
         setLoading(false);
         console.log('Установлены данные профиля из localStorage');
             
-            // Загружаем социальные ссылки из localStorage
-            try {
-              const storedSocialLinks = localStorage.getItem('social_links');
-              if (storedSocialLinks) {
-                const parsedLinks = JSON.parse(storedSocialLinks);
-                setSocialLinks(parsedLinks);
-                console.log('Загружены социальные ссылки из localStorage');
-              }
-            } catch (error) {
-              console.error('Ошибка при загрузке социальных ссылок:', error);
-            }
+        // Загружаем социальные ссылки из localStorage
+        try {
+          const storedSocialLinks = localStorage.getItem('social_links');
+          if (storedSocialLinks) {
+            const parsedLinks = JSON.parse(storedSocialLinks);
+            setSocialLinks(parsedLinks);
+            console.log('Загружены социальные ссылки из localStorage');
           }
+        } catch (error) {
+          console.error('Ошибка при загрузке социальных ссылок:', error);
+        }
+      }
       
       // В любом случае загружаем актуальные данные с сервера
-      loadUserData();
+      const initializeProfile = async () => {
+        try {
+          setLoading(true);
+          setError(null);
+          
+          // Проверяем авторизацию
+          if (!isAuthenticated && isInitialized) {
+            console.log('Пользователь не авторизован, перенаправление на страницу авторизации');
+            router.push('/auth');
+            return;
+          }
+          
+          // Загружаем данные профиля
+          const userData = await getUserData();
+          
+          if (userData && userData.id) {
+            setProfileData(userData);
+            
+            // Загружаем дополнительные данные
+            try {
+              const followersData = await getUserFollowers(userData.id);
+              if (followersData && followersData.followers) {
+                setFollowers(followersData.followers);
+              }
+              
+              const followingsData = await getUserFollowings(userData.id);
+              if (followingsData && followingsData.followings) {
+                setFollowings(followingsData.followings);
+              }
+              
+              // Загружаем тирлисты
+              const tierlistsData = await fetchWithTokenRefresh(
+                `/api/tierlists?userId=${userData.id}`,
+                {
+                  method: 'GET',
+                },
+                true, // Использовать кэш
+                'tierlists', // Ключ для кэширования
+                3600000 // Время жизни кэша (1 час)
+              );
+              
+              if (tierlistsData) {
+                setTierlists(tierlistsData);
+              }
+              
+              console.log('Все данные профиля загружены успешно');
+            } catch (dataError) {
+              console.error('Ошибка при загрузке дополнительных данных:', dataError);
+            }
+          }
+        } catch (error) {
+          console.error('Ошибка при загрузке данных пользователя:', error);
+          setError('Не удалось загрузить данные профиля. Пожалуйста, попробуйте позже.');
+        } finally {
+          setLoading(false);
+        }
+      };
+      
+      initializeProfile();
       
     } catch (error) {
       console.error('Критическая ошибка при инициализации:', error);
       setError('Произошла непредвиденная ошибка. Пожалуйста, обновите страницу.');
       setLoading(false);
     }
-  }, [loadUserData]);
-
-  // Исправляем проблему с авторизацией - добавляем проверку токена перед запросами
-  const fetchUserData = useCallback(async () => {
-    try {
-      // Используем getUserData из twitchAPI.js
-      const userData = await getUserData();
-      
-      if (!userData || !userData.id) {
-        console.error('Не удалось получить данные пользователя');
-        router.push('/auth');
-        return;
-      }
-      
-      // Устанавливаем данные профиля
-      setProfileData(userData);
-      
-      // Загружаем социальные ссылки
-      try {
-        const socialData = await fetchWithTokenRefresh(
-          `/api/twitch/social?userId=${userData.id}`,
-          {
-            method: 'GET',
-          },
-          true, // Использовать кэш
-          'social_links', // Ключ для кэширования
-          3600000 // Время жизни кэша (1 час)
-        );
-        
-        if (socialData) {
-          setSocialLinks(socialData);
-        }
-      } catch (socialError) {
-        console.warn('Ошибка при загрузке социальных ссылок:', socialError);
-      }
-      
-      return userData;
-    } catch (error) {
-      console.error('Ошибка при получении данных пользователя:', error);
-      setError('Не удалось загрузить данные профиля. Пожалуйста, попробуйте позже.');
-      return null;
-    }
-  }, [router]);
-
-  // Функция для загрузки фолловеров
-  const fetchFollowers = useCallback(async () => {
-    if (!profileData || !profileData.id) {
-      console.warn('Невозможно загрузить фолловеров: нет данных профиля');
-      return;
-    }
-    
-    try {
-      console.log('Загрузка фолловеров для пользователя:', profileData.id);
-      
-      // Используем getUserFollowers из twitchAPI.js
-      const data = await getUserFollowers(profileData.id);
-      
-      if (data && data.followers) {
-        setFollowers(data.followers);
-        console.log('Получены данные о фолловерах:', data.followers.length);
-      }
-    } catch (error) {
-      console.error('Ошибка при загрузке фолловеров:', error);
-    }
-  }, [profileData]);
-
-  // Функция для загрузки фолловингов
-  const fetchFollowings = useCallback(async () => {
-    if (!profileData || !profileData.id) {
-      console.warn('Невозможно загрузить фолловингов: нет данных профиля');
-      return;
-    }
-    
-    try {
-      console.log('Загрузка фолловингов для пользователя:', profileData.id);
-      
-      // Используем getUserFollowings из twitchAPI.js
-      const data = await getUserFollowings(profileData.id);
-      
-      if (data && data.followings) {
-        setFollowings(data.followings);
-        console.log('Получены данные о фолловингах:', data.followings.length);
-      }
-    } catch (error) {
-      console.error('Ошибка при загрузке фолловингов:', error);
-    }
-  }, [profileData]);
-
-  // Функция для загрузки тирлистов пользователя
-  const fetchTierlists = useCallback(async () => {
-    if (!profileData || !profileData.id) {
-      console.warn('Невозможно загрузить тирлисты: нет данных профиля');
-      return;
-    }
-    
-    try {
-      console.log('Загрузка тирлистов для пользователя:', profileData.id);
-      
-      // Используем fetchWithTokenRefresh из twitchAPI.js
-      const data = await fetchWithTokenRefresh(
-        `/api/tierlists?userId=${profileData.id}`,
-        {
-          method: 'GET',
-        },
-        true, // Использовать кэш
-        'tierlists', // Ключ для кэширования
-        3600000 // Время жизни кэша (1 час)
-      );
-      
-      setTierlists(data || []);
-    } catch (error) {
-      console.error('Ошибка при загрузке тирлистов:', error);
-    }
-  }, [profileData, fetchWithTokenRefresh]);
-
-  // Функция для загрузки данных пользователя
-  const loadUserData = useCallback(async () => {
-    try {
-      setLoading(true);
-      setError(null);
-      
-      // Проверяем авторизацию
-      if (!isAuthenticated && isInitialized) {
-        console.log('Пользователь не авторизован, перенаправление на страницу авторизации');
-        router.push('/auth');
-        return;
-      }
-      
-      // Загружаем данные профиля
-      await fetchUserData();
-      
-      // Если данные профиля загружены успешно, загружаем дополнительные данные
-      if (profileData && profileData.id) {
-        // Загружаем фолловеров
-        await fetchFollowers();
-        
-        // Загружаем фолловингов
-        await fetchFollowings();
-        
-        // Загружаем тирлисты
-        await fetchTierlists();
-        
-        console.log('Все данные профиля загружены успешно');
-      }
-    } catch (error) {
-      console.error('Ошибка при загрузке данных пользователя:', error);
-      setError('Не удалось загрузить данные профиля. Пожалуйста, попробуйте позже.');
-    } finally {
-      setLoading(false);
-    }
-  }, [isAuthenticated, isInitialized, router, fetchUserData, profileData, fetchFollowers, fetchFollowings, fetchTierlists]);
+  }, [isAuthenticated, isInitialized, router]);
 
   // Функция для сохранения настроек видимости статистики
   const saveStatsVisibility = async (newVisibility) => {
@@ -306,7 +214,7 @@ export default function Profile() {
     );
   }
 
-  // Вместо кнопки "Попробовать снова" с loadUserData используем функцию для перезагрузки страницы
+  // Функция для перезагрузки страницы
   const retryLoading = () => {
     window.location.reload();
   };
@@ -531,7 +439,24 @@ export default function Profile() {
             </div>
             <ReviewSection 
               userId={profileData.id} 
-              onReviewAdded={() => loadUserData()} // Перезагружаем данные после добавления отзыва
+              onReviewAdded={() => {
+                // Обновляем данные профиля после добавления отзыва
+                const updateAfterReview = async () => {
+                  try {
+                    setLoading(true);
+                    const userData = await getUserData();
+                    if (userData && userData.id) {
+                      setProfileData(userData);
+                    }
+                  } catch (error) {
+                    console.error('Ошибка при обновлении данных после добавления отзыва:', error);
+                  } finally {
+                    setLoading(false);
+                  }
+                };
+                
+                updateAfterReview();
+              }}
             />
           </div>
         ) : showStats ? (
@@ -959,7 +884,7 @@ export default function Profile() {
             <p>Статистика пока недоступна. Попробуйте обновить страницу позже.</p>
             <button 
               className={styles.button}
-              onClick={loadUserData}
+              onClick={() => window.location.reload()}
               style={{ marginTop: '15px' }}
             >
               Обновить данные
@@ -1184,7 +1109,8 @@ export default function Profile() {
           {userStats?.followers?.total > 0 && (
             <button 
               className={styles.button}
-              onClick={loadUserData}
+              onClick={() => window.location.reload()}
+              style={{ marginTop: '15px' }}
             >
               Обновить данные
             </button>
@@ -1346,66 +1272,19 @@ export default function Profile() {
       
       console.log('Принудительное обновление данных о фолловерах для ID:', profileData.id);
       
-      // Получаем актуальный токен доступа
-      const accessToken = localStorage.getItem('cookie_twitch_access_token') || 
-                         localStorage.getItem('twitch_token') || 
-                         Cookies.get('twitch_access_token');
-      
-      if (!accessToken) {
-        console.error('Отсутствует токен доступа для обновления фолловеров');
-        throw new Error('Отсутствует токен доступа');
-      }
-      
-      // Вызов нового API для принудительного обновления фолловеров
-      const response = await fetch(`/api/twitch/refresh-followers?userId=${profileData.id}`, {
-        method: 'GET',
-        headers: {
-          'Authorization': `Bearer ${accessToken}`,
-          'Cache-Control': 'no-cache',
-          'Pragma': 'no-cache'
-        }
-      });
-      
-      if (!response.ok) {
-        if (response.status === 401) {
-          console.error('Токен недействителен, пробуем обновить токен...');
-          
-          // Пробуем обновить токен
-          const refreshResponse = await fetch('/api/twitch/refresh-token', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-              refresh_token: localStorage.getItem('twitch_refresh_token') || Cookies.get('twitch_refresh_token')
-            })
-          });
-          
-          if (refreshResponse.ok) {
-            const refreshData = await refreshResponse.json();
-            
-            // Сохраняем новый токен
-            if (refreshData.access_token) {
-              localStorage.setItem('twitch_token', refreshData.access_token);
-              localStorage.setItem('cookie_twitch_access_token', refreshData.access_token);
-              Cookies.set('twitch_access_token', refreshData.access_token, { expires: 7 });
-              
-              // Повторяем запрос с новым токеном
-              console.log('Токен обновлен, повторяем запрос...');
-              return refreshFollowers();
-            }
+      // Используем fetchWithTokenRefresh из twitchAPI.js
+      const refreshedData = await fetchWithTokenRefresh(
+        `/api/twitch/refresh-followers?userId=${profileData.id}`,
+        {
+          method: 'GET',
+          headers: {
+            'Cache-Control': 'no-cache',
+            'Pragma': 'no-cache'
           }
-          
-          // Если не удалось обновить токен, перенаправляем на страницу авторизации
-          console.error('Не удалось обновить токен, перенаправление на страницу авторизации');
-          router.push('/auth');
-          return;
-        }
-        
-        throw new Error(`Ошибка при обновлении фолловеров: ${response.status}`);
-      }
+        },
+        false // Не использовать кэш
+      );
       
-      const refreshedData = await response.json();
       console.log('Получены обновленные данные фолловеров:', refreshedData);
       
       if (refreshedData.success && refreshedData.followers) {
@@ -1444,7 +1323,44 @@ export default function Profile() {
       
       if (lastEditTime && (!currentProfileUpdateTime || lastEditTime > currentProfileUpdateTime)) {
         console.log('Обнаружены изменения в профиле, обновляем данные...');
-        loadUserData();
+        
+        // Определяем функцию обновления данных внутри useEffect
+        const updateProfileData = async () => {
+          try {
+            setLoading(true);
+            setError(null);
+            
+            // Загружаем данные профиля
+            const userData = await getUserData();
+            
+            if (userData && userData.id) {
+              setProfileData(userData);
+              
+              // Загружаем дополнительные данные
+              if (userData.id) {
+                try {
+                  const followersData = await getUserFollowers(userData.id);
+                  if (followersData && followersData.followers) {
+                    setFollowers(followersData.followers);
+                  }
+                  
+                  const followingsData = await getUserFollowings(userData.id);
+                  if (followingsData && followingsData.followings) {
+                    setFollowings(followingsData.followings);
+                  }
+                } catch (dataError) {
+                  console.error('Ошибка при загрузке дополнительных данных:', dataError);
+                }
+              }
+            }
+          } catch (error) {
+            console.error('Ошибка при обновлении данных профиля:', error);
+          } finally {
+            setLoading(false);
+          }
+        };
+        
+        updateProfileData();
         localStorage.setItem('profile_update_timestamp', Date.now().toString());
       }
     };
@@ -1463,7 +1379,7 @@ export default function Profile() {
     return () => {
       window.removeEventListener('focus', handleFocus);
     };
-  }, [loadUserData]);
+  }, []);
 
   // Функция для отображения отзывов
   const renderReviews = () => {
@@ -1476,7 +1392,24 @@ export default function Profile() {
         </div>
         <ReviewSection 
           userId={profileData.id} 
-          onReviewAdded={() => loadUserData()} // Перезагружаем данные после добавления отзыва
+          onReviewAdded={() => {
+            // Обновляем данные профиля после добавления отзыва
+            const updateAfterReview = async () => {
+              try {
+                setLoading(true);
+                const userData = await getUserData();
+                if (userData && userData.id) {
+                  setProfileData(userData);
+                }
+              } catch (error) {
+                console.error('Ошибка при обновлении данных после добавления отзыва:', error);
+              } finally {
+                setLoading(false);
+              }
+            };
+            
+            updateAfterReview();
+          }}
         />
       </div>
     );
@@ -1494,7 +1427,7 @@ export default function Profile() {
           <h2>Ошибка при загрузке профиля</h2>
           <p>{error}</p>
           <div className={styles.errorActions}>
-            <button className={styles.button} onClick={loadUserData}>
+            <button className={styles.button} onClick={() => window.location.reload()}>
               Попробовать снова
             </button>
             <button className={styles.button} onClick={() => router.push('/menu')}>
