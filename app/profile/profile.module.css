@@ -1299,27 +1299,30 @@
   transform: translateY(-2px);
 }
 
-.statsButton {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background-color: #2196F3; /* Синий цвет для статистики */
+.statsButton, .scheduleButton {
+  background-color: #333;
   color: #fff;
   border: none;
-  border-radius: 8px;
+  border-radius: 5px;
   padding: 10px 15px;
-  font-size: 16px;
-  font-weight: bold;
+  font-size: 1rem;
   cursor: pointer;
   transition: all 0.3s ease;
-  margin-right: 10px;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  display: flex;
+  align-items: center;
+  gap: 5px;
 }
 
-.statsButton:hover {
-  background-color: #1E88E5;
-  transform: translateY(-3px);
-  box-shadow: 0 6px 10px rgba(0, 0, 0, 0.15);
+.statsButton:hover, .scheduleButton:hover {
+  background-color: #444;
+}
+
+.scheduleButton {
+  background-color: #9146FF;
+}
+
+.scheduleButton:hover {
+  background-color: #7d32ff;
 }
 
 /* Стили для секции с описанием и социальными сетями */

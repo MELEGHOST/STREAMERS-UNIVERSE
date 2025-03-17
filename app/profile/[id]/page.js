@@ -224,6 +224,12 @@ export default function UserProfile({ params }) {
         />
         <button 
           className={styles.button}
+          onClick={() => router.push(`/streamer-schedule/${id}`)}
+        >
+          Расписание трансляций
+        </button>
+        <button 
+          className={styles.button}
           onClick={toggleFollowers}
         >
           Показать фолловеров

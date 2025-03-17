@@ -409,6 +409,13 @@ export default function Profile() {
             >
               📊 Статистика
             </button>
+            <button 
+              className={styles.scheduleButton} 
+              onClick={() => router.push('/schedule')}
+              title="Расписание трансляций"
+            >
+              📅 Расписание
+            </button>
             <button className={styles.button} onClick={() => router.push('/edit-profile')}>
               Редактировать профиль
             </button>
