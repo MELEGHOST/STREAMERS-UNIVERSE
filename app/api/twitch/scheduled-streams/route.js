@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { connectToDatabase } from '../../../utils/mongodb';
+import { ObjectId } from 'mongodb';
 
 // Получение запланированных трансляций
 export async function GET(request) {
@@ -149,8 +150,8 @@ export async function PUT(request) {
     
     // Проверяем, существует ли трансляция и принадлежит ли она пользователю
     const existingStream = await db.collection('scheduled_streams').findOne({ 
-      _id: { $eq: streamId },
-      userId: { $eq: userId }
+      _id: new ObjectId(streamId),
+      userId: userId
     });
     
     if (!existingStream) {
@@ -172,7 +173,7 @@ export async function PUT(request) {
     };
     
     await db.collection('scheduled_streams').updateOne(
-      { _id: streamId },
+      { _id: new ObjectId(streamId) },
       { $set: updateData }
     );
     
@@ -230,8 +231,8 @@ export async function DELETE(request) {
     
     // Проверяем, существует ли трансляция и принадлежит ли она пользователю
     const existingStream = await db.collection('scheduled_streams').findOne({ 
-      _id: { $eq: streamId },
-      userId: { $eq: userId }
+      _id: new ObjectId(streamId),
+      userId: userId
     });
     
     if (!existingStream) {
@@ -242,7 +243,7 @@ export async function DELETE(request) {
     }
     
     // Удаляем трансляцию
-    await db.collection('scheduled_streams').deleteOne({ _id: streamId });
+    await db.collection('scheduled_streams').deleteOne({ _id: new ObjectId(streamId) });
     
     return NextResponse.json({
       success: true,
