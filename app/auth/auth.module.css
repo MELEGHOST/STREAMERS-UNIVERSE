@@ -1,5 +1,119 @@
 .container {
   display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+  background: linear-gradient(135deg, #6441a5 0%, #2a0845 100%);
+  padding: 20px;
+}
+
+.authBox {
+  background-color: rgba(255, 255, 255, 0.95);
+  border-radius: 10px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+  padding: 40px;
+  width: 100%;
+  max-width: 500px;
+  text-align: center;
+}
+
+.authBox h1 {
+  color: #6441a5;
+  margin-bottom: 20px;
+  font-size: 28px;
+}
+
+.authBox p {
+  color: #333;
+  margin-bottom: 30px;
+  line-height: 1.5;
+}
+
+.error {
+  background-color: #ffebee;
+  color: #d32f2f;
+  padding: 12px;
+  border-radius: 5px;
+  margin-bottom: 20px;
+  font-size: 14px;
+  text-align: left;
+}
+
+.twitchButton {
+  background-color: #6441a5;
+  color: white;
+  border: none;
+  border-radius: 5px;
+  padding: 12px 20px;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  transition: background-color 0.2s;
+}
+
+.twitchButton:hover {
+  background-color: #7d5bbe;
+}
+
+.twitchButton:disabled {
+  background-color: #a08bc0;
+  cursor: not-allowed;
+}
+
+.twitchButton svg {
+  margin-right: 10px;
+}
+
+.buttonLoader {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.spinner {
+  border: 3px solid rgba(255, 255, 255, 0.3);
+  border-radius: 50%;
+  border-top: 3px solid white;
+  width: 20px;
+  height: 20px;
+  animation: spin 1s linear infinite;
+  margin-right: 10px;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.info {
+  margin-top: 30px;
+  font-size: 12px;
+  color: #666;
+}
+
+.loader {
+  display: flex;
+  justify-content: center;
+  margin-top: 20px;
+}
+
+/* Адаптивность для мобильных устройств */
+@media (max-width: 600px) {
+  .authBox {
+    padding: 30px 20px;
+  }
+  
+  .authBox h1 {
+    font-size: 24px;
+  }
+}
+
+.container {
+  display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;

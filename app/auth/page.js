@@ -1,150 +1,139 @@
 'use client';
 
-import { useEffect, useState, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
+import { signIn, useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import Cookies from 'js-cookie';
-import { useAuth } from '../../contexts/AuthContext';
+import { DataStorage } from '../utils/dataStorage';
 import styles from './auth.module.css';
-import clientStorage from '../utils/clientStorage';
 
-export default function Auth() {
+export default function AuthPage() {
+  const { data: session, status } = useSession();
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
   const router = useRouter();
-  const { login, isAuthenticated } = useAuth();
-  const [errorMessage, setErrorMessage] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
-  const hasCheckedAuthRef = useRef(false);
 
+  // Обработка перенаправления после успешной авторизации
   useEffect(() => {
-    // Очищаем потенциальные флаги конфликтов
-    clientStorage.removeItem('redirect_in_progress');
-    
-    // Простая проверка авторизации при загрузке страницы
-    if (!hasCheckedAuthRef.current) {
-      hasCheckedAuthRef.current = true;
-      
-      // Проверяем, есть ли токен и данные пользователя
-      const accessToken = clientStorage.getItem('cookie_twitch_access_token') || Cookies.get('twitch_access_token');
-      const userData = clientStorage.getItem('cookie_twitch_user') || clientStorage.getItem('twitch_user') || Cookies.get('twitch_user');
-
-      if (accessToken && userData) {
-        // Если данные есть, перенаправляем на меню
-        console.log('Пользователь уже авторизован, перенаправляем в меню');
-        try {
-          // Обновляем состояние аутентификации
-          const parsedUserData = typeof userData === 'string' ? JSON.parse(userData) : userData;
-          login(parsedUserData, accessToken);
-          
-          // Устанавливаем флаг перенаправления
-          clientStorage.setItem('auth_to_menu_redirect', 'true');
-          
-          // Перенаправляем на страницу меню
-          router.push('/menu');
-        } catch (error) {
-          console.error('Ошибка при обработке данных пользователя:', error);
-          setErrorMessage('Произошла ошибка при обработке данных пользователя. Пожалуйста, попробуйте войти снова.');
-        }
-      } else {
-        // Проверяем, не пришли ли мы сюда после редиректа с меню
-        if (clientStorage.getItem('menu_to_auth_redirect')) {
-          // Очищаем флаг для предотвращения зацикливания
-          clientStorage.removeItem('menu_to_auth_redirect');
-          // Очищаем все данные аутентификации, чтобы быть уверенными
-          clientStorage.removeItem('twitch_user');
-          clientStorage.removeItem('cookie_twitch_user');
-          clientStorage.removeItem('cookie_twitch_access_token');
-          Cookies.remove('twitch_access_token');
-          Cookies.remove('twitch_user');
-        }
-      }
+    if (status === 'authenticated' && session) {
+      handleSuccessfulAuth();
     }
-  }, [login, router]);
+  }, [session, status]);
 
-  // Обработчик авторизации через Twitch
-  const handleAuth = () => {
+  // Функция для обработки успешной авторизации
+  const handleSuccessfulAuth = async () => {
     try {
-      setIsLoading(true);
+      setLoading(true);
       
-      // Очищаем все куки и localStorage перед авторизацией
-      Cookies.remove('twitch_access_token', { path: '/' });
-      Cookies.remove('twitch_refresh_token', { path: '/' });
-      Cookies.remove('twitch_user', { path: '/' });
-      Cookies.remove('twitch_token', { path: '/' });
-      clientStorage.removeItem('twitch_user');
-      clientStorage.removeItem('cookie_twitch_access_token');
-      clientStorage.removeItem('cookie_twitch_refresh_token');
-      clientStorage.removeItem('cookie_twitch_user');
-      clientStorage.removeItem('is_authenticated');
-      clientStorage.removeItem('auth_to_menu_redirect');
-      clientStorage.removeItem('menu_to_auth_redirect');
+      // Сохраняем токены в хранилище
+      if (session.accessToken) {
+        Cookies.set('twitch_access_token', session.accessToken, { expires: 7 });
+        localStorage.setItem('cookie_twitch_access_token', session.accessToken);
+        await DataStorage.saveData('auth_token', session.accessToken);
+      }
       
-      // Перенаправляем на API авторизации
-      console.log('Перенаправляем на страницу авторизации Twitch');
-      window.location.href = '/api/twitch/login';
+      if (session.refreshToken) {
+        Cookies.set('twitch_refresh_token', session.refreshToken, { expires: 30 });
+        localStorage.setItem('twitch_refresh_token', session.refreshToken);
+        await DataStorage.saveData('refresh_token', session.refreshToken);
+      }
+      
+      if (session.expiresAt) {
+        const expiresAt = session.expiresAt * 1000; // Преобразуем в миллисекунды
+        localStorage.setItem('twitch_token_expires_at', expiresAt.toString());
+      }
+      
+      // Сохраняем данные пользователя
+      if (session.user) {
+        localStorage.setItem('twitch_user', JSON.stringify(session.user));
+        await DataStorage.saveData('user', session.user);
+      }
+      
+      // Проверяем, есть ли сохраненный URL для перенаправления
+      const redirectUrl = localStorage.getItem('auth_redirect');
+      if (redirectUrl) {
+        localStorage.removeItem('auth_redirect');
+        router.push(redirectUrl);
+      } else {
+        router.push('/profile');
+      }
     } catch (error) {
-      console.error('Ошибка при авторизации:', error);
-      setErrorMessage('Произошла ошибка при перенаправлении на страницу авторизации. Пожалуйста, попробуйте еще раз.');
-      setIsLoading(false);
+      console.error('Ошибка при обработке авторизации:', error);
+      setError('Произошла ошибка при обработке авторизации. Пожалуйста, попробуйте снова.');
+    } finally {
+      setLoading(false);
     }
   };
 
-  return (
-    <div className={styles.container}>
-      <div className={styles.stars}></div>
+  // Функция для входа через Twitch
+  const handleTwitchLogin = async () => {
+    try {
+      setLoading(true);
+      setError(null);
       
-      <div className={styles.authContent}>
-        <div className={styles.logo}></div>
-        
-        <h1 className={styles.welcomeTitle}>Добро пожаловать в Streamers Universe</h1>
-        
-        <p className={styles.description}>
-          Здесь вы сможете погрузиться в мир стриминга, найти своих любимых стримеров и стать частью сообщества.
-          Присоединяйтесь к нам и откройте для себя новые возможности!
-        </p>
-        
-        <div className={styles.authButtonWrapper} onClick={handleAuth} disabled={isLoading}>
-          <button className={styles.authButton}>
-            <div className={styles.authButtonGlitchMask}>
-              <span className={styles.authButtonText}>{isLoading ? 'Загрузка...' : 'Войти через Twitch'}</span>
-              <span className={styles.authButtonTextGlitch}>{isLoading ? 'Загрузка...' : 'Войти через Twitch'}</span>
+      // Сохраняем текущий URL для возврата после авторизации
+      const currentPath = window.location.pathname;
+      if (currentPath !== '/auth') {
+        localStorage.setItem('auth_redirect', currentPath);
+      }
+      
+      await signIn('twitch', { callbackUrl: '/auth' });
+    } catch (error) {
+      console.error('Ошибка при входе через Twitch:', error);
+      setError('Произошла ошибка при входе через Twitch. Пожалуйста, попробуйте снова.');
+      setLoading(false);
+    }
+  };
+
+  // Если пользователь уже авторизован, показываем сообщение о перенаправлении
+  if (status === 'authenticated') {
+    return (
+      <div className={styles.container}>
+        <div className={styles.authBox}>
+          <h1>Вы уже авторизованы</h1>
+          <p>Перенаправляем вас...</p>
+          {loading && (
+            <div className={styles.loader}>
+              <div className={styles.spinner}></div>
             </div>
-            <div className={styles.authButtonScanlines}></div>
-            <div className={styles.authButtonGlow}></div>
-            <div className={styles.authButtonGrid}></div>
-            <div className={styles.authButtonBorders}></div>
-            <div className={styles.authStars}>
-              <div className={styles.star}></div>
-              <div className={styles.star}></div>
-              <div className={styles.star}></div>
-              <div className={styles.star}></div>
-              <div className={styles.star}></div>
-            </div>
-            <div className={styles.authFlare}></div>
-            <div className={styles.authNoise}></div>
-            <div className={styles.authCircles}></div>
-          </button>
-        </div>
-        
-        <div className={styles.authInfo}>
-          <details className={styles.authDetails}>
-            <summary>Зачем нужна авторизация через Twitch?</summary>
-            <div className={styles.authDetailsContent}>
-              <p>Авторизация через Twitch нужна для получения базовой информации о вашем аккаунте:</p>
-              <ul>
-                <li>Имя пользователя и аватар</li>
-                <li>Список подписчиков и подписок</li>
-                <li>Статистика канала</li>
-              </ul>
-              <p>Мы не получаем доступ к вашему паролю и не можем управлять вашим каналом.</p>
-            </div>
-          </details>
+          )}
         </div>
       </div>
-      
-      {errorMessage && (
-        <div className={styles.errorMessage}>
-          {errorMessage}
+    );
+  }
+
+  return (
+    <div className={styles.container}>
+      <div className={styles.authBox}>
+        <h1>Авторизация</h1>
+        <p>Войдите с помощью вашего аккаунта Twitch для доступа к функциям платформы</p>
+        
+        {error && <div className={styles.error}>{error}</div>}
+        
+        <button 
+          className={styles.twitchButton}
+          onClick={handleTwitchLogin}
+          disabled={loading || status === 'loading'}
+        >
+          {loading || status === 'loading' ? (
+            <div className={styles.buttonLoader}>
+              <div className={styles.spinner}></div>
+              <span>Загрузка...</span>
+            </div>
+          ) : (
+            <>
+              <svg viewBox="0 0 24 24" width="24" height="24" fill="#fff">
+                <path d="M11.571 4.714h1.715v5.143H11.57zm4.715 0H18v5.143h-1.714zM6 0L1.714 4.286v15.428h5.143V24l4.286-4.286h3.428L22.286 12V0zm14.571 11.143l-3.428 3.428h-3.429l-3 3v-3H6.857V1.714h13.714z"/>
+              </svg>
+              <span>Войти через Twitch</span>
+            </>
+          )}
+        </button>
+        
+        <div className={styles.info}>
+          <p>Авторизуясь, вы соглашаетесь с нашими условиями использования и политикой конфиденциальности.</p>
         </div>
-      )}
+      </div>
     </div>
   );
 } 

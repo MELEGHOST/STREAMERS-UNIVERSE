@@ -1,8 +1,9 @@
-import '../styles/global.css';
+import './globals.css';
 import { Inter } from 'next/font/google';
 import CookieChecker from '../components/CookieChecker';
 import ThemeProvider from '../components/ThemeProvider';
-import { AuthProvider } from './providers/AuthProvider';
+import { AuthProvider } from '../contexts/AuthContext';
+import { NextAuthProvider } from './providers';
 import { Suspense } from 'react';
 import PageTransition from '../components/PageTransition';
 
@@ -20,14 +21,16 @@ export default function RootLayout({ children }) {
   return (
     <html lang="ru">
       <body className={inter.className}>
-        <AuthProvider>
-          <ThemeProvider>
-            <PageTransition>
-              {children}
-            </PageTransition>
-            <CookieChecker />
-          </ThemeProvider>
-        </AuthProvider>
+        <NextAuthProvider>
+          <AuthProvider>
+            <ThemeProvider>
+              <PageTransition>
+                {children}
+              </PageTransition>
+              <CookieChecker />
+            </ThemeProvider>
+          </AuthProvider>
+        </NextAuthProvider>
       </body>
     </html>
   );

@@ -10,10 +10,28 @@ import Cookies from 'js-cookie';
  */
 export async function refreshAccessToken() {
   try {
-    const refreshToken = Cookies.get('twitch_refresh_token') || localStorage.getItem('twitch_refresh_token');
+    // Получаем refresh_token из всех возможных источников
+    const refreshToken = Cookies.get('twitch_refresh_token') || 
+                         localStorage.getItem('twitch_refresh_token') || 
+                         await DataStorage.getData('refresh_token');
     
     if (!refreshToken) {
       console.error('Отсутствует refresh_token для обновления токена доступа');
+      // Очищаем все связанные с токеном данные, так как обновление невозможно
+      Cookies.remove('twitch_access_token');
+      localStorage.removeItem('cookie_twitch_access_token');
+      await DataStorage.removeData('auth_token');
+      
+      // Перенаправляем на страницу авторизации
+      if (typeof window !== 'undefined') {
+        // Сохраняем текущий URL для возврата после авторизации
+        localStorage.setItem('auth_redirect', window.location.pathname);
+        // Перенаправляем на страницу авторизации через небольшую задержку
+        setTimeout(() => {
+          window.location.href = '/auth';
+        }, 100);
+      }
+      
       return null;
     }
     
@@ -40,7 +58,19 @@ export async function refreshAccessToken() {
         Cookies.remove('twitch_refresh_token');
         localStorage.removeItem('cookie_twitch_access_token');
         localStorage.removeItem('twitch_refresh_token');
+        localStorage.removeItem('twitch_token_expires_at');
         await DataStorage.removeData('auth_token');
+        await DataStorage.removeData('refresh_token');
+        
+        // Перенаправляем на страницу авторизации
+        if (typeof window !== 'undefined') {
+          // Сохраняем текущий URL для возврата после авторизации
+          localStorage.setItem('auth_redirect', window.location.pathname);
+          // Перенаправляем на страницу авторизации через небольшую задержку
+          setTimeout(() => {
+            window.location.href = '/auth';
+          }, 100);
+        }
       }
       return null;
     }
@@ -57,6 +87,10 @@ export async function refreshAccessToken() {
       if (data.refresh_token) {
         Cookies.set('twitch_refresh_token', data.refresh_token, { expires: 30 });
         localStorage.setItem('twitch_refresh_token', data.refresh_token);
+        await DataStorage.saveData('refresh_token', data.refresh_token);
+      } else {
+        // Если новый refresh_token не получен, сохраняем старый
+        await DataStorage.saveData('refresh_token', refreshToken);
       }
       
       // Сохраняем время истечения токена
@@ -501,10 +535,49 @@ export async function fetchWithTokenRefresh(url, options = {}, useCache = false,
       }
     }
     
-    // Получаем токен доступа
+    // Получаем токен доступа из всех возможных источников
     let accessToken = Cookies.get('twitch_access_token') || 
                      localStorage.getItem('cookie_twitch_access_token') || 
                      await DataStorage.getData('auth_token');
+    
+    // Проверяем наличие токена
+    if (!accessToken) {
+      console.warn('Токен доступа не найден, пытаюсь получить из других источников');
+      
+      // Пытаемся получить токен из других источников
+      accessToken = localStorage.getItem('twitch_access_token') || 
+                    Cookies.get('access_token') || 
+                    await DataStorage.getData('twitch_access_token');
+      
+      if (accessToken) {
+        // Сохраняем найденный токен в основные хранилища
+        Cookies.set('twitch_access_token', accessToken, { expires: 7 });
+        localStorage.setItem('cookie_twitch_access_token', accessToken);
+        await DataStorage.saveData('auth_token', accessToken);
+      } else {
+        // Если токен не найден, пытаемся использовать кэш
+        if (useCache && cacheKey) {
+          const cachedData = await DataStorage.getData(cacheKey);
+          if (cachedData) {
+            console.warn(`Токен не найден, использую кэшированные данные для ${cacheKey}`);
+            return cachedData;
+          }
+        }
+        
+        // Если нет кэша, перенаправляем на страницу авторизации
+        if (typeof window !== 'undefined' && !window.location.pathname.includes('/auth')) {
+          console.warn('Токен не найден, перенаправляю на страницу авторизации');
+          // Сохраняем текущий URL для возврата после авторизации
+          localStorage.setItem('auth_redirect', window.location.pathname);
+          // Перенаправляем на страницу авторизации через небольшую задержку
+          setTimeout(() => {
+            window.location.href = '/auth';
+          }, 100);
+        }
+        
+        throw new Error('Токен доступа не найден');
+      }
+    }
     
     // Проверяем, не истек ли токен
     if (accessToken && isTokenExpired()) {
@@ -512,6 +585,15 @@ export async function fetchWithTokenRefresh(url, options = {}, useCache = false,
       const newToken = await refreshAccessToken();
       if (newToken) {
         accessToken = newToken;
+      } else {
+        // Если не удалось обновить токен, но есть кэш, используем его
+        if (useCache && cacheKey) {
+          const cachedData = await DataStorage.getData(cacheKey);
+          if (cachedData) {
+            console.warn(`Не удалось обновить токен, использую кэшированные данные для ${cacheKey}`);
+            return cachedData;
+          }
+        }
       }
     }
     

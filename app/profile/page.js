@@ -58,104 +58,135 @@ export default function Profile() {
     try {
       console.log('Профиль: начало инициализации');
       
-      // Получаем данные пользователя из localStorage
-      let userData = null;
-      try {
-        const storedUser = localStorage.getItem('twitch_user');
-        if (storedUser) {
-          userData = JSON.parse(storedUser);
-          console.log('Получены данные из localStorage:', userData.login || userData.display_name);
-        }
-      } catch (error) {
-        console.error('Ошибка при получении данных из localStorage:', error);
-      }
-      
-      // Если данные есть в localStorage, устанавливаем их сразу
-      if (userData && userData.id) {
-        setProfileData(userData);
-        setLoading(false);
-        console.log('Установлены данные профиля из localStorage');
-            
-        // Загружаем социальные ссылки из localStorage
-        try {
-          const storedSocialLinks = localStorage.getItem('social_links');
-          if (storedSocialLinks) {
-            const parsedLinks = JSON.parse(storedSocialLinks);
-            setSocialLinks(parsedLinks);
-            console.log('Загружены социальные ссылки из localStorage');
-          }
-        } catch (error) {
-          console.error('Ошибка при загрузке социальных ссылок:', error);
-        }
-      }
-      
-      // В любом случае загружаем актуальные данные с сервера
-      const initializeProfile = async () => {
+      // Функция для загрузки данных профиля
+      const loadProfileData = async () => {
         try {
           setLoading(true);
           setError(null);
           
-          // Проверяем авторизацию
-          if (!isAuthenticated && isInitialized) {
-            console.log('Пользователь не авторизован, перенаправление на страницу авторизации');
+          // Проверяем наличие токена доступа
+          const accessToken = Cookies.get('twitch_access_token') || 
+                             localStorage.getItem('cookie_twitch_access_token') || 
+                             await DataStorage.getData('auth_token');
+          
+          if (!accessToken) {
+            console.error('Токен доступа не найден, перенаправляем на страницу авторизации');
+            // Сохраняем текущий URL для возврата после авторизации
+            localStorage.setItem('auth_redirect', '/profile');
+            // Перенаправляем на страницу авторизации
             router.push('/auth');
             return;
           }
           
-          // Загружаем данные профиля
-          const userData = await getUserData();
+          // Получаем данные пользователя из localStorage
+          let userData = null;
+          try {
+            const storedUser = localStorage.getItem('twitch_user');
+            if (storedUser) {
+              userData = JSON.parse(storedUser);
+              console.log('Получены данные из localStorage:', userData.login || userData.display_name);
+            }
+          } catch (error) {
+            console.error('Ошибка при получении данных из localStorage:', error);
+          }
           
+          // Если данные есть в localStorage, устанавливаем их сразу
           if (userData && userData.id) {
             setProfileData(userData);
-            
-            // Загружаем дополнительные данные
+            console.log('Установлены данные профиля из localStorage');
+                
+            // Загружаем социальные ссылки из localStorage
             try {
-              const followersData = await getUserFollowers(userData.id);
-              if (followersData && followersData.followers) {
-                setFollowers(followersData.followers);
+              const storedSocialLinks = localStorage.getItem('social_links');
+              if (storedSocialLinks) {
+                const parsedLinks = JSON.parse(storedSocialLinks);
+                setSocialLinks(parsedLinks);
+                console.log('Загружены социальные ссылки из localStorage');
               }
-              
-              const followingsData = await getUserFollowings(userData.id);
-              if (followingsData && followingsData.followings) {
-                setFollowings(followingsData.followings);
-              }
-              
-              // Загружаем тирлисты
-              const tierlistsData = await fetchWithTokenRefresh(
-                `/api/tierlists?userId=${userData.id}`,
-                {
-                  method: 'GET',
-                },
-                true, // Использовать кэш
-                'tierlists', // Ключ для кэширования
-                3600000 // Время жизни кэша (1 час)
-              );
-              
-              if (tierlistsData) {
-                setTierlists(tierlistsData);
-              }
-              
-              console.log('Все данные профиля загружены успешно');
-            } catch (dataError) {
-              console.error('Ошибка при загрузке дополнительных данных:', dataError);
+            } catch (error) {
+              console.error('Ошибка при загрузке социальных ссылок:', error);
             }
           }
+          
+          // Загружаем актуальные данные с сервера
+          try {
+            const freshUserData = await getUserData();
+            
+            if (freshUserData && freshUserData.id) {
+              setProfileData(freshUserData);
+              console.log('Получены свежие данные профиля с сервера');
+              
+              // Если у нас есть ID пользователя, загружаем дополнительные данные
+              if (freshUserData.id) {
+                // Загружаем фолловеров
+                loadFollowers(freshUserData.id);
+                
+                // Загружаем фолловинги
+                loadFollowings(freshUserData.id);
+                
+                // Загружаем статистику
+                loadStats(freshUserData.id);
+                
+                // Загружаем социальные ссылки
+                loadSocialLinks(freshUserData.id);
+                
+                // Загружаем тирлисты
+                loadTierlists(freshUserData.id);
+              }
+            } else if (!userData) {
+              // Если нет данных ни в localStorage, ни с сервера, перенаправляем на авторизацию
+              console.error('Не удалось получить данные пользователя, перенаправляем на страницу авторизации');
+              localStorage.setItem('auth_redirect', '/profile');
+              router.push('/auth');
+              return;
+            }
+          } catch (apiError) {
+            console.error('Ошибка при загрузке данных с сервера:', apiError);
+            
+            // Если нет данных в localStorage, перенаправляем на авторизацию
+            if (!userData) {
+              console.error('Нет данных в localStorage, перенаправляем на страницу авторизации');
+              localStorage.setItem('auth_redirect', '/profile');
+              router.push('/auth');
+              return;
+            }
+            
+            // Если ошибка связана с авторизацией, перенаправляем на страницу авторизации
+            if (apiError.message && apiError.message.includes('401')) {
+              console.error('Ошибка авторизации, перенаправляем на страницу авторизации');
+              localStorage.setItem('auth_redirect', '/profile');
+              router.push('/auth');
+              return;
+            }
+            
+            setError('Не удалось загрузить актуальные данные профиля. Используются кэшированные данные.');
+          }
+          
+          console.log('Все данные профиля загружены успешно');
         } catch (error) {
-          console.error('Ошибка при загрузке данных пользователя:', error);
-          setError('Не удалось загрузить данные профиля. Пожалуйста, попробуйте позже.');
+          console.error('Необработанная ошибка при загрузке профиля:', error);
+          setError('Произошла ошибка при загрузке профиля. Пожалуйста, попробуйте позже.');
+          
+          // Если ошибка критическая, перенаправляем на авторизацию
+          if (error.message && (error.message.includes('401') || error.message.includes('авторизац'))) {
+            localStorage.setItem('auth_redirect', '/profile');
+            router.push('/auth');
+            return;
+          }
         } finally {
           setLoading(false);
+          setLoadAttempts(prev => prev + 1);
         }
       };
       
-      initializeProfile();
-      
+      // Запускаем загрузку данных
+      loadProfileData();
     } catch (error) {
-      console.error('Критическая ошибка при инициализации:', error);
-      setError('Произошла непредвиденная ошибка. Пожалуйста, обновите страницу.');
+      console.error('Критическая ошибка в useEffect профиля:', error);
+      setError('Произошла критическая ошибка. Пожалуйста, обновите страницу.');
       setLoading(false);
     }
-  }, [isAuthenticated, isInitialized, router]);
+  }, [router]);
 
   // Функция для сохранения настроек видимости статистики
   const saveStatsVisibility = async (newVisibility) => {
