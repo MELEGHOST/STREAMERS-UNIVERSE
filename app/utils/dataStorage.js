@@ -37,128 +37,351 @@ const fetchWithTimeout = async (url, options, timeout = 5000) => {
   }
 };
 
+/**
+ * Утилиты для работы с хранилищем данных
+ * Поддерживает localStorage, sessionStorage и IndexedDB
+ */
+
+// Префикс для ключей в хранилище
+const STORAGE_PREFIX = 'su_';
+
+// Имя базы данных IndexedDB
+const DB_NAME = 'streamers-universe-db';
+const DB_VERSION = 1;
+const STORE_NAME = 'data-store';
+
+/**
+ * Класс для работы с хранилищем данных
+ */
 export class DataStorage {
-  // Сохранение данных
-  static async saveData(dataType, dataValue) {
+  /**
+   * Сохраняет данные в хранилище
+   * @param {string} key - Ключ для сохранения
+   * @param {any} data - Данные для сохранения
+   * @param {boolean} useSession - Использовать sessionStorage вместо localStorage
+   * @returns {Promise<boolean>} - Результат операции
+   */
+  static async saveData(key, data, useSession = false) {
+    const prefixedKey = `${STORAGE_PREFIX}${key}`;
+    
     try {
-      // Проверяем, работаем ли в браузере
-      if (typeof window === 'undefined') {
-        console.warn('Cannot save data on server');
-        return false;
-      }
+      // Сначала пытаемся использовать IndexedDB
+      const idbResult = await this._saveToIndexedDB(prefixedKey, data);
+      if (idbResult) return true;
       
-      // Преобразуем значение в строку JSON, если оно не строка
-      const dataValueString = typeof dataValue === 'string' 
-        ? dataValue 
-        : JSON.stringify(dataValue);
-      
-      // Сохраняем в localStorage для надежности
-      try {
-        localStorage.setItem(`data_${dataType}`, dataValueString);
-      } catch (localError) {
-        console.warn('Не удалось сохранить данные в localStorage:', localError);
-      }
-      
-      // Сохраняем в cookies для временного доступа
-      try {
-        Cookies.set(`data_${dataType}`, dataValueString, {
-          expires: 7,
-          sameSite: 'lax',
-          path: '/'
-        });
-      } catch (cookieError) {
-        console.warn('Не удалось сохранить данные в cookies:', cookieError);
-      }
-      
-      // Пробуем отправить данные на сервер, но не ждем ответа
-      try {
-        fetch('/api/user-data', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ dataType, dataValue }),
-          credentials: 'include', // Важно для отправки cookies
-        }).catch(error => {
-          // Только логируем ошибку, но не блокируем основной поток
-          console.warn('Не удалось сохранить данные на сервере:', error);
-        });
-      } catch (serverError) {
-        console.warn('Ошибка при отправке данных на сервер:', serverError);
-      }
-      
+      // Если IndexedDB не доступен, используем localStorage/sessionStorage
+      const storage = useSession ? sessionStorage : localStorage;
+      storage.setItem(prefixedKey, JSON.stringify(data));
       return true;
     } catch (error) {
-      console.error('Ошибка при сохранении данных:', error);
+      console.warn(`Ошибка при сохранении данных для ключа ${key}:`, error);
       return false;
     }
   }
   
-  // Получение данных
-  static async getData(dataType) {
+  /**
+   * Получает данные из хранилища
+   * @param {string} key - Ключ для получения данных
+   * @returns {Promise<any>} - Полученные данные или null
+   */
+  static async getData(key) {
+    const prefixedKey = `${STORAGE_PREFIX}${key}`;
+    
     try {
-      // Проверяем, работаем ли в браузере
-      if (typeof window === 'undefined') {
-        console.warn('Cannot get data on server');
-        return null;
-      }
+      // Сначала пытаемся получить из IndexedDB
+      const idbData = await this._getFromIndexedDB(prefixedKey);
+      if (idbData !== null) return idbData;
       
-      // Сначала пытаемся получить данные из localStorage
-      let data = null;
+      // Если данных нет в IndexedDB, пробуем localStorage
+      const localData = localStorage.getItem(prefixedKey);
+      if (localData) return JSON.parse(localData);
       
-      // Проверяем localStorage
-      try {
-        const localData = localStorage.getItem(`data_${dataType}`);
-        if (localData) {
-          try {
-            data = JSON.parse(localData);
-            return data;
-          } catch (parseError) {
-            console.warn('Ошибка при парсинге данных из localStorage:', parseError);
-          }
-        }
-      } catch (localError) {
-        console.warn('Ошибка при получении данных из localStorage:', localError);
-      }
-      
-      // Проверяем cookies
-      try {
-        const cookieData = Cookies.get(`data_${dataType}`);
-        if (cookieData) {
-          try {
-            data = JSON.parse(cookieData);
-            return data;
-          } catch (parseError) {
-            console.warn('Ошибка при парсинге данных из cookie:', parseError);
-          }
-        }
-      } catch (cookieError) {
-        console.warn('Ошибка при получении данных из cookie:', cookieError);
-      }
-      
-      // Если локальные данные не найдены, пытаемся получить с сервера
-      try {
-        const response = await fetchWithTimeout(`/api/user-data?type=${dataType}`, {
-          credentials: 'include',
-        }, 3000); // 3 секунды таймаут
-        
-        if (response.ok) {
-          const serverData = await response.json();
-          if (serverData && serverData[dataType] !== undefined) {
-            // Сохраняем данные с сервера в localStorage и cookies
-            await this.saveData(dataType, serverData[dataType]);
-            return serverData[dataType];
-          }
-        }
-      } catch (serverError) {
-        // Только логируем ошибку, не прерываем выполнение
-        console.warn('Не удалось получить данные с сервера:', serverError);
-      }
+      // Если данных нет в localStorage, пробуем sessionStorage
+      const sessionData = sessionStorage.getItem(prefixedKey);
+      if (sessionData) return JSON.parse(sessionData);
       
       return null;
     } catch (error) {
-      console.error('Ошибка при получении данных:', error);
+      console.warn(`Ошибка при получении данных для ключа ${key}:`, error);
       return null;
+    }
+  }
+  
+  /**
+   * Удаляет данные из хранилища
+   * @param {string} key - Ключ для удаления
+   * @returns {Promise<boolean>} - Результат операции
+   */
+  static async removeData(key) {
+    const prefixedKey = `${STORAGE_PREFIX}${key}`;
+    
+    try {
+      // Удаляем из всех хранилищ
+      await this._removeFromIndexedDB(prefixedKey);
+      localStorage.removeItem(prefixedKey);
+      sessionStorage.removeItem(prefixedKey);
+      return true;
+    } catch (error) {
+      console.warn(`Ошибка при удалении данных для ключа ${key}:`, error);
+      return false;
+    }
+  }
+  
+  /**
+   * Очищает все данные из хранилища
+   * @returns {Promise<boolean>} - Результат операции
+   */
+  static async clearAll() {
+    try {
+      // Очищаем IndexedDB
+      await this._clearIndexedDB();
+      
+      // Очищаем только наши данные из localStorage и sessionStorage
+      this._clearPrefixedStorage(localStorage);
+      this._clearPrefixedStorage(sessionStorage);
+      
+      return true;
+    } catch (error) {
+      console.warn('Ошибка при очистке хранилища:', error);
+      return false;
+    }
+  }
+  
+  /**
+   * Сохраняет данные в IndexedDB
+   * @param {string} key - Ключ для сохранения
+   * @param {any} data - Данные для сохранения
+   * @returns {Promise<boolean>} - Результат операции
+   * @private
+   */
+  static async _saveToIndexedDB(key, data) {
+    if (!window.indexedDB) return false;
+    
+    return new Promise((resolve) => {
+      try {
+        const request = indexedDB.open(DB_NAME, DB_VERSION);
+        
+        request.onupgradeneeded = (event) => {
+          const db = event.target.result;
+          if (!db.objectStoreNames.contains(STORE_NAME)) {
+            db.createObjectStore(STORE_NAME, { keyPath: 'key' });
+          }
+        };
+        
+        request.onerror = () => {
+          console.warn('Ошибка при открытии IndexedDB');
+          resolve(false);
+        };
+        
+        request.onsuccess = (event) => {
+          try {
+            const db = event.target.result;
+            const transaction = db.transaction([STORE_NAME], 'readwrite');
+            const store = transaction.objectStore(STORE_NAME);
+            
+            const storeRequest = store.put({ key, value: data });
+            
+            storeRequest.onerror = () => {
+              console.warn('Ошибка при сохранении в IndexedDB');
+              resolve(false);
+            };
+            
+            storeRequest.onsuccess = () => {
+              resolve(true);
+            };
+          } catch (error) {
+            console.warn('Ошибка при работе с IndexedDB:', error);
+            resolve(false);
+          }
+        };
+      } catch (error) {
+        console.warn('Ошибка при инициализации IndexedDB:', error);
+        resolve(false);
+      }
+    });
+  }
+  
+  /**
+   * Получает данные из IndexedDB
+   * @param {string} key - Ключ для получения данных
+   * @returns {Promise<any>} - Полученные данные или null
+   * @private
+   */
+  static async _getFromIndexedDB(key) {
+    if (!window.indexedDB) return null;
+    
+    return new Promise((resolve) => {
+      try {
+        const request = indexedDB.open(DB_NAME, DB_VERSION);
+        
+        request.onupgradeneeded = (event) => {
+          const db = event.target.result;
+          if (!db.objectStoreNames.contains(STORE_NAME)) {
+            db.createObjectStore(STORE_NAME, { keyPath: 'key' });
+          }
+        };
+        
+        request.onerror = () => {
+          console.warn('Ошибка при открытии IndexedDB');
+          resolve(null);
+        };
+        
+        request.onsuccess = (event) => {
+          try {
+            const db = event.target.result;
+            const transaction = db.transaction([STORE_NAME], 'readonly');
+            const store = transaction.objectStore(STORE_NAME);
+            
+            const storeRequest = store.get(key);
+            
+            storeRequest.onerror = () => {
+              console.warn('Ошибка при получении из IndexedDB');
+              resolve(null);
+            };
+            
+            storeRequest.onsuccess = () => {
+              if (storeRequest.result) {
+                resolve(storeRequest.result.value);
+              } else {
+                resolve(null);
+              }
+            };
+          } catch (error) {
+            console.warn('Ошибка при работе с IndexedDB:', error);
+            resolve(null);
+          }
+        };
+      } catch (error) {
+        console.warn('Ошибка при инициализации IndexedDB:', error);
+        resolve(null);
+      }
+    });
+  }
+  
+  /**
+   * Удаляет данные из IndexedDB
+   * @param {string} key - Ключ для удаления
+   * @returns {Promise<boolean>} - Результат операции
+   * @private
+   */
+  static async _removeFromIndexedDB(key) {
+    if (!window.indexedDB) return false;
+    
+    return new Promise((resolve) => {
+      try {
+        const request = indexedDB.open(DB_NAME, DB_VERSION);
+        
+        request.onupgradeneeded = (event) => {
+          const db = event.target.result;
+          if (!db.objectStoreNames.contains(STORE_NAME)) {
+            db.createObjectStore(STORE_NAME, { keyPath: 'key' });
+          }
+        };
+        
+        request.onerror = () => {
+          console.warn('Ошибка при открытии IndexedDB');
+          resolve(false);
+        };
+        
+        request.onsuccess = (event) => {
+          try {
+            const db = event.target.result;
+            const transaction = db.transaction([STORE_NAME], 'readwrite');
+            const store = transaction.objectStore(STORE_NAME);
+            
+            const storeRequest = store.delete(key);
+            
+            storeRequest.onerror = () => {
+              console.warn('Ошибка при удалении из IndexedDB');
+              resolve(false);
+            };
+            
+            storeRequest.onsuccess = () => {
+              resolve(true);
+            };
+          } catch (error) {
+            console.warn('Ошибка при работе с IndexedDB:', error);
+            resolve(false);
+          }
+        };
+      } catch (error) {
+        console.warn('Ошибка при инициализации IndexedDB:', error);
+        resolve(false);
+      }
+    });
+  }
+  
+  /**
+   * Очищает все данные из IndexedDB
+   * @returns {Promise<boolean>} - Результат операции
+   * @private
+   */
+  static async _clearIndexedDB() {
+    if (!window.indexedDB) return false;
+    
+    return new Promise((resolve) => {
+      try {
+        const request = indexedDB.open(DB_NAME, DB_VERSION);
+        
+        request.onupgradeneeded = (event) => {
+          const db = event.target.result;
+          if (!db.objectStoreNames.contains(STORE_NAME)) {
+            db.createObjectStore(STORE_NAME, { keyPath: 'key' });
+          }
+        };
+        
+        request.onerror = () => {
+          console.warn('Ошибка при открытии IndexedDB');
+          resolve(false);
+        };
+        
+        request.onsuccess = (event) => {
+          try {
+            const db = event.target.result;
+            const transaction = db.transaction([STORE_NAME], 'readwrite');
+            const store = transaction.objectStore(STORE_NAME);
+            
+            const storeRequest = store.clear();
+            
+            storeRequest.onerror = () => {
+              console.warn('Ошибка при очистке IndexedDB');
+              resolve(false);
+            };
+            
+            storeRequest.onsuccess = () => {
+              resolve(true);
+            };
+          } catch (error) {
+            console.warn('Ошибка при работе с IndexedDB:', error);
+            resolve(false);
+          }
+        };
+      } catch (error) {
+        console.warn('Ошибка при инициализации IndexedDB:', error);
+        resolve(false);
+      }
+    });
+  }
+  
+  /**
+   * Очищает данные с префиксом из хранилища
+   * @param {Storage} storage - Хранилище (localStorage или sessionStorage)
+   * @private
+   */
+  static _clearPrefixedStorage(storage) {
+    try {
+      const keysToRemove = [];
+      
+      for (let i = 0; i < storage.length; i++) {
+        const key = storage.key(i);
+        if (key.startsWith(STORAGE_PREFIX)) {
+          keysToRemove.push(key);
+        }
+      }
+      
+      keysToRemove.forEach(key => storage.removeItem(key));
+    } catch (error) {
+      console.warn('Ошибка при очистке хранилища:', error);
     }
   }
   
@@ -179,58 +402,6 @@ export class DataStorage {
       }
     } catch (error) {
       console.error('Ошибка при проверке авторизации:', error);
-      return false;
-    }
-  }
-  
-  // Удаление всех данных
-  static async clearAllData() {
-    try {
-      // Проверяем, работаем ли в браузере
-      if (typeof window === 'undefined') {
-        console.warn('Cannot clear data on server');
-        return false;
-      }
-      
-      // Удаляем из localStorage
-      try {
-        const keys = Object.keys(localStorage);
-        for (const key of keys) {
-          if (key.startsWith('data_')) {
-            localStorage.removeItem(key);
-          }
-        }
-      } catch (localError) {
-        console.warn('Ошибка при очистке localStorage:', localError);
-      }
-      
-      // Удаляем cookies
-      try {
-        const cookies = Cookies.get();
-        for (const cookie in cookies) {
-          if (cookie.startsWith('data_')) {
-            Cookies.remove(cookie, { path: '/' });
-          }
-        }
-      } catch (cookieError) {
-        console.warn('Ошибка при очистке cookies:', cookieError);
-      }
-      
-      // Отправляем запрос на сервер (не ждем ответа)
-      try {
-        fetch('/api/user-data/clear', {
-          method: 'POST',
-          credentials: 'include',
-        }).catch(error => {
-          console.warn('Ошибка при очистке данных на сервере:', error);
-        });
-      } catch (serverError) {
-        console.warn('Ошибка при отправке запроса на очистку данных:', serverError);
-      }
-      
-      return true;
-    } catch (error) {
-      console.error('Ошибка при очистке данных:', error);
       return false;
     }
   }

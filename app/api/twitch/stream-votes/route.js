@@ -52,6 +52,30 @@ export async function POST(request) {
       );
     }
     
+    // Проверяем, существует ли массив votes
+    if (!existingStream.votes) {
+      // Если массива votes нет, инициализируем его
+      await db.collection('scheduled_streams').updateOne(
+        { _id: new ObjectId(streamId) },
+        { $set: { votes: [] } }
+      );
+      
+      // Получаем обновленную трансляцию
+      const updatedStream = await db.collection('scheduled_streams').findOne({ 
+        _id: new ObjectId(streamId)
+      });
+      
+      if (!updatedStream) {
+        return NextResponse.json(
+          { error: 'Ошибка при обновлении трансляции', success: false },
+          { status: 500 }
+        );
+      }
+      
+      // Используем обновленную трансляцию
+      existingStream.votes = updatedStream.votes;
+    }
+    
     // Проверяем, не голосовал ли пользователь уже
     const existingVote = existingStream.votes.find(vote => vote.voterId === voterId);
     
@@ -143,6 +167,36 @@ export async function DELETE(request) {
     
     // Подключаемся к базе данных
     const { db } = await connectToDatabase();
+    
+    // Проверяем, существует ли трансляция
+    const existingStream = await db.collection('scheduled_streams').findOne({ 
+      _id: new ObjectId(streamId)
+    });
+    
+    if (!existingStream) {
+      return NextResponse.json(
+        { error: 'Трансляция не найдена', success: false },
+        { status: 404 }
+      );
+    }
+    
+    // Проверяем, существует ли массив votes
+    if (!existingStream.votes || existingStream.votes.length === 0) {
+      return NextResponse.json({
+        success: true,
+        message: 'Голос не найден'
+      });
+    }
+    
+    // Проверяем, есть ли голос пользователя
+    const existingVote = existingStream.votes.find(vote => vote.voterId === voterId);
+    
+    if (!existingVote) {
+      return NextResponse.json({
+        success: true,
+        message: 'Голос не найден'
+      });
+    }
     
     // Удаляем голос пользователя
     await db.collection('scheduled_streams').updateOne(

@@ -17,16 +17,31 @@ export async function refreshAccessToken() {
       return null;
     }
     
+    // Добавляем таймаут для запроса
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 10000); // 10-секундный таймаут
+    
     const response = await fetch('/api/twitch/refresh-token', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json'
       },
-      body: JSON.stringify({ refresh_token: refreshToken })
+      body: JSON.stringify({ refresh_token: refreshToken }),
+      signal: controller.signal
     });
+    
+    clearTimeout(timeoutId);
     
     if (!response.ok) {
       console.error('Ошибка при обновлении токена:', await response.text());
+      // Если токен недействителен, очищаем все связанные с ним данные
+      if (response.status === 401) {
+        Cookies.remove('twitch_access_token');
+        Cookies.remove('twitch_refresh_token');
+        localStorage.removeItem('cookie_twitch_access_token');
+        localStorage.removeItem('twitch_refresh_token');
+        await DataStorage.removeData('auth_token');
+      }
       return null;
     }
     
@@ -44,6 +59,12 @@ export async function refreshAccessToken() {
         localStorage.setItem('twitch_refresh_token', data.refresh_token);
       }
       
+      // Сохраняем время истечения токена
+      if (data.expires_in) {
+        const expiresAt = Date.now() + (data.expires_in * 1000);
+        localStorage.setItem('twitch_token_expires_at', expiresAt.toString());
+      }
+      
       return data.access_token;
     }
     
@@ -51,6 +72,24 @@ export async function refreshAccessToken() {
   } catch (error) {
     console.error('Ошибка при обновлении токена доступа:', error);
     return null;
+  }
+}
+
+/**
+ * Проверяет, истек ли срок действия токена
+ * @returns {boolean} - true, если токен истек или скоро истечет
+ */
+export function isTokenExpired() {
+  try {
+    const expiresAtStr = localStorage.getItem('twitch_token_expires_at');
+    if (!expiresAtStr) return true;
+    
+    const expiresAt = parseInt(expiresAtStr, 10);
+    // Считаем токен истекшим, если до истечения осталось менее 5 минут
+    return Date.now() > (expiresAt - 5 * 60 * 1000);
+  } catch (error) {
+    console.error('Ошибка при проверке срока действия токена:', error);
+    return true;
   }
 }
 
@@ -463,9 +502,18 @@ export async function fetchWithTokenRefresh(url, options = {}, useCache = false,
     }
     
     // Получаем токен доступа
-    const accessToken = Cookies.get('twitch_access_token') || 
-                       localStorage.getItem('cookie_twitch_access_token') || 
-                       await DataStorage.getData('auth_token');
+    let accessToken = Cookies.get('twitch_access_token') || 
+                     localStorage.getItem('cookie_twitch_access_token') || 
+                     await DataStorage.getData('auth_token');
+    
+    // Проверяем, не истек ли токен
+    if (accessToken && isTokenExpired()) {
+      console.log('Токен доступа скоро истечет, обновляю...');
+      const newToken = await refreshAccessToken();
+      if (newToken) {
+        accessToken = newToken;
+      }
+    }
     
     // Добавляем токен в заголовки, если он есть
     const headers = {
@@ -478,7 +526,7 @@ export async function fetchWithTokenRefresh(url, options = {}, useCache = false,
     
     // Устанавливаем таймаут для запроса
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 5000); // 5-секундный таймаут
+    const timeoutId = setTimeout(() => controller.abort(), 10000); // 10-секундный таймаут
     
     // Выполняем запрос
     const response = await fetch(url, {
@@ -512,14 +560,20 @@ export async function fetchWithTokenRefresh(url, options = {}, useCache = false,
       
       if (newToken) {
         // Повторяем запрос с новым токеном
+        const retryController = new AbortController();
+        const retryTimeoutId = setTimeout(() => retryController.abort(), 10000);
+        
         const retryResponse = await fetch(url, {
           ...options,
           headers: {
             ...options.headers,
             'Authorization': `Bearer ${newToken}`
           },
-          credentials: 'include'
+          credentials: 'include',
+          signal: retryController.signal
         });
+        
+        clearTimeout(retryTimeoutId);
         
         if (retryResponse.ok) {
           const data = await retryResponse.json();
@@ -541,26 +595,31 @@ export async function fetchWithTokenRefresh(url, options = {}, useCache = false,
     if (useCache && cacheKey) {
       const cachedData = await DataStorage.getData(cacheKey);
       if (cachedData) {
-        console.warn(`API вернул ошибку, использую кэшированные данные для ${cacheKey}`);
+        console.warn(`API вернул ошибку (${response.status}), использую кэшированные данные для ${cacheKey}`);
         return cachedData;
       }
     }
     
-    // Если нет кэша, возвращаем ошибку
-    const errorData = await response.json().catch(() => ({ error: `HTTP ошибка: ${response.status}` }));
-    throw new Error(errorData.error || `HTTP ошибка: ${response.status}`);
+    // Если нет кэша и запрос не успешен, пытаемся получить текст ошибки
+    try {
+      const errorText = await response.text();
+      throw new Error(`API вернул ошибку: ${response.status} - ${errorText}`);
+    } catch (textError) {
+      throw new Error(`API вернул ошибку: ${response.status}`);
+    }
   } catch (error) {
-    console.error('Ошибка при выполнении запроса:', error);
+    console.error(`Ошибка при выполнении запроса к ${url}:`, error);
     
-    // Если есть кэш, возвращаем его
+    // Если есть кэш, возвращаем его даже при ошибке сети
     if (useCache && cacheKey) {
       const cachedData = await DataStorage.getData(cacheKey);
       if (cachedData) {
-        console.warn(`Произошла ошибка, использую кэшированные данные для ${cacheKey}`);
+        console.warn(`Ошибка сети, использую кэшированные данные для ${cacheKey}`);
         return cachedData;
       }
     }
     
+    // Если нет кэша, пробрасываем ошибку дальше
     throw error;
   }
 } 
