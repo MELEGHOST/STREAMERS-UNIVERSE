@@ -1,3 +1,5 @@
+'use client';
+
 import { SignJWT, jwtVerify } from 'jose';
 import Cookies from 'js-cookie';
 

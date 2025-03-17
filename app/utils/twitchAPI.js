@@ -1,3 +1,5 @@
+'use client';
+
 /**
  * Утилиты для работы с Twitch API
  */

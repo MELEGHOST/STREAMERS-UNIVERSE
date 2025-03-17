@@ -1,3 +1,5 @@
+'use client';
+
 import { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react';
 import Cookies from 'js-cookie';
 import { createJwtToken } from '../app/utils/auth';

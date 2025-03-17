@@ -1,3 +1,5 @@
+'use client';
+
 // streamCoins.js - Virtual currency management system
 
 // User's currency data structure
