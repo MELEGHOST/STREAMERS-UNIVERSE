@@ -115,15 +115,23 @@ export function AuthProvider({ children }) {
       console.log('Инициализация AuthContext');
       
       try {
-        // Сначала проверяем наличие токена и данных пользователя в localStorage
-        const hasToken = !!localStorage.getItem('cookie_twitch_access_token') || 
-                         !!localStorage.getItem('twitch_token') || 
-                         !!Cookies.get('twitch_access_token');
-                         
-        const userDataStr = localStorage.getItem('twitch_user') || Cookies.get('twitch_user');
+        // Проверяем все возможные места хранения токена
+        const accessToken = localStorage.getItem('cookie_twitch_access_token') || 
+                          localStorage.getItem('twitch_token') || 
+                          Cookies.get('twitch_access_token');
+                          
+        // Проверяем все возможные места хранения данных пользователя
+        const userDataStr = localStorage.getItem('twitch_user') || 
+                          localStorage.getItem('cookie_twitch_user') || 
+                          Cookies.get('twitch_user');
         
-        if (!hasToken || !userDataStr) {
-          console.log('Токен или данные пользователя отсутствуют, пользователь не аутентифицирован');
+        console.log('Найденные данные:', { 
+          hasToken: !!accessToken, 
+          hasUserData: !!userDataStr 
+        });
+        
+        if (!accessToken || !userDataStr) {
+          console.log('Токен или данные пользователя отсутствуют');
           setIsAuthenticated(false);
           setIsInitialized(true);
           return;
@@ -147,27 +155,57 @@ export function AuthProvider({ children }) {
           return;
         }
         
-        // Устанавливаем состояние авторизации
-        setIsAuthenticated(true);
-        setUserId(userData.id);
-        setUserLogin(userData.login || userData.display_name);
-        setUserAvatar(userData.profile_image_url);
-        
-        // Устанавливаем флаг авторизации в localStorage
-        localStorage.setItem('is_authenticated', 'true');
-        
-        console.log('AuthContext: пользователь успешно аутентифицирован:', userData.id);
+        // Проверяем валидность токена через API
+        fetch('/api/auth/verify', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${accessToken}`
+          },
+          body: JSON.stringify({ user: userData })
+        })
+        .then(response => response.json())
+        .then(data => {
+          if (data.valid) {
+            // Устанавливаем состояние авторизации
+            setIsAuthenticated(true);
+            setUserId(userData.id);
+            setUserLogin(userData.login || userData.display_name);
+            setUserAvatar(userData.profile_image_url);
+            
+            // Обновляем данные в localStorage
+            localStorage.setItem('is_authenticated', 'true');
+            localStorage.setItem('twitch_user', JSON.stringify(userData));
+            localStorage.setItem('cookie_twitch_access_token', accessToken);
+            
+            console.log('AuthContext: пользователь успешно аутентифицирован:', userData.id);
+          } else {
+            console.warn('Токен недействителен');
+            setIsAuthenticated(false);
+            // Очищаем недействительные данные
+            localStorage.removeItem('twitch_user');
+            localStorage.removeItem('cookie_twitch_access_token');
+            localStorage.removeItem('is_authenticated');
+            Cookies.remove('twitch_access_token');
+            Cookies.remove('twitch_user');
+          }
+        })
+        .catch(error => {
+          console.error('Ошибка при проверке токена:', error);
+          setIsAuthenticated(false);
+        })
+        .finally(() => {
+          setIsInitialized(true);
+        });
       } catch (error) {
         console.error('Ошибка при инициализации AuthContext:', error);
         setIsAuthenticated(false);
-      } finally {
-        // В любом случае устанавливаем флаг инициализации
         setIsInitialized(true);
       }
     };
     
-    // Запускаем инициализацию с небольшой задержкой
-    setTimeout(initializeAuth, 100);
+    // Запускаем инициализацию
+    initializeAuth();
   }, []);
   
   // Мемоизируем значение контекста для предотвращения лишних ререндеров
