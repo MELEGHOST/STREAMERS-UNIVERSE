@@ -199,15 +199,20 @@ export const validateToken = async (token) => {
       return false;
     }
     
-    const data = await response.json();
-    
-    // Проверяем наличие необходимых полей в ответе
-    if (!data.client_id || !data.login) {
-      console.warn('Ответ валидации токена не содержит необходимых полей');
+    try {
+      const data = await response.json();
+      
+      // Проверяем наличие необходимых полей в ответе
+      if (!data.client_id || !data.login) {
+        console.warn('Ответ валидации токена не содержит необходимых полей');
+        return false;
+      }
+      
+      return true;
+    } catch (error) {
+      console.error('Ошибка при парсинге JSON ответа от Twitch API:', error);
       return false;
     }
-    
-    return true;
   } catch (error) {
     console.error('Ошибка при проверке токена:', error);
     return false;

@@ -1,5 +1,4 @@
 import { NextResponse } from 'next/server';
-import { verifyJwtToken } from '../../../utils/auth';
 import { validateToken } from '../../../utils/cookies';
 
 export async function POST(request) {

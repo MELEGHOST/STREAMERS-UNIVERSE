@@ -188,7 +188,13 @@ export function AuthProvider({ children }) {
           },
           body: JSON.stringify({ user: userData })
         })
-        .then(response => response.json())
+        .then(response => {
+          if (!response.ok) {
+            console.warn(`Ошибка при проверке токена: HTTP статус ${response.status}`);
+            throw new Error(`HTTP ошибка: ${response.status}`);
+          }
+          return response.json();
+        })
         .then(data => {
           if (data.valid) {
             // Устанавливаем состояние авторизации
@@ -204,7 +210,7 @@ export function AuthProvider({ children }) {
             
             console.log('AuthContext: пользователь успешно аутентифицирован:', userData.id);
           } else {
-            console.warn('Токен недействителен');
+            console.warn('Токен недействителен:', data.error);
             setIsAuthenticated(false);
             // Очищаем недействительные данные
             localStorage.removeItem('twitch_user');
@@ -217,6 +223,12 @@ export function AuthProvider({ children }) {
         .catch(error => {
           console.error('Ошибка при проверке токена:', error);
           setIsAuthenticated(false);
+          // Очищаем данные при ошибке
+          localStorage.removeItem('twitch_user');
+          localStorage.removeItem('cookie_twitch_access_token');
+          localStorage.removeItem('is_authenticated');
+          Cookies.remove('twitch_access_token');
+          Cookies.remove('twitch_user');
         })
         .finally(() => {
           setIsInitialized(true);

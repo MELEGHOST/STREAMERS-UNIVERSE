@@ -169,6 +169,14 @@ export default function Profile() {
           // Проверка авторизации
           if (!isAuthenticated) {
             console.log('Пользователь не авторизован, перенаправляем на страницу авторизации');
+            // Очищаем потенциально некорректные данные
+            try {
+              localStorage.removeItem('is_authenticated');
+              Cookies.remove('twitch_access_token', { path: '/' });
+            } catch (e) {
+              console.warn('Ошибка при очистке данных аутентификации:', e);
+            }
+            
             // Сохраняем текущий путь
             localStorage.setItem('auth_redirect', '/profile');
             // Перенаправляем на страницу авторизации
@@ -215,6 +223,21 @@ export default function Profile() {
             
             // Загружаем тирлисты
             loadTierlists(userId);
+          } else if (!userId && isAuthenticated) {
+            // Если isAuthenticated=true, но нет userId, это неправильное состояние
+            console.error('Ошибка: пользователь авторизован, но нет userId');
+            
+            // Очищаем данные авторизации
+            localStorage.removeItem('is_authenticated');
+            localStorage.removeItem('twitch_user');
+            localStorage.removeItem('cookie_twitch_access_token');
+            Cookies.remove('twitch_access_token', { path: '/' });
+            Cookies.remove('twitch_user', { path: '/' });
+            
+            // Перенаправляем на авторизацию
+            localStorage.setItem('auth_redirect', '/profile');
+            router.push('/auth');
+            return;
           } else {
             // Получаем данные пользователя из localStorage как запасной вариант
             try {

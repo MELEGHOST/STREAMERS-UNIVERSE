@@ -10,7 +10,7 @@ import clientStorage from '../utils/clientStorage';
 
 export default function Menu() {
   const router = useRouter();
-  const { isAuthenticated, userId, userLogin, userAvatar } = useAuth();
+  const { isAuthenticated, userId, userLogin, userAvatar, isInitialized } = useAuth();
   
   const [streamCoins, setStreamCoins] = useState(100);
   const [referralCode, setReferralCode] = useState('');
@@ -184,7 +184,7 @@ export default function Menu() {
     e.preventDefault();
     
     // Проверяем инициализацию и статус авторизации
-    if (!isAuthenticated) {
+    if (!isInitialized) {
       console.log("AuthContext еще инициализируется, пожалуйста, подождите...");
       // Показываем индикатор загрузки или сообщение
       setIsLoading(true);
