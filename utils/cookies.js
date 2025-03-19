@@ -182,7 +182,10 @@ export const getCookieWithLocalStorage = (name) => {
 
 // Функция для проверки валидности токена
 export const validateToken = async (token) => {
-  if (!token) return false;
+  if (!token) {
+    console.warn('Отсутствует токен для проверки');
+    return false;
+  }
   
   try {
     const response = await fetch('https://id.twitch.tv/oauth2/validate', {
@@ -191,7 +194,20 @@ export const validateToken = async (token) => {
       }
     });
     
-    return response.ok;
+    if (!response.ok) {
+      console.warn('Токен недействителен:', response.status);
+      return false;
+    }
+    
+    const data = await response.json();
+    
+    // Проверяем наличие необходимых полей в ответе
+    if (!data.client_id || !data.login) {
+      console.warn('Ответ валидации токена не содержит необходимых полей');
+      return false;
+    }
+    
+    return true;
   } catch (error) {
     console.error('Ошибка при проверке токена:', error);
     return false;

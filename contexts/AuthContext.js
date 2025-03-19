@@ -51,29 +51,55 @@ export function AuthProvider({ children }) {
         return false;
       }
       
-      // Сохраняем токен в куки
-      Cookies.set('twitch_access_token', token, { expires: 7, path: '/' });
-      
-      // Сохраняем данные пользователя в куки
-      const userDataString = typeof userData === 'string' ? userData : JSON.stringify(userData);
-      Cookies.set('twitch_user', userDataString, { expires: 7, path: '/' });
-      
-      // Сохраняем данные в localStorage для надежности
-      localStorage.setItem('cookie_twitch_access_token', token);
-      localStorage.setItem('cookie_twitch_user', userDataString);
-      localStorage.setItem('twitch_user', userDataString);
-      localStorage.setItem('is_authenticated', 'true');
-      
-      // Создаем JWT токен
-      createAndSetJwtToken(userData);
-      
-      // Обновляем состояние
-      setIsAuthenticated(true);
-      setUserId(userData.id);
-      setUserLogin(userData.login || userData.display_name);
-      setUserAvatar(userData.profile_image_url);
-      
-      return true;
+      // Проверяем валидность токена перед сохранением
+      fetch('https://id.twitch.tv/oauth2/validate', {
+        headers: {
+          'Authorization': `OAuth ${token}`
+        }
+      })
+      .then(response => {
+        if (!response.ok) {
+          throw new Error('Токен недействителен');
+        }
+        
+        // Сохраняем токен в куки
+        Cookies.set('twitch_access_token', token, { 
+          expires: 7, 
+          path: '/',
+          secure: window.location.protocol === 'https:',
+          sameSite: 'lax'
+        });
+        
+        // Сохраняем данные пользователя в куки
+        const userDataString = typeof userData === 'string' ? userData : JSON.stringify(userData);
+        Cookies.set('twitch_user', userDataString, { 
+          expires: 7, 
+          path: '/',
+          secure: window.location.protocol === 'https:',
+          sameSite: 'lax'
+        });
+        
+        // Сохраняем данные в localStorage для надежности
+        localStorage.setItem('cookie_twitch_access_token', token);
+        localStorage.setItem('cookie_twitch_user', userDataString);
+        localStorage.setItem('twitch_user', userDataString);
+        localStorage.setItem('is_authenticated', 'true');
+        
+        // Создаем JWT токен
+        createAndSetJwtToken(userData);
+        
+        // Обновляем состояние
+        setIsAuthenticated(true);
+        setUserId(userData.id);
+        setUserLogin(userData.login || userData.display_name);
+        setUserAvatar(userData.profile_image_url);
+        
+        return true;
+      })
+      .catch(error => {
+        console.error('Ошибка при проверке токена:', error);
+        return false;
+      });
     } catch (error) {
       console.error('Ошибка при входе:', error);
       return false;
