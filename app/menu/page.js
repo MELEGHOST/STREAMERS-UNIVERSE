@@ -182,12 +182,34 @@ export default function Menu() {
   // Функция для перехода на страницу профиля
   const goToProfile = (e) => {
     e.preventDefault();
+    
+    // Проверяем инициализацию и статус авторизации
+    if (!isAuthenticated) {
+      console.log("AuthContext еще инициализируется, пожалуйста, подождите...");
+      // Показываем индикатор загрузки или сообщение
+      setIsLoading(true);
+      // Через некоторое время проверяем снова
+      setTimeout(() => {
+        setIsLoading(false);
+        if (userId) {
+          router.push('/profile');
+        } else {
+          console.error("Не удалось определить userId для перехода на профиль");
+          alert("Не удалось определить ваш ID. Пожалуйста, попробуйте войти снова.");
+          localStorage.setItem('auth_redirect', '/menu');
+          router.push('/auth');
+        }
+      }, 1500);
+      return;
+    }
+    
     if (userId) {
       console.log("Переход на профиль. userId:", userId);
       router.push('/profile');
     } else {
       console.error("Не удалось определить userId для перехода на профиль");
       alert("Не удалось определить ваш ID. Пожалуйста, попробуйте войти снова.");
+      localStorage.setItem('auth_redirect', '/menu');
       router.push('/auth');
     }
   };

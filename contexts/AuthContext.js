@@ -29,14 +29,12 @@ export function AuthProvider({ children }) {
       // Проверяем, на клиенте или на сервере
       if (typeof window !== 'undefined') {
         // На клиенте не создаем JWT токен, так как секретный ключ недоступен
-        console.log('Пропускаем создание JWT токена на клиенте');
+        console.log('JWT токен может быть создан только на сервере, пропускаем');
         return;
       }
       
-      const token = createJwtToken(user);
-      if (token) {
-        Cookies.set('auth_token', token, { expires: 7, path: '/' });
-      }
+      // Эта часть кода никогда не будет выполнена на клиенте
+      // JWT токены должны создаваться только на сервере через API
     } catch (error) {
       console.error('Ошибка при создании JWT токена:', error);
       // Игнорируем ошибку, продолжаем работу без JWT токена

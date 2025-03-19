@@ -148,7 +148,17 @@ export default function Profile() {
   // Загрузка данных при монтировании компонента
   useEffect(() => {
     try {
-      console.log('Профиль: начало инициализации');
+      console.log('Профиль: начало инициализации', { 
+        isInitialized, 
+        isAuthenticated, 
+        userId 
+      });
+      
+      // Если AuthContext еще не инициализирован, ждем
+      if (!isInitialized) {
+        console.log('AuthContext еще не инициализирован, ожидаем...');
+        return; // Выходим из эффекта и ждем следующего рендера
+      }
       
       // Функция для загрузки данных профиля
       const loadProfileData = async () => {
@@ -156,10 +166,12 @@ export default function Profile() {
           setLoading(true);
           setError(null);
           
-          // Используем данные из контекста авторизации
-          if (!isAuthenticated && isInitialized) {
+          // Проверка авторизации
+          if (!isAuthenticated) {
             console.log('Пользователь не авторизован, перенаправляем на страницу авторизации');
+            // Сохраняем текущий путь
             localStorage.setItem('auth_redirect', '/profile');
+            // Перенаправляем на страницу авторизации
             router.push('/auth');
             return;
           }

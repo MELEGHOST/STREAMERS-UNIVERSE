@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { verifyJwtToken } from '../../../app/utils/auth';
+import { verifyJwtToken } from '../../../utils/auth';
 import { validateToken } from '../../../utils/cookies';
 
 export async function POST(request) {
@@ -24,24 +24,30 @@ export async function POST(request) {
       }, { status: 401 });
     }
 
-    // Проверяем JWT токен
+    // Получаем данные пользователя из запроса
     try {
-      const decoded = await verifyJwtToken(token);
-      if (!decoded) {
+      const requestData = await request.json();
+      const userData = requestData.user;
+      
+      if (!userData || !userData.id) {
         return NextResponse.json({ 
           valid: false, 
-          error: 'JWT токен недействителен' 
+          error: 'Отсутствуют данные пользователя' 
         }, { status: 401 });
       }
+      
+      // Токен действителен и данные пользователя есть
+      return NextResponse.json({ 
+        valid: true,
+        user: userData 
+      });
     } catch (error) {
-      console.error('Ошибка при проверке JWT токена:', error);
+      console.error('Ошибка при обработке данных запроса:', error);
       return NextResponse.json({ 
         valid: false, 
-        error: 'Ошибка при проверке JWT токена' 
-      }, { status: 401 });
+        error: 'Некорректные данные запроса' 
+      }, { status: 400 });
     }
-
-    return NextResponse.json({ valid: true });
   } catch (error) {
     console.error('Ошибка при проверке токена:', error);
     return NextResponse.json({ 
