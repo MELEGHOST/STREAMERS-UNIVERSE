@@ -1,5 +1,5 @@
-// Импортируем наше имитационное хранилище данных
-import { mockDb } from './mockDataStore';
+// Импортируем Supabase клиент
+import supabase from '../../lib/supabase';
 
-// Экспортируем mockDb вместо prisma
-export const prisma = mockDb;
+// Экспортируем supabase вместо mockDb
+export const prisma = supabase;

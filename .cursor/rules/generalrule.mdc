@@ -26,3 +26,12 @@ Our project is publicly available on github, do not create env.local in any case
 All our variables are kept secret in vercel
 
 the base url of our project is https://streamers-universe .vercel.app
+
+We also have a database in supabase
+
+I never run a project locally and I won't do it, do everything to make it work through github + vercel + supabase.
+ 
+Our project is launched mostly through a bot in tg, sometimes through a url in the
+browser.
+
+Try to come up with less in the mechanical part and come up with more in the creative part, but always ask me if you want to do this before adding your ideas to the project.
