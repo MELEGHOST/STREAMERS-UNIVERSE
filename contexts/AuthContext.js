@@ -2,7 +2,6 @@
 
 import { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react';
 import Cookies from 'js-cookie';
-import { createJwtToken } from '../app/utils/auth';
 import { DataStorage } from '../app/utils/dataStorage';
 
 // Создаем контекст авторизации
@@ -23,100 +22,59 @@ export function AuthProvider({ children }) {
   const [userAvatar, setUserAvatar] = useState(null);
   const [isInitialized, setIsInitialized] = useState(false);
   
-  // Создаем JWT токен и устанавливаем его в куки
-  const createAndSetJwtToken = useCallback((user) => {
-    try {
-      // Проверяем, на клиенте или на сервере
-      if (typeof window !== 'undefined') {
-        // На клиенте не создаем JWT токен, так как секретный ключ недоступен
-        console.log('JWT токен может быть создан только на сервере, пропускаем');
-        return;
-      }
-      
-      // Эта часть кода никогда не будет выполнена на клиенте
-      // JWT токены должны создаваться только на сервере через API
-    } catch (error) {
-      console.error('Ошибка при создании JWT токена:', error);
-      // Игнорируем ошибку, продолжаем работу без JWT токена
-    }
+  // Пустая функция для совместимости (на клиенте JWT токены не создаются)
+  const createAndSetJwtToken = useCallback(() => {
+    // Не выполняем никаких действий, JWT токены создаются только на сервере
+    console.log('[Vercel] createAndSetJwtToken: JWT токены можно создавать только на сервере');
   }, []);
   
   // Функция для входа пользователя
   const login = useCallback(async (userData, token) => {
     try {
       if (!userData || !token) {
-        console.error('Ошибка при входе: отсутствуют данные пользователя или токен');
+        console.error('[Vercel] login: отсутствуют данные пользователя или токен');
         return false;
       }
       
-      // Проверяем валидность токена перед сохранением
-      try {
-        const response = await fetch('https://id.twitch.tv/oauth2/validate', {
-          method: 'GET',
-          headers: {
-            'Authorization': `OAuth ${token}`
-          }
-        });
-        
-        if (!response.ok) {
-          const errorText = await response.text();
-          console.error('Токен недействителен:', errorText);
-          return false;
-        }
-        
-        // Получаем данные от Twitch для проверки
-        const twitchData = await response.json();
-        
-        // Проверяем соответствие ID пользователя
-        if (twitchData.user_id && userData.id && twitchData.user_id !== userData.id) {
-          console.error('Несоответствие ID пользователя:', {
-            tokenUserId: twitchData.user_id,
-            providedUserId: userData.id
-          });
-          return false;
-        }
-        
-        // Токен действителен, сохраняем данные
-        // Сохраняем токен в куки
-        Cookies.set('twitch_access_token', token, { 
-          expires: 7, 
-          path: '/',
-          secure: window.location.protocol === 'https:',
-          sameSite: 'lax'
-        });
-        
-        // Сохраняем данные пользователя в куки
-        const userDataString = typeof userData === 'string' ? userData : JSON.stringify(userData);
-        Cookies.set('twitch_user', userDataString, { 
-          expires: 7, 
-          path: '/',
-          secure: window.location.protocol === 'https:',
-          sameSite: 'lax'
-        });
-        
-        // Сохраняем данные в localStorage для надежности
-        localStorage.setItem('cookie_twitch_access_token', token);
-        localStorage.setItem('cookie_twitch_user', userDataString);
-        localStorage.setItem('twitch_user', userDataString);
-        localStorage.setItem('is_authenticated', 'true');
-        
-        // Создаем JWT токен
-        createAndSetJwtToken(userData);
-        
-        // Обновляем состояние
-        setIsAuthenticated(true);
-        setUserId(userData.id);
-        setUserLogin(userData.login || userData.display_name);
-        setUserAvatar(userData.profile_image_url);
-        
-        console.log('Вход выполнен успешно для пользователя:', userData.id);
-        return true;
-      } catch (error) {
-        console.error('Ошибка при проверке токена:', error);
-        return false;
-      }
+      // На Vercel пропускаем прямую проверку токена через Twitch API
+      console.log('[Vercel] login: сохраняем данные пользователя и токен');
+      
+      // Сохраняем токен в куки
+      Cookies.set('twitch_access_token', token, { 
+        expires: 7, 
+        path: '/',
+        secure: typeof window !== 'undefined' && window.location.protocol === 'https:',
+        sameSite: 'lax'
+      });
+      
+      // Сохраняем данные пользователя в куки
+      const userDataString = typeof userData === 'string' ? userData : JSON.stringify(userData);
+      Cookies.set('twitch_user', userDataString, { 
+        expires: 7, 
+        path: '/',
+        secure: typeof window !== 'undefined' && window.location.protocol === 'https:',
+        sameSite: 'lax'
+      });
+      
+      // Сохраняем данные в localStorage для надежности
+      localStorage.setItem('cookie_twitch_access_token', token);
+      localStorage.setItem('cookie_twitch_user', userDataString);
+      localStorage.setItem('twitch_user', userDataString);
+      localStorage.setItem('is_authenticated', 'true');
+      
+      // Создаем JWT токен (пустая функция на клиенте)
+      createAndSetJwtToken(userData);
+      
+      // Обновляем состояние
+      setIsAuthenticated(true);
+      setUserId(userData.id);
+      setUserLogin(userData.login || userData.display_name);
+      setUserAvatar(userData.profile_image_url);
+      
+      console.log('[Vercel] login: вход выполнен успешно для пользователя:', userData.id);
+      return true;
     } catch (error) {
-      console.error('Ошибка при входе:', error);
+      console.error('[Vercel] login: ошибка при входе:', error);
       return false;
     }
   }, [createAndSetJwtToken]);

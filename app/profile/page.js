@@ -150,7 +150,7 @@ export default function Profile() {
     let isMounted = true; // Для предотвращения обновления unmounted компонента
     
     try {
-      console.log('Профиль: начало инициализации', { 
+      console.log('[Vercel] Профиль: начало инициализации', { 
         isInitialized, 
         isAuthenticated, 
         userId 
@@ -158,11 +158,11 @@ export default function Profile() {
       
       // Если AuthContext еще не инициализирован, ждем
       if (!isInitialized) {
-        console.log('AuthContext еще не инициализирован, ожидаем...');
+        console.log('[Vercel] AuthContext еще не инициализирован, ожидаем...');
         return; // Выходим из эффекта и ждем следующего рендера
       }
       
-      // Функция для загрузки данных профиля
+      // Функция для загрузки данных профиля с обработкой ошибок для Vercel
       const loadProfileData = async () => {
         if (!isMounted) return;
         
@@ -170,21 +170,17 @@ export default function Profile() {
           setLoading(true);
           setError(null);
           
-          // Проверка авторизации
+          // Проверка авторизации с надежной обработкой ошибок для Vercel
           if (!isAuthenticated) {
-            console.log('Пользователь не авторизован, перенаправляем на страницу авторизации');
-            // Очищаем потенциально некорректные данные
-            try {
-              localStorage.removeItem('is_authenticated');
-              localStorage.removeItem('profile_data');
-              Cookies.remove('twitch_access_token', { path: '/' });
-              Cookies.remove('twitch_user', { path: '/' });
-            } catch (e) {
-              console.warn('Ошибка при очистке данных аутентификации:', e);
-            }
+            console.log('[Vercel] Пользователь не авторизован, перенаправляем на страницу авторизации');
             
             // Сохраняем текущий путь
-            localStorage.setItem('auth_redirect', '/profile');
+            try {
+              localStorage.setItem('auth_redirect', '/profile');
+            } catch (storageError) {
+              console.warn('[Vercel] Ошибка при записи в localStorage:', storageError);
+            }
+            
             // Перенаправляем на страницу авторизации
             router.push('/auth');
             return;

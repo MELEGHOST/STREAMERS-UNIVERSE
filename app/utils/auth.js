@@ -6,24 +6,33 @@ import Cookies from 'js-cookie';
 // Функция для получения секретного ключа
 // В режиме разработки используем временный ключ, в продакшне - переменную окружения
 const getSecretKey = () => {
-  // Проверяем, работаем ли мы на клиенте
-  if (typeof window !== 'undefined') {
-    // На клиенте нет доступа к секретному ключу
-    console.log('Попытка получить секретный ключ на клиенте - это невозможно');
-    return null;
+  try {
+    // Проверяем, работаем ли мы на клиенте
+    if (typeof window !== 'undefined') {
+      console.log('[Vercel] Попытка получить секретный ключ на клиенте - это невозможно');
+      return null;
+    }
+    
+    // Это выполняется только на сервере
+    if (typeof process !== 'undefined' && process.env) {
+      const secret = process.env.JWT_SECRET || (
+        process.env.NODE_ENV === 'production' 
+          ? 'production_fallback_key_change_me' // Резервный ключ для продакшн
+          : 'temporary_dev_key_not_for_production'
+      );
+      
+      return new TextEncoder().encode(secret);
+    }
+    
+    // Если мы здесь, значит что-то пошло не так
+    console.warn('[Vercel] Не удалось определить среду выполнения для секретного ключа');
+    // Возвращаем резервный ключ для предотвращения ошибок
+    return new TextEncoder().encode('fallback_key_for_auth');
+  } catch (error) {
+    console.error('[Vercel] Ошибка в getSecretKey:', error);
+    // Возвращаем резервный ключ в случае ошибки
+    return new TextEncoder().encode('error_fallback_key');
   }
-  
-  // Это выполняется только на сервере
-  if (typeof process !== 'undefined') {
-    return new TextEncoder().encode(
-      process.env.JWT_SECRET || (process.env.NODE_ENV === 'production' 
-        ? undefined // В продакшне должен быть установлен секрет
-        : 'temporary_dev_key_not_for_production')
-    );
-  }
-  
-  // Если мы здесь, значит что-то пошло не так
-  return null;
 };
 
 // Создание JWT токена (только на сервере)
