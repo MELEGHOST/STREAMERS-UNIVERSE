@@ -1,9 +1,7 @@
 import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
-import { PrismaClient } from '@prisma/client';
+import supabase from '@/lib/supabase';
 import { verifyToken } from '@/lib/auth';
-
-const prisma = new PrismaClient();
 
 // Временное хранилище данных (в реальном приложении будет база данных)
 let tierlists = [];
@@ -40,24 +38,23 @@ function isStreamer(userId) {
 // GET - получение тирлистов
 export async function GET(request) {
   try {
-    // Получаем userId из параметров запроса
-    const { searchParams } = new URL(request.url);
-    const userId = searchParams.get('userId');
-    
-    if (!userId) {
+    const { data: tierlists, error } = await supabase
+      .from('tierlists')
+      .select('*');
+      
+    if (error) {
+      console.error('Error fetching tierlists:', error);
       return NextResponse.json(
-        { error: 'Отсутствует userId' },
-        { status: 400 }
+        { error: 'Failed to fetch tierlists' },
+        { status: 500 }
       );
     }
     
-    // Здесь должна быть логика получения тирлистов из базы данных
-    // Пока возвращаем пустой массив
-    return NextResponse.json([]);
+    return NextResponse.json(tierlists);
   } catch (error) {
-    console.error('Ошибка при получении тирлистов:', error);
+    console.error('Error in tierlists route:', error);
     return NextResponse.json(
-      { error: 'Внутренняя ошибка сервера' },
+      { error: 'Internal server error' },
       { status: 500 }
     );
   }
@@ -66,27 +63,26 @@ export async function GET(request) {
 // POST - создание нового тирлиста
 export async function POST(request) {
   try {
-    // Получаем данные из тела запроса
     const body = await request.json();
-    const { userId, tierlist } = body;
     
-    if (!userId || !tierlist) {
+    const { data: tierlist, error } = await supabase
+      .from('tierlists')
+      .insert([body])
+      .select();
+      
+    if (error) {
+      console.error('Error creating tierlist:', error);
       return NextResponse.json(
-        { error: 'Отсутствуют необходимые данные' },
-        { status: 400 }
+        { error: 'Failed to create tierlist' },
+        { status: 500 }
       );
     }
     
-    // Здесь должна быть логика сохранения тирлиста в базе данных
-    // Пока просто возвращаем успешный ответ
-    return NextResponse.json({
-      success: true,
-      message: 'Тирлист успешно сохранен'
-    });
+    return NextResponse.json(tierlist[0]);
   } catch (error) {
-    console.error('Ошибка при сохранении тирлиста:', error);
+    console.error('Error in tierlists route:', error);
     return NextResponse.json(
-      { error: 'Внутренняя ошибка сервера' },
+      { error: 'Internal server error' },
       { status: 500 }
     );
   }

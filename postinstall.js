@@ -2,9 +2,8 @@ const { execSync } = require('child_process');
 
 try {
   console.log('Проверка зависимостей...');
-  console.log('Используется Supabase, пропускаем генерацию Prisma...');
   
-  // Выполним дополнительные проверки
+  // Проверяем установку Supabase
   const hasSupabase = execSync('npm list @supabase/supabase-js || echo "not installed"').toString();
   if (hasSupabase.includes('not installed')) {
     console.log('Установка Supabase...');
