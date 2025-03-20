@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { cookies } from 'next/headers';
+import crypto from 'crypto';
 
 // Функция для генерации случайной строки
 function generateRandomString(length) {
@@ -23,7 +23,12 @@ export async function GET() {
     const clientId = process.env.TWITCH_CLIENT_ID;
     const redirectUri = process.env.TWITCH_REDIRECT_URI;
     
+    console.log('Твич авторизация инициирована');
+    console.log('Клиент ID:', clientId?.substring(0, 5) + '...');
+    console.log('Redirect URI:', redirectUri);
+    
     if (!clientId || !redirectUri) {
+      console.error('Отсутствуют настройки Twitch API');
       return NextResponse.json(
         { error: 'Отсутствуют настройки Twitch API' },
         { status: 500 }
@@ -45,8 +50,12 @@ export async function GET() {
     authUrl.searchParams.append('force_verify', 'true');
     
     // Генерируем случайное состояние для защиты от CSRF
-    const state = Math.random().toString(36).substring(2, 15);
+    // Используем более надежный метод генерации состояния
+    const state = crypto.randomBytes(16).toString('base64url');
     authUrl.searchParams.append('state', state);
+    
+    // Логируем полный URL авторизации
+    console.log('Авторизационный URL:', authUrl.toString());
     
     // Перенаправляем пользователя на страницу авторизации Twitch
     return NextResponse.redirect(authUrl.toString());

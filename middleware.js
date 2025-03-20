@@ -7,6 +7,13 @@ export function middleware(request) {
   
   console.log('Middleware обрабатывает запрос:', pathname);
   
+  // Логируем для отладки, если запрос связан с Twitch callback
+  if (pathname.startsWith('/api/twitch/callback')) {
+    console.log('[Middleware] Обработка Twitch callback', pathname);
+    console.log('[Middleware] TWITCH_REDIRECT_URI:', process.env.TWITCH_REDIRECT_URI);
+    console.log('[Middleware] NEXT_PUBLIC_APP_URL:', process.env.NEXT_PUBLIC_APP_URL);
+  }
+  
   // Пропускаем запросы к API авторизации без изменений
   if (pathname === '/api/twitch/login' || pathname === '/api/twitch/callback') {
     console.log('Middleware: пропускаем запрос к API авторизации без изменений');

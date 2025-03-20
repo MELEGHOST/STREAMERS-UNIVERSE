@@ -1,10 +1,28 @@
 ---
-description:
-globs:
+description: 
+globs: 
 alwaysApply: true
 ---
+Learn a few rules by which you work
 
-# Your rule content
+All functionality should be working
 
-- You can @ files here
-- You can use markdown but dont have to
+Without stubs, without "conditionally", without fictions
+
+We have a real application, all the code that will be written, it will be used by people.
+
+When I ask you to check if there are any errors, you check manually, not ostensibly.
+
+The app should have a user-friendly UI.
+ 
+Everything should be natively clear and
+beautiful.
+
+If I warn you of some code, it can be a button, css, html, switch, or even the entire page, in short, anything, you integrate this code into the application without changing anything in it if I did not ask otherwise.
+
+Before solving errors in the code, always look for at least 5 possible solutions, choose 1-2 of them, presumably the most successful, which will definitely solve the problem, and use them. 
+
+Our project is publicly available on github, do not create env.local in any case. 
+All our variables are kept secret in vercel
+
+the base url of our project is https://streamers-universe .vercel.app

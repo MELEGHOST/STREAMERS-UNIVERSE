@@ -14,9 +14,30 @@ export async function GET(request) {
     const error = searchParams.get('error');
     const errorDescription = searchParams.get('error_description');
     
+    // Получаем настройки Twitch API из переменных окружения
+    const clientId = process.env.TWITCH_CLIENT_ID;
+    const clientSecret = process.env.TWITCH_CLIENT_SECRET;
+    const redirectUri = process.env.TWITCH_REDIRECT_URI;
+    
+    // Логируем для отладки
+    console.log('Twitch callback received:');
+    console.log('Current URL:', request.url);
+    console.log('Configured redirect URI:', redirectUri);
+    
     // Проверяем наличие ошибок
     if (error) {
       console.error(`Ошибка авторизации Twitch: ${error} - ${errorDescription}`);
+      
+      // Ошибка несоответствия URI
+      if (error === 'redirect_mismatch') {
+        // Используем актуальный URL запроса для определения правильного redirectUri
+        const requestUrl = new URL(request.url);
+        const actualRedirectUri = `${requestUrl.protocol}//${requestUrl.host}${requestUrl.pathname}`;
+        console.error(`Несоответствие redirectUri. Настроено: ${redirectUri}, Фактический: ${actualRedirectUri}`);
+        
+        return NextResponse.redirect(`${process.env.NEXT_PUBLIC_APP_URL}/auth?error=redirect_mismatch&configured=${encodeURIComponent(redirectUri)}&actual=${encodeURIComponent(actualRedirectUri)}`);
+      }
+      
       return NextResponse.redirect(`${process.env.NEXT_PUBLIC_APP_URL}/auth?error=${error}`);
     }
     
@@ -25,11 +46,6 @@ export async function GET(request) {
       console.error('Отсутствует код авторизации в ответе Twitch');
       return NextResponse.redirect(`${process.env.NEXT_PUBLIC_APP_URL}/auth?error=no_code`);
     }
-    
-    // Получаем настройки Twitch API из переменных окружения
-    const clientId = process.env.TWITCH_CLIENT_ID;
-    const clientSecret = process.env.TWITCH_CLIENT_SECRET;
-    const redirectUri = process.env.TWITCH_REDIRECT_URI;
     
     if (!clientId || !clientSecret || !redirectUri) {
       console.error('Отсутствуют настройки Twitch API');
@@ -52,7 +68,7 @@ export async function GET(request) {
     });
     
     if (!tokenResponse.ok) {
-      const errorData = await tokenResponse.json();
+      const errorData = await tokenResponse.json().catch(() => ({}));
       console.error('Ошибка при получении токена доступа:', errorData);
       return NextResponse.redirect(`${process.env.NEXT_PUBLIC_APP_URL}/auth?error=token_error`);
     }
