@@ -2,23 +2,108 @@
 
 import React, { useState, useEffect } from 'react';
 import { signIn, useSession } from 'next-auth/react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import Cookies from 'js-cookie';
 import { DataStorage } from '../utils/dataStorage';
 import styles from './auth.module.css';
+
+// Компонент для отображения диагностической информации Twitch
+function TwitchErrorInfo({ errorType, errorDetails }) {
+  if (!errorType) return null;
+  
+  return (
+    <div className={styles.errorInfo}>
+      <h2>Информация об ошибке авторизации</h2>
+      
+      {errorType === 'redirect_mismatch' && (
+        <div>
+          <p>Обнаружено несоответствие URI редиректа:</p>
+          <div className={styles.codeBlock}>
+            <p><strong>Настроенный:</strong> {errorDetails.configured}</p>
+            <p><strong>Фактический:</strong> {errorDetails.actual}</p>
+          </div>
+          <p>Для исправления ошибки выполните следующие действия:</p>
+          <ol>
+            <li>Перейдите в <a href="https://dev.twitch.tv/console/apps" target="_blank" rel="noreferrer">консоль разработчика Twitch</a></li>
+            <li>Откройте настройки вашего приложения</li>
+            <li>В поле "OAuth Redirect URLs" убедитесь, что указан следующий URL:</li>
+            <div className={styles.codeBlock}>
+              <code>{errorDetails.actual}</code>
+            </div>
+            <li>Сохраните изменения и попробуйте войти снова</li>
+          </ol>
+        </div>
+      )}
+      
+      {errorType === 'token_error' && (
+        <div>
+          <p>Ошибка при получении токена:</p>
+          <div className={styles.codeBlock}>
+            <p><strong>Статус:</strong> {errorDetails.status}</p>
+            {errorDetails.message && <p><strong>Сообщение:</strong> {errorDetails.message}</p>}
+          </div>
+        </div>
+      )}
+      
+      {errorType === 'config_error' && (
+        <div>
+          <p>Ошибка конфигурации Twitch API:</p>
+          <p>Отсутствуют необходимые переменные окружения. Проверьте настройки приложения.</p>
+        </div>
+      )}
+      
+      {errorType === 'user_error' && (
+        <div>
+          <p>Ошибка при получении данных пользователя из Twitch API.</p>
+        </div>
+      )}
+      
+      {(errorType !== 'redirect_mismatch' && 
+        errorType !== 'token_error' && 
+        errorType !== 'config_error' && 
+        errorType !== 'user_error') && (
+        <div>
+          <p>Тип ошибки: {errorType}</p>
+          {errorDetails.message && <p>Сообщение: {errorDetails.message}</p>}
+        </div>
+      )}
+    </div>
+  );
+}
 
 export default function AuthPage() {
   const { data: session, status } = useSession();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const router = useRouter();
+  const searchParams = useSearchParams();
+  
+  // Получаем параметры из URL для отображения информации об ошибке
+  const errorType = searchParams.get('error');
+  const errorMessage = searchParams.get('message');
+  const configuredRedirect = searchParams.get('configured');
+  const actualRedirect = searchParams.get('actual');
+  const errorStatus = searchParams.get('status');
+  
+  // Формируем детали ошибки для отображения
+  const errorDetails = {
+    configured: configuredRedirect,
+    actual: actualRedirect,
+    message: errorMessage,
+    status: errorStatus
+  };
 
   // Обработка перенаправления после успешной авторизации
   useEffect(() => {
     if (status === 'authenticated' && session) {
       handleSuccessfulAuth();
     }
-  }, [session, status]);
+    
+    // Если есть ошибка в URL, устанавливаем её
+    if (errorType) {
+      setError(`Ошибка авторизации: ${errorType}`);
+    }
+  }, [session, status, errorType]);
 
   // Функция для обработки успешной авторизации
   const handleSuccessfulAuth = async () => {
@@ -77,7 +162,24 @@ export default function AuthPage() {
         localStorage.setItem('auth_redirect', currentPath);
       }
       
-      await signIn('twitch', { callbackUrl: '/auth' });
+      // Запрашиваем авторизацию через API вместо nextauth
+      const response = await fetch('/api/twitch/login');
+      if (response.ok) {
+        // Если получен редирект, выполняем перенаправление
+        const data = await response.json().catch(() => null);
+        
+        if (data && data.redirectUrl) {
+          window.location.href = data.redirectUrl;
+        } else if (response.redirected) {
+          window.location.href = response.url;
+        } else {
+          // Запасной вариант - используем nextauth
+          await signIn('twitch', { callbackUrl: '/auth' });
+        }
+      } else {
+        // Если API возвращает ошибку, используем nextauth как запасной вариант
+        await signIn('twitch', { callbackUrl: '/auth' });
+      }
     } catch (error) {
       console.error('Ошибка при входе через Twitch:', error);
       setError('Произошла ошибка при входе через Twitch. Пожалуйста, попробуйте снова.');
@@ -109,6 +211,9 @@ export default function AuthPage() {
         <p>Войдите с помощью вашего аккаунта Twitch для доступа к функциям платформы</p>
         
         {error && <div className={styles.error}>{error}</div>}
+        
+        {/* Отображаем информацию об ошибке, если она есть */}
+        {errorType && <TwitchErrorInfo errorType={errorType} errorDetails={errorDetails} />}
         
         <button 
           className={styles.twitchButton}

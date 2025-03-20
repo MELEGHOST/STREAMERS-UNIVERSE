@@ -17,20 +17,30 @@ function generateRandomString(length) {
 /**
  * Обработчик GET запроса для инициирования авторизации через Twitch
  */
-export async function GET() {
+export async function GET(request) {
   try {
     // Получаем настройки Twitch API из переменных окружения
     const clientId = process.env.TWITCH_CLIENT_ID;
-    const redirectUri = process.env.TWITCH_REDIRECT_URI;
+    let redirectUri = process.env.TWITCH_REDIRECT_URI;
     
-    console.log('Твич авторизация инициирована');
-    console.log('Клиент ID:', clientId?.substring(0, 5) + '...');
+    // Проверяем и фиксируем значение redirectUri если оно отсутствует
+    if (!redirectUri) {
+      const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://streamers-universe.vercel.app';
+      redirectUri = `${baseUrl}/api/twitch/callback`;
+      console.error('Отсутствует TWITCH_REDIRECT_URI, используем значение по умолчанию:', redirectUri);
+    }
+    
+    console.log('=== Детали авторизации Twitch ===');
+    console.log('Клиент ID:', clientId ? `${clientId.substring(0, 5)}...` : 'отсутствует');
     console.log('Redirect URI:', redirectUri);
+    console.log('NODE_ENV:', process.env.NODE_ENV);
+    console.log('BASE URL:', process.env.NEXT_PUBLIC_APP_URL);
+    console.log('Текущий URL запроса:', request.url);
     
-    if (!clientId || !redirectUri) {
-      console.error('Отсутствуют настройки Twitch API');
+    if (!clientId) {
+      console.error('Отсутствует TWITCH_CLIENT_ID');
       return NextResponse.json(
-        { error: 'Отсутствуют настройки Twitch API' },
+        { error: 'Отсутствуют настройки Twitch API (TWITCH_CLIENT_ID)' },
         { status: 500 }
       );
     }
@@ -55,14 +65,14 @@ export async function GET() {
     authUrl.searchParams.append('state', state);
     
     // Логируем полный URL авторизации
-    console.log('Авторизационный URL:', authUrl.toString());
+    console.log('Авторизационный URL (полный):', authUrl.toString());
     
     // Перенаправляем пользователя на страницу авторизации Twitch
     return NextResponse.redirect(authUrl.toString());
   } catch (error) {
     console.error('Ошибка при инициировании авторизации через Twitch:', error);
     return NextResponse.json(
-      { error: 'Произошла ошибка при инициировании авторизации' },
+      { error: 'Произошла ошибка при инициировании авторизации', details: error.message },
       { status: 500 }
     );
   }

@@ -666,4 +666,60 @@
   background-color: #6c6c6c;
   cursor: not-allowed;
   transform: none;
+}
+
+.errorInfo {
+  margin-top: 20px;
+  margin-bottom: 20px;
+  padding: 15px;
+  background-color: rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  width: 100%;
+  max-width: 600px;
+  color: #fff;
+  text-align: left;
+}
+
+.errorInfo h2 {
+  font-size: 1.2rem;
+  margin-bottom: 15px;
+  color: #f0f0f0;
+}
+
+.errorInfo p {
+  margin-bottom: 10px;
+  line-height: 1.5;
+}
+
+.errorInfo ol {
+  margin-left: 20px;
+  margin-bottom: 15px;
+}
+
+.errorInfo li {
+  margin-bottom: 8px;
+}
+
+.errorInfo a {
+  color: #bf94ff;
+  text-decoration: none;
+}
+
+.errorInfo a:hover {
+  text-decoration: underline;
+}
+
+.codeBlock {
+  background-color: rgba(0, 0, 0, 0.3);
+  padding: 10px;
+  border-radius: 4px;
+  margin: 10px 0;
+  overflow-x: auto;
+  font-family: monospace;
+  white-space: pre-wrap;
+  word-break: break-all;
+}
+
+.codeBlock code {
+  color: #bf94ff;
 } 
