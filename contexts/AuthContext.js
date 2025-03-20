@@ -42,7 +42,7 @@ export function AuthProvider({ children }) {
   }, []);
   
   // Функция для входа пользователя
-  const login = useCallback((userData, token) => {
+  const login = useCallback(async (userData, token) => {
     try {
       if (!userData || !token) {
         console.error('Ошибка при входе: отсутствуют данные пользователя или токен');
@@ -50,16 +50,33 @@ export function AuthProvider({ children }) {
       }
       
       // Проверяем валидность токена перед сохранением
-      fetch('https://id.twitch.tv/oauth2/validate', {
-        headers: {
-          'Authorization': `OAuth ${token}`
-        }
-      })
-      .then(response => {
+      try {
+        const response = await fetch('https://id.twitch.tv/oauth2/validate', {
+          method: 'GET',
+          headers: {
+            'Authorization': `OAuth ${token}`
+          }
+        });
+        
         if (!response.ok) {
-          throw new Error('Токен недействителен');
+          const errorText = await response.text();
+          console.error('Токен недействителен:', errorText);
+          return false;
         }
         
+        // Получаем данные от Twitch для проверки
+        const twitchData = await response.json();
+        
+        // Проверяем соответствие ID пользователя
+        if (twitchData.user_id && userData.id && twitchData.user_id !== userData.id) {
+          console.error('Несоответствие ID пользователя:', {
+            tokenUserId: twitchData.user_id,
+            providedUserId: userData.id
+          });
+          return false;
+        }
+        
+        // Токен действителен, сохраняем данные
         // Сохраняем токен в куки
         Cookies.set('twitch_access_token', token, { 
           expires: 7, 
@@ -92,12 +109,12 @@ export function AuthProvider({ children }) {
         setUserLogin(userData.login || userData.display_name);
         setUserAvatar(userData.profile_image_url);
         
+        console.log('Вход выполнен успешно для пользователя:', userData.id);
         return true;
-      })
-      .catch(error => {
+      } catch (error) {
         console.error('Ошибка при проверке токена:', error);
         return false;
-      });
+      }
     } catch (error) {
       console.error('Ошибка при входе:', error);
       return false;
@@ -135,10 +152,13 @@ export function AuthProvider({ children }) {
   
   // Проверяем авторизацию при загрузке
   useEffect(() => {
-    const initializeAuth = () => {
+    const initializeAuth = async () => {
       console.log('Инициализация AuthContext');
       
       try {
+        // Сначала устанавливаем, что инициализация началась
+        setIsInitialized(false);
+        
         // Проверяем все возможные места хранения токена
         const accessToken = localStorage.getItem('cookie_twitch_access_token') || 
                           localStorage.getItem('twitch_token') || 
@@ -174,68 +194,75 @@ export function AuthProvider({ children }) {
         
         if (!userData || !userData.id) {
           console.warn('Данные пользователя некорректны');
+          
+          // Очищаем некорректные данные
+          localStorage.removeItem('twitch_user');
+          localStorage.removeItem('cookie_twitch_user');
+          localStorage.removeItem('cookie_twitch_access_token');
+          Cookies.remove('twitch_user', { path: '/' });
+          Cookies.remove('twitch_access_token', { path: '/' });
+          
           setIsAuthenticated(false);
           setIsInitialized(true);
           return;
         }
         
-        // Проверяем валидность токена через API
-        fetch('/api/auth/verify', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${accessToken}`
-          },
-          body: JSON.stringify({ user: userData })
-        })
-        .then(response => {
-          if (!response.ok) {
-            console.warn(`Ошибка при проверке токена: HTTP статус ${response.status}`);
-            throw new Error(`HTTP ошибка: ${response.status}`);
-          }
-          return response.json();
-        })
-        .then(data => {
-          if (data.valid) {
-            // Устанавливаем состояние авторизации
-            setIsAuthenticated(true);
-            setUserId(userData.id);
-            setUserLogin(userData.login || userData.display_name);
-            setUserAvatar(userData.profile_image_url);
+        // Проверяем токен напрямую через Twitch API
+        try {
+          console.log('Проверяем токен напрямую через Twitch API');
+          
+          const twitchResponse = await fetch('https://id.twitch.tv/oauth2/validate', {
+            method: 'GET',
+            headers: {
+              'Authorization': `OAuth ${accessToken}`
+            }
+          });
+          
+          if (!twitchResponse.ok) {
+            console.warn('Twitch API отклонил токен:', await twitchResponse.text());
             
-            // Обновляем данные в localStorage
-            localStorage.setItem('is_authenticated', 'true');
-            localStorage.setItem('twitch_user', JSON.stringify(userData));
-            localStorage.setItem('cookie_twitch_access_token', accessToken);
-            
-            console.log('AuthContext: пользователь успешно аутентифицирован:', userData.id);
-          } else {
-            console.warn('Токен недействителен:', data.error);
-            setIsAuthenticated(false);
-            // Очищаем недействительные данные
+            // Токен недействителен, очищаем все данные
             localStorage.removeItem('twitch_user');
+            localStorage.removeItem('cookie_twitch_user');
             localStorage.removeItem('cookie_twitch_access_token');
             localStorage.removeItem('is_authenticated');
-            Cookies.remove('twitch_access_token');
-            Cookies.remove('twitch_user');
+            Cookies.remove('twitch_user', { path: '/' });
+            Cookies.remove('twitch_access_token', { path: '/' });
+            
+            setIsAuthenticated(false);
+            setIsInitialized(true);
+            return;
           }
-        })
-        .catch(error => {
-          console.error('Ошибка при проверке токена:', error);
-          setIsAuthenticated(false);
-          // Очищаем данные при ошибке
-          localStorage.removeItem('twitch_user');
-          localStorage.removeItem('cookie_twitch_access_token');
-          localStorage.removeItem('is_authenticated');
-          Cookies.remove('twitch_access_token');
-          Cookies.remove('twitch_user');
-        })
-        .finally(() => {
-          setIsInitialized(true);
-        });
+          
+          // Токен действителен, устанавливаем состояние авторизации
+          console.log('Токен подтвержден Twitch API');
+          setIsAuthenticated(true);
+          setUserId(userData.id);
+          setUserLogin(userData.login || userData.display_name);
+          setUserAvatar(userData.profile_image_url);
+            
+          // Обновляем данные в localStorage
+          localStorage.setItem('is_authenticated', 'true');
+          localStorage.setItem('twitch_user', JSON.stringify(userData));
+          localStorage.setItem('cookie_twitch_access_token', accessToken);
+              
+          console.log('AuthContext: пользователь успешно аутентифицирован:', userData.id);
+        } catch (twitchError) {
+          console.error('Ошибка при прямой проверке через Twitch API:', twitchError);
+          
+          // В случае ошибки сети считаем токен условно действительным
+          setIsAuthenticated(true);
+          setUserId(userData.id);
+          setUserLogin(userData.login || userData.display_name);
+          setUserAvatar(userData.profile_image_url);
+          
+          console.log('AuthContext: пользователь условно аутентифицирован из-за ошибки сети');
+        }
       } catch (error) {
         console.error('Ошибка при инициализации AuthContext:', error);
         setIsAuthenticated(false);
+      } finally {
+        // В любом случае отмечаем, что инициализация завершена
         setIsInitialized(true);
       }
     };

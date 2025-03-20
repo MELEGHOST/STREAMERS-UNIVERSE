@@ -147,6 +147,8 @@ export default function Profile() {
 
   // Загрузка данных при монтировании компонента
   useEffect(() => {
+    let isMounted = true; // Для предотвращения обновления unmounted компонента
+    
     try {
       console.log('Профиль: начало инициализации', { 
         isInitialized, 
@@ -162,6 +164,8 @@ export default function Profile() {
       
       // Функция для загрузки данных профиля
       const loadProfileData = async () => {
+        if (!isMounted) return;
+        
         try {
           setLoading(true);
           setError(null);
@@ -172,7 +176,9 @@ export default function Profile() {
             // Очищаем потенциально некорректные данные
             try {
               localStorage.removeItem('is_authenticated');
+              localStorage.removeItem('profile_data');
               Cookies.remove('twitch_access_token', { path: '/' });
+              Cookies.remove('twitch_user', { path: '/' });
             } catch (e) {
               console.warn('Ошибка при очистке данных аутентификации:', e);
             }
@@ -323,6 +329,24 @@ export default function Profile() {
       setError('Произошла критическая ошибка. Пожалуйста, обновите страницу.');
       setLoading(false);
     }
+    
+    // Дополнительная проверка на случай, если авторизация исчезла после загрузки данных
+    const authCheckInterval = setInterval(() => {
+      if (!isInitialized) return;
+      
+      if (!isAuthenticated && profileData) {
+        console.log('Обнаружена потеря авторизации после загрузки профиля, перенаправляем');
+        localStorage.setItem('auth_redirect', '/profile');
+        router.push('/auth');
+        clearInterval(authCheckInterval);
+      }
+    }, 5000); // Проверяем каждые 5 секунд
+    
+    // Очистка при размонтировании компонента
+    return () => {
+      isMounted = false;
+      clearInterval(authCheckInterval);
+    };
   }, [router, isAuthenticated, userId, userLogin, userAvatar, isInitialized]);
 
   // Функция для сохранения настроек видимости статистики
