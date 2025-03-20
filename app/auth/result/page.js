@@ -5,6 +5,8 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '../../../contexts/AuthContext';
 import styles from '../auth.module.css';
 import clientStorage from '../../utils/clientStorage';
+import Cookies from 'js-cookie';
+import { DataStorage } from '../../utils/dataStorage';
 
 // Создаем отдельный компонент для использования useSearchParams
 function AuthResultContent() {
@@ -17,42 +19,32 @@ function AuthResultContent() {
   const redirectTimeoutRef = useRef(null);
   const hasRedirectedRef = useRef(false);
 
+  // Функция для перенаправления в меню
+  const redirectToMenu = () => {
+    if (!hasRedirectedRef.current) {
+      hasRedirectedRef.current = true;
+      router.push('/menu');
+    }
+  };
+
   useEffect(() => {
     // Очищаем потенциальные флаги конфликтов
+    const clientStorage = DataStorage.getInstance();
     clientStorage.removeItem('menu_to_auth_redirect');
     
-    // Функция для перенаправления пользователя
-    const redirectToMenu = () => {
-      if (!hasRedirectedRef.current) {
-        hasRedirectedRef.current = true;
-        console.log('Перенаправляем пользователя в меню после успешной авторизации');
-        
-        // Сначала проверяем, что данные точно есть в localStorage
-        const userData = clientStorage.getItem('twitch_user') || clientStorage.getItem('cookie_twitch_user');
-        if (!userData) {
-          console.error('Нет данных пользователя в хранилище перед редиректом в меню!');
-          setStatus('error');
-          setMessage('Не удалось получить данные пользователя. Пожалуйста, попробуйте войти снова.');
-          
-          // Перенаправляем на страницу авторизации через 2 секунды
-          redirectTimeoutRef.current = setTimeout(() => {
-            router.push('/auth');
-          }, 2000);
-          return;
-        }
-        
-        // Устанавливаем флаг перенаправления
-        clientStorage.setItem('auth_to_menu_redirect', 'true');
-        
-        // Перенаправляем в меню
-        router.push('/menu');
-      }
-    };
-    
-    // Обрабатываем параметры URL
+    // Получаем параметры URL
     const error = searchParams.get('error');
-    const success = searchParams.get('success');
-    const errorMessage = searchParams.get('message');
+    const errorMessage = searchParams.get('message') || 'Произошла ошибка при авторизации';
+    const code = searchParams.get('code');
+    const accessToken = searchParams.get('access_token');
+    const twitchUserData = searchParams.get('userData');
+    
+    console.log('Страница результата авторизации:', { 
+      error: !!error, 
+      hasCode: !!code, 
+      hasToken: !!accessToken,
+      hasUserData: !!twitchUserData 
+    });
     
     if (error) {
       // Если есть ошибка
@@ -71,28 +63,37 @@ function AuthResultContent() {
           router.push('/auth');
         }
       }, 2000);
-    } else if (success === 'true') {
-      // Если авторизация успешна
-      console.log('Успешная авторизация через Twitch');
+    } else if (code || accessToken || twitchUserData) {
+      // Если есть код авторизации, токен доступа или данные пользователя, обрабатываем их
       setStatus('success');
-      setMessage('Авторизация успешно выполнена! Перенаправляем в меню...');
+      setMessage('Авторизация успешна! Загружаем данные...');
       
-      // Получаем данные пользователя из localStorage
-      const userData = clientStorage.getItem('twitch_user') || clientStorage.getItem('cookie_twitch_user');
-      const accessToken = clientStorage.getItem('cookie_twitch_access_token') || clientStorage.getItem('twitch_token');
-      
-      if (userData && accessToken) {
+      // Проверяем есть ли токен и данные пользователя
+      if (accessToken && twitchUserData) {
         try {
-          // Парсим данные и обновляем контекст авторизации
-          const parsedUserData = typeof userData === 'string' ? JSON.parse(userData) : userData;
-          login(parsedUserData, accessToken);
+          // Парсим данные пользователя из URL
+          const userData = JSON.parse(decodeURIComponent(twitchUserData));
           
-          // Дополнительно убеждаемся, что данные сохранены в правильных местах
-          if (!clientStorage.getItem('twitch_user')) {
-            clientStorage.setItem('twitch_user', typeof userData === 'string' ? userData : JSON.stringify(userData));
-          }
-          if (!clientStorage.getItem('cookie_twitch_user')) {
-            clientStorage.setItem('cookie_twitch_user', typeof userData === 'string' ? userData : JSON.stringify(userData));
+          // Если есть токен и данные пользователя, сохраняем их
+          if (userData && userData.id) {
+            console.log('Сохраняем данные пользователя и токен');
+            
+            // Сохраняем токен в куки
+            Cookies.set('twitch_access_token', accessToken, { 
+              expires: 7, // 7 дней
+              secure: window.location.protocol === 'https:', 
+              sameSite: 'lax'
+            });
+            
+            // Сохраняем данные пользователя
+            clientStorage.setItem('twitch_user', JSON.stringify(userData));
+            
+            console.log('Выполняем вход через useAuth');
+            login(userData, accessToken);
+            
+            // Перенаправляем в меню через 0.5 секунды
+            redirectTimeoutRef.current = setTimeout(redirectToMenu, 500);
+            return;
           }
         } catch (error) {
           console.error('Ошибка при обработке данных пользователя:', error);
@@ -109,29 +110,99 @@ function AuthResultContent() {
         }
       } else {
         console.error('Отсутствуют данные пользователя или токен доступа');
-        setStatus('error');
-        setMessage('Не удалось получить данные пользователя или токен доступа. Пожалуйста, попробуйте войти снова.');
         
-        // Перенаправляем на страницу авторизации через 2 секунды
-        redirectTimeoutRef.current = setTimeout(() => {
-          router.push('/auth');
-        }, 2000);
-        return;
+        // Проверяем, есть ли код авторизации от Twitch и обрабатываем его
+        if (code) {
+          try {
+            setMessage('Получаем токен доступа...');
+            
+            // Обмениваем код на токен на стороне клиента
+            fetch(`/api/auth/twitch/token?code=${code}`)
+              .then(response => {
+                if (!response.ok) {
+                  throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                return response.json();
+              })
+              .then(data => {
+                if (data.accessToken && data.userData) {
+                  // Сохраняем токен и данные пользователя
+                  Cookies.set('twitch_access_token', data.accessToken, { 
+                    expires: 7, 
+                    secure: window.location.protocol === 'https:', 
+                    sameSite: 'lax'
+                  });
+                  
+                  clientStorage.setItem('twitch_user', JSON.stringify(data.userData));
+                  
+                  // Авторизуем пользователя
+                  login(data.userData, data.accessToken);
+                  setMessage('Авторизация успешна! Перенаправляем в меню...');
+                  
+                  // Перенаправляем в меню
+                  redirectTimeoutRef.current = setTimeout(redirectToMenu, 500);
+                } else {
+                  throw new Error('Отсутствуют данные токена или пользователя в ответе API');
+                }
+              })
+              .catch(error => {
+                console.error('Ошибка при обработке кода авторизации:', error);
+                setStatus('error');
+                setMessage('Ошибка при получении токена доступа. Пожалуйста, попробуйте снова.');
+                
+                // Перенаправляем на страницу авторизации через 2 секунды
+                redirectTimeoutRef.current = setTimeout(() => {
+                  router.push('/auth');
+                }, 2000);
+              });
+            
+            return;
+          } catch (error) {
+            console.error('Ошибка при обработке кода авторизации:', error);
+            setStatus('error');
+            setMessage('Ошибка при обработке кода авторизации.');
+            
+            // Перенаправляем на страницу авторизации через 2 секунды
+            redirectTimeoutRef.current = setTimeout(() => {
+              router.push('/auth');
+            }, 2000);
+            return;
+          }
+        } else {
+          setStatus('error');
+          setMessage('Не удалось получить данные пользователя или токен доступа. Пожалуйста, попробуйте войти снова.');
+          
+          // Перенаправляем на страницу авторизации через 2 секунды
+          redirectTimeoutRef.current = setTimeout(() => {
+            router.push('/auth');
+          }, 2000);
+          return;
+        }
       }
       
-      // Перенаправляем в меню через 0.8 секунды - сделаем быстрее
+      // Запасной путь редиректа, если не сработал ни один из вышеперечисленных сценариев
       redirectTimeoutRef.current = setTimeout(redirectToMenu, 800);
     } else {
       // Если нет явных параметров, проверяем данные аутентификации
       const userData = clientStorage.getItem('twitch_user') || clientStorage.getItem('cookie_twitch_user');
+      const accessToken = Cookies.get('twitch_access_token') || clientStorage.getItem('cookie_twitch_access_token');
       
-      if (userData) {
-        // Если данные есть, считаем что авторизация успешна
+      if (userData && accessToken) {
+        // Если данные и токен есть, считаем что авторизация успешна
         setStatus('success');
-        setMessage('Авторизация успешно выполнена! Перенаправляем в меню...');
+        setMessage('Авторизация успешна! Перенаправляем в меню...');
         
-        // Перенаправляем в меню через 1.5 секунды
-        redirectTimeoutRef.current = setTimeout(redirectToMenu, 1500);
+        // Пытаемся выполнить вход через useAuth с текущими данными
+        try {
+          const parsedUserData = typeof userData === 'string' ? JSON.parse(userData) : userData;
+          login(parsedUserData, accessToken);
+        } catch (error) {
+          console.error('Ошибка при обработке существующих данных пользователя:', error);
+          // Продолжаем выполнение даже при ошибке
+        }
+        
+        // Перенаправляем в меню через 1 секунду
+        redirectTimeoutRef.current = setTimeout(redirectToMenu, 1000);
       } else {
         // Иначе считаем что произошла ошибка
         setStatus('error');
@@ -141,13 +212,13 @@ function AuthResultContent() {
         clientStorage.removeItem('auth_to_menu_redirect');
         clientStorage.removeItem('menu_to_auth_redirect');
         
-        // Перенаправляем на страницу авторизации через 3 секунды
+        // Перенаправляем на страницу авторизации через 2 секунды
         redirectTimeoutRef.current = setTimeout(() => {
           if (!hasRedirectedRef.current) {
             hasRedirectedRef.current = true;
             router.push('/auth');
           }
-        }, 3000);
+        }, 2000);
       }
     }
     
