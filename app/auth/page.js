@@ -162,24 +162,9 @@ export default function AuthPage() {
         localStorage.setItem('auth_redirect', currentPath);
       }
       
-      // Запрашиваем авторизацию через API вместо nextauth
-      const response = await fetch('/api/twitch/login');
-      if (response.ok) {
-        // Если получен редирект, выполняем перенаправление
-        const data = await response.json().catch(() => null);
-        
-        if (data && data.redirectUrl) {
-          window.location.href = data.redirectUrl;
-        } else if (response.redirected) {
-          window.location.href = response.url;
-        } else {
-          // Запасной вариант - используем nextauth
-          await signIn('twitch', { callbackUrl: '/auth' });
-        }
-      } else {
-        // Если API возвращает ошибку, используем nextauth как запасной вариант
-        await signIn('twitch', { callbackUrl: '/auth' });
-      }
+      // Прямое перенаправление на API endpoint вместо fetch запроса
+      // Это позволяет избежать проблем с CORS
+      window.location.href = '/api/twitch/login';
     } catch (error) {
       console.error('Ошибка при входе через Twitch:', error);
       setError('Произошла ошибка при входе через Twitch. Пожалуйста, попробуйте снова.');

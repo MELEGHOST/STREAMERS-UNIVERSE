@@ -52,23 +52,24 @@ export async function GET(request) {
       'channel:read:subscriptions'
     ].join(' ');
     
+    // Генерируем случайное состояние для защиты от CSRF
+    // Используем более надежный и короткий метод генерации состояния
+    const state = generateRandomString(16);
+    
+    // Создаем полный URL авторизации, который будет использоваться для перенаправления
     const authUrl = new URL('https://id.twitch.tv/oauth2/authorize');
     authUrl.searchParams.append('client_id', clientId);
     authUrl.searchParams.append('redirect_uri', redirectUri);
     authUrl.searchParams.append('response_type', 'code');
     authUrl.searchParams.append('scope', scopes);
     authUrl.searchParams.append('force_verify', 'true');
-    
-    // Генерируем случайное состояние для защиты от CSRF
-    // Используем более надежный метод генерации состояния
-    const state = crypto.randomBytes(16).toString('base64url');
     authUrl.searchParams.append('state', state);
     
     // Логируем полный URL авторизации
     console.log('Авторизационный URL (полный):', authUrl.toString());
     
     // Перенаправляем пользователя на страницу авторизации Twitch
-    return NextResponse.redirect(authUrl.toString());
+    return NextResponse.redirect(authUrl);
   } catch (error) {
     console.error('Ошибка при инициировании авторизации через Twitch:', error);
     return NextResponse.json(

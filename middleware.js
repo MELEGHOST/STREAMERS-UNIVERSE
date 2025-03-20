@@ -15,9 +15,13 @@ export function middleware(request) {
   }
   
   // Пропускаем запросы к API авторизации без изменений
-  if (pathname === '/api/twitch/login' || pathname === '/api/twitch/callback') {
-    console.log('Middleware: пропускаем запрос к API авторизации без изменений');
-    return NextResponse.next();
+  if (pathname.startsWith('/api/auth') || 
+      pathname.startsWith('/api/twitch/login') || 
+      pathname.startsWith('/api/twitch/callback') || 
+      pathname.startsWith('/api/twitch/token')) {
+    // Для запросов авторизации не применяем дополнительных преобразований
+    // Это позволяет избежать проблем с CORS и авторизацией
+    return;
   }
   
   // Пропускаем запросы к меню без проверки авторизации
