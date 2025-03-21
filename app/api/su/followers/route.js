@@ -15,17 +15,15 @@ export async function GET(request) {
       }, { status: 400 });
     }
     
-    // Получаем пользователя из базы данных
-    const user = await prisma.users.findUnique({
-      where: {
-        twitchId: userId
-      },
-      select: {
-        id: true
-      }
-    });
+    // Получаем пользователя из базы данных используя Supabase
+    const { data: user, error: userError } = await prisma
+      .from('users')
+      .select('id')
+      .eq('twitchId', userId)
+      .single();
     
-    if (!user) {
+    if (userError || !user) {
+      console.error('Ошибка при поиске пользователя:', userError);
       return NextResponse.json({ 
         error: 'Пользователь не найден',
         total: 0,
@@ -34,58 +32,55 @@ export async function GET(request) {
     }
     
     // Получаем всех последователей пользователя
-    const followers = await prisma.follow.findMany({
-      where: {
-        followedId: user.id
-      },
-      include: {
-        follower: {
-          select: {
-            id: true,
-            username: true,
-            displayName: true,
-            profileImage: true,
-            twitchId: true,
-            userType: true,
-            createdAt: true
-          }
-        }
-      },
-      orderBy: {
-        createdAt: 'desc'
-      }
-    });
+    const { data: follows, error: followsError } = await prisma
+      .from('follows')
+      .select(`
+        *,
+        follower:users!follower_id(
+          id, username, displayName, profileImage, twitchId, userType, createdAt
+        )
+      `)
+      .eq('followed_id', user.id)
+      .order('created_at', { ascending: false });
+    
+    if (followsError) {
+      console.error('Ошибка при получении последователей:', followsError);
+      throw followsError;
+    }
     
     // Получаем роли последователей
-    const followerRoles = await prisma.userRole.findMany({
-      where: {
-        assignerId: user.id,
-        userId: {
-          in: followers.map(f => f.followerId)
-        }
-      }
-    });
+    const { data: followerRoles, error: rolesError } = await prisma
+      .from('userRoles')
+      .select('*')
+      .eq('assignerId', user.id)
+      .in('userId', follows.map(f => f.follower_id));
+    
+    if (rolesError) {
+      console.error('Ошибка при получении ролей:', rolesError);
+      throw rolesError;
+    }
     
     // Преобразуем данные в нужный формат
-    const formattedFollowers = followers.map(follow => {
+    const formattedFollowers = follows.map(follow => {
       // Находим роль пользователя
-      const role = followerRoles.find(r => r.userId === follow.followerId);
+      const role = followerRoles.find(r => r.userId === follow.follower_id);
+      const follower = follow.follower;
       
       return {
-        id: follow.follower.id,
-        suId: follow.follower.id,
-        twitchId: follow.follower.twitchId,
-        name: follow.follower.displayName || follow.follower.username,
-        username: follow.follower.username,
-        followedAt: follow.createdAt.toISOString(),
-        profileImageUrl: follow.follower.profileImage || '/images/default-avatar.png',
-        userType: follow.follower.userType || 'viewer',
+        id: follower.id,
+        suId: follower.id,
+        twitchId: follower.twitchId,
+        name: follower.displayName || follower.username,
+        username: follower.username,
+        followedAt: follow.created_at,
+        profileImageUrl: follower.profileImage || '/images/default-avatar.png',
+        userType: follower.userType || 'viewer',
         role: role?.roleName || null
       };
     });
     
     return NextResponse.json({
-      total: followers.length,
+      total: follows.length,
       followers: formattedFollowers
     });
   } catch (error) {

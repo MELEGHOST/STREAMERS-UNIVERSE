@@ -24,20 +24,16 @@ export async function POST(request) {
     // Получаем только первые maxIds элементов
     const limitedIds = twitchIds.slice(0, maxIds);
     
-    // Запрашиваем данные из базы
-    const registeredUsers = await prisma.users.findMany({
-      where: {
-        twitchId: {
-          in: limitedIds
-        }
-      },
-      select: {
-        id: true,
-        twitchId: true,
-        username: true,
-        userType: true
-      }
-    });
+    // Запрашиваем данные из базы с помощью Supabase
+    const { data: registeredUsers, error } = await prisma
+      .from('users')
+      .select('id, twitchId, username, userType')
+      .in('twitchId', limitedIds);
+    
+    if (error) {
+      console.error('Ошибка при запросе пользователей:', error);
+      throw error;
+    }
     
     // Формируем список ID зарегистрированных пользователей
     const registeredIds = registeredUsers.map(user => user.twitchId);

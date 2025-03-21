@@ -5,7 +5,7 @@
 import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
 import * as jwt from 'jsonwebtoken';
-import prisma from './prisma';
+import supabase from '../../lib/supabase';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
 
@@ -109,35 +109,59 @@ export const getOrCreateUser = async (twitchData: {
 }) => {
   try {
     // Ищем пользователя по Twitch ID
-    let user = await prisma.user.findUnique({
-      where: { twitchId: twitchData.id }
-    });
+    const { data: user, error } = await supabase
+      .from('users')
+      .select('*')
+      .eq('twitchId', twitchData.id)
+      .single();
+    
+    if (error && error.code !== 'PGRST116') {
+      console.error('Ошибка при поиске пользователя:', error);
+      throw error;
+    }
     
     // Если пользователь не найден, создаем нового
     if (!user) {
-      user = await prisma.user.create({
-        data: {
+      const { data: newUser, error: createError } = await supabase
+        .from('users')
+        .insert([{
           twitchId: twitchData.id,
           username: twitchData.login,
           displayName: twitchData.display_name,
           email: twitchData.email,
           avatar: twitchData.profile_image_url
-        }
-      });
+        }])
+        .select()
+        .single();
+      
+      if (createError) {
+        console.error('Ошибка при создании пользователя:', createError);
+        throw createError;
+      }
+      
+      return newUser;
     } else {
       // Обновляем данные пользователя
-      user = await prisma.user.update({
-        where: { id: user.id },
-        data: {
+      const { data: updatedUser, error: updateError } = await supabase
+        .from('users')
+        .update({
           username: twitchData.login,
           displayName: twitchData.display_name,
           email: twitchData.email,
-          avatar: twitchData.profile_image_url
-        }
-      });
+          avatar: twitchData.profile_image_url,
+          updatedAt: new Date()
+        })
+        .eq('id', user.id)
+        .select()
+        .single();
+      
+      if (updateError) {
+        console.error('Ошибка при обновлении пользователя:', updateError);
+        throw updateError;
+      }
+      
+      return updatedUser;
     }
-    
-    return user;
   } catch (error) {
     console.error('Ошибка при получении/создании пользователя:', error);
     throw error;

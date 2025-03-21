@@ -182,22 +182,18 @@ async function getRegisteredUsers(twitchIds) {
   }
   
   try {
-    // Используем mockDb вместо Prisma
-    const users = await prisma.users.findMany({
-      where: {
-        twitchId: {
-          in: twitchIds
-        }
-      },
-      select: {
-        id: true,
-        twitchId: true,
-        username: true,
-        userType: true
-      }
-    });
+    // Используем Supabase вместо Prisma
+    const { data: users, error } = await prisma
+      .from('users')
+      .select('id, twitchId, username, userType')
+      .in('twitchId', twitchIds);
     
-    return users;
+    if (error) {
+      console.error('Ошибка при проверке регистрации пользователей:', error);
+      return [];
+    }
+    
+    return users || [];
   } catch (error) {
     console.error('Ошибка при проверке регистрации пользователей:', error);
     // В случае ошибки возвращаем пустой массив

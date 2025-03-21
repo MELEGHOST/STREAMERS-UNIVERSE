@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
-import prisma from '@/lib/prisma';
+import supabase from '@/lib/supabase';
 import { createToken } from '@/lib/auth';
 
 /**
@@ -8,16 +8,22 @@ import { createToken } from '@/lib/auth';
  */
 async function getOrCreateUser(twitchUser) {
   // Проверяем, существует ли пользователь с таким twitchId
-  let user = await prisma.user.findUnique({
-    where: {
-      twitchId: twitchUser.id
-    }
-  });
+  const { data: user, error } = await supabase
+    .from('users')
+    .select('*')
+    .eq('twitchId', twitchUser.id)
+    .single();
+  
+  if (error && error.code !== 'PGRST116') {
+    console.error('Ошибка при поиске пользователя:', error);
+    throw error;
+  }
   
   // Если пользователь не найден, создаем нового
   if (!user) {
-    user = await prisma.user.create({
-      data: {
+    const { data: newUser, error: createError } = await supabase
+      .from('users')
+      .insert([{
         twitchId: twitchUser.id,
         username: twitchUser.login,
         displayName: twitchUser.display_name,
@@ -25,25 +31,38 @@ async function getOrCreateUser(twitchUser) {
         avatar: twitchUser.profile_image_url,
         createdAt: new Date(),
         updatedAt: new Date()
-      }
-    });
+      }])
+      .select()
+      .single();
+    
+    if (createError) {
+      console.error('Ошибка при создании пользователя:', createError);
+      throw createError;
+    }
+    
+    return newUser;
   } else {
     // Обновляем данные существующего пользователя
-    user = await prisma.user.update({
-      where: {
-        id: user.id
-      },
-      data: {
+    const { data: updatedUser, error: updateError } = await supabase
+      .from('users')
+      .update({
         username: twitchUser.login,
         displayName: twitchUser.display_name,
         email: twitchUser.email,
         avatar: twitchUser.profile_image_url,
         updatedAt: new Date()
-      }
-    });
+      })
+      .eq('id', user.id)
+      .select()
+      .single();
+    
+    if (updateError) {
+      console.error('Ошибка при обновлении пользователя:', updateError);
+      throw updateError;
+    }
+    
+    return updatedUser;
   }
-  
-  return user;
 }
 
 /**
