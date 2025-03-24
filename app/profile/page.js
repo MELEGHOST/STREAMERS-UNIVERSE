@@ -52,96 +52,179 @@ export default function Profile() {
     accountInfo: true
   });
   const [loadAttempts, setLoadAttempts] = useState(0);
+  const [totalFollowers, setTotalFollowers] = useState(0);
+  const [totalFollowings, setTotalFollowings] = useState(0);
 
-  // Функция для загрузки фолловеров
-  const loadFollowers = async (userId) => {
+  // Функция для получения данных пользователя с сервера
+  const getUserData = async () => {
     try {
-      console.log(`Загрузка фолловеров для пользователя ${userId}`);
-      const followersData = await getUserFollowers(userId);
-      if (followersData && followersData.followers) {
-        setFollowers(followersData.followers);
-        console.log(`Загружено ${followersData.followers.length} фолловеров`);
+      // Добавляем параметр для предотвращения кэширования
+      const response = await fetch(`/api/twitch/user?_=${Date.now()}`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          'Cache-Control': 'no-cache'
+        },
+        credentials: 'include',
+        cache: 'no-store'
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        console.log('Данные пользователя успешно получены с сервера');
+        return data;
+      } else {
+        console.error('Ошибка при получении данных пользователя с сервера:', response.status);
+        return null;
       }
     } catch (error) {
-      console.error('Ошибка при загрузке фолловеров:', error);
+      console.error('Ошибка при запросе данных пользователя:', error);
+      return null;
     }
   };
 
-  // Функция для загрузки подписок пользователя
+  // Функции загрузки данных с обработкой сетевых ошибок
+  const loadFollowers = async (userId) => {
+    try {
+      // Добавляем параметр для предотвращения кэширования
+      const response = await fetch(`/api/twitch/user-followers?userId=${userId}&_=${Date.now()}`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          'Cache-Control': 'no-cache'
+        },
+        credentials: 'include',
+        cache: 'no-store'
+      });
+      if (response.ok) {
+        const data = await response.json();
+        setFollowers(data.followers || []);
+        setTotalFollowers(data.total || 0);
+        console.log('Подписчики успешно загружены:', data.followers?.length || 0);
+      } else {
+        console.error('Ошибка при получении подписчиков:', response.status);
+      }
+    } catch (error) {
+      console.error('Ошибка при загрузке подписчиков:', error);
+      // Продолжаем загрузку страницы даже при ошибке
+    }
+  };
+
   const loadFollowings = async (userId) => {
     try {
-      console.log(`Загрузка подписок для пользователя ${userId}`);
-      const followingsData = await getUserFollowings(userId);
-      if (followingsData && followingsData.followings) {
-        setFollowings(followingsData.followings);
-        console.log(`Загружено ${followingsData.followings.length} подписок`);
+      // Добавляем параметр для предотвращения кэширования
+      const response = await fetch(`/api/twitch/user-followings?userId=${userId}&_=${Date.now()}`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          'Cache-Control': 'no-cache'
+        },
+        credentials: 'include',
+        cache: 'no-store'
+      });
+      if (response.ok) {
+        const data = await response.json();
+        setFollowings(data.followings || []);
+        setTotalFollowings(data.total || 0);
+        console.log('Подписки успешно загружены:', data.followings?.length || 0);
+      } else {
+        console.error('Ошибка при получении подписок:', response.status);
       }
     } catch (error) {
       console.error('Ошибка при загрузке подписок:', error);
+      // Продолжаем загрузку страницы даже при ошибке
     }
   };
 
-  // Функция для загрузки статистики
   const loadStats = async (userId) => {
     try {
-      console.log(`Загрузка статистики для пользователя ${userId}`);
-      const stats = await getUserStats(userId);
-      if (stats) {
-        setUserStats(stats);
+      console.log('Загрузка статистики пользователя для:', userId);
+      // Добавляем параметр для предотвращения кэширования
+      const response = await fetch(`/api/twitch/user-stats?userId=${userId}&_=${Date.now()}`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          'Cache-Control': 'no-cache'
+        },
+        credentials: 'include',
+        cache: 'no-store'
+      });
+      
+      if (response.ok) {
+        const stats = await response.json();
         console.log('Статистика пользователя успешно загружена');
-        
-        // Если есть данные о стримах, устанавливаем количество завершенных стримов
-        if (stats.stream && stats.stream.completedStreamsCount) {
-          setStreamsCompleted(stats.stream.completedStreamsCount);
-        }
+        setUserStats(stats);
+      } else {
+        console.error('Ошибка при загрузке статистики пользователя:', response.status);
       }
     } catch (error) {
-      console.error('Ошибка при загрузке статистики пользователя:', error);
+      console.error('Ошибка при получении статистики пользователя:', error);
+      // Продолжаем загрузку страницы даже при ошибке
     }
   };
 
-  // Функция для загрузки социальных ссылок
   const loadSocialLinks = async (userId) => {
     try {
-      console.log(`Загрузка социальных ссылок для пользователя ${userId}`);
-      
-      // Проверяем кэш в localStorage
-      const cachedLinks = localStorage.getItem(`social_links_${userId}`);
-      if (cachedLinks) {
-        const parsedLinks = JSON.parse(cachedLinks);
-        setSocialLinks(parsedLinks);
-        console.log('Социальные ссылки загружены из кэша');
-      }
-      
-      // В любом случае делаем запрос к API для получения актуальных данных
-      const response = await fetchWithTokenRefresh(`/api/twitch/social?userId=${userId}`, {
-        method: 'GET'
+      console.log('Загрузка социальных ссылок для:', userId);
+      // Добавляем параметр для предотвращения кэширования
+      const response = await fetch(`/api/twitch/social?userId=${userId}&_=${Date.now()}`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          'Cache-Control': 'no-cache'
+        },
+        credentials: 'include',
+        cache: 'no-store'
       });
       
-      if (response && response.links) {
-        setSocialLinks(response.links);
-        localStorage.setItem(`social_links_${userId}`, JSON.stringify(response.links));
-        console.log('Социальные ссылки успешно загружены с сервера');
+      if (response.ok) {
+        const data = await response.json();
+        console.log('Социальные ссылки успешно загружены');
+        
+        // Преобразуем данные в формат, который ожидает наш интерфейс
+        const links = {};
+        if (data && Array.isArray(data)) {
+          data.forEach(link => {
+            if (link.name && link.url) {
+              links[link.name] = link.url;
+            }
+          });
+        }
+        
+        setSocialLinks(links);
+      } else {
+        console.error('Ошибка при загрузке социальных ссылок:', response.status);
       }
     } catch (error) {
       console.error('Ошибка при загрузке социальных ссылок:', error);
+      // Продолжаем работу даже при ошибке
     }
   };
 
-  // Функция для загрузки тирлистов
   const loadTierlists = async (userId) => {
     try {
-      console.log(`Загрузка тирлистов для пользователя ${userId}`);
-      const response = await fetchWithTokenRefresh(`/api/tierlists?userId=${userId}`, {
-        method: 'GET'
+      console.log('Загрузка тирлистов для:', userId);
+      // Добавляем параметр для предотвращения кэширования
+      const response = await fetch(`/api/tierlists?userId=${userId}&_=${Date.now()}`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          'Cache-Control': 'no-cache'
+        },
+        credentials: 'include',
+        cache: 'no-store'
       });
       
-      if (response && Array.isArray(response.tierlists)) {
-        setTierlists(response.tierlists);
-        console.log(`Загружено ${response.tierlists.length} тирлистов`);
+      if (response.ok) {
+        const data = await response.json();
+        console.log('Тирлисты успешно загружены:', data.length || 0);
+        setTierlists(data || []);
+      } else {
+        console.error('Ошибка при загрузке тирлистов:', response.status);
       }
     } catch (error) {
       console.error('Ошибка при загрузке тирлистов:', error);
+      // Продолжаем работу даже при ошибке
     }
   };
 
@@ -172,6 +255,11 @@ export default function Profile() {
           
           // Проверяем, есть ли флаг авторизации в localStorage
           const isAuthenticatedInStorage = localStorage.getItem('is_authenticated') === 'true';
+          console.log('Состояние авторизации:', { 
+            isAuthenticated, 
+            isAuthenticatedInStorage, 
+            userIdFromContext: userId
+          });
           
           // Проверка авторизации с надежной обработкой ошибок для Vercel
           // Если пользователь не авторизован по состоянию из контекста и нет флага в localStorage
@@ -190,8 +278,29 @@ export default function Profile() {
             return;
           }
           
+          // Проверяем, есть ли userId в localStorage
+          let userIdFromStorage = null;
+          let userDataFromStorage = null;
+          
+          try {
+            const storedUserData = localStorage.getItem('twitch_user');
+            if (storedUserData) {
+              userDataFromStorage = JSON.parse(storedUserData);
+              userIdFromStorage = userDataFromStorage?.id;
+              console.log('Найдены данные пользователя в localStorage:', 
+                userIdFromStorage ? `ID: ${userIdFromStorage}` : 'ID не найден');
+            }
+          } catch (error) {
+            console.error('Ошибка при получении данных из localStorage:', error);
+          }
+          
+          // Используем ID из контекста или localStorage
+          const effectiveUserId = userId || userIdFromStorage;
+          
           // Если у нас есть данные из контекста авторизации, используем их
           if (userId && userLogin) {
+            console.log('Используем данные из контекста авторизации:', userId);
+            
             // Создаем базовый объект данных из контекста
             const authContextData = {
               id: userId,
@@ -203,18 +312,6 @@ export default function Profile() {
             setProfileData(authContextData);
             console.log('Установлены данные профиля из контекста авторизации');
                 
-            // Загружаем социальные ссылки из localStorage
-            try {
-              const storedSocialLinks = localStorage.getItem('social_links');
-              if (storedSocialLinks) {
-                const parsedLinks = JSON.parse(storedSocialLinks);
-                setSocialLinks(parsedLinks);
-                console.log('Загружены социальные ссылки из localStorage');
-              }
-            } catch (error) {
-              console.error('Ошибка при загрузке социальных ссылок:', error);
-            }
-            
             // Загружаем фолловеров
             loadFollowers(userId);
             
@@ -229,129 +326,60 @@ export default function Profile() {
             
             // Загружаем тирлисты
             loadTierlists(userId);
+          } else if (userDataFromStorage && userIdFromStorage) {
+            console.log('Используем данные из localStorage:', userIdFromStorage);
+            
+            setProfileData(userDataFromStorage);
+            
+            // Загружаем дополнительные данные
+            loadFollowers(userIdFromStorage);
+            loadFollowings(userIdFromStorage);
+            loadStats(userIdFromStorage);
+            loadSocialLinks(userIdFromStorage);
+            loadTierlists(userIdFromStorage);
           } else {
-            // Пытаемся получить данные пользователя из localStorage
-            try {
-              const storedUserData = localStorage.getItem('twitch_user');
+            console.log('Пытаемся получить данные с сервера');
+            
+            // Пробуем получить данные с сервера
+            const freshUserData = await getUserData();
+            
+            if (freshUserData && freshUserData.id) {
+              console.log('Получены свежие данные пользователя с сервера:', freshUserData.id);
               
-              if (storedUserData) {
-                const userData = JSON.parse(storedUserData);
-                
-                if (userData && userData.id) {
-                  setProfileData(userData);
-                  console.log('Установлены данные профиля из localStorage');
-                  
-                  // Если у нас есть ID пользователя, загружаем дополнительные данные
-                  if (userData.id) {
-                    // Загружаем дополнительные данные
-                    loadFollowers(userData.id);
-                    loadFollowings(userData.id);
-                    loadStats(userData.id);
-                    loadSocialLinks(userData.id);
-                    loadTierlists(userData.id);
-                  }
-                } else {
-                  // Если в localStorage данных нет, пробуем получить их с сервера
-                  const freshUserData = await getUserData();
-                  
-                  if (freshUserData && freshUserData.id) {
-                    setProfileData(freshUserData);
-                    console.log('Получены свежие данные профиля с сервера');
-                    
-                    // Если у нас есть ID пользователя, загружаем дополнительные данные
-                    if (freshUserData.id) {
-                      // Загружаем фолловеров
-                      loadFollowers(freshUserData.id);
-                      
-                      // Загружаем фолловинги
-                      loadFollowings(freshUserData.id);
-                      
-                      // Загружаем статистику
-                      loadStats(freshUserData.id);
-                      
-                      // Загружаем социальные ссылки
-                      loadSocialLinks(freshUserData.id);
-                      
-                      // Загружаем тирлисты
-                      loadTierlists(freshUserData.id);
-                    }
-                  } else {
-                    // Если нет данных ни в контексте, ни в localStorage, ни с сервера, только тогда перенаправляем на авторизацию
-                    // Проверяем еще раз флаг в localStorage
-                    const isStillAuthenticated = localStorage.getItem('is_authenticated') === 'true';
-                    if (!isStillAuthenticated) {
-                      console.error('Не удалось получить данные пользователя, перенаправляем на страницу авторизации');
-                      localStorage.setItem('auth_redirect', '/profile');
-                      router.push('/auth');
-                      return;
-                    } else {
-                      setError('Данные пользователя не найдены, но авторизация есть. Попробуйте обновить страницу.');
-                    }
-                  }
-                }
-              } 
-              else {
-                // Если данных в localStorage нет, пробуем получить их с сервера
-                const freshUserData = await getUserData();
-                
-                if (freshUserData && freshUserData.id) {
-                  setProfileData(freshUserData);
-                  console.log('Получены свежие данные профиля с сервера');
-                  
-                  // Если у нас есть ID пользователя, загружаем дополнительные данные
-                  if (freshUserData.id) {
-                    // Загружаем фолловеров
-                    loadFollowers(freshUserData.id);
-                    
-                    // Загружаем фолловинги
-                    loadFollowings(freshUserData.id);
-                    
-                    // Загружаем статистику
-                    loadStats(freshUserData.id);
-                    
-                    // Загружаем социальные ссылки
-                    loadSocialLinks(freshUserData.id);
-                    
-                    // Загружаем тирлисты
-                    loadTierlists(freshUserData.id);
-                  }
-                } else {
-                  // Если нет данных ни в контексте, ни в localStorage, ни с сервера, только тогда перенаправляем на авторизацию
-                  // Проверяем еще раз флаг в localStorage
-                  const isStillAuthenticated = localStorage.getItem('is_authenticated') === 'true';
-                  if (!isStillAuthenticated) {
-                    console.error('Не удалось получить данные пользователя, перенаправляем на страницу авторизации');
-                    localStorage.setItem('auth_redirect', '/profile');
-                    router.push('/auth');
-                    return;
-                  } else {
-                    setError('Данные пользователя не найдены, но авторизация есть. Попробуйте обновить страницу.');
-                  }
-                }
-              }
-            } catch (error) {
-              console.error('Ошибка при получении данных из localStorage:', error);
+              setProfileData(freshUserData);
               
-              // Если ошибка критическая, проверяем еще раз флаг авторизации
-              const isStillAuthenticated = localStorage.getItem('is_authenticated') === 'true';
-              if (!isStillAuthenticated) {
-                console.error('Критическая ошибка, перенаправляем на авторизацию');
+              // Загружаем дополнительные данные
+              loadFollowers(freshUserData.id);
+              loadFollowings(freshUserData.id);
+              loadStats(freshUserData.id);
+              loadSocialLinks(freshUserData.id);
+              loadTierlists(freshUserData.id);
+              
+              // Сохраняем данные в localStorage для будущего использования
+              localStorage.setItem('twitch_user', JSON.stringify(freshUserData));
+              localStorage.setItem('is_authenticated', 'true');
+            } else {
+              console.error('Не удалось получить данные пользователя ни из одного источника');
+              
+              // Проверяем еще раз флаг авторизации
+              if (!isAuthenticatedInStorage) {
+                console.log('Перенаправляем на страницу авторизации из-за отсутствия данных');
                 localStorage.setItem('auth_redirect', '/profile');
                 router.push('/auth');
                 return;
               } else {
-                setError('Произошла ошибка, но авторизация есть. Попробуйте обновить страницу.');
+                setError('Данные пользователя не найдены. Попробуйте обновить страницу или войти заново.');
               }
             }
           }
-          
-          console.log('Все данные профиля загружены успешно');
         } catch (error) {
           console.error('Необработанная ошибка при загрузке профиля:', error);
           setError('Произошла ошибка при загрузке профиля. Пожалуйста, попробуйте позже.');
         } finally {
-          setLoading(false);
-          setLoadAttempts(prev => prev + 1);
+          if (isMounted) {
+            setLoading(false);
+            setLoadAttempts(prev => prev + 1);
+          }
         }
       };
       
@@ -363,27 +391,11 @@ export default function Profile() {
       setLoading(false);
     }
     
-    // Дополнительная проверка на случай, если авторизация исчезла после загрузки данных
-    const authCheckInterval = setInterval(() => {
-      if (!isInitialized) return;
-      
-      // Проверяем состояние из контекста и localStorage
-      const isAuthenticatedInStorage = localStorage.getItem('is_authenticated') === 'true';
-      
-      if (!isAuthenticated && !isAuthenticatedInStorage && profileData) {
-        console.log('Обнаружена потеря авторизации после загрузки профиля, перенаправляем');
-        localStorage.setItem('auth_redirect', '/profile');
-        router.push('/auth');
-        clearInterval(authCheckInterval);
-      }
-    }, 5000); // Проверяем каждые 5 секунд
-    
     // Очистка при размонтировании компонента
     return () => {
       isMounted = false;
-      clearInterval(authCheckInterval);
     };
-  }, [isInitialized, isAuthenticated, userId, userLogin, userAvatar]);
+  }, [isInitialized, isAuthenticated, userId, userLogin, userAvatar, router]);
 
   // Функция для сохранения настроек видимости статистики
   const saveStatsVisibility = async (newVisibility) => {
