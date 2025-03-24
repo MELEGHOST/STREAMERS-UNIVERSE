@@ -7,16 +7,19 @@ import Image from 'next/image';
 import styles from '../../styles/menu.module.css';
 import { useAuth } from '../../contexts/AuthContext';
 import clientStorage from '../utils/clientStorage';
+import Cookies from 'js-cookie';
+import { DataStorage } from '../utils/dataStorage';
 
 export default function Menu() {
   const router = useRouter();
-  const { isAuthenticated, userId, userLogin, userAvatar, isInitialized } = useAuth();
+  const { isAuthenticated, userId, userLogin, userAvatar, isInitialized, setUserLogin, setUserAvatar } = useAuth();
   
   const [streamCoins, setStreamCoins] = useState(100);
   const [referralCode, setReferralCode] = useState('');
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
   const hasRedirectedRef = useRef(false);
+  const [balance, setBalance] = useState(0);
   
   // Выносим функции за пределы useEffect для оптимизации
   const loadStreamCoins = useCallback((userId) => {
@@ -115,9 +118,12 @@ export default function Menu() {
           clientStorage.removeItem('auth_to_menu_redirect');
         }
         
-        // Получаем данные пользователя
-        const userData = clientStorage.getItem('twitch_user') || 
-                      clientStorage.getItem('cookie_twitch_user');
+        // Получаем данные пользователя из всех возможных источников
+        const userData = 
+                      clientStorage.getItem('twitch_user') || 
+                      clientStorage.getItem('cookie_twitch_user') ||
+                      Cookies.get('twitch_user') ||
+                      Cookies.get('twitch_user_data');
         
         // Если данных нет, но мы не с авторизации - перенаправляем
         if (!userData && !hasRedirectedRef.current) {
@@ -133,18 +139,39 @@ export default function Menu() {
           }
         }
         
-        // Получаем userId
+        // Получаем userId и обновляем состояние пользователя
         let userIdToUse = userId;
-        if (!userIdToUse && userData) {
+        let userLoginToUse = userLogin;
+        let userAvatarToUse = userAvatar;
+        
+        if (userData) {
           try {
             const parsedData = typeof userData === 'string' ? JSON.parse(userData) : userData;
-            userIdToUse = parsedData.id;
+            userIdToUse = parsedData.id || parsedData.twitchId;
+            userLoginToUse = parsedData.login || parsedData.displayName || parsedData.username;
+            userAvatarToUse = parsedData.profile_image_url || parsedData.avatar;
+            
+            // Устанавливаем состояние пользователя
+            if (userLoginToUse && !userLogin) {
+              setUserLogin(userLoginToUse);
+            }
+            
+            if (userAvatarToUse && !userAvatar) {
+              setUserAvatar(userAvatarToUse);
+            }
           } catch (e) {
-            console.error('Ошибка при получении userId из localStorage:', e);
+            console.error('Ошибка при получении данных пользователя из хранилища:', e);
           }
         }
-        
+
         if (userIdToUse) {
+          // Логируем данные пользователя для отладки
+          console.log('Данные пользователя:', {
+            id: userIdToUse,
+            login: userLoginToUse,
+            avatar: userAvatarToUse ? userAvatarToUse.substring(0, 30) + '...' : 'не найдено'
+          });
+          
           // Загружаем стример-коины
           try {
             const storedCoins = clientStorage.getItem(`streamcoins_${userIdToUse}`);
@@ -165,6 +192,32 @@ export default function Menu() {
           console.error('Не удалось получить userId');
           setError('Не удалось получить данные пользователя. Пожалуйста, попробуйте войти снова.');
         }
+
+        // Получаем актуальный баланс монет из хранилища
+        const coinsKeys = [
+          `streamcoins_${userIdToUse}`,
+          `data_streamcoins_${userIdToUse}`
+        ];
+        
+        let coinsBalance = 0;
+        
+        // Ищем данные о монетах в всех возможных местах
+        for (const key of coinsKeys) {
+          const coinsData = DataStorage.getData(key);
+          if (coinsData) {
+            // Проверяем формат данных
+            if (typeof coinsData === 'string') {
+              coinsBalance = parseInt(coinsData, 10) || 0;
+              break;
+            } else if (coinsData.balance !== undefined) {
+              coinsBalance = coinsData.balance;
+              break;
+            }
+          }
+        }
+        
+        console.log('Баланс монет в меню:', coinsBalance);
+        setBalance(coinsBalance);
       } catch (error) {
         console.error('Ошибка при инициализации пользователя:', error);
         setError('Произошла ошибка при загрузке данных. Пожалуйста, обновите страницу.');
@@ -177,7 +230,7 @@ export default function Menu() {
     // Начинаем инициализацию сразу
     initUser();
     
-  }, [isAuthenticated, userId, router]);
+  }, [isAuthenticated, userId, router, userLogin, userAvatar, setUserLogin, setUserAvatar]);
   
   // Функция для перехода на страницу профиля
   const goToProfile = (e) => {
@@ -348,6 +401,10 @@ export default function Menu() {
             </div>
           </div>
         </div>
+      </div>
+      <div className={styles.balanceContainer}>
+        <Image src="/icons/coin.svg" alt="Coin" width={20} height={20} />
+        <p className={styles.balanceText}>{balance} <span style={{ color: '#ffffff' }}>SC</span></p>
       </div>
     </div>
   );

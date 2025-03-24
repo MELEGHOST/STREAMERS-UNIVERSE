@@ -1,0 +1,16 @@
+.balanceContainer {
+  display: flex;
+  align-items: center;
+  margin-top: 10px;
+  background-color: rgba(0, 0, 0, 0.3);
+  padding: 5px 10px;
+  border-radius: 50px;
+}
+
+.balanceText {
+  margin: 0;
+  margin-left: 5px;
+  font-size: 14px;
+  font-weight: 600;
+  color: #f7d51d;
+} 

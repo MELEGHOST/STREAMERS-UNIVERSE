@@ -53,52 +53,99 @@ export default function StreamerCoins() {
   // Функция для загрузки данных о коинах
   const loadCoinsData = (userId) => {
     try {
-      // Используем только внутри useEffect, чтобы избежать проблем с SSR
-      const coinsDataKey = `streamcoins_${userId}`;
-      DataStorage.getData(coinsDataKey)
-        .then(storedData => {
-          if (storedData) {
-            setCoinsData({
-              balance: storedData.balance || 0,
-              transactions: storedData.transactions || [],
-              lastDailyBonus: storedData.lastDailyBonus || null
-            });
-            
-            // Проверяем доступность ежедневного бонуса
-            checkDailyBonusAvailability(storedData.lastDailyBonus);
-          } else {
-            // Если данных нет, создаем начальные данные
-            const initialData = {
-              userId: userId,
-              balance: 0,
-              totalEarned: 0,
-              totalSpent: 0,
-              transactions: [],
-              lastDailyBonus: null,
-              lastAdWatch: new Date(0).toISOString(),
-              referralCode: generateReferralCode(userId),
-              referredBy: null
-            };
-            
-            DataStorage.saveData(coinsDataKey, initialData);
-            setCoinsData({
-              balance: 0,
-              transactions: [],
-              lastDailyBonus: null
-            });
-            
-            // Бонус доступен для новых пользователей
-            setBonusAvailable(true);
-            setBonusMessage('Вы участвуете в альфа-тестировании, вам доступны 100 стример-коинов в день!');
-          }
+      // Ключи для всех возможных мест хранения данных о коинах
+      const coinsKeys = [
+        `streamcoins_${userId}`,
+        `data_streamcoins_${userId}`
+      ];
+      
+      let foundCoins = null;
+      
+      // Ищем данные в всех возможных местах
+      for (const key of coinsKeys) {
+        const coinsData = DataStorage.getData(key);
+        if (coinsData) {
+          foundCoins = coinsData;
+          break;
+        }
+      }
+      
+      if (foundCoins) {
+        // Если данные представлены как строка, это может быть просто баланс
+        if (typeof foundCoins === 'string') {
+          const balance = parseInt(foundCoins, 10) || 0;
+          setCoinsData({
+            balance: balance,
+            transactions: [],
+            lastDailyBonus: null
+          });
           
-          setLoading(false);
-        })
-        .catch(error => {
-          console.error('Ошибка при загрузке данных о коинах:', error);
-          setError('Произошла ошибка при загрузке данных о коинах');
-          setLoading(false);
+          // Сохраняем данные в стандартном формате
+          const standardData = {
+            userId: userId,
+            balance: balance,
+            totalEarned: balance,
+            totalSpent: 0,
+            transactions: [],
+            lastDailyBonus: null,
+            lastAdWatch: new Date(0).toISOString(),
+            referralCode: generateReferralCode(userId),
+            referredBy: null
+          };
+          
+          DataStorage.saveData(`data_streamcoins_${userId}`, standardData);
+          
+          // Проверяем доступность ежедневного бонуса
+          checkDailyBonusAvailability(null);
+        } else {
+          // Данные в стандартном формате объекта
+          setCoinsData({
+            balance: foundCoins.balance || 0,
+            transactions: foundCoins.transactions || [],
+            lastDailyBonus: foundCoins.lastDailyBonus || null
+          });
+          
+          // Проверяем доступность ежедневного бонуса
+          checkDailyBonusAvailability(foundCoins.lastDailyBonus);
+        }
+      } else {
+        // Если данных нет, создаем начальные данные
+        const initialData = {
+          userId: userId,
+          balance: 100, // Даем 100 монет новому пользователю
+          totalEarned: 100,
+          totalSpent: 0,
+          transactions: [{
+            id: generateUUID(),
+            amount: 100,
+            type: 'earn',
+            description: 'Начальные монеты',
+            timestamp: new Date().toISOString()
+          }],
+          lastDailyBonus: null,
+          lastAdWatch: new Date(0).toISOString(),
+          referralCode: generateReferralCode(userId),
+          referredBy: null
+        };
+        
+        setCoinsData({
+          balance: initialData.balance,
+          transactions: initialData.transactions,
+          lastDailyBonus: initialData.lastDailyBonus
         });
+        
+        // Сохраняем начальные данные
+        DataStorage.saveData(`data_streamcoins_${userId}`, initialData);
+        
+        // Также сохраняем для совместимости со старым форматом
+        DataStorage.saveData(`streamcoins_${userId}`, initialData.balance.toString());
+        
+        // Бонус доступен для нового пользователя
+        setBonusAvailable(true);
+        setBonusMessage('Получите ваш первый ежедневный бонус!');
+      }
+      
+      setLoading(false);
     } catch (error) {
       console.error('Ошибка при загрузке данных о коинах:', error);
       setError('Произошла ошибка при загрузке данных о коинах');
@@ -138,18 +185,22 @@ export default function StreamerCoins() {
     }
   };
 
+  // Функция для генерации UUID (для транзакций)
+  const generateUUID = () => {
+    return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+      const r = Math.random() * 16 | 0;
+      const v = c === 'x' ? r : (r & 0x3 | 0x8);
+      return v.toString(16);
+    });
+  };
+
   // Функция для генерации реферального кода
   const generateReferralCode = (userId) => {
-    if (!userId) return 'STREAMER-CODE';
-    
-    try {
-      const base = userId.substring(0, 5);
-      const randomPart = Math.random().toString(36).substring(2, 6);
-      return `${base}-${randomPart}`.toUpperCase();
-    } catch (error) {
-      console.error('Ошибка при генерации реферального кода:', error);
-      return `STREAMER-${Date.now().toString(36).substring(-4)}`;
-    }
+    // Генерируем 8-символьный код на основе ID пользователя и случайных чисел
+    const randomPart = Math.random().toString(36).substring(2, 6).toUpperCase();
+    // Берем первые 4 символа из ID пользователя
+    const userPart = userId ? userId.substring(0, 4).toUpperCase() : 'USER';
+    return `${userPart}${randomPart}`;
   };
 
   // Функция для получения ежедневного бонуса
