@@ -1,0 +1,85 @@
+.header {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 20px;
+  margin-bottom: 20px;
+  width: 100%;
+  color: white;
+}
+
+.userInfoContainer {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  margin-bottom: 15px;
+  width: 100%;
+}
+
+.avatarContainer {
+  width: 70px;
+  height: 70px;
+  border-radius: 50%;
+  overflow: hidden;
+  margin-right: 15px;
+  border: 3px solid #6441a5;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.avatarContainer:hover {
+  transform: scale(1.05);
+  border-color: #9146ff;
+}
+
+.avatarImage {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.userTextInfo {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+}
+
+.greeting {
+  font-size: 22px;
+  font-weight: bold;
+  margin: 0 0 8px 0;
+}
+
+.guestCoinContainer {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  background-color: rgba(100, 65, 165, 0.3);
+  padding: 6px 12px;
+  border-radius: 20px;
+}
+
+.coinIcon {
+  width: 24px;
+  height: 24px;
+  margin-right: 8px;
+  border-radius: 50%;
+  background-color: #9146ff;
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: bold;
+  font-size: 14px;
+}
+
+.coinAmount {
+  font-weight: bold;
+  color: white;
+}
+
+.menuText {
+  font-size: 16px;
+  color: rgba(255, 255, 255, 0.7);
+  margin-top: 5px;
+} 

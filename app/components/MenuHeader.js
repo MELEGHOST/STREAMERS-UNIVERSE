@@ -3,6 +3,7 @@
 import styles from './MenuHeader.module.css';
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import Image from 'next/image';
 import CoinDisplay from './CoinDisplay';
 
 const MenuHeader = () => {
@@ -73,20 +74,38 @@ const MenuHeader = () => {
     checkUserAuthentication();
   }, []);
   
+  // Переход на страницу профиля
+  const goToProfile = () => {
+    router.push('/profile');
+  };
+  
   // Текст приветствия в зависимости от наличия данных пользователя
   const greetingText = userData ? `Привет, ${userData.display_name || userData.login}!` : 'Привет, Гость!';
   
   return (
     <div className={styles.header}>
-      <h1 className={styles.greeting}>{isLoading ? 'Загрузка...' : greetingText}</h1>
-      {userData ? (
-        <CoinDisplay userId={userData.id} />
-      ) : (
-        <div className={styles.guestCoinContainer}>
-          <div className={styles.coinIcon}>S</div>
-          <span className={styles.coinAmount}>100</span>
+      <div className={styles.userInfoContainer}>
+        {userData && userData.profile_image_url && (
+          <div className={styles.avatarContainer} onClick={goToProfile}>
+            <img 
+              src={userData.profile_image_url} 
+              alt={userData.display_name || userData.login} 
+              className={styles.avatarImage}
+            />
+          </div>
+        )}
+        <div className={styles.userTextInfo}>
+          <h1 className={styles.greeting}>{isLoading ? 'Загрузка...' : greetingText}</h1>
+          {userData ? (
+            <CoinDisplay userId={userData.id} />
+          ) : (
+            <div className={styles.guestCoinContainer}>
+              <div className={styles.coinIcon}>S</div>
+              <span className={styles.coinAmount}>100</span>
+            </div>
+          )}
         </div>
-      )}
+      </div>
       <div className={styles.menuText}>
         Выберите раздел, чтобы продолжить
       </div>
