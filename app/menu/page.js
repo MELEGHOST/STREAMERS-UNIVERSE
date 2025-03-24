@@ -10,6 +10,20 @@ import clientStorage from '../utils/clientStorage';
 import Cookies from 'js-cookie';
 import { DataStorage } from '../utils/dataStorage';
 
+// Безопасные функции для работы с локальным хранилищем
+const safeGetFromStorage = (key) => {
+  if (typeof window !== 'undefined' && window.localStorage) {
+    return localStorage.getItem(key);
+  }
+  return null;
+};
+
+const safeSetToStorage = (key, value) => {
+  if (typeof window !== 'undefined' && window.localStorage) {
+    localStorage.setItem(key, value);
+  }
+};
+
 export default function Menu() {
   const router = useRouter();
   const { isAuthenticated, userId, userLogin, userAvatar, isInitialized, setUserLogin, setUserAvatar } = useAuth();
@@ -29,21 +43,6 @@ export default function Menu() {
         setStreamCoins(100); // Устанавливаем значение по умолчанию
         return;
       }
-      
-      // Безопасное получение данных из localStorage
-      const safeGetFromStorage = (key) => {
-        if (typeof window !== 'undefined' && window.localStorage) {
-          return localStorage.getItem(key);
-        }
-        return null;
-      };
-      
-      // Безопасное сохранение данных в localStorage
-      const safeSetToStorage = (key, value) => {
-        if (typeof window !== 'undefined' && window.localStorage) {
-          localStorage.setItem(key, value);
-        }
-      };
       
       // Проверяем как новый формат данных о коинах, так и старый
       const coinsDataKey = `data_streamcoins_${userId}`;
@@ -101,7 +100,8 @@ export default function Menu() {
   
   const generateReferralCode = useCallback((userId) => {
     if (!userId) return 'SU-000000';
-    return `SU-${userId.substring(0, 6)}`;
+    const idPart = userId.substring(0, 6) || '000000';
+    return `SU-${idPart}`;
   }, []);
   
   // Проверка авторизации и загрузка данных
@@ -135,6 +135,7 @@ export default function Menu() {
             return;
           } else {
             setError('Произошла ошибка при получении данных пользователя. Пожалуйста, попробуйте войти снова.');
+            setIsLoading(false);
             return;
           }
         }
@@ -147,9 +148,9 @@ export default function Menu() {
         if (userData) {
           try {
             const parsedData = typeof userData === 'string' ? JSON.parse(userData) : userData;
-            userIdToUse = parsedData.id || parsedData.twitchId;
-            userLoginToUse = parsedData.login || parsedData.displayName || parsedData.username;
-            userAvatarToUse = parsedData.profile_image_url || parsedData.avatar;
+            userIdToUse = parsedData.id || parsedData.twitchId || userIdToUse;
+            userLoginToUse = parsedData.login || parsedData.displayName || parsedData.username || userLoginToUse;
+            userAvatarToUse = parsedData.profile_image_url || parsedData.avatar || userAvatarToUse;
             
             // Устанавливаем состояние пользователя
             if (userLoginToUse && !userLogin) {
@@ -173,24 +174,15 @@ export default function Menu() {
           });
           
           // Загружаем стример-коины
-          try {
-            const storedCoins = clientStorage.getItem(`streamcoins_${userIdToUse}`);
-            if (storedCoins && !isNaN(parseInt(storedCoins, 10))) {
-              setStreamCoins(parseInt(storedCoins, 10));
-            } else {
-              clientStorage.setItem(`streamcoins_${userIdToUse}`, '100');
-              setStreamCoins(100);
-            }
-          } catch (e) {
-            console.error('Ошибка при загрузке стример-коинов:', e);
-            setStreamCoins(100);
-          }
+          loadStreamCoins(userIdToUse);
           
           // Генерируем реферальный код
-          setReferralCode(`SU-${userIdToUse.substring(0, 6) || '000000'}`);
+          setReferralCode(generateReferralCode(userIdToUse));
         } else {
           console.error('Не удалось получить userId');
           setError('Не удалось получить данные пользователя. Пожалуйста, попробуйте войти снова.');
+          setIsLoading(false);
+          return;
         }
 
         // Получаем актуальный баланс монет из хранилища
@@ -209,7 +201,7 @@ export default function Menu() {
             if (typeof coinsData === 'string') {
               coinsBalance = parseInt(coinsData, 10) || 0;
               break;
-            } else if (coinsData.balance !== undefined) {
+            } else if (coinsData && coinsData.balance !== undefined) {
               coinsBalance = coinsData.balance;
               break;
             }
@@ -230,20 +222,34 @@ export default function Menu() {
     // Начинаем инициализацию сразу
     initUser();
     
-  }, [isAuthenticated, userId, router, userLogin, userAvatar, setUserLogin, setUserAvatar]);
+  }, [isAuthenticated, userId, router, userLogin, userAvatar, setUserLogin, setUserAvatar, loadStreamCoins, generateReferralCode]);
   
   // Функция для перехода на страницу профиля
   const goToProfile = (e) => {
-    e.preventDefault();
+    if (e) {
+      e.preventDefault();
+    }
     router.push('/profile');
   };
   
   // Функция для перехода на страницу коинов
   const goToCoinsPage = (e) => {
-    e.preventDefault();
-    e.stopPropagation();
+    if (e) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
     router.push('/coins');
   };
+  
+  // Если идет загрузка, показываем индикатор
+  if (isLoading) {
+    return (
+      <div className={styles.loading || styles.loadingContainer}>
+        <div className={styles.spinner}></div>
+        <p>Загрузка меню...</p>
+      </div>
+    );
+  }
   
   // Если есть ошибка, показываем сообщение об ошибке
   if (error) {
