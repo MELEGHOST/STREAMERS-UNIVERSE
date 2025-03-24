@@ -236,6 +236,28 @@ export default function Menu() {
   const goToProfile = (e) => {
     e.preventDefault();
     
+    // Проверяем наличие флага авторизации в localStorage
+    const isAuthenticatedInStorage = localStorage.getItem('is_authenticated') === 'true';
+    
+    // Проверяем наличие userId в localStorage
+    let userIdFromStorage = null;
+    try {
+      const storedUserData = localStorage.getItem('twitch_user');
+      if (storedUserData) {
+        const userData = JSON.parse(storedUserData);
+        userIdFromStorage = userData?.id;
+      }
+    } catch (error) {
+      console.error('Ошибка при получении userId из localStorage:', error);
+    }
+    
+    // Если в localStorage есть флаг авторизации и userId, сразу переходим на профиль
+    if (isAuthenticatedInStorage && userIdFromStorage) {
+      console.log("Переход на профиль напрямую из localStorage. userId:", userIdFromStorage);
+      router.push('/profile');
+      return;
+    }
+    
     // Проверяем инициализацию и статус авторизации
     if (!isInitialized) {
       console.log("AuthContext еще инициализируется, пожалуйста, подождите...");
@@ -244,7 +266,11 @@ export default function Menu() {
       // Через некоторое время проверяем снова
       setTimeout(() => {
         setIsLoading(false);
-        if (userId) {
+        
+        // Повторно проверяем флаг в localStorage
+        const isAuthenticatedInStorageRetry = localStorage.getItem('is_authenticated') === 'true';
+        
+        if (userId || isAuthenticatedInStorageRetry) {
           router.push('/profile');
         } else {
           console.error("Не удалось определить userId для перехода на профиль");
@@ -256,8 +282,8 @@ export default function Menu() {
       return;
     }
     
-    if (userId) {
-      console.log("Переход на профиль. userId:", userId);
+    if (userId || isAuthenticatedInStorage) {
+      console.log("Переход на профиль. userId:", userId || "из localStorage");
       router.push('/profile');
     } else {
       console.error("Не удалось определить userId для перехода на профиль");
@@ -401,10 +427,6 @@ export default function Menu() {
             </div>
           </div>
         </div>
-      </div>
-      <div className={styles.balanceContainer}>
-        <Image src="/icons/coin.svg" alt="Coin" width={20} height={20} />
-        <p className={styles.balanceText}>{balance} <span style={{ color: '#ffffff' }}>SC</span></p>
       </div>
     </div>
   );

@@ -170,8 +170,12 @@ export default function Profile() {
           setLoading(true);
           setError(null);
           
+          // Проверяем, есть ли флаг авторизации в localStorage
+          const isAuthenticatedInStorage = localStorage.getItem('is_authenticated') === 'true';
+          
           // Проверка авторизации с надежной обработкой ошибок для Vercel
-          if (!isAuthenticated) {
+          // Если пользователь не авторизован по состоянию из контекста и нет флага в localStorage
+          if (!isAuthenticated && !isAuthenticatedInStorage) {
             console.log('[Vercel] Пользователь не авторизован, перенаправляем на страницу авторизации');
             
             // Сохраняем текущий путь
@@ -225,41 +229,68 @@ export default function Profile() {
             
             // Загружаем тирлисты
             loadTierlists(userId);
-          } else if (!userId && isAuthenticated) {
-            // Если isAuthenticated=true, но нет userId, это неправильное состояние
-            console.error('Ошибка: пользователь авторизован, но нет userId');
-            
-            // Очищаем данные авторизации
-            localStorage.removeItem('is_authenticated');
-            localStorage.removeItem('twitch_user');
-            localStorage.removeItem('cookie_twitch_access_token');
-            Cookies.remove('twitch_access_token', { path: '/' });
-            Cookies.remove('twitch_user', { path: '/' });
-            
-            // Перенаправляем на авторизацию
-            localStorage.setItem('auth_redirect', '/profile');
-            router.push('/auth');
-            return;
           } else {
-            // Получаем данные пользователя из localStorage или куки как запасной вариант
+            // Пытаемся получить данные пользователя из localStorage
             try {
-              const storedUser = localStorage.getItem('twitch_user') || 
-                               Cookies.get('twitch_user') || 
-                               Cookies.get('twitch_user_data');
-              if (storedUser) {
-                const userData = typeof storedUser === 'string' ? JSON.parse(storedUser) : storedUser;
-                console.log('Получены данные из localStorage/куки:', userData.login || userData.display_name);
-                setProfileData(userData);
+              const storedUserData = localStorage.getItem('twitch_user');
+              
+              if (storedUserData) {
+                const userData = JSON.parse(storedUserData);
                 
-                // Загружаем все дополнительные данные
-                if (userData.id) {
-                  loadFollowers(userData.id);
-                  loadFollowings(userData.id);
-                  loadStats(userData.id);
-                  loadSocialLinks(userData.id);
-                  loadTierlists(userData.id);
+                if (userData && userData.id) {
+                  setProfileData(userData);
+                  console.log('Установлены данные профиля из localStorage');
+                  
+                  // Если у нас есть ID пользователя, загружаем дополнительные данные
+                  if (userData.id) {
+                    // Загружаем дополнительные данные
+                    loadFollowers(userData.id);
+                    loadFollowings(userData.id);
+                    loadStats(userData.id);
+                    loadSocialLinks(userData.id);
+                    loadTierlists(userData.id);
+                  }
+                } else {
+                  // Если в localStorage данных нет, пробуем получить их с сервера
+                  const freshUserData = await getUserData();
+                  
+                  if (freshUserData && freshUserData.id) {
+                    setProfileData(freshUserData);
+                    console.log('Получены свежие данные профиля с сервера');
+                    
+                    // Если у нас есть ID пользователя, загружаем дополнительные данные
+                    if (freshUserData.id) {
+                      // Загружаем фолловеров
+                      loadFollowers(freshUserData.id);
+                      
+                      // Загружаем фолловинги
+                      loadFollowings(freshUserData.id);
+                      
+                      // Загружаем статистику
+                      loadStats(freshUserData.id);
+                      
+                      // Загружаем социальные ссылки
+                      loadSocialLinks(freshUserData.id);
+                      
+                      // Загружаем тирлисты
+                      loadTierlists(freshUserData.id);
+                    }
+                  } else {
+                    // Если нет данных ни в контексте, ни в localStorage, ни с сервера, только тогда перенаправляем на авторизацию
+                    // Проверяем еще раз флаг в localStorage
+                    const isStillAuthenticated = localStorage.getItem('is_authenticated') === 'true';
+                    if (!isStillAuthenticated) {
+                      console.error('Не удалось получить данные пользователя, перенаправляем на страницу авторизации');
+                      localStorage.setItem('auth_redirect', '/profile');
+                      router.push('/auth');
+                      return;
+                    } else {
+                      setError('Данные пользователя не найдены, но авторизация есть. Попробуйте обновить страницу.');
+                    }
+                  }
                 }
-              } else {
+              } 
+              else {
                 // Если данных в localStorage нет, пробуем получить их с сервера
                 const freshUserData = await getUserData();
                 
@@ -285,20 +316,32 @@ export default function Profile() {
                     loadTierlists(freshUserData.id);
                   }
                 } else {
-                  // Если нет данных ни в контексте, ни в localStorage, ни с сервера, перенаправляем на авторизацию
-                  console.error('Не удалось получить данные пользователя, перенаправляем на страницу авторизации');
-                  localStorage.setItem('auth_redirect', '/profile');
-                  router.push('/auth');
-                  return;
+                  // Если нет данных ни в контексте, ни в localStorage, ни с сервера, только тогда перенаправляем на авторизацию
+                  // Проверяем еще раз флаг в localStorage
+                  const isStillAuthenticated = localStorage.getItem('is_authenticated') === 'true';
+                  if (!isStillAuthenticated) {
+                    console.error('Не удалось получить данные пользователя, перенаправляем на страницу авторизации');
+                    localStorage.setItem('auth_redirect', '/profile');
+                    router.push('/auth');
+                    return;
+                  } else {
+                    setError('Данные пользователя не найдены, но авторизация есть. Попробуйте обновить страницу.');
+                  }
                 }
               }
             } catch (error) {
               console.error('Ошибка при получении данных из localStorage:', error);
               
-              // Если ошибка критическая, перенаправляем на авторизацию
-              localStorage.setItem('auth_redirect', '/profile');
-              router.push('/auth');
-              return;
+              // Если ошибка критическая, проверяем еще раз флаг авторизации
+              const isStillAuthenticated = localStorage.getItem('is_authenticated') === 'true';
+              if (!isStillAuthenticated) {
+                console.error('Критическая ошибка, перенаправляем на авторизацию');
+                localStorage.setItem('auth_redirect', '/profile');
+                router.push('/auth');
+                return;
+              } else {
+                setError('Произошла ошибка, но авторизация есть. Попробуйте обновить страницу.');
+              }
             }
           }
           
@@ -324,7 +367,10 @@ export default function Profile() {
     const authCheckInterval = setInterval(() => {
       if (!isInitialized) return;
       
-      if (!isAuthenticated && profileData) {
+      // Проверяем состояние из контекста и localStorage
+      const isAuthenticatedInStorage = localStorage.getItem('is_authenticated') === 'true';
+      
+      if (!isAuthenticated && !isAuthenticatedInStorage && profileData) {
         console.log('Обнаружена потеря авторизации после загрузки профиля, перенаправляем');
         localStorage.setItem('auth_redirect', '/profile');
         router.push('/auth');
@@ -337,7 +383,7 @@ export default function Profile() {
       isMounted = false;
       clearInterval(authCheckInterval);
     };
-  }, [router, isAuthenticated, userId, userLogin, userAvatar, isInitialized]);
+  }, [isInitialized, isAuthenticated, userId, userLogin, userAvatar]);
 
   // Функция для сохранения настроек видимости статистики
   const saveStatsVisibility = async (newVisibility) => {

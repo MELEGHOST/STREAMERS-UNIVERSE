@@ -66,14 +66,19 @@ export default function StreamerCoins() {
         const coinsData = DataStorage.getData(key);
         if (coinsData) {
           foundCoins = coinsData;
+          console.log('Найдены данные о монетах:', key, coinsData);
           break;
         }
       }
       
       if (foundCoins) {
+        console.log('Загруженные данные о монетах:', foundCoins);
+        
         // Если данные представлены как строка, это может быть просто баланс
         if (typeof foundCoins === 'string') {
           const balance = parseInt(foundCoins, 10) || 0;
+          console.log('Баланс из строки:', balance);
+          
           setCoinsData({
             balance: balance,
             transactions: [],
@@ -99,6 +104,8 @@ export default function StreamerCoins() {
           checkDailyBonusAvailability(null);
         } else {
           // Данные в стандартном формате объекта
+          console.log('Баланс из объекта:', foundCoins.balance);
+          
           setCoinsData({
             balance: foundCoins.balance || 0,
             transactions: foundCoins.transactions || [],
@@ -110,6 +117,8 @@ export default function StreamerCoins() {
         }
       } else {
         // Если данных нет, создаем начальные данные
+        console.log('Данные о монетах не найдены, создаю начальные данные');
+        
         const initialData = {
           userId: userId,
           balance: 100, // Даем 100 монет новому пользователю
@@ -147,8 +156,8 @@ export default function StreamerCoins() {
       
       setLoading(false);
     } catch (error) {
-      console.error('Ошибка при загрузке данных о коинах:', error);
-      setError('Произошла ошибка при загрузке данных о коинах');
+      console.error('Ошибка при загрузке данных о монетах:', error);
+      setError('Произошла ошибка при загрузке данных о монетах');
       setLoading(false);
     }
   };

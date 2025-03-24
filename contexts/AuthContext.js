@@ -118,6 +118,9 @@ export function AuthProvider({ children }) {
         // Сначала устанавливаем, что инициализация началась
         setIsInitialized(false);
         
+        // Флаг для отслеживания, авторизованы ли мы уже с помощью localstorage
+        const isAlreadyAuthenticated = localStorage.getItem('is_authenticated') === 'true';
+        
         // Проверяем все возможные места хранения токена
         const accessToken = localStorage.getItem('cookie_twitch_access_token') || 
                           localStorage.getItem('twitch_token') || 
@@ -135,9 +138,36 @@ export function AuthProvider({ children }) {
         
         console.log('Найденные данные:', { 
           hasToken: !!accessToken, 
-          hasUserData: !!userDataStr 
+          hasUserData: !!userDataStr,
+          isAlreadyAuthenticated: isAlreadyAuthenticated
         });
         
+        // Если пользователь уже авторизован по флагу в localStorage,
+        // и у нас есть хотя бы данные пользователя, считаем его авторизованным
+        if (isAlreadyAuthenticated && userDataStr) {
+          console.log('Пользователь уже авторизован по флагу в localStorage');
+          
+          // Пытаемся распарсить данные пользователя
+          try {
+            const userData = JSON.parse(userDataStr);
+            
+            if (userData && userData.id) {
+              // Устанавливаем состояние авторизации
+              setIsAuthenticated(true);
+              setUserId(userData.id);
+              setUserLogin(userData.login || userData.display_name);
+              setUserAvatar(userData.profile_image_url);
+              
+              console.log('Авторизация восстановлена из localStorage для:', userData.id);
+              setIsInitialized(true);
+              return;
+            }
+          } catch (e) {
+            console.error('Ошибка при парсинге данных пользователя из localStorage:', e);
+          }
+        }
+        
+        // Основная проверка, если не удалось восстановить по флагу
         if (!accessToken || !userDataStr) {
           console.log('Токен или данные пользователя отсутствуют');
           setIsAuthenticated(false);
@@ -187,7 +217,6 @@ export function AuthProvider({ children }) {
         localStorage.setItem('cookie_twitch_access_token', accessToken);
             
         console.log('AuthContext: пользователь успешно аутентифицирован:', userData.id);
-        
       } catch (error) {
         console.error('Ошибка при инициализации AuthContext:', error);
         setIsAuthenticated(false);
