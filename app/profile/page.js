@@ -9,16 +9,16 @@ import ReviewSection from '../components/ReviewSection';
 import { checkBirthday, getDaysToBirthday } from '../utils/birthdayCheck';
 import { getUserData, getUserFollowers, getUserStats, fetchWithTokenRefresh, getUserFollowings } from '../utils/twitchAPI';
 import { DataStorage } from '../utils/dataStorage';
-import { useAuth } from '../../contexts/AuthContext';
 import Cookies from 'js-cookie';
 import CyberAvatar from '../components/CyberAvatar';
 
 export default function Profile() {
   const [profileData, setProfileData] = useState(null);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const router = useRouter();
-  const { isAuthenticated, userId, userLogin, userAvatar, isInitialized } = useAuth();
+  const [userId, setUserId] = useState('');
+  const [userLogin, setUserLogin] = useState('');
   const [socialLinks, setSocialLinks] = useState({
     description: '',
     twitch: '',
@@ -51,44 +51,15 @@ export default function Profile() {
     channel: true,
     accountInfo: true
   });
-  const [loadAttempts, setLoadAttempts] = useState(0);
   const [totalFollowers, setTotalFollowers] = useState(0);
   const [totalFollowings, setTotalFollowings] = useState(0);
 
-  // Функция для получения данных пользователя с сервера с обработкой CORS ошибок
+  // Упрощенная функция для получения данных пользователя
   const fetchUserData = async () => {
     try {
       console.log('Начало загрузки данных пользователя...');
-      const userData = await fetch('/api/twitch/user', {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-          'Cache-Control': 'no-cache, no-store',
-          'Pragma': 'no-cache'
-        },
-        credentials: 'include',
-      })
-      .then(response => {
-        if (response.ok) return response.json();
-        throw new Error(`Ошибка API: ${response.status}`);
-      })
-      .catch(error => {
-        console.error('Ошибка при запросе к API:', error);
-        return null;
-      });
-
-      if (userData && userData.id) {
-        console.log('Данные пользователя получены успешно:', userData.id);
-        try {
-          localStorage.setItem('twitch_user', JSON.stringify(userData));
-          localStorage.setItem('is_authenticated', 'true');
-        } catch (e) {
-          console.error('Ошибка при сохранении в localStorage:', e);
-        }
-        return userData;
-      }
-
-      // Пробуем получить из localStorage
+      
+      // Сначала пробуем получить из localStorage, так как это самый надежный источник
       try {
         const localData = localStorage.getItem('twitch_user');
         if (localData) {
@@ -101,8 +72,39 @@ export default function Profile() {
       } catch (e) {
         console.error('Ошибка при чтении из localStorage:', e);
       }
-
-      // Пробуем получить из cookie
+      
+      // Если из localStorage не удалось, делаем запрос к API
+      try {
+        const response = await fetch('/api/twitch/user', {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+            'Cache-Control': 'no-cache, no-store',
+            'Pragma': 'no-cache'
+          },
+          credentials: 'include',
+        });
+        
+        if (response.ok) {
+          const userData = await response.json();
+          if (userData && userData.id) {
+            console.log('Данные пользователя получены успешно:', userData.id);
+            try {
+              localStorage.setItem('twitch_user', JSON.stringify(userData));
+              localStorage.setItem('is_authenticated', 'true');
+            } catch (e) {
+              console.error('Ошибка при сохранении в localStorage:', e);
+            }
+            return userData;
+          }
+        } else {
+          console.error('Ошибка при запросе к API:', response.status);
+        }
+      } catch (apiError) {
+        console.error('Ошибка при запросе к API:', apiError);
+      }
+      
+      // Если всё ещё нет данных, пробуем из cookie
       try {
         const cookieData = Cookies.get('twitch_user');
         if (cookieData) {
@@ -118,7 +120,7 @@ export default function Profile() {
       } catch (e) {
         console.error('Ошибка при чтении из cookie:', e);
       }
-
+      
       return null;
     } catch (error) {
       console.error('Глобальная ошибка в fetchUserData:', error);
@@ -130,6 +132,12 @@ export default function Profile() {
   const loadFollowers = async (userId) => {
     try {
       console.log('Загрузка фолловеров для ID:', userId);
+      // Защитная проверка
+      if (!userId) {
+        console.error('ID пользователя не определен для загрузки фолловеров');
+        return;
+      }
+      
       // Добавляем параметр для предотвращения кэширования
       const response = await fetch(`/api/twitch/user-followers?userId=${userId}&_=${Date.now()}`, {
         method: 'GET',
@@ -138,11 +146,12 @@ export default function Profile() {
           'Cache-Control': 'no-cache'
         },
         credentials: 'include',
-        mode: 'cors', // Добавляем режим CORS
-        next: { revalidate: 0 } // Отключаем кэширование Next.js
+      }).catch(error => {
+        console.error('Ошибка сети при загрузке фолловеров:', error);
+        return null;
       });
       
-      if (response.ok) {
+      if (response && response.ok) {
         const data = await response.json();
         if (data && data.followers) {
           setFollowers(data.followers || []);
@@ -154,7 +163,7 @@ export default function Profile() {
           setTotalFollowers(0);
         }
       } else {
-        console.error('Ошибка при получении подписчиков:', response.status);
+        console.error('Ошибка при получении подписчиков:', response?.status || 'Нет ответа');
         // Пробуем запасной метод
         fallbackLoadFollowers(userId);
       }
@@ -168,8 +177,9 @@ export default function Profile() {
   // Запасной метод загрузки фолловеров
   const fallbackLoadFollowers = async (userId) => {
     try {
+      if (!userId) return;
       console.log('Использую запасной метод загрузки фолловеров');
-      const data = await getUserFollowers(userId);
+      const data = await getUserFollowers(userId).catch(() => ({ followers: [], total: 0 }));
       if (data && data.followers) {
         setFollowers(data.followers);
         setTotalFollowers(data.total || data.followers.length);
@@ -177,6 +187,9 @@ export default function Profile() {
       }
     } catch (fallbackError) {
       console.error('Запасной метод загрузки фолловеров тоже не сработал:', fallbackError);
+      // Устанавливаем пустые данные, чтобы не блокировать загрузку других компонентов
+      setFollowers([]);
+      setTotalFollowers(0);
     }
   };
 
@@ -409,19 +422,17 @@ export default function Profile() {
     const loadData = async () => {
       try {
         if (!isMounted) return;
-        setLoading(true);
-        setError(null);
         
         // Простая проверка аутентификации
         const isAuth = localStorage.getItem('is_authenticated') === 'true';
         
-        if (!isAuth && !isAuthenticated) {
+        if (!isAuth) {
           console.log('Пользователь не авторизован');
           router.push('/auth');
           return;
         }
         
-        // Загружаем данные напрямую
+        // Загружаем данные
         const userData = await fetchUserData();
         
         if (!userData || !userData.id) {
@@ -432,41 +443,21 @@ export default function Profile() {
         }
         
         console.log('Данные профиля загружены:', userData.id);
-        setProfileData(userData);
-        
-        // Загружаем дополнительные данные
-        try {
-          await loadFollowers(userData.id);
-        } catch (e) {
-          console.error('Ошибка при загрузке фолловеров:', e);
-        }
-        
-        try {
-          await loadFollowings(userData.id);
-        } catch (e) {
-          console.error('Ошибка при загрузке подписок:', e);
-        }
-        
-        try {
-          await loadStats(userData.id);
-        } catch (e) {
-          console.error('Ошибка при загрузке статистики:', e);
-        }
-        
-        try {
-          await loadSocialLinks(userData.id);
-        } catch (e) {
-          console.error('Ошибка при загрузке социальных ссылок:', e);
-        }
-        
-        try {
-          await loadTierlists(userData.id);
-        } catch (e) {
-          console.error('Ошибка при загрузке тирлистов:', e);
+        if (isMounted) {
+          setProfileData(userData);
+          setUserId(userData.id);
+          setUserLogin(userData.login);
+          
+          // Загружаем только базовые данные, остальное можно подгрузить потом
+          // для предотвращения ошибки рендеринга
+          loadFollowers(userData.id).catch(() => {});
         }
       } catch (error) {
         console.error('Глобальная ошибка при загрузке данных:', error);
-        setError('Произошла ошибка при загрузке профиля');
+        if (isMounted) {
+          setError('Произошла ошибка при загрузке профиля');
+          setLoading(false);
+        }
       } finally {
         if (isMounted) {
           setLoading(false);
@@ -479,7 +470,7 @@ export default function Profile() {
     return () => {
       isMounted = false;
     };
-  }, [isAuthenticated, router]);
+  }, [router]);
 
   // Функция для сохранения настроек видимости статистики
   const saveStatsVisibility = async (newVisibility) => {
@@ -496,7 +487,7 @@ export default function Profile() {
       localStorage.setItem('social_links', JSON.stringify(newLinks));
       
       // Отправляем на сервер, если пользователь авторизован
-      if (isAuthenticated && userId) {
+      if (isAuth && userId) {
         const accessToken = Cookies.get('twitch_access_token');
         if (!accessToken) {
           console.warn('Отсутствует токен доступа для сохранения социальных ссылок');
@@ -563,7 +554,10 @@ export default function Profile() {
     return (
       <div className={styles.profileContainer}>
         <div className={styles.profileHeader}>
-          <h2>Загрузка профиля...</h2>
+          <h2>Не удалось загрузить профиль</h2>
+          <button onClick={retryLoading} className={styles.button}>
+            Попробовать снова
+          </button>
         </div>
       </div>
     );
@@ -581,52 +575,17 @@ export default function Profile() {
         document.cookie = 'twitch_token=; Path=/; Expires=Thu, 01 Jan 1970 00:00:01 GMT;';
         document.cookie = 'twitch_user=; Path=/; Expires=Thu, 01 Jan 1970 00:00:01 GMT;';
         document.cookie = 'twitch_auth_state=; Path=/; Expires=Thu, 01 Jan 1970 00:00:01 GMT;';
-        
-        // Для надежности пробуем еще с secure и domain
-        document.cookie = 'twitch_access_token=; Path=/; Domain='+window.location.hostname+'; Expires=Thu, 01 Jan 1970 00:00:01 GMT; Secure;';
-        document.cookie = 'twitch_refresh_token=; Path=/; Domain='+window.location.hostname+'; Expires=Thu, 01 Jan 1970 00:00:01 GMT; Secure;';
-        document.cookie = 'twitch_token=; Path=/; Domain='+window.location.hostname+'; Expires=Thu, 01 Jan 1970 00:00:01 GMT; Secure;';
-        document.cookie = 'twitch_user=; Path=/; Domain='+window.location.hostname+'; Expires=Thu, 01 Jan 1970 00:00:01 GMT; Secure;';
-        document.cookie = 'twitch_auth_state=; Path=/; Domain='+window.location.hostname+'; Expires=Thu, 01 Jan 1970 00:00:01 GMT; Secure;';
       }
       
       // 2. Очищаем все переменные в localStorage
       localStorage.removeItem('twitch_user');
       localStorage.removeItem('twitch_token');
-      localStorage.removeItem('cookie_twitch_access_token');
-      localStorage.removeItem('cookie_twitch_refresh_token');
-      localStorage.removeItem('cookie_twitch_user');
       localStorage.removeItem('is_authenticated');
       
-      // Очищаем другие потенциальные данные аутентификации
-      const keysToRemove = [];
-      for (let i = 0; i < localStorage.length; i++) {
-        const key = localStorage.key(i);
-        if (key && (
-          key.includes('twitch') || 
-          key.includes('auth') || 
-          key.includes('token') || 
-          key.includes('user') ||
-          key.includes('login')
-        )) {
-          keysToRemove.push(key);
-        }
-      }
-      
-      // Удаляем найденные ключи
-      keysToRemove.forEach(key => {
-        localStorage.removeItem(key);
-      });
-      
-      // 3. Очищаем sessionStorage
-      sessionStorage.clear();
-      
-      console.log('Все данные аутентификации успешно удалены');
-      
-      // 4. Устанавливаем признак выхода в localStorage
+      // 3. Устанавливаем признак выхода в localStorage
       localStorage.setItem('logged_out', 'true');
       
-      // 5. Перенаправляем на страницу авторизации с параметром, указывающим на выход
+      // 4. Перенаправляем на страницу авторизации с параметром, указывающим на выход
       window.location.href = '/auth?logged_out=true';
     } catch (error) {
       console.error('Ошибка при выходе из аккаунта:', error);
@@ -637,35 +596,10 @@ export default function Profile() {
     }
   };
 
-  // Обновляем функцию для отображения информации о профиле
-  const renderProfileInfo = () => {
-    if (!profileData) return null;
-    
-    // Получаем количество фолловеров из разных источников данных
-    const followersCount = totalFollowers || 
-                          userStats?.followers?.total || 
-                          profileData.follower_count || 
-                          profileData.followersCount || 
-                          followers.length || 
-                          0;
-    
-    // Получаем количество просмотров
-    const viewCount = userStats?.user?.viewCount || 
-                     profileData.view_count || 
-                     profileData.viewCount || 
-                     0;
-    
-    // Переводим тип канала на русский
-    const getBroadcasterTypeInRussian = (type) => {
-      switch(type) {
-        case 'affiliate': return 'Компаньон';
-        case 'partner': return 'Партнер';
-        default: return type || 'Стандартный';
-      }
-    };
-    
-    return (
-      <div className={styles.profileInfoContainer}>
+  // Отображение информации о профиле
+  return (
+    <div className={styles.container}>
+      <div className={styles.profileContainer}>
         <div className={styles.profileHeader}>
           <div className={styles.avatarContainer}>
             <CyberAvatar 
@@ -680,70 +614,19 @@ export default function Profile() {
             <div className={styles.profileStats}>
               <div className={styles.profileStat}>
                 <span className={styles.statIcon}>👥</span>
-                <span className={styles.statValue}>{followersCount.toLocaleString('ru-RU')}</span>
+                <span className={styles.statValue}>{totalFollowers.toLocaleString('ru-RU')}</span>
                 <span className={styles.statLabel}>Подписчиков</span>
               </div>
-              {viewCount > 0 && (
+              {profileData.view_count > 0 && (
                 <div className={styles.profileStat}>
                   <span className={styles.statIcon}>👁️</span>
-                  <span className={styles.statValue}>{viewCount.toLocaleString('ru-RU')}</span>
+                  <span className={styles.statValue}>{profileData.view_count.toLocaleString('ru-RU')}</span>
                   <span className={styles.statLabel}>Просмотров</span>
                 </div>
               )}
-              {profileData.broadcaster_type && (
-                <div className={styles.profileStat}>
-                  <span className={styles.statIcon}>📺</span>
-                  <span className={styles.statValue}>{getBroadcasterTypeInRussian(profileData.broadcaster_type)}</span>
-                  <span className={styles.statLabel}>Тип канала</span>
-                </div>
-              )}
             </div>
-            {profileData.birthday && (
-              <div className={styles.birthdayContainer}>
-                <span className={styles.birthdayIcon}>🎂</span>
-                <span className={styles.birthdayText}>День рождения: {formatDate(profileData.birthday)}</span>
-              </div>
-            )}
           </div>
           <div className={styles.profileActions}>
-            <button 
-              className={styles.achievementsButton} 
-              onClick={toggleAchievements}
-              title="Посмотреть достижения"
-            >
-              🏆 Достижения
-            </button>
-            <button 
-              className={styles.reviewsButton} 
-              onClick={toggleReviews}
-              title="Отзывы о вас"
-            >
-              ⭐ Отзывы
-            </button>
-            <button 
-              className={styles.tierlistButton} 
-              onClick={toggleTierlists}
-              title="Тирлисты пользователя"
-            >
-              📋 Тирлисты
-            </button>
-            <button 
-              className={styles.statsButton} 
-              onClick={toggleStats}
-              title="Статистика канала"
-            >
-              📊 Статистика
-            </button>
-            <button 
-              className={styles.scheduleButton} 
-              onClick={() => router.push('/schedule')}
-              title="Расписание трансляций"
-            >
-              📅 Расписание
-            </button>
-            <button className={styles.button} onClick={() => router.push('/edit-profile')}>
-              Редактировать профиль
-            </button>
             <button className={styles.button} onClick={() => router.push('/menu')}>
               Вернуться в меню
             </button>
@@ -752,1027 +635,7 @@ export default function Profile() {
             </button>
           </div>
         </div>
-        
-        {showAchievements ? (
-          <div className={styles.achievementsSection}>
-            <div className={styles.sectionHeader}>
-              <h2>Достижения</h2>
-            </div>
-            <AchievementsSystem 
-              userId={profileData.id}
-              streamsCompleted={streamsCompleted}
-              hasCollaborations={hasCollaborations}
-            />
-          </div>
-        ) : showReviews ? (
-          <div className={styles.reviewsContainer}>
-            <div className={styles.sectionHeader}>
-              <h2>Отзывы о вас</h2>
-            </div>
-            <ReviewSection 
-              userId={profileData.id} 
-              onReviewAdded={() => {
-                // Обновляем данные профиля после добавления отзыва
-                const updateAfterReview = async () => {
-                  try {
-                    setLoading(true);
-                    const userData = await fetchUserData();
-                    if (userData && userData.id) {
-                      setProfileData(userData);
-                    }
-                  } catch (error) {
-                    console.error('Ошибка при обновлении данных после добавления отзыва:', error);
-                  } finally {
-                    setLoading(false);
-                  }
-                };
-                
-                updateAfterReview();
-              }}
-            />
-          </div>
-        ) : showStats ? (
-          <div className={styles.statsContainer}>
-            <div className={styles.sectionHeader}>
-              <h2>Статистика канала</h2>
-              <div className={styles.statsActions}>
-                {statsVisibility.followers && (
-                  <button 
-                    className={styles.statsActionButton}
-                    onClick={toggleFollowers}
-                  >
-                    👥 Подписчики
-                  </button>
-                )}
-                
-                {statsVisibility.followings && (
-                  <button 
-                    className={styles.statsActionButton}
-                    onClick={toggleFollowings}
-                  >
-                    📺 Подписки
-                  </button>
-                )}
-                
-                {statsVisibility.streams && (
-                  <button 
-                    className={styles.statsActionButton}
-                    onClick={toggleStreams}
-                  >
-                    🎬 Стримы
-                  </button>
-                )}
-              </div>
-            </div>
-            
-            {renderChannelStats()}
-            {renderAccountInfo()}
-          </div>
-        ) : showFollowers ? (
-          <div className={styles.sectionContainer}>
-            <h2 className={styles.sectionTitle}>Фолловеры</h2>
-            {(!followers || followers.length === 0) ? (
-              <div className={styles.emptyState}>
-                <p>У вас пока нет фолловеров</p>
-                <button 
-                  className={styles.button}
-                  onClick={refreshFollowers}
-                  style={{ marginTop: '15px' }}
-                >
-                  Обновить данные
-                </button>
-              </div>
-            ) : (
-              <div className={styles.followersGrid}>
-                {followers.map((follower, index) => (
-                  <div key={follower.id || `follower-${index}`} className={styles.followerCard}>
-                    {/* Бейдж для зарегистрированных пользователей */}
-                    {follower.isRegisteredOnSU && follower.suUserType === 'streamer' && (
-                      <span className={styles.streamerBadge}>Стример SU</span>
-                    )}
-                    {follower.isRegisteredOnSU && follower.suUserType !== 'streamer' && (
-                      <span className={styles.registeredBadge}>SU</span>
-                    )}
-                    
-                    <img 
-                      src={follower.profile_image_url || follower.profileImageUrl || '/images/default-avatar.png'} 
-                      alt={follower.display_name || follower.name || follower.login || 'Фолловер'} 
-                      className={styles.followerAvatar}
-                    />
-                    <div className={styles.followerName}>
-                      {follower.display_name || follower.name || follower.login || `Пользователь ${index + 1}`}
-                    </div>
-                    <button 
-                      className={styles.viewProfileButton}
-                      onClick={() => window.open(`https://twitch.tv/${follower.login}`, '_blank')}
-                    >
-                      Профиль
-                    </button>
-                  </div>
-                ))}
-              </div>
-            )}
-            <button className={styles.sectionToggleButton} onClick={() => setShowFollowers(false)}>
-              Скрыть фолловеров
-            </button>
-          </div>
-        ) : showFollowings ? (
-          <div className={styles.sectionContainer}>
-            <h2 className={styles.sectionTitle}>Подписки</h2>
-            {renderRecentFollowings()}
-            <button className={styles.sectionToggleButton} onClick={() => setShowFollowings(false)}>
-              Скрыть подписки
-            </button>
-          </div>
-        ) : showStreams ? (
-          <div className={styles.streamsContainer}>
-            <div className={styles.sectionHeader}>
-              <h2>Ваши стримы</h2>
-              <div className={styles.statsActions}>
-                <button 
-                  className={styles.statsActionButton}
-                  onClick={() => setShowStats(true)}
-                >
-                  📊 К статистике
-                </button>
-              </div>
-            </div>
-            {renderRecentStreams()}
-          </div>
-        ) : showTierlists ? (
-          <div className={styles.section}>
-            <div className={styles.sectionHeader}>
-              <h2>Тирлисты</h2>
-              <button className={styles.backToProfileButton} onClick={toggleTierlists}>
-                <i className="fas fa-arrow-left"></i> Вернуться
-              </button>
-            </div>
-            
-            {renderTierlists()}
-          </div>
-        ) : (
-          <>
-            {/* Отображаем описание и социальные сети только если не показываем другие секции */}
-            <div className={styles.profileInfoSection}>
-              {/* Отображаем описание профиля */}
-              {(socialLinks && socialLinks.description) || profileData.description ? (
-                <div className={styles.profileDescription}>
-                  <h3 className={styles.sectionTitle}>Описание</h3>
-                  <p>{socialLinks?.description || profileData.description}</p>
-                </div>
-              ) : (
-                isAuthenticated && userId === profileData?.id && (
-                  <div className={styles.emptyDescription}>
-                    <p>Нет описания профиля.</p>
-                    <p>Добавьте его в разделе "Редактировать профиль".</p>
-                  </div>
-                )
-              )}
-              
-              {/* Отображаем социальные сети */}
-              <div className={styles.socialLinksSection}>
-                <h3 className={styles.sectionTitle}>Социальные сети</h3>
-                {renderSocialLinks()}
-              </div>
-            </div>
-          </>
-        )}
       </div>
-    );
-  };
-
-  // Обновляем функцию для отображения социальных ссылок
-  const renderSocialLinks = () => {
-    // Проверяем, существуют ли социальные ссылки
-    if (!socialLinks) {
-      console.warn('Социальные ссылки не найдены');
-      return (
-        <div className={styles.emptySocialLinks}>
-          Нет социальных ссылок для отображения.
-          {isAuthenticated && userId === profileData?.id && (
-            <p>Добавьте их в разделе "Редактировать профиль".</p>
-          )}
-        </div>
-      );
-    }
-    
-    // Проверяем, есть ли хотя бы одна социальная ссылка
-    const hasSocialLinks = 
-      socialLinks.twitch || 
-      socialLinks.youtube || 
-      socialLinks.discord || 
-      socialLinks.telegram || 
-      socialLinks.vk || 
-      (socialLinks.isMusician && socialLinks.yandexMusic);
-    
-    if (!hasSocialLinks) {
-      return (
-        <div className={styles.emptySocialLinks}>
-          Нет социальных ссылок для отображения.
-          {isAuthenticated && userId === profileData?.id && (
-            <p>Добавьте их в разделе "Редактировать профиль".</p>
-          )}
-        </div>
-      );
-    }
-    
-    // Отображаем социальные кнопки
-    return (
-      <div className={styles.socialLinks}>
-        {socialLinks.twitch && (
-          <SocialButton 
-            type="twitch" 
-            url={socialLinks.twitch} 
-            username={socialLinks.twitch.split('/').pop() || 'username'} 
-          />
-        )}
-        
-        {socialLinks.youtube && (
-          <SocialButton 
-            type="youtube" 
-            url={socialLinks.youtube} 
-            username={socialLinks.youtube.split('/').pop() || 'username'} 
-          />
-        )}
-        
-        {socialLinks.discord && (
-          <SocialButton 
-            type="discord" 
-            url={socialLinks.discord} 
-            username={socialLinks.discord.split('/').pop() || 'username'} 
-          />
-        )}
-        
-        {socialLinks.telegram && (
-          <SocialButton 
-            type="telegram" 
-            url={socialLinks.telegram} 
-            username={socialLinks.telegram.split('/').pop() || 'username'} 
-          />
-        )}
-        
-        {socialLinks.vk && (
-          <SocialButton 
-            type="vk" 
-            url={socialLinks.vk} 
-            username={socialLinks.vk.split('/').pop() || 'username'} 
-          />
-        )}
-        
-        {socialLinks.isMusician && socialLinks.yandexMusic && (
-          <SocialButton 
-            type="yandexMusic" 
-            url={socialLinks.yandexMusic} 
-            username={socialLinks.yandexMusic.split('/').pop() || 'username'} 
-          />
-        )}
-      </div>
-    );
-  };
-
-  // Функция для переключения отображения достижений
-  const toggleAchievements = () => {
-    setShowAchievements(!showAchievements);
-    setShowReviews(false);
-    setShowStats(false);
-    setShowFollowers(false);
-    setShowFollowings(false);
-    setShowStreams(false);
-  };
-  
-  // Функция для переключения отображения отзывов
-  const toggleReviews = () => {
-    setShowReviews(!showReviews);
-    setShowAchievements(false);
-    setShowStats(false);
-    setShowFollowers(false);
-    setShowFollowings(false);
-    setShowStreams(false);
-  };
-  
-  // Функция для переключения отображения статистики
-  const toggleStats = () => {
-    setShowStats(!showStats);
-    setShowAchievements(false);
-    setShowReviews(false);
-    setShowFollowers(false);
-    setShowFollowings(false);
-    setShowStreams(false);
-  };
-  
-  // Функция для переключения отображения подписчиков
-  const toggleFollowers = () => {
-    setShowFollowers(!showFollowers);
-    setShowAchievements(false);
-    setShowReviews(false);
-    setShowStats(false);
-    setShowFollowings(false);
-    setShowStreams(false);
-  };
-  
-  // Функция для переключения отображения подписок
-  const toggleFollowings = () => {
-    setShowFollowings(!showFollowings);
-    setShowAchievements(false);
-    setShowReviews(false);
-    setShowStats(false);
-    setShowFollowers(false);
-    setShowStreams(false);
-  };
-  
-  // Функция для переключения отображения стримов
-  const toggleStreams = () => {
-    setShowStreams(!showStreams);
-    setShowAchievements(false);
-    setShowReviews(false);
-    setShowStats(false);
-    setShowFollowers(false);
-    setShowFollowings(false);
-  };
-
-  // Функция для переключения отображения тирлистов
-  const toggleTierlists = () => {
-    setShowTierlists(!showTierlists);
-    setShowAchievements(false);
-    setShowReviews(false);
-    setShowStats(false);
-    setShowFollowers(false);
-    setShowFollowings(false);
-    setShowStreams(false);
-  };
-
-  // Функция для отображения статуса пользователя
-  const renderUserStatus = () => {
-    // Определяем статус стримера на основе данных профиля
-    const isStreamerStatus = profileData?.isStreamer || 
-                      profileData?.broadcaster_type === 'partner' || 
-                      profileData?.broadcaster_type === 'affiliate' || 
-                      (profileData?.follower_count && profileData.follower_count >= 265);
-    
-    // Получаем количество фолловеров из разных возможных источников
-    const followerCount = 
-      profileData?.follower_count || 
-      (userStats?.followers?.total) || 
-      (followers?.length) || 
-      0;
-    
-    return (
-      <div className={styles.statusContainer}>
-        <span className={styles.statusText}>Статус:</span>
-        <span className={styles.statusValue} style={{ color: isStreamerStatus ? '#9146FF' : '#4CAF50' }}>
-          {isStreamerStatus ? 'Стример' : 'Зритель'}
-        </span>
-        <span className={styles.followersCount}>
-          Фолловеров: {followerCount}
-        </span>
-      </div>
-    );
-  };
-
-  // Функция для форматирования даты
-  const formatDate = (dateString) => {
-    if (!dateString) return '';
-    
-    const date = new Date(dateString);
-    return date.toLocaleDateString('ru-RU', { 
-      day: 'numeric', 
-      month: 'long',
-      year: 'numeric'
-    });
-  };
-  
-  // Функция для форматирования даты и времени
-  const formatDateTime = (dateString) => {
-    if (!dateString) return '';
-    
-    const date = new Date(dateString);
-    return date.toLocaleDateString('ru-RU', { 
-      day: 'numeric', 
-      month: 'long',
-      year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
-    });
-  };
-
-  // Функция для отображения дня рождения
-  const renderBirthday = () => {
-    if (!profileData?.birthday) return null;
-    
-    // Проверяем настройку видимости дня рождения
-    const birthdayVisibility = localStorage.getItem(`birthday_visibility_${profileData.id}`);
-    if (birthdayVisibility === 'false') return null;
-    
-    // Если сегодня день рождения, показываем поздравление
-    if (isBirthday) {
-      return (
-        <div className={styles.birthdayContainer}>
-          <span className={styles.birthdayIcon}>🎂</span>
-          <span className={styles.birthdayText}>С днем рождения! +100 стример-коинов!</span>
-        </div>
-      );
-    }
-    
-    // Если до дня рождения осталось меньше 7 дней, показываем обратный отсчет
-    if (daysToBirthday !== null && daysToBirthday <= 7) {
-      return (
-        <div className={styles.birthdayContainer}>
-          <span className={styles.birthdayIcon}>🎂</span>
-          <span className={styles.birthdayText}>
-            День рождения через {daysToBirthday} {getDayWord(daysToBirthday)}!
-          </span>
-        </div>
-      );
-    }
-    
-    // В остальных случаях просто показываем дату
-    return (
-      <div className={styles.birthdayContainer}>
-        <span className={styles.birthdayIcon}>🎂</span>
-        <span className={styles.birthdayText}>День рождения: {formatDate(profileData.birthday)}</span>
-      </div>
-    );
-  };
-
-  // Функция для склонения слова "день"
-  const getDayWord = (days) => {
-    if (days === 1) return 'день';
-    if (days >= 2 && days <= 4) return 'дня';
-    return 'дней';
-  };
-
-  // Функция для отображения статистики канала
-  const renderChannelStats = () => {
-    // Проверяем наличие реальных данных из разных источников
-    const hasRealData = (userStats && userStats.user && typeof userStats.user.viewCount === 'number') || 
-                       (profileData && (profileData.view_count || profileData.viewCount));
-    
-    // Если данных нет, показываем сообщение
-    if (!hasRealData) {
-      return (
-        <div className={styles.statsSection}>
-          <h3 className={styles.statsTitle}>Статистика канала</h3>
-          <div className={styles.emptyState}>
-            <p>Статистика временно недоступна из-за проблем с API Twitch.</p>
-            <button 
-              className={styles.button}
-              onClick={() => window.location.reload()}
-              style={{ marginTop: '15px' }}
-            >
-              Обновить данные
-            </button>
-          </div>
-        </div>
-      );
-    }
-    
-    // Получаем количество просмотров из разных источников
-    const viewCount = (userStats?.user?.viewCount) || 
-                     profileData.view_count || 
-                     profileData.viewCount || 
-                     0;
-    
-    // Получаем количество фолловеров из разных источников
-    const followersCount = totalFollowers || 
-                          userStats?.followers?.total || 
-                          profileData.follower_count || 
-                          followers.length || 
-                          0;
-    
-    // Рассчитываем средний онлайн (примерная формула)
-    const completedStreamsCount = streamsCompleted || 0;
-    const averageViewers = completedStreamsCount > 0 
-      ? Math.round((viewCount * 0.05) / completedStreamsCount)
-      : Math.round(viewCount * 0.005); // Примерная оценка если нет данных о стримах
-    
-    // Получаем дату создания аккаунта
-    const createdAt = userStats?.user?.createdAt || profileData.created_at;
-    
-    // Рассчитываем возраст аккаунта
-    let accountAge = '';
-    if (createdAt) {
-      const createdDate = new Date(createdAt);
-      const now = new Date();
-      const diffTime = Math.abs(now - createdDate);
-      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-      const diffYears = Math.floor(diffDays / 365);
-      const remainingDays = diffDays % 365;
-      
-      if (diffYears > 0) {
-        accountAge = `${diffYears} ${getDeclension(diffYears, ['год', 'года', 'лет'])}`;
-        if (remainingDays > 0) {
-          accountAge += ` и ${remainingDays} ${getDeclension(remainingDays, ['день', 'дня', 'дней'])}`;
-        }
-      } else {
-        accountAge = `${diffDays} ${getDeclension(diffDays, ['день', 'дня', 'дней'])}`;
-      }
-    }
-    
-    return (
-      <div className={styles.statsSection}>
-        <h3 className={styles.statsTitle}>Статистика канала</h3>
-        
-        <div className={styles.statsGrid}>
-          <div className={styles.statItem}>
-            <div className={styles.statIcon}>👁️</div>
-            <div className={styles.statInfo}>
-              <div className={styles.statValue}>{viewCount.toLocaleString('ru-RU')}</div>
-              <div className={styles.statLabel}>Просмотров</div>
-            </div>
-          </div>
-          
-          <div className={styles.statItem}>
-            <div className={styles.statIcon}>👥</div>
-            <div className={styles.statInfo}>
-              <div className={styles.statValue}>{followersCount.toLocaleString('ru-RU')}</div>
-              <div className={styles.statLabel}>Подписчиков</div>
-            </div>
-          </div>
-          
-          <div className={styles.statItem}>
-            <div className={styles.statIcon}>📊</div>
-            <div className={styles.statInfo}>
-              <div className={styles.statValue}>{averageViewers}</div>
-              <div className={styles.statLabel}>Средний онлайн</div>
-            </div>
-          </div>
-          
-          <div className={styles.statItem}>
-            <div className={styles.statIcon}>📺</div>
-            <div className={styles.statInfo}>
-              <div className={styles.statValue}>{completedStreamsCount}</div>
-              <div className={styles.statLabel}>Завершено стримов</div>
-            </div>
-          </div>
-          
-          {createdAt && (
-            <div className={styles.statItem}>
-              <div className={styles.statIcon}>📅</div>
-              <div className={styles.statInfo}>
-                <div className={styles.statValue}>{formatDate(createdAt)}</div>
-                <div className={styles.statLabel}>Дата создания</div>
-              </div>
-            </div>
-          )}
-          
-          {accountAge && (
-            <div className={styles.statItem}>
-              <div className={styles.statIcon}>⏳</div>
-              <div className={styles.statInfo}>
-                <div className={styles.statValue}>{accountAge}</div>
-                <div className={styles.statLabel}>Возраст аккаунта</div>
-              </div>
-            </div>
-          )}
-          
-          <div className={styles.statItem}>
-            <div className={styles.statIcon}>🔍</div>
-            <div className={styles.statInfo}>
-              <a 
-                href={`https://twitchtracker.com/${profileData?.login || userLogin}`} 
-                target="_blank" 
-                rel="noopener noreferrer"
-                className={styles.statLink}
-              >
-                <div className={styles.statValue}>Twitch Tracker</div>
-                <div className={styles.statLabel}>Подробная статистика</div>
-              </a>
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  };
-  
-  // Функция для отображения информации об аккаунте
-  const renderAccountInfo = () => {
-    if (!statsVisibility.accountInfo) return null;
-    
-    // Получаем данные из разных источников
-    const broadcasterType = userStats?.user?.broadcasterType || profileData.broadcaster_type;
-    const description = profileData.description || socialLinks?.description;
-    const email = profileData.email;
-    const isPartner = broadcasterType === 'partner';
-    const isAffiliate = broadcasterType === 'affiliate';
-    const isVerified = profileData.verified;
-    const language = profileData.language || profileData.broadcaster_language;
-    
-    // Получаем дату создания аккаунта
-    const createdAt = userStats?.user?.createdAt || profileData.created_at;
-    
-    // Проверяем, есть ли хоть какие-то данные для отображения
-    const hasAnyData = broadcasterType || description || email || createdAt || language;
-    
-    if (!hasAnyData) return null;
-    
-    return (
-      <div className={styles.statsSection}>
-        <h3 className={styles.statsTitle}>Информация об аккаунте</h3>
-        
-        <div className={styles.accountInfoList}>
-          {createdAt && (
-          <div className={styles.accountInfoItem}>
-            <div className={styles.accountInfoLabel}>Дата создания:</div>
-              <div className={styles.accountInfoValue}>{formatDate(createdAt)}</div>
-          </div>
-          )}
-          
-          {broadcasterType && (
-          <div className={styles.accountInfoItem}>
-              <div className={styles.accountInfoLabel}>Тип вещателя:</div>
-              <div className={styles.accountInfoValue}>
-                {isPartner ? 'Партнер' : 
-                 isAffiliate ? 'Компаньон' : 
-                 'Стандартный'}
-          </div>
-            </div>
-          )}
-          
-          {language && (
-            <div className={styles.accountInfoItem}>
-              <div className={styles.accountInfoLabel}>Язык вещания:</div>
-              <div className={styles.accountInfoValue}>
-                {language === 'ru' ? 'Русский' : 
-                 language === 'en' ? 'Английский' : 
-                 language}
-              </div>
-            </div>
-          )}
-          
-          {isVerified !== undefined && (
-            <div className={styles.accountInfoItem}>
-              <div className={styles.accountInfoLabel}>Верификация:</div>
-              <div className={styles.accountInfoValue}>
-                {isVerified ? 'Подтвержден ✓' : 'Не подтвержден'}
-              </div>
-            </div>
-          )}
-          
-          {userStats?.stream?.isLive && (
-            <div className={styles.accountInfoItem}>
-              <div className={styles.accountInfoLabel}>Статус:</div>
-              <div className={styles.accountInfoValue}>
-                <span className={styles.liveStatus}>В эфире</span>
-              </div>
-            </div>
-          )}
-          
-          {description && (
-            <div className={styles.accountInfoItem}>
-              <div className={styles.accountInfoLabel}>Описание:</div>
-              <div className={styles.accountInfoValue}>
-                <div className={styles.descriptionText}>{description}</div>
-              </div>
-            </div>
-          )}
-        </div>
-      </div>
-    );
-  };
-  
-  // Функция для отображения последних подписчиков
-  const renderRecentFollowers = () => {
-    console.log('Состояние userStats при отображении фолловеров:', userStats);
-    
-    if (!userStats || 
-        !userStats.followers || 
-        !userStats.followers.recentFollowers || 
-        userStats.followers.recentFollowers.length === 0) {
-      return (
-        <div className={styles.emptyState}>
-          <p>У вас пока нет подписчиков</p>
-          {userStats?.followers?.total > 0 && (
-            <button 
-              className={styles.button}
-              onClick={() => window.location.reload()}
-              style={{ marginTop: '15px' }}
-            >
-              Обновить данные
-            </button>
-          )}
-        </div>
-      );
-    }
-    
-    return (
-      <div className={styles.usersList}>
-        {userStats.followers.recentFollowers.map(follower => (
-          <div key={follower.id} className={styles.userCard}>
-            <img 
-              src={follower.profileImageUrl || '/default-avatar.png'} 
-              alt={follower.name} 
-              className={styles.userAvatar}
-            />
-            <div className={styles.userInfo}>
-              <div className={styles.userName}>{follower.name}</div>
-              <div className={styles.userDate}>Подписался: {formatDate(follower.followedAt)}</div>
-            </div>
-          </div>
-        ))}
-      </div>
-    );
-  };
-  
-  // Функция для отображения последних подписок
-  const renderRecentFollowings = () => {
-    return (
-      <div>
-        <h3>Недавние подписки</h3>
-        {followings.length > 0 ? (
-          <div className={styles.usersList}>
-            {followings.slice(0, 10).map((following, index) => (
-              <div key={index} className={styles.userCard}>
-                <img 
-                  src={following.profile_image_url || '/images/default-avatar.png'} 
-                  alt={following.display_name || following.user_name} 
-                  className={styles.followerAvatar}
-                />
-                <div className={styles.userInfo}>
-                  <div className={styles.userName}>{following.display_name || following.user_name}</div>
-                  <div className={styles.userDate}>
-                    {following.followed_at ? new Date(following.followed_at).toLocaleDateString() : 'Нет данных'}
-                  </div>
-                </div>
-                {following.isRegisteredInSU && (
-                  <div className={styles.registeredBadge} title="Зарегистрирован в Streamers Universe">
-                    SU
-                  </div>
-                )}
-              </div>
-            ))}
-          </div>
-        ) : (
-          <div className={styles.emptyState}>
-            Вы еще не подписались ни на одного пользователя
-          </div>
-        )}
-      </div>
-    );
-  };
-  
-  // Функция для отображения последних стримов
-  const renderRecentStreams = () => {
-    if (!userStats || !userStats.stream.recentStreams || userStats.stream.recentStreams.length === 0) {
-      return (
-        <div className={styles.emptyState}>
-          <p>У вас пока нет записей стримов</p>
-        </div>
-      );
-    }
-    
-    return (
-      <div className={styles.streamsList}>
-        {userStats.stream.recentStreams.map(stream => (
-          <div key={stream.id} className={styles.streamCard}>
-            <div className={styles.streamThumbnail}>
-              <img 
-                src={stream.thumbnailUrl.replace('{width}', '320').replace('{height}', '180')} 
-                alt={stream.title} 
-              />
-              <div className={styles.streamViews}>
-                <span className={styles.viewsIcon}>👁️</span>
-                {stream.viewCount.toLocaleString('ru-RU')}
-              </div>
-              <div className={styles.streamDuration}>{stream.duration}</div>
-            </div>
-            <div className={styles.streamInfo}>
-              <div className={styles.streamTitle}>{stream.title}</div>
-              <div className={styles.streamDate}>{formatDateTime(stream.createdAt)}</div>
-              <a 
-                href={stream.url} 
-                target="_blank" 
-                rel="noopener noreferrer" 
-                className={styles.streamLink}
-              >
-                Смотреть запись
-              </a>
-            </div>
-          </div>
-        ))}
-      </div>
-    );
-  };
-  
-  // Функция для отображения тирлистов
-  const renderTierlists = () => {
-    if (tierlists.length === 0) {
-      return (
-        <div className={styles.emptyState}>
-          <p>У пользователя пока нет тирлистов.</p>
-          {isAuthenticated && userId === profileData.id && (
-            <p>Вы можете создать тирлист в разделе "Меню".</p>
-          )}
-        </div>
-      );
-    }
-    
-    return (
-      <div className={styles.tierlistsGrid}>
-        {tierlists.map(tierlist => (
-          <div key={tierlist.id} className={styles.tierlistCard}>
-            <h3 className={styles.tierlistTitle}>{tierlist.title}</h3>
-            <div className={styles.tierlistCategory}>{tierlist.category}</div>
-            <div className={styles.tierlistItems}>
-              {tierlist.itemCount} элементов
-            </div>
-            <div className={styles.tierlistDate}>
-              Создан: {formatDate(tierlist.createdAt)}
-            </div>
-            <a 
-              href={`/tierlists/${tierlist.id}`} 
-              className={styles.viewTierlistButton}
-            >
-              Посмотреть
-            </a>
-          </div>
-        ))}
-      </div>
-    );
-  };
-  
-  // Функция для склонения слов
-  const getDeclension = (number, words) => {
-    const cases = [2, 0, 1, 1, 1, 2];
-    return words[(number % 100 > 4 && number % 100 < 20) ? 2 : cases[(number % 10 < 5) ? number % 10 : 5]];
-  };
-
-  // Функция для принудительного обновления фолловеров
-  const refreshFollowers = async () => {
-    setLoading(true);
-    try {
-      if (!profileData || !profileData.id) {
-        console.error('Нет данных пользователя для обновления фолловеров');
-        return;
-      }
-      
-      console.log('Принудительное обновление данных о фолловерах для ID:', profileData.id);
-      
-      // Используем fetchWithTokenRefresh из twitchAPI.js
-      const refreshedData = await fetchWithTokenRefresh(
-        `/api/twitch/refresh-followers?userId=${profileData.id}`,
-        {
-          method: 'GET',
-          headers: {
-            'Cache-Control': 'no-cache',
-            'Pragma': 'no-cache'
-          }
-        },
-        false // Не использовать кэш
-      );
-      
-      console.log('Получены обновленные данные фолловеров:', refreshedData);
-      
-      if (refreshedData.success && refreshedData.followers) {
-        setFollowers(refreshedData.followers);
-      } else {
-        console.warn('Ошибка при обновлении фолловеров:', refreshedData.error);
-      }
-    } catch (error) {
-      console.error('Ошибка при обновлении фолловеров:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const getUserAvatar = () => {
-    if (!profileData) return '/default-avatar.png';
-    
-    // Проверяем различные варианты хранения URL аватара
-    if (profileData.profile_image_url) {
-      return profileData.profile_image_url;
-    } else if (profileData.profileImageUrl) {
-      return profileData.profileImageUrl;
-    } else if (userAvatar) {
-      return userAvatar;
-    }
-    
-    return '/default-avatar.png';
-  };
-
-  // Добавляем эффект для обновления данных при возвращении на страницу
-  useEffect(() => {
-    // Функция для проверки, были ли обновлены данные профиля
-    const checkForProfileUpdates = () => {
-      const lastEditTime = localStorage.getItem('profile_last_edit_time');
-      const currentProfileUpdateTime = localStorage.getItem('profile_update_timestamp');
-      
-      if (lastEditTime && (!currentProfileUpdateTime || lastEditTime > currentProfileUpdateTime)) {
-        console.log('Обнаружены изменения в профиле, обновляем данные...');
-        
-        // Определяем функцию обновления данных внутри useEffect
-        const updateProfileData = async () => {
-          try {
-            setLoading(true);
-            setError(null);
-            
-            // Загружаем данные профиля
-            const userData = await fetchUserData();
-            
-            if (userData && userData.id) {
-              setProfileData(userData);
-              
-              // Загружаем дополнительные данные
-              if (userData.id) {
-                try {
-                  const followersData = await getUserFollowers(userData.id);
-                  if (followersData && followersData.followers) {
-                    setFollowers(followersData.followers);
-                  }
-                  
-                  const followingsData = await getUserFollowings(userData.id);
-                  if (followingsData && followingsData.followings) {
-                    setFollowings(followingsData.followings);
-                  }
-                } catch (dataError) {
-                  console.error('Ошибка при загрузке дополнительных данных:', dataError);
-                }
-              }
-            }
-          } catch (error) {
-            console.error('Ошибка при обновлении данных профиля:', error);
-          } finally {
-            setLoading(false);
-          }
-        };
-        
-        updateProfileData();
-        localStorage.setItem('profile_update_timestamp', Date.now().toString());
-      }
-    };
-    
-    // Проверяем обновления при монтировании компонента
-    checkForProfileUpdates();
-    
-    // Добавляем обработчик события для проверки обновлений при фокусе на окне
-    const handleFocus = () => {
-      checkForProfileUpdates();
-    };
-    
-    window.addEventListener('focus', handleFocus);
-    
-    // Очищаем обработчик при размонтировании
-    return () => {
-      window.removeEventListener('focus', handleFocus);
-    };
-  }, []);
-
-  // Функция для отображения отзывов
-  const renderReviews = () => {
-    if (!showReviews) return null;
-
-    return (
-      <div className={styles.reviewsContainer}>
-        <div className={styles.sectionHeader}>
-          <h2>Отзывы о вас</h2>
-        </div>
-        <ReviewSection 
-          userId={profileData.id} 
-          onReviewAdded={() => {
-            // Обновляем данные профиля после добавления отзыва
-            const updateAfterReview = async () => {
-              try {
-                setLoading(true);
-                const userData = await fetchUserData();
-                if (userData && userData.id) {
-                  setProfileData(userData);
-                }
-              } catch (error) {
-                console.error('Ошибка при обновлении данных после добавления отзыва:', error);
-              } finally {
-                setLoading(false);
-              }
-            };
-            
-            updateAfterReview();
-          }}
-        />
-      </div>
-    );
-  };
-
-  return (
-    <div className={styles.container}>
-      {loading ? (
-        <div className={styles.loadingContainer}>
-          <div className={styles.loadingSpinner}></div>
-          <p>Загрузка профиля...</p>
-        </div>
-      ) : error ? (
-        <div className={styles.errorContainer}>
-          <h2>Ошибка при загрузке профиля</h2>
-          <p>{error}</p>
-          <div className={styles.errorActions}>
-            <button className={styles.button} onClick={() => window.location.reload()}>
-              Попробовать снова
-            </button>
-            <button className={styles.button} onClick={() => router.push('/menu')}>
-              Вернуться в меню
-            </button>
-          </div>
-        </div>
-      ) : (
-        renderProfileInfo()
-      )}
     </div>
   );
 } 
