@@ -66,12 +66,13 @@ export default function Profile() {
           'Cache-Control': 'no-cache'
         },
         credentials: 'include',
-        cache: 'no-store'
+        mode: 'cors', // Добавляем режим CORS
+        next: { revalidate: 0 } // Отключаем кэширование Next.js
       });
       
       if (response.ok) {
         const data = await response.json();
-        console.log('Данные пользователя успешно получены с сервера');
+        console.log('Данные пользователя успешно получены с сервера:', data);
         return data;
       } else {
         console.error('Ошибка при получении данных пользователя с сервера:', response.status);
@@ -86,6 +87,7 @@ export default function Profile() {
   // Функции загрузки данных с обработкой сетевых ошибок
   const loadFollowers = async (userId) => {
     try {
+      console.log('Загрузка фолловеров для ID:', userId);
       // Добавляем параметр для предотвращения кэширования
       const response = await fetch(`/api/twitch/user-followers?userId=${userId}&_=${Date.now()}`, {
         method: 'GET',
@@ -94,24 +96,51 @@ export default function Profile() {
           'Cache-Control': 'no-cache'
         },
         credentials: 'include',
-        cache: 'no-store'
+        mode: 'cors', // Добавляем режим CORS
+        next: { revalidate: 0 } // Отключаем кэширование Next.js
       });
+      
       if (response.ok) {
         const data = await response.json();
-        setFollowers(data.followers || []);
-        setTotalFollowers(data.total || 0);
-        console.log('Подписчики успешно загружены:', data.followers?.length || 0);
+        if (data && data.followers) {
+          setFollowers(data.followers || []);
+          setTotalFollowers(data.total || data.followers.length || 0);
+          console.log('Подписчики успешно загружены:', data.followers?.length || 0, 'Всего:', data.total || 0);
+        } else {
+          console.log('Данные фолловеров некорректные:', data);
+          setFollowers([]);
+          setTotalFollowers(0);
+        }
       } else {
         console.error('Ошибка при получении подписчиков:', response.status);
+        // Пробуем запасной метод
+        fallbackLoadFollowers(userId);
       }
     } catch (error) {
       console.error('Ошибка при загрузке подписчиков:', error);
-      // Продолжаем загрузку страницы даже при ошибке
+      // Пробуем запасной метод
+      fallbackLoadFollowers(userId);
+    }
+  };
+
+  // Запасной метод загрузки фолловеров
+  const fallbackLoadFollowers = async (userId) => {
+    try {
+      console.log('Использую запасной метод загрузки фолловеров');
+      const data = await getUserFollowers(userId);
+      if (data && data.followers) {
+        setFollowers(data.followers);
+        setTotalFollowers(data.total || data.followers.length);
+        console.log('Фолловеры загружены запасным методом:', data.followers.length);
+      }
+    } catch (fallbackError) {
+      console.error('Запасной метод загрузки фолловеров тоже не сработал:', fallbackError);
     }
   };
 
   const loadFollowings = async (userId) => {
     try {
+      console.log('Загрузка подписок для ID:', userId);
       // Добавляем параметр для предотвращения кэширования
       const response = await fetch(`/api/twitch/user-followings?userId=${userId}&_=${Date.now()}`, {
         method: 'GET',
@@ -120,19 +149,45 @@ export default function Profile() {
           'Cache-Control': 'no-cache'
         },
         credentials: 'include',
-        cache: 'no-store'
+        mode: 'cors', // Добавляем режим CORS
+        next: { revalidate: 0 } // Отключаем кэширование Next.js
       });
+      
       if (response.ok) {
         const data = await response.json();
-        setFollowings(data.followings || []);
-        setTotalFollowings(data.total || 0);
-        console.log('Подписки успешно загружены:', data.followings?.length || 0);
+        if (data && data.followings) {
+          setFollowings(data.followings || []);
+          setTotalFollowings(data.total || data.followings.length || 0);
+          console.log('Подписки успешно загружены:', data.followings?.length || 0, 'Всего:', data.total || 0);
+        } else {
+          console.log('Данные подписок некорректные:', data);
+          setFollowings([]);
+          setTotalFollowings(0);
+        }
       } else {
         console.error('Ошибка при получении подписок:', response.status);
+        // Пробуем запасной метод
+        fallbackLoadFollowings(userId);
       }
     } catch (error) {
       console.error('Ошибка при загрузке подписок:', error);
-      // Продолжаем загрузку страницы даже при ошибке
+      // Пробуем запасной метод
+      fallbackLoadFollowings(userId);
+    }
+  };
+
+  // Запасной метод загрузки подписок
+  const fallbackLoadFollowings = async (userId) => {
+    try {
+      console.log('Использую запасной метод загрузки подписок');
+      const data = await getUserFollowings(userId);
+      if (data && data.followings) {
+        setFollowings(data.followings);
+        setTotalFollowings(data.total || data.followings.length);
+        console.log('Подписки загружены запасным методом:', data.followings.length);
+      }
+    } catch (fallbackError) {
+      console.error('Запасной метод загрузки подписок тоже не сработал:', fallbackError);
     }
   };
 
@@ -147,19 +202,56 @@ export default function Profile() {
           'Cache-Control': 'no-cache'
         },
         credentials: 'include',
-        cache: 'no-store'
+        mode: 'cors', // Добавляем режим CORS 
+        next: { revalidate: 0 } // Отключаем кэширование Next.js
       });
       
       if (response.ok) {
         const stats = await response.json();
-        console.log('Статистика пользователя успешно загружена');
-        setUserStats(stats);
+        console.log('Статистика пользователя успешно загружена:', stats);
+        
+        // Проверяем, что данные имеют правильную структуру
+        if (stats && (stats.user || stats.followers)) {
+          setUserStats(stats);
+          
+          // Обновляем количество завершенных стримов, если есть данные
+          if (stats.stream && typeof stats.stream.completedStreams === 'number') {
+            setStreamsCompleted(stats.stream.completedStreams);
+          }
+        } else {
+          console.warn('Данные статистики получены, но имеют неожиданную структуру:', stats);
+          
+          // Создаем базовый объект статистики, если данные неполные
+          const fallbackStats = {
+            user: stats.user || { viewCount: profileData.view_count || 0 },
+            followers: stats.followers || { total: totalFollowers || followers.length || 0 },
+            stream: stats.stream || {}
+          };
+          
+          setUserStats(fallbackStats);
+        }
       } else {
         console.error('Ошибка при загрузке статистики пользователя:', response.status);
       }
     } catch (error) {
       console.error('Ошибка при получении статистики пользователя:', error);
-      // Продолжаем загрузку страницы даже при ошибке
+      
+      // Создаем базовый объект статистики из имеющихся данных профиля
+      if (profileData) {
+        const fallbackStats = {
+          user: { 
+            viewCount: profileData.view_count || 0,
+            broadcasterType: profileData.broadcaster_type || 'standard',
+            createdAt: profileData.created_at
+          },
+          followers: { 
+            total: totalFollowers || followers.length || 0 
+          },
+          stream: {}
+        };
+        
+        setUserStats(fallbackStats);
+      }
     }
   };
 
@@ -174,30 +266,62 @@ export default function Profile() {
           'Cache-Control': 'no-cache'
         },
         credentials: 'include',
-        cache: 'no-store'
+        mode: 'cors', // Добавляем режим CORS
+        next: { revalidate: 0 } // Отключаем кэширование Next.js
       });
       
       if (response.ok) {
         const data = await response.json();
-        console.log('Социальные ссылки успешно загружены');
+        console.log('Социальные ссылки успешно загружены:', data);
         
-        // Преобразуем данные в формат, который ожидает наш интерфейс
-        const links = {};
-        if (data && Array.isArray(data)) {
-          data.forEach(link => {
-            if (link.name && link.url) {
-              links[link.name] = link.url;
-            }
-          });
+        // Проверяем структуру данных
+        if (data) {
+          if (Array.isArray(data)) {
+            // Преобразуем данные в формат, который ожидает наш интерфейс
+            const links = {};
+            data.forEach(link => {
+              if (link.name && link.url) {
+                links[link.name] = link.url;
+              }
+            });
+            
+            setSocialLinks(links);
+          } else if (typeof data === 'object') {
+            // Данные уже в нужном формате
+            setSocialLinks(data);
+          } else {
+            console.warn('Неожиданный формат данных социальных ссылок:', data);
+          }
         }
-        
-        setSocialLinks(links);
       } else {
         console.error('Ошибка при загрузке социальных ссылок:', response.status);
+        
+        // Пробуем получить данные из localStorage
+        try {
+          const storedLinks = localStorage.getItem('social_links');
+          if (storedLinks) {
+            const links = JSON.parse(storedLinks);
+            setSocialLinks(links);
+            console.log('Социальные ссылки загружены из localStorage');
+          }
+        } catch (storageError) {
+          console.error('Ошибка при получении социальных ссылок из localStorage:', storageError);
+        }
       }
     } catch (error) {
       console.error('Ошибка при загрузке социальных ссылок:', error);
-      // Продолжаем работу даже при ошибке
+      
+      // Пробуем получить данные из localStorage
+      try {
+        const storedLinks = localStorage.getItem('social_links');
+        if (storedLinks) {
+          const links = JSON.parse(storedLinks);
+          setSocialLinks(links);
+          console.log('Социальные ссылки загружены из localStorage');
+        }
+      } catch (storageError) {
+        console.error('Ошибка при получении социальных ссылок из localStorage:', storageError);
+      }
     }
   };
 
@@ -212,19 +336,27 @@ export default function Profile() {
           'Cache-Control': 'no-cache'
         },
         credentials: 'include',
-        cache: 'no-store'
+        mode: 'cors', // Добавляем режим CORS
+        next: { revalidate: 0 } // Отключаем кэширование Next.js
       });
       
       if (response.ok) {
         const data = await response.json();
-        console.log('Тирлисты успешно загружены:', data.length || 0);
-        setTierlists(data || []);
+        console.log('Тирлисты успешно загружены:', data?.length || 0);
+        
+        if (Array.isArray(data)) {
+          setTierlists(data);
+        } else {
+          console.warn('Неожиданный формат данных тирлистов:', data);
+          setTierlists([]);
+        }
       } else {
         console.error('Ошибка при загрузке тирлистов:', response.status);
+        setTierlists([]);
       }
     } catch (error) {
       console.error('Ошибка при загрузке тирлистов:', error);
-      // Продолжаем работу даже при ошибке
+      setTierlists([]);
     }
   };
 
@@ -258,7 +390,7 @@ export default function Profile() {
           console.log('Состояние авторизации:', { 
             isAuthenticated, 
             isAuthenticatedInStorage, 
-            userIdFromContext: userId
+            userIdFromContext: userId 
           });
           
           // Проверка авторизации с надежной обработкой ошибок для Vercel
@@ -297,6 +429,15 @@ export default function Profile() {
           // Используем ID из контекста или localStorage
           const effectiveUserId = userId || userIdFromStorage;
           
+          if (!effectiveUserId) {
+            console.error('Не удалось получить ID пользователя ни из контекста, ни из localStorage');
+            setError('Не удалось определить идентификатор пользователя. Попробуйте войти заново.');
+            setLoading(false);
+            return;
+          }
+          
+          console.log('Использую ID пользователя:', effectiveUserId);
+          
           // Если у нас есть данные из контекста авторизации, используем их
           if (userId && userLogin) {
             console.log('Используем данные из контекста авторизации:', userId);
@@ -311,32 +452,24 @@ export default function Profile() {
             
             setProfileData(authContextData);
             console.log('Установлены данные профиля из контекста авторизации');
-                
-            // Загружаем фолловеров
-            loadFollowers(userId);
             
-            // Загружаем фолловинги
-            loadFollowings(userId);
-            
-            // Загружаем статистику
-            loadStats(userId);
-            
-            // Загружаем социальные ссылки
-            loadSocialLinks(userId);
-            
-            // Загружаем тирлисты
-            loadTierlists(userId);
+            // Загружаем дополнительные данные по очереди, чтобы избежать гонки запросов
+            await loadFollowers(userId);
+            await loadFollowings(userId);
+            await loadStats(userId);
+            await loadSocialLinks(userId);
+            await loadTierlists(userId);
           } else if (userDataFromStorage && userIdFromStorage) {
             console.log('Используем данные из localStorage:', userIdFromStorage);
             
             setProfileData(userDataFromStorage);
             
-            // Загружаем дополнительные данные
-            loadFollowers(userIdFromStorage);
-            loadFollowings(userIdFromStorage);
-            loadStats(userIdFromStorage);
-            loadSocialLinks(userIdFromStorage);
-            loadTierlists(userIdFromStorage);
+            // Загружаем дополнительные данные по очереди, чтобы избежать гонки запросов
+            await loadFollowers(userIdFromStorage);
+            await loadFollowings(userIdFromStorage);
+            await loadStats(userIdFromStorage);
+            await loadSocialLinks(userIdFromStorage);
+            await loadTierlists(userIdFromStorage);
           } else {
             console.log('Пытаемся получить данные с сервера');
             
@@ -348,12 +481,12 @@ export default function Profile() {
               
               setProfileData(freshUserData);
               
-              // Загружаем дополнительные данные
-              loadFollowers(freshUserData.id);
-              loadFollowings(freshUserData.id);
-              loadStats(freshUserData.id);
-              loadSocialLinks(freshUserData.id);
-              loadTierlists(freshUserData.id);
+              // Загружаем дополнительные данные по очереди, чтобы избежать гонки запросов
+              await loadFollowers(freshUserData.id);
+              await loadFollowings(freshUserData.id);
+              await loadStats(freshUserData.id);
+              await loadSocialLinks(freshUserData.id);
+              await loadTierlists(freshUserData.id);
               
               // Сохраняем данные в localStorage для будущего использования
               localStorage.setItem('twitch_user', JSON.stringify(freshUserData));
@@ -557,11 +690,12 @@ export default function Profile() {
   const renderProfileInfo = () => {
     if (!profileData) return null;
     
-    // Получаем количество фолловеров из userStats или profileData
-    const followersCount = userStats?.followers?.total || 
-                          profileData.followersCount || 
+    // Получаем количество фолловеров из разных источников данных
+    const followersCount = totalFollowers || 
+                          userStats?.followers?.total || 
                           profileData.follower_count || 
-                          followers?.length || 
+                          profileData.followersCount || 
+                          followers.length || 
                           0;
     
     // Получаем количество просмотров
@@ -1128,7 +1262,7 @@ export default function Profile() {
         <div className={styles.statsSection}>
           <h3 className={styles.statsTitle}>Статистика канала</h3>
           <div className={styles.emptyState}>
-            <p>Статистика пока недоступна. Попробуйте обновить страницу позже.</p>
+            <p>Статистика временно недоступна из-за проблем с API Twitch.</p>
             <button 
               className={styles.button}
               onClick={() => window.location.reload()}
@@ -1148,14 +1282,17 @@ export default function Profile() {
                      0;
     
     // Получаем количество фолловеров из разных источников
-    const followersCount = userStats?.followers?.total || 
-                          profileData.followersCount || 
+    const followersCount = totalFollowers || 
+                          userStats?.followers?.total || 
                           profileData.follower_count || 
-                          followers?.length || 
+                          followers.length || 
                           0;
     
     // Рассчитываем средний онлайн (примерная формула)
-    const averageViewers = Math.round((viewCount * 0.05) / Math.max(streamsCompleted || 1, 1));
+    const completedStreamsCount = streamsCompleted || 0;
+    const averageViewers = completedStreamsCount > 0 
+      ? Math.round((viewCount * 0.05) / completedStreamsCount)
+      : Math.round(viewCount * 0.005); // Примерная оценка если нет данных о стримах
     
     // Получаем дату создания аккаунта
     const createdAt = userStats?.user?.createdAt || profileData.created_at;
@@ -1212,7 +1349,7 @@ export default function Profile() {
           <div className={styles.statItem}>
             <div className={styles.statIcon}>📺</div>
             <div className={styles.statInfo}>
-              <div className={styles.statValue}>{streamsCompleted || 0}</div>
+              <div className={styles.statValue}>{completedStreamsCount}</div>
               <div className={styles.statLabel}>Завершено стримов</div>
             </div>
           </div>
