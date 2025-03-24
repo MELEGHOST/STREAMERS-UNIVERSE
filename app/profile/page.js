@@ -55,31 +55,83 @@ export default function Profile() {
   const [totalFollowers, setTotalFollowers] = useState(0);
   const [totalFollowings, setTotalFollowings] = useState(0);
 
-  // Функция для получения данных пользователя с сервера
+  // Функция для получения данных пользователя с сервера с обработкой CORS ошибок
   const getUserData = async () => {
     try {
-      // Добавляем параметр для предотвращения кэширования
-      const response = await fetch(`/api/twitch/user?_=${Date.now()}`, {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-          'Cache-Control': 'no-cache'
-        },
-        credentials: 'include',
-        mode: 'cors', // Добавляем режим CORS
-        next: { revalidate: 0 } // Отключаем кэширование Next.js
-      });
+      // Добавляем несколько стратегий получения данных
+      let userData = null;
+      let fetchError = null;
       
-      if (response.ok) {
-        const data = await response.json();
-        console.log('Данные пользователя успешно получены с сервера:', data);
-        return data;
-      } else {
-        console.error('Ошибка при получении данных пользователя с сервера:', response.status);
-        return null;
+      // Стратегия 1: Запрос к нашему API
+      try {
+        console.log('Попытка получить данные через API (/api/twitch/user)...');
+        // Добавляем параметр для предотвращения кэширования
+        const response = await fetch(`/api/twitch/user?_=${Date.now()}`, {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+            'Cache-Control': 'no-cache'
+          },
+          credentials: 'include',
+          mode: 'cors', // Добавляем режим CORS
+          next: { revalidate: 0 } // Отключаем кэширование Next.js
+        });
+        
+        if (response.ok) {
+          userData = await response.json();
+          console.log('Данные пользователя успешно получены с сервера:', userData);
+          // Обновляем localStorage для будущих запросов
+          if (userData && userData.id) {
+            localStorage.setItem('twitch_user', JSON.stringify(userData));
+            localStorage.setItem('is_authenticated', 'true');
+          }
+          return userData;
+        } else {
+          fetchError = `Ошибка API: ${response.status}`;
+          console.error('Ошибка при получении данных пользователя с сервера:', response.status);
+        }
+      } catch (apiError) {
+        console.error('Сетевая ошибка при запросе к API:', apiError);
+        fetchError = apiError.message || 'Сетевая ошибка';
       }
+      
+      // Стратегия 2: Использовать данные из localStorage
+      try {
+        console.log('Попытка получить данные из localStorage...');
+        const storedUserData = localStorage.getItem('twitch_user');
+        if (storedUserData) {
+          userData = JSON.parse(storedUserData);
+          if (userData && userData.id) {
+            console.log('Данные пользователя успешно получены из localStorage:', userData.id);
+            return userData;
+          }
+        }
+      } catch (localError) {
+        console.error('Ошибка при получении данных из localStorage:', localError);
+      }
+      
+      // Стратегия 3: Проверить cookie_twitch_user
+      try {
+        console.log('Попытка получить данные из cookie_twitch_user...');
+        const altUserData = localStorage.getItem('cookie_twitch_user');
+        if (altUserData) {
+          userData = JSON.parse(altUserData);
+          if (userData && userData.id) {
+            console.log('Данные пользователя успешно получены из cookie_twitch_user:', userData.id);
+            // Обновляем основное хранилище
+            localStorage.setItem('twitch_user', JSON.stringify(userData));
+            return userData;
+          }
+        }
+      } catch (cookieError) {
+        console.error('Ошибка при получении данных из cookie_twitch_user:', cookieError);
+      }
+      
+      // Если все стратегии не сработали, возвращаем ошибку
+      console.error('Не удалось получить данные пользователя ни одним из способов');
+      return null;
     } catch (error) {
-      console.error('Ошибка при запросе данных пользователя:', error);
+      console.error('Критическая ошибка при запросе данных пользователя:', error);
       return null;
     }
   };
@@ -377,6 +429,32 @@ export default function Profile() {
         return; // Выходим из эффекта и ждем следующего рендера
       }
       
+      // Проверяем есть ли данные авторизации в localStorage даже если контекст еще не обновил состояние
+      const checkLocalStorage = () => {
+        try {
+          const isAuthFromStorage = localStorage.getItem('is_authenticated') === 'true';
+          const storedUserData = localStorage.getItem('twitch_user');
+          
+          if (isAuthFromStorage && storedUserData) {
+            try {
+              const userData = JSON.parse(storedUserData);
+              console.log('[Vercel] Найдены локальные данные авторизации:', userData.id);
+              return true;
+            } catch (error) {
+              console.error('[Vercel] Ошибка при парсинге данных пользователя:', error);
+            }
+          }
+          return false;
+        } catch (error) {
+          console.error('[Vercel] Ошибка при проверке localStorage:', error);
+          return false;
+        }
+      };
+      
+      // Если контекст говорит, что пользователь не авторизован, 
+      // но в localStorage есть данные, установим флаг для загрузки профиля
+      const hasLocalData = !isAuthenticated && checkLocalStorage();
+      
       // Функция для загрузки данных профиля с обработкой ошибок для Vercel
       const loadProfileData = async () => {
         if (!isMounted) return;
@@ -390,12 +468,13 @@ export default function Profile() {
           console.log('Состояние авторизации:', { 
             isAuthenticated, 
             isAuthenticatedInStorage, 
-            userIdFromContext: userId 
+            userIdFromContext: userId,
+            hasLocalData
           });
           
           // Проверка авторизации с надежной обработкой ошибок для Vercel
           // Если пользователь не авторизован по состоянию из контекста и нет флага в localStorage
-          if (!isAuthenticated && !isAuthenticatedInStorage) {
+          if (!isAuthenticated && !isAuthenticatedInStorage && !hasLocalData) {
             console.log('[Vercel] Пользователь не авторизован, перенаправляем на страницу авторизации');
             
             // Сохраняем текущий путь
@@ -417,10 +496,40 @@ export default function Profile() {
           try {
             const storedUserData = localStorage.getItem('twitch_user');
             if (storedUserData) {
-              userDataFromStorage = JSON.parse(storedUserData);
-              userIdFromStorage = userDataFromStorage?.id;
-              console.log('Найдены данные пользователя в localStorage:', 
-                userIdFromStorage ? `ID: ${userIdFromStorage}` : 'ID не найден');
+              try {
+                userDataFromStorage = JSON.parse(storedUserData);
+                userIdFromStorage = userDataFromStorage?.id;
+                console.log('Найдены данные пользователя в localStorage:', 
+                  userIdFromStorage ? `ID: ${userIdFromStorage}` : 'ID не найден');
+              } catch (parseError) {
+                console.error('Ошибка при парсинге данных пользователя из localStorage:', parseError);
+                
+                // Если данные повреждены, попробуем другие ключи в localStorage
+                const alternativeUserData = localStorage.getItem('cookie_twitch_user');
+                if (alternativeUserData) {
+                  try {
+                    userDataFromStorage = JSON.parse(alternativeUserData);
+                    userIdFromStorage = userDataFromStorage?.id;
+                    console.log('Найдены альтернативные данные пользователя в localStorage:', 
+                      userIdFromStorage ? `ID: ${userIdFromStorage}` : 'ID не найден');
+                  } catch (altParseError) {
+                    console.error('Ошибка при парсинге альтернативных данных пользователя:', altParseError);
+                  }
+                }
+              }
+            } else {
+              // Если данных нет под ключом 'twitch_user', проверяем другие возможные ключи
+              const alternativeUserData = localStorage.getItem('cookie_twitch_user');
+              if (alternativeUserData) {
+                try {
+                  userDataFromStorage = JSON.parse(alternativeUserData);
+                  userIdFromStorage = userDataFromStorage?.id;
+                  console.log('Найдены альтернативные данные пользователя в localStorage:', 
+                    userIdFromStorage ? `ID: ${userIdFromStorage}` : 'ID не найден');
+                } catch (altParseError) {
+                  console.error('Ошибка при парсинге альтернативных данных пользователя:', altParseError);
+                }
+              }
             }
           } catch (error) {
             console.error('Ошибка при получении данных из localStorage:', error);
