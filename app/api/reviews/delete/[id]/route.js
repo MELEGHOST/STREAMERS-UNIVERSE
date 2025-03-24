@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import prisma from '../../../../lib/prisma';
+import supabaseClient from '../../../../lib/supabaseClient';
 import { verifyToken } from '../../../../lib/auth';
 
 export async function DELETE(request, { params }) {
@@ -25,42 +25,31 @@ export async function DELETE(request, { params }) {
     }
     
     // Находим отзыв
-    const review = await prisma.review.findUnique({
-      where: { id }
-    });
+    const review = await supabaseClient.from('reviews').select('*').eq('id', id);
     
-    if (!review) {
+    if (review.length === 0) {
       return NextResponse.json({ message: 'Отзыв не найден' }, { status: 404 });
     }
     
     // Проверяем, является ли пользователь автором отзыва
-    if (review.authorId !== userData.id) {
+    if (review[0].authorId !== userData.id) {
       return NextResponse.json({ message: 'У вас нет прав на удаление этого отзыва' }, { status: 403 });
     }
     
     // Удаляем отзыв
-    await prisma.review.delete({
-      where: { id }
-    });
+    await supabaseClient.from('reviews').delete().eq('id', id);
     
     // Вычитаем StreamCoins за удаление отзыва
-    await prisma.user.update({
-      where: { id: userData.id },
-      data: {
-        streamCoins: {
-          decrement: 5 // Вычитаем 5 монет за удаление отзыва
-        }
-      }
-    });
+    await supabaseClient.from('users').update({
+      streamCoins: supabaseClient.rpc('decrement_coins', { amount: 5 })
+    }).eq('id', userData.id);
     
     // Создаем запись о транзакции
-    await prisma.streamCoinsTransaction.create({
-      data: {
-        userId: userData.id,
-        amount: 5,
-        type: 'SPEND',
-        description: 'Списание за удаление отзыва'
-      }
+    await supabaseClient.from('streamCoinsTransactions').insert({
+      userId: userData.id,
+      amount: 5,
+      type: 'SPEND',
+      description: 'Списание за удаление отзыва'
     });
     
     return NextResponse.json({ 

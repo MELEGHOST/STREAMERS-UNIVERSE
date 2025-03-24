@@ -270,7 +270,8 @@ export function getUserFromLocalStorage() {
     const sources = [
       localStorage.getItem('twitch_user'),
       localStorage.getItem('cookie_twitch_user'),
-      Cookies.get('twitch_user')
+      Cookies.get('twitch_user'),
+      Cookies.get('twitch_user_data')
     ];
     
     // Перебираем источники и возвращаем первый непустой результат
@@ -329,6 +330,24 @@ export async function getAccessToken() {
       // Сохраняем в новое хранилище
       await DataStorage.saveData('auth_token', localToken);
       return localToken;
+    }
+    
+    // Если нет кэша, проверяем наличие данных пользователя
+    if (typeof window !== 'undefined' && !window.location.pathname.includes('/auth')) {
+      const hasTwitchUser = Cookies.get('twitch_user') || localStorage.getItem('twitch_user');
+      const hasTwitchUserData = Cookies.get('twitch_user_data');
+      
+      if (!hasTwitchUser && !hasTwitchUserData) {
+        console.warn('Токен и данные пользователя не найдены, перенаправляю на страницу авторизации');
+        // Сохраняем текущий URL для возврата после авторизации
+        localStorage.setItem('auth_redirect', window.location.pathname);
+        // Перенаправляем на страницу авторизации через небольшую задержку
+        setTimeout(() => {
+          window.location.href = '/auth';
+        }, 100);
+      } else {
+        console.log('Токен не найден, но данные пользователя присутствуют. Продолжаю загрузку...');
+      }
     }
     
     return null;

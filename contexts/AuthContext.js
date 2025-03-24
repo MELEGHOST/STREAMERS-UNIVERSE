@@ -87,6 +87,7 @@ export function AuthProvider({ children }) {
       Cookies.remove('twitch_access_token', { path: '/' });
       Cookies.remove('twitch_refresh_token', { path: '/' });
       Cookies.remove('twitch_user', { path: '/' });
+      Cookies.remove('twitch_user_data', { path: '/' });
       Cookies.remove('twitch_state', { path: '/' });
       
       // Удаляем данные из localStorage
@@ -123,9 +124,14 @@ export function AuthProvider({ children }) {
                           Cookies.get('twitch_access_token');
                           
         // Проверяем все возможные места хранения данных пользователя
-        const userDataStr = localStorage.getItem('twitch_user') || 
-                          localStorage.getItem('cookie_twitch_user') || 
-                          Cookies.get('twitch_user');
+        let userDataStr = localStorage.getItem('twitch_user') || 
+                         localStorage.getItem('cookie_twitch_user') || 
+                         Cookies.get('twitch_user');
+                         
+        // Проверяем новую куку twitch_user_data, если основные данные не найдены
+        if (!userDataStr) {
+          userDataStr = Cookies.get('twitch_user_data');
+        }
         
         console.log('Найденные данные:', { 
           hasToken: !!accessToken, 

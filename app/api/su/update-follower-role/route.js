@@ -1,98 +1,119 @@
 import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
-import { prisma } from '../../../utils/prisma';
+import { supabaseClient } from '../../../utils/supabaseClient';
 
 export async function POST(request) {
   try {
     // Получаем данные из запроса
-    const { followerId, assignerId, role } = await request.json();
+    const { followerId, roleName } = await request.json();
     
-    if (!followerId || !assignerId) {
-      return NextResponse.json({ 
-        error: 'Требуются ID последователя и назначающего роль',
-        success: false
-      }, { status: 400 });
+    // Проверка наличия необходимых параметров
+    if (!followerId) {
+      return NextResponse.json({ error: 'ID пользователя обязателен' }, { status: 400 });
     }
     
-    // Проверяем, что пользователь авторизован
+    // Получаем текущего пользователя из куки
     const cookieStore = cookies();
-    const userId = cookieStore.get('user_id')?.value;
+    const userCookie = cookieStore.get('twitch_user')?.value;
     
-    if (!userId || userId !== assignerId) {
-      console.error('Неавторизованный запрос на изменение роли');
-      return NextResponse.json({ 
-        error: 'Не авторизован для изменения роли',
-        success: false
-      }, { status: 401 });
+    if (!userCookie) {
+      return NextResponse.json({ error: 'Необходима авторизация' }, { status: 401 });
     }
     
-    // Проверяем, что пользователь действительно подписан на assignerId
-    const follow = await prisma.follow.findMany({
-      where: {
-        followerId: followerId,
-        followedId: assignerId
-      }
-    });
+    const userData = JSON.parse(userCookie);
     
-    if (!follow || follow.length === 0) {
+    // Проверяем существование связи между пользователями
+    const { data: follow, error: followError } = await supabaseClient
+      .from('follows')
+      .select('*')
+      .eq('follower_id', followerId)
+      .eq('followed_id', userData.id);
+    
+    if (followError || !follow || follow.length === 0) {
       return NextResponse.json({ 
-        error: 'Пользователь не является последователем',
-        success: false
+        error: 'Пользователь не является вашим подписчиком' 
       }, { status: 404 });
     }
     
-    // Если роль пустая, удаляем существующую роль
-    if (!role || role === '') {
-      await prisma.userRole.deleteMany({
-        where: {
-          userId: followerId,
-          assignerId: assignerId
-        }
-      });
+    // Если роль отсутствует, удаляем все роли этого пользователя
+    if (!roleName) {
+      const { error: deleteError } = await supabaseClient
+        .from('userRoles')
+        .delete()
+        .eq('userId', followerId)
+        .eq('assignerId', userData.id);
       
-      return NextResponse.json({
-        success: true,
-        message: 'Роль успешно удалена'
-      });
-    }
-    
-    // Проверяем допустимость роли
-    const validRoles = ['moderator', 'vip', 'regular'];
-    if (!validRoles.includes(role)) {
+      if (deleteError) {
+        console.error('Ошибка при удалении роли:', deleteError);
+        return NextResponse.json({ 
+          error: 'Не удалось удалить роль пользователя' 
+        }, { status: 500 });
+      }
+      
       return NextResponse.json({ 
-        error: 'Недопустимая роль',
-        success: false
-      }, { status: 400 });
+        success: true, 
+        message: 'Роль успешно удалена' 
+      });
     }
     
     // Обновляем или создаем роль
-    const updatedRole = await prisma.userRole.upsert({
-      where: {
-        userId_assignerId: {
-          userId: followerId,
-          assignerId: assignerId
-        }
-      },
-      create: {
-        userId: followerId,
-        assignerId: assignerId,
-        roleName: role
-      },
-      update: {
-        roleName: role
-      }
-    });
+    const { data: existingRole, error: roleError } = await supabaseClient
+      .from('userRoles')
+      .select('*')
+      .eq('userId', followerId)
+      .eq('assignerId', userData.id)
+      .single();
     
-    return NextResponse.json({
-      success: true,
-      role: updatedRole.roleName
-    });
+    if (existingRole) {
+      // Обновляем существующую роль
+      const { data: updatedRole, error: updateError } = await supabaseClient
+        .from('userRoles')
+        .update({ roleName })
+        .eq('id', existingRole.id)
+        .select()
+        .single();
+      
+      if (updateError) {
+        console.error('Ошибка при обновлении роли:', updateError);
+        return NextResponse.json({ 
+          error: 'Не удалось обновить роль пользователя' 
+        }, { status: 500 });
+      }
+      
+      return NextResponse.json({ 
+        success: true, 
+        role: updatedRole,
+        message: 'Роль успешно обновлена'
+      });
+    } else {
+      // Создаем новую роль
+      const { data: newRole, error: createError } = await supabaseClient
+        .from('userRoles')
+        .insert({
+          userId: followerId,
+          assignerId: userData.id,
+          roleName
+        })
+        .select()
+        .single();
+      
+      if (createError) {
+        console.error('Ошибка при создании роли:', createError);
+        return NextResponse.json({ 
+          error: 'Не удалось создать роль пользователя' 
+        }, { status: 500 });
+      }
+      
+      return NextResponse.json({ 
+        success: true, 
+        role: newRole,
+        message: 'Роль успешно назначена'
+      });
+    }
   } catch (error) {
     console.error('Ошибка при обновлении роли:', error);
-    
-    return NextResponse.json({
-      error: 'Ошибка при обновлении роли',
-      success: false
+    return NextResponse.json({ 
+      error: 'Произошла ошибка при обработке запроса' 
     }, { status: 500 });
   }
 } 

@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { prisma } from '../../../utils/prisma';
+import { supabaseClient } from '../../../utils/supabaseClient';
 
 export async function GET(request) {
   try {
@@ -16,7 +16,7 @@ export async function GET(request) {
     }
     
     // Получаем пользователя из базы данных используя Supabase
-    const { data: user, error: userError } = await prisma
+    const { data: user, error: userError } = await supabaseClient
       .from('users')
       .select('id')
       .eq('twitchId', userId)
@@ -32,7 +32,7 @@ export async function GET(request) {
     }
     
     // Получаем всех последователей пользователя
-    const { data: follows, error: followsError } = await prisma
+    const { data: follows, error: followsError } = await supabaseClient
       .from('follows')
       .select(`
         *,
@@ -49,7 +49,7 @@ export async function GET(request) {
     }
     
     // Получаем роли последователей
-    const { data: followerRoles, error: rolesError } = await prisma
+    const { data: followerRoles, error: rolesError } = await supabaseClient
       .from('userRoles')
       .select('*')
       .eq('assignerId', user.id)

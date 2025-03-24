@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
-import prisma from '@/lib/prisma';
+import supabaseClient from '@/lib/supabaseClient';
 
 // Временное хранилище данных (в реальном приложении будет база данных)
 let reviews = [];
@@ -53,74 +53,46 @@ export async function GET(request) {
     if (authorId) where.authorId = authorId;
     
     // Получаем общее количество отзывов
-    const totalReviews = await prisma.review.count({ where });
+    const totalReviews = await supabaseClient.from('reviews').count();
     
     // Получаем отзывы с пагинацией
-    const reviews = await prisma.review.findMany({
-      where,
-      include: {
-        author: {
-          select: {
-            id: true,
-            username: true,
-            displayName: true,
-            avatar: true
-          }
-        },
-        streamer: {
-          select: {
-            id: true,
-            username: true,
-            displayName: true,
-            avatar: true
-          }
-        }
-      },
-      orderBy: {
-        createdAt: 'desc'
-      },
-      skip,
-      take: limit
-    });
+    const reviews = await supabaseClient.from('reviews').select('*').eq('streamerId', streamerId).order('createdAt', { ascending: false }).limit(limit).offset(skip);
     
     // Если запрашиваются отзывы для конкретного стримера, получаем статистику
     let stats = null;
     if (streamerId) {
-      const allReviews = await prisma.review.findMany({
-        where: { streamerId },
-        select: { rating: true }
-      });
+      const allReviews = await supabaseClient.from('reviews').select('rating').eq('streamerId', streamerId);
       
       // Рассчитываем статистику
-      const totalRating = allReviews.reduce((sum, review) => sum + review.rating, 0);
-      const averageRating = allReviews.length > 0 ? totalRating / allReviews.length : 0;
+      const totalRating = allReviews.data.reduce((sum, review) => sum + review.rating, 0);
+      const averageRating = allReviews.data.length > 0 ? totalRating / allReviews.data.length : 0;
       
       // Рассчитываем распределение рейтингов
       const ratingDistribution = {
         1: 0, 2: 0, 3: 0, 4: 0, 5: 0
       };
       
-      allReviews.forEach(review => {
+      allReviews.data.forEach(review => {
         ratingDistribution[review.rating]++;
       });
       
       stats = {
-        totalReviews: allReviews.length,
+        totalReviews: allReviews.data.length,
         averageRating,
         ratingDistribution
       };
     }
     
     // Формируем метаданные для пагинации
-    const totalPages = Math.ceil(totalReviews / limit);
+    const totalPages = Math.ceil(totalReviews.count / limit);
     const hasNextPage = page < totalPages;
     const hasPrevPage = page > 1;
     
     return NextResponse.json({
-      reviews,
+      reviews: reviews.data,
       stats,
       pagination: {
-        totalReviews,
+        totalReviews: totalReviews.count,
         totalPages,
         currentPage: page,
         limit,

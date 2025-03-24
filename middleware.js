@@ -100,7 +100,7 @@ export function middleware(request) {
     
     // Проверяем наличие куков для отладки
     const hasTwitchAccessToken = cookies.has('twitch_access_token');
-    const hasTwitchUser = cookies.has('twitch_user');
+    const hasTwitchUser = cookies.has('twitch_user') || cookies.has('twitch_user_data');
     
     // Проверяем наличие заголовка Authorization
     const hasAuthHeader = request.headers.has('Authorization');
@@ -171,8 +171,24 @@ export function middleware(request) {
       pathname === '/questions' || 
       pathname === '/settings') {
     
-    // ОТКЛЮЧАЕМ ПРОВЕРКИ И ПЕРЕНАПРАВЛЕНИЯ ДЛЯ ЗАЩИЩЕННЫХ СТРАНИЦ
-    // Просто пропускаем запрос дальше
+    console.log('Middleware: проверка доступа к защищенной странице:', pathname);
+    
+    // Получаем токен доступа и данные пользователя из куков
+    const hasTwitchAccessToken = cookies.has('twitch_access_token');
+    const hasTwitchUser = cookies.has('twitch_user');
+    const hasTwitchUserData = cookies.has('twitch_user_data');
+    const hasAuthHeader = request.headers.has('Authorization');
+    
+    // Проверяем наличие токена в localStorage через куки
+    const hasLocalStorageToken = cookies.has('has_local_storage_token');
+    
+    // Если нет ни куки, ни заголовка, перенаправляем на страницу авторизации
+    if (!hasTwitchAccessToken && !hasAuthHeader && !hasTwitchUser && !hasTwitchUserData && !hasLocalStorageToken) {
+      console.log('Middleware: пользователь не авторизован, перенаправление на /auth');
+      return NextResponse.redirect(new URL('/auth?redirect=' + encodeURIComponent(pathname), request.url));
+    }
+    
+    // Если пользователь авторизован, пропускаем запрос
     return NextResponse.next();
   }
   

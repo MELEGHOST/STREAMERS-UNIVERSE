@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import prisma from '@/lib/prisma';
+import supabaseClient from '@/lib/supabaseClient';
 import { verifyToken } from '@/lib/auth';
 
 export async function POST(request) {
@@ -36,55 +36,41 @@ export async function POST(request) {
     }
     
     // Проверяем, существует ли стример
-    const streamer = await prisma.user.findUnique({
-      where: { id: streamerId }
-    });
+    const streamer = await supabaseClient.from('users').select('*').eq('id', streamerId);
     
-    if (!streamer) {
+    if (streamer.length === 0) {
       return NextResponse.json({ message: 'Стример не найден' }, { status: 404 });
     }
     
     // Проверяем, не оставлял ли пользователь уже отзыв этому стримеру
-    const existingReview = await prisma.review.findFirst({
-      where: {
-        authorId: userData.id,
-        streamerId: streamerId
-      }
-    });
+    const existingReview = await supabaseClient.from('reviews').select('*').eq('authorId', userData.id).eq('streamerId', streamerId);
     
-    if (existingReview) {
+    if (existingReview.length > 0) {
       return NextResponse.json({ message: 'Вы уже оставили отзыв этому стримеру' }, { status: 400 });
     }
     
     // Создаем отзыв
-    const review = await prisma.review.create({
-      data: {
-        content,
-        rating,
-        authorId: userData.id,
-        streamerId,
-        categories: categories || []
-      }
-    });
+    const review = await supabaseClient.from('reviews').insert({
+      content,
+      rating,
+      authorId: userData.id,
+      streamerId,
+      categories: categories || []
+    }).returning('*');
     
     // Начисляем StreamCoins за отзыв
-    await prisma.user.update({
-      where: { id: userData.id },
-      data: {
-        streamCoins: {
-          increment: 10 // Начисляем 10 монет за отзыв
-        }
+    await supabaseClient.from('users').update({
+      streamCoins: {
+        increment: 10 // Начисляем 10 монет за отзыв
       }
-    });
+    }).eq('id', userData.id);
     
     // Создаем запись о транзакции
-    await prisma.streamCoinsTransaction.create({
-      data: {
-        userId: userData.id,
-        amount: 10,
-        type: 'EARN',
-        description: 'Начисление за написание отзыва'
-      }
+    await supabaseClient.from('streamCoinsTransactions').insert({
+      userId: userData.id,
+      amount: 10,
+      type: 'EARN',
+      description: 'Начисление за написание отзыва'
     });
     
     return NextResponse.json({ 

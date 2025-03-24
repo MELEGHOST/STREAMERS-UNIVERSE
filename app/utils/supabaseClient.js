@@ -1,5 +1,5 @@
 // Импортируем Supabase клиент
 import supabase from '../../lib/supabase';
 
-// Экспортируем supabase вместо mockDb
-export const prisma = supabase;
+// Экспортируем supabase клиент
+export const supabaseClient = supabase; 

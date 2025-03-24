@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
-import { prisma } from '../../../utils/prisma';
+import { supabaseClient } from '../../../utils/supabaseClient';
 
 export async function GET(request) {
   try {
@@ -183,7 +183,7 @@ async function getRegisteredUsers(twitchIds) {
   
   try {
     // Используем Supabase вместо Prisma
-    const { data: users, error } = await prisma
+    const { data: users, error } = await supabaseClient
       .from('users')
       .select('id, twitchId, username, userType')
       .in('twitchId', twitchIds);

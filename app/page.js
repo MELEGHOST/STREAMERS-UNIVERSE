@@ -9,7 +9,6 @@ export default function Home() {
   const router = useRouter();
   const { isAuthenticated, isInitialized } = useAuth();
   const hasRedirectedRef = useRef(false);
-  const timeoutRef = useRef(null);
   
   useEffect(() => {
     // Если уже было выполнено перенаправление, выходим
@@ -17,62 +16,48 @@ export default function Home() {
       return;
     }
     
-    // Устанавливаем таймаут для гарантированного перенаправления
-    timeoutRef.current = setTimeout(() => {
-      if (!hasRedirectedRef.current) {
-        console.log('Таймаут перенаправления на главной странице');
-        hasRedirectedRef.current = true;
-        
-        // Проверяем, есть ли данные пользователя в localStorage
-        const userData = clientStorage.getItem('twitch_user') || 
-                         clientStorage.getItem('cookie_twitch_user');
-        
-        if (userData) {
-          console.log('Найдены данные пользователя, перенаправляем в меню');
-          router.push('/menu');
-        } else {
-          console.log('Данные пользователя не найдены, перенаправляем на страницу авторизации');
-          router.push('/auth');
-        }
-      }
-    }, 2000); // Увеличиваем таймаут до 2 секунд
-    
-    // Если контекст аутентификации инициализирован, перенаправляем сразу
-    if (isInitialized && !hasRedirectedRef.current) {
-      console.log('Контекст аутентификации инициализирован, проверяем состояние авторизации');
-      
-      // Проверяем, нет ли уже активного перенаправления
-      if (clientStorage.getItem('redirect_in_progress')) {
-        console.log('Обнаружено активное перенаправление, отменяем новое');
-        return;
-      }
-      
-      // Устанавливаем флаг перенаправления
-      clientStorage.setItem('redirect_in_progress', 'true');
-      
-      // Очищаем флаг перенаправления через 5 секунд
-      setTimeout(() => {
-        clientStorage.removeItem('redirect_in_progress');
-      }, 5000);
-      
-      clearTimeout(timeoutRef.current);
+    // Создаем функцию перенаправления
+    const performRedirect = () => {
+      // Предотвращаем множественные перенаправления
+      if (hasRedirectedRef.current) return;
       hasRedirectedRef.current = true;
       
-      if (isAuthenticated) {
+      // Получаем данные пользователя из всех возможных источников
+      const userData = clientStorage.getItem('twitch_user') || 
+                       clientStorage.getItem('cookie_twitch_user');
+      
+      // Устанавливаем куку для отслеживания состояния перенаправления
+      clientStorage.setItem('redirect_state', 'redirecting');
+      
+      // Очищаем состояние перенаправления через 5 секунд
+      setTimeout(() => {
+        clientStorage.removeItem('redirect_state');
+      }, 5000);
+      
+      // Выполняем перенаправление
+      if (isAuthenticated || userData) {
         console.log('Пользователь авторизован, перенаправляем в меню');
         router.push('/menu');
       } else {
         console.log('Пользователь не авторизован, перенаправляем на страницу авторизации');
         router.push('/auth');
       }
-    }
-    
-    // Очищаем таймаут при размонтировании компонента
-    return () => {
-      if (timeoutRef.current) {
-        clearTimeout(timeoutRef.current);
-      }
     };
+    
+    // Если контекст аутентификации инициализирован, перенаправляем сразу
+    if (isInitialized) {
+      console.log('Контекст аутентификации инициализирован, выполняем перенаправление');
+      performRedirect();
+    } else {
+      // Устанавливаем таймаут для гарантированного перенаправления если isInitialized не сработает
+      const timeoutId = setTimeout(() => {
+        console.log('Таймаут перенаправления на главной странице');
+        performRedirect();
+      }, 2000);
+      
+      // Очищаем таймаут при размонтировании компонента
+      return () => clearTimeout(timeoutId);
+    }
   }, [isInitialized, isAuthenticated, router]);
   
   // Показываем простой индикатор загрузки

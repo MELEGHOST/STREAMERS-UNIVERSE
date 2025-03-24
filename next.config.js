@@ -60,7 +60,9 @@ const nextConfig = {
           },
           {
             key: 'Access-Control-Allow-Origin',
-            value: '*'
+            value: process.env.NODE_ENV === 'production' 
+              ? 'https://streamers-universe.vercel.app' 
+              : 'http://localhost:3000'
           },
           {
             key: 'Access-Control-Allow-Methods',

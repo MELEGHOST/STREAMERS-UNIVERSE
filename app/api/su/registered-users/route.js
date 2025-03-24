@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { prisma } from '../../../utils/prisma';
+import { supabaseClient } from '../../../utils/supabaseClient';
 
 export async function POST(request) {
   try {
@@ -25,7 +25,7 @@ export async function POST(request) {
     const limitedIds = twitchIds.slice(0, maxIds);
     
     // Запрашиваем данные из базы с помощью Supabase
-    const { data: registeredUsers, error } = await prisma
+    const { data: registeredUsers, error } = await supabaseClient
       .from('users')
       .select('id, twitchId, username, userType')
       .in('twitchId', limitedIds);

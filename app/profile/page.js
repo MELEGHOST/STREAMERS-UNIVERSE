@@ -241,28 +241,22 @@ export default function Profile() {
             router.push('/auth');
             return;
           } else {
-            // Получаем данные пользователя из localStorage как запасной вариант
+            // Получаем данные пользователя из localStorage или куки как запасной вариант
             try {
-              const storedUser = localStorage.getItem('twitch_user');
+              const storedUser = localStorage.getItem('twitch_user') || 
+                               Cookies.get('twitch_user') || 
+                               Cookies.get('twitch_user_data');
               if (storedUser) {
-                const userData = JSON.parse(storedUser);
-                console.log('Получены данные из localStorage:', userData.login || userData.display_name);
+                const userData = typeof storedUser === 'string' ? JSON.parse(storedUser) : storedUser;
+                console.log('Получены данные из localStorage/куки:', userData.login || userData.display_name);
                 setProfileData(userData);
                 
+                // Загружаем все дополнительные данные
                 if (userData.id) {
-                  // Загружаем фолловеров
                   loadFollowers(userData.id);
-                  
-                  // Загружаем фолловинги
                   loadFollowings(userData.id);
-                  
-                  // Загружаем статистику
                   loadStats(userData.id);
-                  
-                  // Загружаем социальные ссылки
                   loadSocialLinks(userData.id);
-                  
-                  // Загружаем тирлисты
                   loadTierlists(userData.id);
                 }
               } else {

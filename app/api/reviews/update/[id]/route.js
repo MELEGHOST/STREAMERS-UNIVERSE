@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import prisma from '../../../../lib/prisma';
+import supabaseClient from '../../../../lib/supabaseClient';
 import { verifyToken } from '../../../../lib/auth';
 
 export async function PUT(request, { params }) {
@@ -38,16 +38,14 @@ export async function PUT(request, { params }) {
     }
     
     // Находим отзыв
-    const review = await prisma.review.findUnique({
-      where: { id }
-    });
+    const review = await supabaseClient.from('reviews').select('*').eq('id', id);
     
-    if (!review) {
+    if (review.length === 0) {
       return NextResponse.json({ message: 'Отзыв не найден' }, { status: 404 });
     }
     
     // Проверяем, является ли пользователь автором отзыва
-    if (review.authorId !== userData.id) {
+    if (review[0].authorId !== userData.id) {
       return NextResponse.json({ message: 'У вас нет прав на редактирование этого отзыва' }, { status: 403 });
     }
     
@@ -58,10 +56,7 @@ export async function PUT(request, { params }) {
     if (categories !== undefined) updateData.categories = categories;
     
     // Обновляем отзыв
-    const updatedReview = await prisma.review.update({
-      where: { id },
-      data: updateData
-    });
+    const updatedReview = await supabaseClient.from('reviews').update(updateData).eq('id', id);
     
     return NextResponse.json({ 
       message: 'Отзыв успешно обновлен',

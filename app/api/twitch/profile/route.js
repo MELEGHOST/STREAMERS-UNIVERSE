@@ -56,9 +56,24 @@ export async function GET(request) {
     if (isPreviewVersion) {
       console.log('Profile API - Превью-версия: текущий домен:', currentDomain);
     }
+    
+    // Проверка CSRF токена для защиты от CSRF атак
+    const cookieStore = cookies();
+    const csrfTokenCookie = cookieStore.get('csrf_token');
+    const csrfToken = request.headers.get('X-CSRF-Token');
+    
+    // В production среде требуем наличие CSRF токена для всех запросов, кроме OPTIONS
+    if (process.env.NODE_ENV === 'production' && request.method !== 'OPTIONS') {
+      if (!csrfTokenCookie || !csrfToken || csrfTokenCookie.value !== csrfToken) {
+        console.error('Profile API - Ошибка проверки CSRF токена');
+        return NextResponse.json({ 
+          error: 'Ошибка безопасности', 
+          message: 'Недопустимый или отсутствующий CSRF токен'
+        }, { status: 403 });
+      }
+    }
 
     // Получаем токен доступа из cookies, заголовка Authorization или URL
-    const cookieStore = cookies();
     let accessToken = cookieStore.get('twitch_access_token')?.value;
     
     if (!accessToken) {
@@ -121,12 +136,15 @@ export async function GET(request) {
     // Ожидаем либо успешное получение данных, либо таймаут
     const userData = await Promise.race([fetchProfilePromise, timeoutPromise]);
     
+    // Очищаем данные пользователя перед отправкой для предотвращения XSS-атак
+    const sanitizedUserData = sanitizeObject(userData);
+    
     // Устанавливаем куки с данными о пользователе
     const simplifiedUserData = {
-      id: userData.id,
-      login: userData.login,
-      display_name: userData.display_name,
-      profile_image_url: userData.profile_image_url,
+      id: sanitizedUserData.id,
+      login: sanitizedUserData.login,
+      display_name: sanitizedUserData.display_name,
+      profile_image_url: sanitizedUserData.profile_image_url,
     };
     
     // Устанавливаем куку с данными пользователя
@@ -139,7 +157,7 @@ export async function GET(request) {
     });
     
     // Отправляем данные пользователя
-    return NextResponse.json(userData);
+    return NextResponse.json(sanitizedUserData);
   } catch (error) {
     clearTimeout(timeoutId);
     

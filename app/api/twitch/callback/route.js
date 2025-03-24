@@ -249,6 +249,21 @@ export async function GET(request) {
         avatar: user.avatar,
       }), {
         path: '/',
+        httpOnly: true, // Изменяем на httpOnly: true для повышения безопасности
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'lax',
+        maxAge: 60 * 60 * 24 * 7, // 7 дней
+      });
+      
+      // Добавляем дополнительную куку для чтения через JavaScript
+      cookieStore.set('twitch_user_data', JSON.stringify({
+        id: user.id,
+        twitchId: user.twitchId,
+        username: user.username,
+        displayName: user.displayName,
+        avatar: user.avatar,
+      }), {
+        path: '/',
         httpOnly: false, // Доступно для JavaScript
         secure: process.env.NODE_ENV === 'production',
         sameSite: 'lax',
