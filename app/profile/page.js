@@ -415,7 +415,28 @@ export default function Profile() {
     }
   };
 
-  // Загрузка данных при монтировании компонента
+  // Добавим функцию для загрузки дополнительных данных
+  const loadAdditionalData = async (userId) => {
+    try {
+      if (!userId) return;
+      
+      // Загружаем данные постепенно, не блокируя рендеринг
+      loadSocialLinks(userId).catch(e => console.error('Ошибка загрузки соц. ссылок:', e));
+      loadStats(userId).catch(e => console.error('Ошибка загрузки статистики:', e));
+      
+      // Проверяем день рождения, если есть в профиле
+      if (profileData && profileData.birthday) {
+        const birthdayResult = checkBirthday(profileData.birthday);
+        setIsBirthday(birthdayResult.isBirthday);
+        const daysTo = getDaysToBirthday(profileData.birthday);
+        setDaysToBirthday(daysTo);
+      }
+    } catch (error) {
+      console.error('Ошибка при загрузке дополнительных данных:', error);
+    }
+  };
+
+  // Модифицируем useEffect для загрузки дополнительных данных после базовой загрузки
   useEffect(() => {
     let isMounted = true;
     
@@ -448,9 +469,11 @@ export default function Profile() {
           setUserId(userData.id);
           setUserLogin(userData.login);
           
-          // Загружаем только базовые данные, остальное можно подгрузить потом
-          // для предотвращения ошибки рендеринга
-          loadFollowers(userData.id).catch(() => {});
+          // Загружаем базовые данные
+          await loadFollowers(userData.id).catch(() => {});
+          
+          // После загрузки профиля и базовых данных, загружаем дополнительные
+          loadAdditionalData(userData.id);
         }
       } catch (error) {
         console.error('Глобальная ошибка при загрузке данных:', error);
@@ -596,6 +619,165 @@ export default function Profile() {
     }
   };
 
+  // Функция для форматирования даты
+  const formatDate = (dateString) => {
+    if (!dateString) return '';
+    
+    const date = new Date(dateString);
+    return date.toLocaleDateString('ru-RU', { 
+      day: 'numeric', 
+      month: 'long',
+      year: 'numeric'
+    });
+  };
+
+  // Функция для отображения день рождения
+  const renderBirthday = () => {
+    if (!profileData?.birthday) return null;
+    
+    if (isBirthday) {
+      return (
+        <div className={styles.birthdayContainer}>
+          <span className={styles.birthdayIcon}>🎂</span>
+          <span className={styles.birthdayText}>С днем рождения! +100 стример-коинов!</span>
+        </div>
+      );
+    }
+    
+    if (daysToBirthday !== null && daysToBirthday <= 7) {
+      return (
+        <div className={styles.birthdayContainer}>
+          <span className={styles.birthdayIcon}>🎂</span>
+          <span className={styles.birthdayText}>
+            День рождения через {daysToBirthday} {getDayWord(daysToBirthday)}!
+          </span>
+        </div>
+      );
+    }
+    
+    return (
+      <div className={styles.birthdayContainer}>
+        <span className={styles.birthdayIcon}>🎂</span>
+        <span className={styles.birthdayText}>День рождения: {formatDate(profileData.birthday)}</span>
+      </div>
+    );
+  };
+  
+  // Функция для склонения слова "день"
+  const getDayWord = (days) => {
+    if (days === 1) return 'день';
+    if (days >= 2 && days <= 4) return 'дня';
+    return 'дней';
+  };
+
+  // Функция для отображения социальных ссылок
+  const renderSocialLinks = () => {
+    // Проверяем, существуют ли социальные ссылки
+    if (!socialLinks) {
+      return (
+        <div className={styles.emptySocialLinks}>
+          Нет социальных ссылок для отображения.
+          {userId === profileData?.id && (
+            <p>Добавьте их в разделе "Редактировать профиль".</p>
+          )}
+        </div>
+      );
+    }
+    
+    // Проверяем, есть ли хотя бы одна социальная ссылка
+    const hasSocialLinks = 
+      socialLinks.twitch || 
+      socialLinks.youtube || 
+      socialLinks.discord || 
+      socialLinks.telegram || 
+      socialLinks.vk || 
+      (socialLinks.isMusician && socialLinks.yandexMusic);
+    
+    if (!hasSocialLinks) {
+      return (
+        <div className={styles.emptySocialLinks}>
+          Нет социальных ссылок для отображения.
+          {userId === profileData?.id && (
+            <p>Добавьте их в разделе "Редактировать профиль".</p>
+          )}
+        </div>
+      );
+    }
+    
+    return (
+      <div className={styles.socialLinks}>
+        {socialLinks.twitch && (
+          <SocialButton 
+            type="twitch" 
+            url={socialLinks.twitch} 
+            username={socialLinks.twitch.split('/').pop() || 'username'} 
+          />
+        )}
+        
+        {socialLinks.youtube && (
+          <SocialButton 
+            type="youtube" 
+            url={socialLinks.youtube} 
+            username={socialLinks.youtube.split('/').pop() || 'username'} 
+          />
+        )}
+        
+        {socialLinks.discord && (
+          <SocialButton 
+            type="discord" 
+            url={socialLinks.discord} 
+            username={socialLinks.discord.split('/').pop() || 'username'} 
+          />
+        )}
+        
+        {socialLinks.telegram && (
+          <SocialButton 
+            type="telegram" 
+            url={socialLinks.telegram} 
+            username={socialLinks.telegram.split('/').pop() || 'username'} 
+          />
+        )}
+        
+        {socialLinks.vk && (
+          <SocialButton 
+            type="vk" 
+            url={socialLinks.vk} 
+            username={socialLinks.vk.split('/').pop() || 'username'} 
+          />
+        )}
+        
+        {socialLinks.isMusician && socialLinks.yandexMusic && (
+          <SocialButton 
+            type="yandexMusic" 
+            url={socialLinks.yandexMusic} 
+            username={socialLinks.yandexMusic.split('/').pop() || 'username'} 
+          />
+        )}
+      </div>
+    );
+  };
+  
+  // Функция для переключения отображения достижений
+  const toggleAchievements = () => {
+    setShowAchievements(!showAchievements);
+    setShowReviews(false);
+    setShowStats(false);
+  };
+  
+  // Функция для переключения отображения отзывов
+  const toggleReviews = () => {
+    setShowReviews(!showReviews);
+    setShowAchievements(false);
+    setShowStats(false);
+  };
+  
+  // Функция для переключения отображения статистики
+  const toggleStats = () => {
+    setShowStats(!showStats);
+    setShowAchievements(false);
+    setShowReviews(false);
+  };
+
   // Отображение информации о профиле
   return (
     <div className={styles.container}>
@@ -624,9 +806,44 @@ export default function Profile() {
                   <span className={styles.statLabel}>Просмотров</span>
                 </div>
               )}
+              {profileData.broadcaster_type && (
+                <div className={styles.profileStat}>
+                  <span className={styles.statIcon}>📺</span>
+                  <span className={styles.statValue}>
+                    {profileData.broadcaster_type === 'affiliate' ? 'Компаньон' : 
+                     profileData.broadcaster_type === 'partner' ? 'Партнер' : 'Стандартный'}
+                  </span>
+                  <span className={styles.statLabel}>Тип канала</span>
+                </div>
+              )}
             </div>
+            {profileData.birthday && renderBirthday()}
           </div>
           <div className={styles.profileActions}>
+            <button 
+              className={styles.achievementsButton} 
+              onClick={toggleAchievements}
+              title="Посмотреть достижения"
+            >
+              🏆 Достижения
+            </button>
+            <button 
+              className={styles.reviewsButton} 
+              onClick={toggleReviews}
+              title="Отзывы о вас"
+            >
+              ⭐ Отзывы
+            </button>
+            <button 
+              className={styles.statsButton} 
+              onClick={toggleStats}
+              title="Статистика канала"
+            >
+              📊 Статистика
+            </button>
+            <button className={styles.button} onClick={() => router.push('/edit-profile')}>
+              Редактировать профиль
+            </button>
             <button className={styles.button} onClick={() => router.push('/menu')}>
               Вернуться в меню
             </button>
@@ -635,6 +852,104 @@ export default function Profile() {
             </button>
           </div>
         </div>
+        
+        {/* Отображаем разные секции в зависимости от выбранной вкладки */}
+        {showAchievements ? (
+          <div className={styles.achievementsSection}>
+            <div className={styles.sectionHeader}>
+              <h2>Достижения</h2>
+            </div>
+            <AchievementsSystem 
+              userId={profileData.id}
+              streamsCompleted={streamsCompleted}
+              hasCollaborations={hasCollaborations}
+            />
+          </div>
+        ) : showReviews ? (
+          <div className={styles.reviewsContainer}>
+            <div className={styles.sectionHeader}>
+              <h2>Отзывы о вас</h2>
+            </div>
+            <ReviewSection 
+              userId={profileData.id} 
+              onReviewAdded={() => {
+                // После добавления отзыва обновляем данные
+                loadAdditionalData(profileData.id);
+              }}
+            />
+          </div>
+        ) : showStats ? (
+          <div className={styles.statsContainer}>
+            <div className={styles.sectionHeader}>
+              <h2>Статистика канала</h2>
+            </div>
+            <div className={styles.statsGrid}>
+              <div className={styles.statItem}>
+                <div className={styles.statIcon}>👁️</div>
+                <div className={styles.statInfo}>
+                  <div className={styles.statValue}>{profileData.view_count?.toLocaleString('ru-RU') || 0}</div>
+                  <div className={styles.statLabel}>Просмотров</div>
+                </div>
+              </div>
+              <div className={styles.statItem}>
+                <div className={styles.statIcon}>👥</div>
+                <div className={styles.statInfo}>
+                  <div className={styles.statValue}>{totalFollowers.toLocaleString('ru-RU')}</div>
+                  <div className={styles.statLabel}>Подписчиков</div>
+                </div>
+              </div>
+              {profileData.created_at && (
+                <div className={styles.statItem}>
+                  <div className={styles.statIcon}>📅</div>
+                  <div className={styles.statInfo}>
+                    <div className={styles.statValue}>{formatDate(profileData.created_at)}</div>
+                    <div className={styles.statLabel}>Дата создания</div>
+                  </div>
+                </div>
+              )}
+              <div className={styles.statItem}>
+                <div className={styles.statIcon}>🔍</div>
+                <div className={styles.statInfo}>
+                  <a 
+                    href={`https://twitchtracker.com/${profileData?.login || userLogin}`} 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className={styles.statLink}
+                  >
+                    <div className={styles.statValue}>Twitch Tracker</div>
+                    <div className={styles.statLabel}>Подробная статистика</div>
+                  </a>
+                </div>
+              </div>
+            </div>
+          </div>
+        ) : (
+          <>
+            {/* Отображаем описание и социальные сети по умолчанию */}
+            <div className={styles.profileInfoSection}>
+              {/* Отображаем описание профиля */}
+              {(socialLinks && socialLinks.description) || profileData.description ? (
+                <div className={styles.profileDescription}>
+                  <h3 className={styles.sectionTitle}>Описание</h3>
+                  <p>{socialLinks?.description || profileData.description}</p>
+                </div>
+              ) : (
+                userId === profileData?.id && (
+                  <div className={styles.emptyDescription}>
+                    <p>Нет описания профиля.</p>
+                    <p>Добавьте его в разделе "Редактировать профиль".</p>
+                  </div>
+                )
+              )}
+              
+              {/* Отображаем социальные сети */}
+              <div className={styles.socialLinksSection}>
+                <h3 className={styles.sectionTitle}>Социальные сети</h3>
+                {renderSocialLinks()}
+              </div>
+            </div>
+          </>
+        )}
       </div>
     </div>
   );
