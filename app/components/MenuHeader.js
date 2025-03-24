@@ -1,7 +1,7 @@
 'use client';
 
 import styles from './MenuHeader.module.css';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import CoinDisplay from './CoinDisplay';
@@ -11,18 +11,38 @@ const MenuHeader = () => {
   const [isLoading, setIsLoading] = useState(true);
   const router = useRouter();
   
+  // Функция перехода на профиль с useCallback для предотвращения лишних ререндеров
+  const goToProfile = useCallback(() => {
+    router.push('/profile');
+  }, [router]);
+  
+  // Функция безопасного доступа к localStorage
+  const safeLocalStorage = {
+    getItem: (key) => {
+      if (typeof window !== 'undefined') {
+        return localStorage.getItem(key);
+      }
+      return null;
+    },
+    setItem: (key, value) => {
+      if (typeof window !== 'undefined') {
+        localStorage.setItem(key, value);
+      }
+    }
+  };
+  
   useEffect(() => {
     const checkUserAuthentication = async () => {
       try {
         // Проверяем наличие данных пользователя в localStorage
-        const storedUser = localStorage.getItem('twitch_user');
-        const isAuthenticated = localStorage.getItem('is_authenticated') === 'true';
+        const storedUser = safeLocalStorage.getItem('twitch_user');
+        const isAuthenticated = safeLocalStorage.getItem('is_authenticated') === 'true';
         
         if (storedUser && isAuthenticated) {
           try {
             const parsedUser = JSON.parse(storedUser);
             if (parsedUser && parsedUser.id) {
-              console.log('Пользователь найден в локальном хранилище:', parsedUser.login);
+              console.log('Пользователь найден в локальном хранилище:', parsedUser.login || parsedUser.name);
               setUserData(parsedUser);
               setIsLoading(false);
               return;
@@ -32,8 +52,13 @@ const MenuHeader = () => {
           }
         }
         
-        // Получаем ID пользователя из токена
-        const token = localStorage.getItem('twitch_access_token') || document.cookie.match(/twitch_access_token=([^;]+)/)?.[1];
+        // Получаем токен доступа
+        let token = null;
+        if (typeof window !== 'undefined') {
+          token = safeLocalStorage.getItem('twitch_access_token') || 
+                 document.cookie.match(/twitch_access_token=([^;]+)/)?.[1];
+        }
+        
         if (!token) {
           console.log('Токен Twitch не найден, перенаправляем на страницу авторизации');
           setIsLoading(false);
@@ -58,8 +83,9 @@ const MenuHeader = () => {
           if (data.valid && data.user) {
             console.log('Пользователь верифицирован через API:', data.user.name || data.user.login);
             setUserData(data.user);
-            localStorage.setItem('twitch_user', JSON.stringify(data.user));
-            localStorage.setItem('is_authenticated', 'true');
+            safeLocalStorage.setItem('twitch_user', JSON.stringify(data.user));
+            safeLocalStorage.setItem('is_authenticated', 'true');
+            setIsLoading(false);
           } else {
             console.log('Верификация не прошла, перенаправляем на страницу авторизации');
             setIsLoading(false);
@@ -78,12 +104,7 @@ const MenuHeader = () => {
     };
     
     checkUserAuthentication();
-  }, [router]);
-  
-  // Переход на страницу профиля
-  const goToProfile = () => {
-    router.push('/profile');
-  };
+  }, []); // Удаляем router из зависимостей
   
   // Текст приветствия в зависимости от наличия данных пользователя
   const greetingText = userData ? `Привет, ${userData.display_name || userData.name || userData.login}!` : 'Загрузка...';
@@ -91,7 +112,7 @@ const MenuHeader = () => {
   return (
     <div className={styles.header}>
       <div className={styles.userInfoContainer}>
-        <div className={styles.avatarContainer} onClick={goToProfile}>
+        <div className={styles.avatarContainer} onClick={userData ? goToProfile : undefined}>
           <img 
             src={userData?.profile_image_url || "https://static-cdn.jtvnw.net/user-default-pictures-uv/cdd517fe-def4-11e9-948e-784f43822e80-profile_image-300x300.png"} 
             alt={userData ? (userData.display_name || userData.name || userData.login) : "Загрузка..."} 
