@@ -420,15 +420,26 @@ export default function Profile() {
     try {
       if (!userId) return;
       
+      // Загружаем социальные ссылки пользователя
+      const savedLinks = localStorage.getItem(`social_links_${userId}`);
+      if (savedLinks) {
+        try {
+          setSocialLinks(JSON.parse(savedLinks));
+        } catch (e) {
+          console.error('Ошибка при парсинге социальных ссылок:', e);
+        }
+      }
+      
       // Загружаем данные постепенно, не блокируя рендеринг
       loadSocialLinks(userId).catch(e => console.error('Ошибка загрузки соц. ссылок:', e));
       loadStats(userId).catch(e => console.error('Ошибка загрузки статистики:', e));
       
       // Проверяем день рождения, если есть в профиле
-      if (profileData && profileData.birthday) {
-        const birthdayResult = checkBirthday(profileData.birthday);
+      const userBirthday = localStorage.getItem(`birthday_${userId}`);
+      if (userBirthday) {
+        const birthdayResult = checkBirthday(userBirthday);
         setIsBirthday(birthdayResult.isBirthday);
-        const daysTo = getDaysToBirthday(profileData.birthday);
+        const daysTo = getDaysToBirthday(userBirthday);
         setDaysToBirthday(daysTo);
       }
     } catch (error) {
@@ -784,29 +795,31 @@ export default function Profile() {
       <div className={styles.profileContainer}>
         <div className={styles.profileHeader}>
           <div className={styles.avatarContainer}>
-            <CyberAvatar 
-              src={profileData.profile_image_url || '/images/default-avatar.png'} 
-              alt={profileData.display_name || 'Пользователь'} 
-              size={150}
-              className={styles.profileAvatar}
-            />
+            {profileData && (
+              <CyberAvatar 
+                src={profileData.profile_image_url || profileData.profileImageUrl || '/images/default-avatar.png'} 
+                alt={profileData.display_name || profileData.login || 'Пользователь'} 
+                size={150}
+                className={styles.profileAvatar}
+              />
+            )}
           </div>
           <div className={styles.profileDetails}>
-            <h1 className={styles.displayName}>{profileData.display_name || profileData.login}</h1>
+            <h1 className={styles.displayName}>{profileData?.display_name || profileData?.login}</h1>
             <div className={styles.profileStats}>
               <div className={styles.profileStat}>
                 <span className={styles.statIcon}>👥</span>
                 <span className={styles.statValue}>{totalFollowers.toLocaleString('ru-RU')}</span>
                 <span className={styles.statLabel}>Подписчиков</span>
               </div>
-              {profileData.view_count > 0 && (
+              {profileData?.view_count > 0 && (
                 <div className={styles.profileStat}>
                   <span className={styles.statIcon}>👁️</span>
                   <span className={styles.statValue}>{profileData.view_count.toLocaleString('ru-RU')}</span>
                   <span className={styles.statLabel}>Просмотров</span>
                 </div>
               )}
-              {profileData.broadcaster_type && (
+              {profileData?.broadcaster_type && (
                 <div className={styles.profileStat}>
                   <span className={styles.statIcon}>📺</span>
                   <span className={styles.statValue}>
@@ -868,10 +881,11 @@ export default function Profile() {
         ) : showReviews ? (
           <div className={styles.reviewsContainer}>
             <div className={styles.sectionHeader}>
-              <h2>Отзывы о вас</h2>
+              <h2>Ваши отзывы</h2>
             </div>
             <ReviewSection 
               userId={profileData.id} 
+              isAuthor={true}
               onReviewAdded={() => {
                 // После добавления отзыва обновляем данные
                 loadAdditionalData(profileData.id);

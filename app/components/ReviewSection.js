@@ -6,11 +6,12 @@ import Cookies from 'js-cookie';
 import { FaStar } from 'react-icons/fa';
 import { FaEdit, FaTrash } from 'react-icons/fa';
 
-const ReviewSection = ({ streamerId, onReviewAdded }) => {
+const ReviewSection = ({ userId, isAuthor = false, onReviewAdded }) => {
   const [reviews, setReviews] = useState([]);
   const [newReview, setNewReview] = useState('');
-  const [rating, setRating] = useState(0);
-  const [hover, setHover] = useState(0);
+  const [newRating, setNewRating] = useState(5);
+  const [reviewTarget, setReviewTarget] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [currentUser, setCurrentUser] = useState(null);
@@ -45,107 +46,116 @@ const ReviewSection = ({ streamerId, onReviewAdded }) => {
   const fetchReviews = useCallback(async (page = 1) => {
     try {
       setLoading(true);
-      const token = Cookies.get('twitch_token');
       
-      const response = await fetch(`/api/reviews?streamerId=${streamerId}&page=${page}&limit=5`, {
-        headers: token ? { 'Authorization': `Bearer ${token}` } : {}
+      // Определяем URL в зависимости от того, чьи отзывы мы загружаем
+      const url = isAuthor 
+        ? `/api/reviews?authorId=${userId}&page=${page}&limit=5` 
+        : `/api/reviews?targetId=${userId}&page=${page}&limit=5`;
+      
+      const response = await fetch(url, {
+        headers: {
+          'Content-Type': 'application/json',
+          'Cache-Control': 'no-cache'
+        }
       });
       
       if (!response.ok) {
-        throw new Error('Ошибка при загрузке отзывов');
+        throw new Error(`Ошибка при загрузке отзывов: ${response.status}`);
       }
       
       const data = await response.json();
-      setReviews(data.reviews);
-      setStats(data.stats);
-      setPagination(data.pagination);
+      
+      // Проверяем структуру ответа
+      if (data.reviews) {
+        // Если API возвращает объект с полем reviews
+        setReviews(data.reviews);
+        if (data.pagination) {
+          setPagination(data.pagination);
+        }
+        if (data.stats) {
+          setStats(data.stats);
+        }
+      } else if (Array.isArray(data)) {
+        // Если API возвращает массив напрямую (для совместимости)
+        setReviews(data);
+        // Устанавливаем базовую пагинацию
+        setPagination({
+          currentPage: page,
+          totalPages: Math.ceil(data.length / 5),
+          hasNextPage: false,
+          hasPrevPage: page > 1
+        });
+      } else {
+        console.warn('Неожиданный формат данных от API:', data);
+        setReviews([]);
+      }
     } catch (err) {
       console.error('Ошибка при загрузке отзывов:', err);
       setError('Не удалось загрузить отзывы. Пожалуйста, попробуйте позже.');
     } finally {
       setLoading(false);
     }
-  }, [streamerId]);
+  }, [userId, isAuthor]);
 
   // Загрузка отзывов при монтировании компонента
   useEffect(() => {
-    if (streamerId) {
+    if (userId) {
       fetchReviews();
     }
-  }, [streamerId, fetchReviews]);
+  }, [userId, fetchReviews]);
 
   // Обработчик отправки нового отзыва
-  const handleSubmit = async (e) => {
+  const handleSubmitReview = async (e) => {
     e.preventDefault();
     
-    if (!currentUser) {
-      setError('Необходимо авторизоваться для отправки отзыва');
-      return;
-    }
-    
-    if (!newReview.trim()) {
-      setError('Текст отзыва не может быть пустым');
-      return;
-    }
-    
-    if (rating === 0) {
-      setError('Пожалуйста, выберите рейтинг');
+    if (!newReview || !reviewTarget) {
+      alert('Пожалуйста, заполните все поля');
       return;
     }
     
     try {
-      setLoading(true);
-      const token = Cookies.get('twitch_token');
+      setIsSubmitting(true);
       
-      if (!token) {
-        setError('Необходимо авторизоваться для отправки отзыва');
-        return;
-      }
+      const reviewData = {
+        authorId: userId,
+        content: newReview,
+        rating: newRating,
+        targetName: reviewTarget,
+        targetType: 'other'
+      };
       
-      const response = await fetch('/api/reviews/create', {
+      const response = await fetch('/api/reviews', {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
+          'Content-Type': 'application/json'
         },
-        body: JSON.stringify({
-          content: newReview,
-          rating,
-          streamerId,
-          categories: selectedCategories
-        })
+        body: JSON.stringify(reviewData)
       });
       
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || 'Ошибка при отправке отзыва');
+        throw new Error(`Ошибка при отправке отзыва: ${response.status}`);
       }
-      
-      const data = await response.json();
       
       // Очищаем форму
       setNewReview('');
-      setRating(0);
-      setSelectedCategories([]);
-      setSuccessMessage(`Отзыв успешно добавлен! Вы получили ${data.coinsEarned} StreamCoins.`);
+      setNewRating(5);
+      setReviewTarget('');
       
-      // Обновляем список отзывов
-      fetchReviews();
-      
-      // Вызываем колбэк, если он предоставлен
+      // Перезагружаем отзывы
       if (onReviewAdded) {
-        onReviewAdded(data.review);
+        onReviewAdded();
       }
       
-      // Скрываем сообщение об успехе через 5 секунд
-      setTimeout(() => {
-        setSuccessMessage('');
-      }, 5000);
-    } catch (err) {
-      console.error('Ошибка при отправке отзыва:', err);
-      setError(err.message || 'Не удалось отправить отзыв. Пожалуйста, попробуйте позже.');
+      // Добавляем новый отзыв в список
+      const createdReview = await response.json();
+      setReviews(prevReviews => [createdReview, ...prevReviews]);
+      
+      alert('Отзыв успешно добавлен!');
+    } catch (error) {
+      console.error('Ошибка при отправке отзыва:', error);
+      alert('Произошла ошибка при отправке отзыва. Пожалуйста, попробуйте позже.');
     } finally {
-      setLoading(false);
+      setIsSubmitting(false);
     }
   };
 
@@ -199,7 +209,7 @@ const ReviewSection = ({ streamerId, onReviewAdded }) => {
   const handleEditReview = (review) => {
     setEditingReview(review);
     setNewReview(review.content);
-    setRating(review.rating);
+    setNewRating(review.rating);
     setSelectedCategories(review.categories || []);
   };
 
@@ -216,7 +226,7 @@ const ReviewSection = ({ streamerId, onReviewAdded }) => {
       return;
     }
     
-    if (rating === 0) {
+    if (newRating === 0) {
       setError('Пожалуйста, выберите рейтинг');
       return;
     }
@@ -238,7 +248,7 @@ const ReviewSection = ({ streamerId, onReviewAdded }) => {
         },
         body: JSON.stringify({
           content: newReview,
-          rating,
+          rating: newRating,
           categories: selectedCategories
         })
       });
@@ -250,7 +260,7 @@ const ReviewSection = ({ streamerId, onReviewAdded }) => {
       
       // Очищаем форму
       setNewReview('');
-      setRating(0);
+      setNewRating(0);
       setSelectedCategories([]);
       setEditingReview(null);
       setSuccessMessage('Отзыв успешно обновлен!');
@@ -274,7 +284,7 @@ const ReviewSection = ({ streamerId, onReviewAdded }) => {
   const handleCancelEdit = () => {
     setEditingReview(null);
     setNewReview('');
-    setRating(0);
+    setNewRating(0);
     setSelectedCategories([]);
   };
 
@@ -297,316 +307,108 @@ const ReviewSection = ({ streamerId, onReviewAdded }) => {
     currentUser && review.authorId === currentUser.id
   );
 
+  // Форматирование даты
+  const formatDate = (dateString) => {
+    const date = new Date(dateString);
+    return date.toLocaleDateString('ru-RU', {
+      day: 'numeric',
+      month: 'long',
+      year: 'numeric'
+    });
+  };
+
+  if (loading) {
+    return <div className={styles.loading}>Загрузка отзывов...</div>;
+  }
+  
+  if (error) {
+    return <div className={styles.error}>{error}</div>;
+  }
+
   return (
-    <div className={styles.reviewSection}>
-      <h2 className={styles.sectionTitle}>Отзывы</h2>
-      
-      {stats && (
-        <div className={styles.statsContainer}>
-          <div className={styles.averageRating}>
-            <span className={styles.ratingValue}>{stats.averageRating.toFixed(1)}</span>
-            <div className={styles.starsContainer}>
-              {[1, 2, 3, 4, 5].map((star) => (
-                <FaStar
-                  key={star}
-                  className={styles.statsStar}
-                  color={star <= Math.round(stats.averageRating) ? '#ffc107' : '#e4e5e9'}
-                />
-              ))}
+    <div className={styles.reviewsSection}>
+      {isAuthor && (
+        <div className={styles.addReviewForm}>
+          <h3>Оставить новый отзыв</h3>
+          <form onSubmit={handleSubmitReview}>
+            <div className={styles.formGroup}>
+              <label>О чём или о ком ваш отзыв:</label>
+              <input
+                type="text"
+                value={reviewTarget}
+                onChange={(e) => setReviewTarget(e.target.value)}
+                placeholder="Например: Игра, фильм, сервис, продукт..."
+                required
+              />
             </div>
-            <span className={styles.totalReviews}>Всего отзывов: {stats.totalReviews}</span>
-          </div>
-          
-          <div className={styles.ratingDistribution}>
-            {[5, 4, 3, 2, 1].map((star) => (
-              <div key={star} className={styles.ratingBar}>
-                <span className={styles.ratingLabel}>{star}</span>
-                <div className={styles.barContainer}>
-                  <div 
-                    className={styles.barFill} 
-                    style={{ 
-                      width: stats.totalReviews > 0 
-                        ? `${(stats.ratingDistribution[star] / stats.totalReviews) * 100}%` 
-                        : '0%' 
-                    }}
-                  ></div>
-                </div>
-                <span className={styles.ratingCount}>{stats.ratingDistribution[star]}</span>
+            <div className={styles.formGroup}>
+              <label>Ваша оценка:</label>
+              <div className={styles.ratingSelector}>
+                {[1, 2, 3, 4, 5].map((rating) => (
+                  <button
+                    key={rating}
+                    type="button"
+                    className={`${styles.ratingButton} ${newRating === rating ? styles.selected : ''}`}
+                    onClick={() => setNewRating(rating)}
+                  >
+                    {rating} ⭐
+                  </button>
+                ))}
               </div>
-            ))}
-          </div>
-        </div>
-      )}
-      
-      {error && (
-        <div className={styles.errorMessage}>
-          {error}
-          <button 
-            className={styles.closeButton} 
-            onClick={() => setError(null)}
-          >
-            &times;
-          </button>
-        </div>
-      )}
-      
-      {successMessage && (
-        <div className={styles.successMessage}>
-          {successMessage}
-          <button 
-            className={styles.closeButton} 
-            onClick={() => setSuccessMessage('')}
-          >
-            &times;
-          </button>
-        </div>
-      )}
-      
-      {currentUser && !hasUserReviewed && !editingReview && (
-        <form 
-          className={styles.reviewForm} 
-          onSubmit={handleSubmit}
-        >
-          <h3 className={styles.formTitle}>Оставить отзыв</h3>
-          
-          <div className={styles.ratingContainer}>
-            <span className={styles.ratingLabel}>Рейтинг:</span>
-            <div className={styles.stars}>
-              {[...Array(5)].map((_, index) => {
-                const ratingValue = index + 1;
-                return (
-                  <label key={index}>
-                    <input
-                      type="radio"
-                      name="rating"
-                      value={ratingValue}
-                      onClick={() => setRating(ratingValue)}
-                      className={styles.starInput}
-                    />
-                    <FaStar
-                      className={styles.star}
-                      color={ratingValue <= (hover || rating) ? '#ffc107' : '#e4e5e9'}
-                      size={24}
-                      onMouseEnter={() => setHover(ratingValue)}
-                      onMouseLeave={() => setHover(0)}
-                    />
-                  </label>
-                );
-              })}
             </div>
-          </div>
-          
-          <div className={styles.categoriesContainer}>
-            <span className={styles.categoriesLabel}>Категории:</span>
-            <div className={styles.categoriesList}>
-              {categories.map((category) => (
-                <label key={category} className={styles.categoryLabel}>
-                  <input
-                    type="checkbox"
-                    checked={selectedCategories.includes(category)}
-                    onChange={() => handleCategoryToggle(category)}
-                    className={styles.categoryCheckbox}
-                  />
-                  <span className={styles.categoryName}>{category}</span>
-                </label>
-              ))}
+            <div className={styles.formGroup}>
+              <label>Текст отзыва:</label>
+              <textarea
+                value={newReview}
+                onChange={(e) => setNewReview(e.target.value)}
+                placeholder="Напишите ваш отзыв здесь..."
+                rows={4}
+                required
+              />
             </div>
-          </div>
-          
-          <textarea
-            className={styles.reviewInput}
-            value={newReview}
-            onChange={(e) => setNewReview(e.target.value)}
-            placeholder="Напишите ваш отзыв..."
-            rows={4}
-            required
-          />
-          
-          <button 
-            type="submit" 
-            className={styles.submitButton}
-            disabled={loading}
-          >
-            {loading ? 'Отправка...' : 'Отправить отзыв'}
-          </button>
-        </form>
-      )}
-      
-      {currentUser && editingReview && (
-        <form 
-          className={styles.reviewForm} 
-          onSubmit={handleUpdateReview}
-        >
-          <h3 className={styles.formTitle}>Редактировать отзыв</h3>
-          
-          <div className={styles.ratingContainer}>
-            <span className={styles.ratingLabel}>Рейтинг:</span>
-            <div className={styles.stars}>
-              {[...Array(5)].map((_, index) => {
-                const ratingValue = index + 1;
-                return (
-                  <label key={index}>
-                    <input
-                      type="radio"
-                      name="rating"
-                      value={ratingValue}
-                      onClick={() => setRating(ratingValue)}
-                      className={styles.starInput}
-                    />
-                    <FaStar
-                      className={styles.star}
-                      color={ratingValue <= (hover || rating) ? '#ffc107' : '#e4e5e9'}
-                      size={24}
-                      onMouseEnter={() => setHover(ratingValue)}
-                      onMouseLeave={() => setHover(0)}
-                    />
-                  </label>
-                );
-              })}
-            </div>
-          </div>
-          
-          <div className={styles.categoriesContainer}>
-            <span className={styles.categoriesLabel}>Категории:</span>
-            <div className={styles.categoriesList}>
-              {categories.map((category) => (
-                <label key={category} className={styles.categoryLabel}>
-                  <input
-                    type="checkbox"
-                    checked={selectedCategories.includes(category)}
-                    onChange={() => handleCategoryToggle(category)}
-                    className={styles.categoryCheckbox}
-                  />
-                  <span className={styles.categoryName}>{category}</span>
-                </label>
-              ))}
-            </div>
-          </div>
-          
-          <textarea
-            className={styles.reviewInput}
-            value={newReview}
-            onChange={(e) => setNewReview(e.target.value)}
-            placeholder="Напишите ваш отзыв..."
-            rows={4}
-            required
-          />
-          
-          <div className={styles.editButtons}>
-            <button 
-              type="button" 
-              className={styles.cancelButton}
-              onClick={handleCancelEdit}
-            >
-              Отмена
-            </button>
             <button 
               type="submit" 
               className={styles.submitButton}
-              disabled={loading}
+              disabled={isSubmitting}
             >
-              {loading ? 'Сохранение...' : 'Сохранить изменения'}
+              {isSubmitting ? 'Отправка...' : 'Отправить отзыв'}
             </button>
-          </div>
-        </form>
+          </form>
+        </div>
       )}
       
-      {reviews.length > 0 ? (
-        <div className={styles.reviewsList}>
-          {reviews.map((review) => (
+      <div className={styles.reviewsList}>
+        <h3>{isAuthor ? 'Ваши отзывы:' : 'Отзывы о пользователе:'}</h3>
+        
+        {reviews.length === 0 ? (
+          <div className={styles.noReviews}>
+            {isAuthor 
+              ? 'Вы еще не оставили ни одного отзыва. Расскажите о своих впечатлениях!' 
+              : 'У этого пользователя пока нет отзывов.'}
+          </div>
+        ) : (
+          reviews.map((review) => (
             <div key={review.id} className={styles.reviewCard}>
               <div className={styles.reviewHeader}>
-                <div className={styles.reviewAuthor}>
-                  <img 
-                    src={review.author.avatar || '/images/default-avatar.png'} 
-                    alt={review.author.displayName || review.author.username} 
-                    className={styles.authorAvatar}
-                  />
-                  <span className={styles.authorName}>
-                    {review.author.displayName || review.author.username}
-                  </span>
+                <div className={styles.reviewTarget}>
+                  <span className={styles.targetName}>{review.targetName}</span>
+                  <div className={styles.reviewRating}>
+                    {Array.from({ length: review.rating }).map((_, i) => (
+                      <span key={i} className={styles.star}>⭐</span>
+                    ))}
+                  </div>
                 </div>
-                <div className={styles.reviewRating}>
-                  {[...Array(5)].map((_, index) => (
-                    <FaStar
-                      key={index}
-                      className={styles.ratingStar}
-                      color={index < review.rating ? '#ffc107' : '#e4e5e9'}
-                    />
-                  ))}
+                <div className={styles.reviewDate}>
+                  {formatDate(review.createdAt)}
                 </div>
               </div>
-              
-              {review.categories && review.categories.length > 0 && (
-                <div className={styles.reviewCategories}>
-                  {review.categories.map((category) => (
-                    <span key={category} className={styles.categoryTag}>
-                      {category}
-                    </span>
-                  ))}
-                </div>
-              )}
-              
               <div className={styles.reviewContent}>
                 {review.content}
               </div>
-              
-              <div className={styles.reviewFooter}>
-                <span className={styles.reviewDate}>
-                  {new Date(review.createdAt).toLocaleDateString('ru-RU')}
-                </span>
-                
-                {currentUser && currentUser.id === review.authorId && (
-                  <div className={styles.reviewActions}>
-                    <button 
-                      className={styles.editButton}
-                      onClick={() => handleEditReview(review)}
-                      title="Редактировать"
-                    >
-                      <FaEdit />
-                    </button>
-                    <button 
-                      className={styles.deleteButton}
-                      onClick={() => handleDeleteReview(review.id)}
-                      title="Удалить"
-                    >
-                      <FaTrash />
-                    </button>
-                  </div>
-                )}
-              </div>
             </div>
-          ))}
-          
-          {pagination.totalPages > 1 && (
-            <div className={styles.pagination}>
-              <button 
-                className={styles.pageButton}
-                disabled={!pagination.hasPrevPage}
-                onClick={() => handlePageChange(pagination.currentPage - 1)}
-              >
-                &laquo; Назад
-              </button>
-              
-              <span className={styles.pageInfo}>
-                Страница {pagination.currentPage} из {pagination.totalPages}
-              </span>
-              
-              <button 
-                className={styles.pageButton}
-                disabled={!pagination.hasNextPage}
-                onClick={() => handlePageChange(pagination.currentPage + 1)}
-              >
-                Вперед &raquo;
-              </button>
-            </div>
-          )}
-        </div>
-      ) : (
-        <div className={styles.noReviews}>
-          {loading ? 'Загрузка отзывов...' : 'Отзывов пока нет. Будьте первым, кто оставит отзыв!'}
-        </div>
-      )}
+          ))
+        )}
+      </div>
     </div>
   );
 };

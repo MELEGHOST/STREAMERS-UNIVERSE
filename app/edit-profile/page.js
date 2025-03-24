@@ -173,7 +173,7 @@ export default function EditProfile() {
       }
     } catch (error) {
       console.error('Ошибка при сохранении данных:', error);
-      setSaveError(true);
+      setSaveError('Произошла ошибка при сохранении данных. Пожалуйста, попробуйте снова.');
     } finally {
       setSubmitting(false);
     }
@@ -256,7 +256,7 @@ export default function EditProfile() {
                 <NeonCheckbox
                   label="Подписчики"
                   checked={statsVisibility.followers}
-                  onChange={(e) => handleStatsVisibilityChange({ target: { name: 'followers', checked: e.target.checked } })}
+                  onChange={handleStatsVisibilityChange}
                   name="followers"
                 />
               </div>
@@ -265,7 +265,7 @@ export default function EditProfile() {
                 <NeonCheckbox
                   label="Подписки"
                   checked={statsVisibility.followings}
-                  onChange={(e) => handleStatsVisibilityChange({ target: { name: 'followings', checked: e.target.checked } })}
+                  onChange={handleStatsVisibilityChange}
                   name="followings"
                 />
               </div>
@@ -274,16 +274,16 @@ export default function EditProfile() {
                 <NeonCheckbox
                   label="Стримы"
                   checked={statsVisibility.streams}
-                  onChange={(e) => handleStatsVisibilityChange({ target: { name: 'streams', checked: e.target.checked } })}
+                  onChange={handleStatsVisibilityChange}
                   name="streams"
                 />
               </div>
               
               <div className={styles.checkboxGroup}>
                 <NeonCheckbox
-                  label="Статистика канала"
+                  label="Информация о канале"
                   checked={statsVisibility.channel}
-                  onChange={(e) => handleStatsVisibilityChange({ target: { name: 'channel', checked: e.target.checked } })}
+                  onChange={handleStatsVisibilityChange}
                   name="channel"
                 />
               </div>
@@ -292,7 +292,7 @@ export default function EditProfile() {
                 <NeonCheckbox
                   label="Информация об аккаунте"
                   checked={statsVisibility.accountInfo}
-                  onChange={(e) => handleStatsVisibilityChange({ target: { name: 'accountInfo', checked: e.target.checked } })}
+                  onChange={handleStatsVisibilityChange}
                   name="accountInfo"
                 />
               </div>
@@ -387,7 +387,7 @@ export default function EditProfile() {
               <NeonCheckbox
                 label="Я музыкант"
                 checked={socialLinks.isMusician}
-                onChange={(e) => handleSocialLinksChange({ target: { name: 'isMusician', value: e.target.checked } })}
+                onChange={(e) => handleSocialLinksChange({ target: { name: 'isMusician', checked: e.target.checked } })}
                 name="isMusician"
               />
             </div>

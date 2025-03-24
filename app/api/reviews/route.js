@@ -1,9 +1,9 @@
 import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
-import supabaseClient from '@/lib/supabaseClient';
+import { createClient } from '@supabase/supabase-js';
 
-// Временное хранилище данных (в реальном приложении будет база данных)
-let reviews = [];
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
 // Функция для получения ID пользователя из куки
 function getUserIdFromCookies() {
@@ -16,7 +16,7 @@ function getUserIdFromCookies() {
     }
     return null;
   } catch (error) {
-    console.error('Error getting user ID from cookies:', error);
+    console.error('Ошибка при получении ID пользователя из куки:', error);
     return null;
   }
 }
@@ -31,201 +31,353 @@ function getUserDataFromCookies() {
     }
     return null;
   } catch (error) {
-    console.error('Error getting user data from cookies:', error);
+    console.error('Ошибка при получении данных пользователя из куки:', error);
     return null;
   }
 }
 
-// GET - получение отзывов
+// Обработчик GET-запросов для получения отзывов
 export async function GET(request) {
   try {
-    // Получаем параметры из URL
     const { searchParams } = new URL(request.url);
-    const streamerId = searchParams.get('streamerId');
-    const authorId = searchParams.get('authorId');
-    const limit = parseInt(searchParams.get('limit') || '10');
+    
+    // Получаем параметры запроса
+    const authorId = searchParams.get('authorId'); // ID автора отзыва (если нужны отзывы, сделанные пользователем)
+    const targetId = searchParams.get('targetId'); // ID целевого стримера/объекта (если нужны отзывы о стримере)
     const page = parseInt(searchParams.get('page') || '1');
-    const skip = (page - 1) * limit;
+    const limit = parseInt(searchParams.get('limit') || '10');
+    const offset = (page - 1) * limit;
     
-    // Формируем условия запроса
-    const where = {};
-    if (streamerId) where.streamerId = streamerId;
-    if (authorId) where.authorId = authorId;
+    // Создаем supabase клиент
+    const supabase = createClient(supabaseUrl, supabaseServiceKey);
     
-    // Получаем общее количество отзывов
-    const totalReviews = await supabaseClient.from('reviews').count();
+    // Формируем запрос в зависимости от переданных параметров
+    let query = supabase
+      .from('reviews')
+      .select('*')
+      .order('created_at', { ascending: false })
+      .limit(limit)
+      .range(offset, offset + limit - 1);
     
-    // Получаем отзывы с пагинацией
-    const reviews = await supabaseClient.from('reviews').select('*').eq('streamerId', streamerId).order('createdAt', { ascending: false }).limit(limit).offset(skip);
-    
-    // Если запрашиваются отзывы для конкретного стримера, получаем статистику
-    let stats = null;
-    if (streamerId) {
-      const allReviews = await supabaseClient.from('reviews').select('rating').eq('streamerId', streamerId);
-      
-      // Рассчитываем статистику
-      const totalRating = allReviews.data.reduce((sum, review) => sum + review.rating, 0);
-      const averageRating = allReviews.data.length > 0 ? totalRating / allReviews.data.length : 0;
-      
-      // Рассчитываем распределение рейтингов
-      const ratingDistribution = {
-        1: 0, 2: 0, 3: 0, 4: 0, 5: 0
-      };
-      
-      allReviews.data.forEach(review => {
-        ratingDistribution[review.rating]++;
-      });
-      
-      stats = {
-        totalReviews: allReviews.data.length,
-        averageRating,
-        ratingDistribution
-      };
+    // Применяем фильтры в зависимости от переданных параметров
+    if (authorId) {
+      // Если передан ID автора, получаем отзывы, сделанные пользователем
+      query = query.eq('author_id', authorId);
+    } else if (targetId) {
+      // Если передан ID цели, получаем отзывы о стримере/объекте
+      query = query.eq('target_id', targetId);
     }
     
-    // Формируем метаданные для пагинации
-    const totalPages = Math.ceil(totalReviews.count / limit);
-    const hasNextPage = page < totalPages;
-    const hasPrevPage = page > 1;
+    // Выполняем запрос к базе данных
+    const { data: reviews, error, count } = await query;
     
+    if (error) {
+      console.error('Ошибка при получении отзывов:', error);
+      return NextResponse.json(
+        { error: 'Не удалось получить отзывы' },
+        { status: 500 }
+      );
+    }
+    
+    // Преобразуем данные для клиента
+    const formattedReviews = reviews.map(review => ({
+      id: review.id,
+      content: review.content,
+      rating: review.rating,
+      authorId: review.author_id,
+      targetId: review.target_id,
+      targetName: review.target_name,
+      targetType: review.target_type,
+      createdAt: review.created_at,
+      updatedAt: review.updated_at
+    }));
+    
+    // Для совместимости с фронтендом возвращаем объект с полями reviews и pagination
     return NextResponse.json({
-      reviews: reviews.data,
-      stats,
+      reviews: formattedReviews,
       pagination: {
-        totalReviews: totalReviews.count,
-        totalPages,
+        totalReviews: count || formattedReviews.length,
         currentPage: page,
+        totalPages: Math.ceil((count || formattedReviews.length) / limit),
         limit,
-        hasNextPage,
-        hasPrevPage
+        hasNextPage: (count || formattedReviews.length) > offset + limit,
+        hasPrevPage: page > 1
       }
     });
+    
   } catch (error) {
-    console.error('Ошибка при получении отзывов:', error);
-    return NextResponse.json({ message: 'Произошла ошибка при получении отзывов' }, { status: 500 });
+    console.error('Внутренняя ошибка сервера:', error);
+    return NextResponse.json(
+      { error: 'Внутренняя ошибка сервера' },
+      { status: 500 }
+    );
   }
 }
 
-// POST - создание нового отзыва
+// Обработчик POST-запросов для создания новых отзывов
 export async function POST(request) {
   try {
+    // Получаем данные текущего пользователя для проверки авторизации
     const userData = getUserDataFromCookies();
+    
     if (!userData || !userData.id) {
-      return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
+      return NextResponse.json(
+        { error: 'Необходима авторизация для создания отзыва' },
+        { status: 401 }
+      );
     }
     
-    const data = await request.json();
+    // Парсим данные из тела запроса
+    const requestData = await request.json();
+    const { authorId, content, rating, targetName, targetId, targetType = 'other' } = requestData;
+    
+    // Проверяем, что ID автора соответствует текущему пользователю
+    if (authorId !== userData.id) {
+      return NextResponse.json(
+        { error: 'Нельзя создавать отзывы от имени другого пользователя' },
+        { status: 403 }
+      );
+    }
     
     // Валидация данных
-    if (!data.targetUserId || !data.text || !data.rating) {
-      return NextResponse.json({ error: 'Target user ID, text and rating are required' }, { status: 400 });
+    if (!authorId || !content || !rating || !targetName) {
+      return NextResponse.json(
+        { error: 'Отсутствуют обязательные поля' },
+        { status: 400 }
+      );
     }
     
-    // Проверяем, не оставлял ли пользователь уже отзыв для этого пользователя
-    const existingReview = reviews.find(
-      review => review.authorId === userData.id && review.targetUserId === data.targetUserId
-    );
+    // Создаем supabase клиент
+    const supabase = createClient(supabaseUrl, supabaseServiceKey);
     
-    if (existingReview) {
-      return NextResponse.json({ error: 'You have already left a review for this user' }, { status: 400 });
-    }
-    
-    // Создаем новый отзыв
-    const newReview = {
-      id: Date.now().toString(),
-      authorId: userData.id,
-      authorName: userData.display_name || userData.login,
-      authorImage: userData.profile_image_url || '/default-avatar.png',
-      targetUserId: data.targetUserId,
-      text: data.text,
-      rating: Math.min(Math.max(1, data.rating), 5), // Ограничиваем рейтинг от 1 до 5
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString()
+    // Подготавливаем данные для вставки
+    const reviewData = {
+      author_id: authorId,
+      content,
+      rating,
+      target_name: targetName,
+      target_type: targetType,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
     };
     
-    // Добавляем в хранилище
-    reviews.push(newReview);
+    // Если указан ID цели (например, ID стримера)
+    if (targetId) {
+      reviewData.target_id = targetId;
+    }
     
-    return NextResponse.json(newReview, { status: 201 });
+    // Вставляем отзыв в базу данных
+    const { data: review, error } = await supabase
+      .from('reviews')
+      .insert(reviewData)
+      .select()
+      .single();
+    
+    if (error) {
+      console.error('Ошибка при создании отзыва:', error);
+      return NextResponse.json(
+        { error: 'Не удалось создать отзыв' },
+        { status: 500 }
+      );
+    }
+    
+    // Преобразуем данные для ответа
+    const formattedReview = {
+      id: review.id,
+      content: review.content,
+      rating: review.rating,
+      authorId: review.author_id,
+      targetId: review.target_id,
+      targetName: review.target_name,
+      targetType: review.target_type,
+      createdAt: review.created_at,
+      updatedAt: review.updated_at
+    };
+    
+    return NextResponse.json(formattedReview, { status: 201 });
+    
   } catch (error) {
-    console.error('Error creating review:', error);
-    return NextResponse.json({ error: 'Server error' }, { status: 500 });
+    console.error('Внутренняя ошибка сервера:', error);
+    return NextResponse.json(
+      { error: 'Внутренняя ошибка сервера' },
+      { status: 500 }
+    );
   }
 }
 
-// PUT - обновление отзыва
-export async function PUT(request) {
+// Обработчик PATCH-запросов для обновления отзывов
+export async function PATCH(request) {
   try {
-    const userId = getUserIdFromCookies();
-    if (!userId) {
-      return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
+    // Получаем данные текущего пользователя для проверки авторизации
+    const userData = getUserDataFromCookies();
+    
+    if (!userData || !userData.id) {
+      return NextResponse.json(
+        { error: 'Необходима авторизация для редактирования отзыва' },
+        { status: 401 }
+      );
     }
     
-    const data = await request.json();
+    // Парсим данные из тела запроса
+    const { id, content, rating, authorId } = await request.json();
+    
+    // Проверяем, что ID автора соответствует текущему пользователю
+    if (authorId !== userData.id) {
+      return NextResponse.json(
+        { error: 'Нельзя редактировать отзывы другого пользователя' },
+        { status: 403 }
+      );
+    }
     
     // Валидация данных
-    if (!data.id) {
-      return NextResponse.json({ error: 'Review ID is required' }, { status: 400 });
+    if (!id || !content || !rating) {
+      return NextResponse.json(
+        { error: 'Отсутствуют обязательные поля' },
+        { status: 400 }
+      );
     }
     
-    // Находим отзыв
-    const reviewIndex = reviews.findIndex(review => review.id === data.id);
-    if (reviewIndex === -1) {
-      return NextResponse.json({ error: 'Review not found' }, { status: 404 });
-    }
+    // Создаем supabase клиент
+    const supabase = createClient(supabaseUrl, supabaseServiceKey);
     
     // Проверяем, принадлежит ли отзыв пользователю
-    if (reviews[reviewIndex].authorId !== userId) {
-      return NextResponse.json({ error: 'You can only update your own reviews' }, { status: 403 });
+    const { data: existingReview, error: fetchError } = await supabase
+      .from('reviews')
+      .select('*')
+      .eq('id', id)
+      .single();
+    
+    if (fetchError) {
+      console.error('Ошибка при получении отзыва:', fetchError);
+      return NextResponse.json(
+        { error: 'Не удалось найти отзыв' },
+        { status: 404 }
+      );
+    }
+    
+    if (existingReview.author_id !== userData.id) {
+      return NextResponse.json(
+        { error: 'У вас нет прав на редактирование этого отзыва' },
+        { status: 403 }
+      );
     }
     
     // Обновляем отзыв
-    reviews[reviewIndex] = {
-      ...reviews[reviewIndex],
-      text: data.text || reviews[reviewIndex].text,
-      rating: data.rating ? Math.min(Math.max(1, data.rating), 5) : reviews[reviewIndex].rating,
-      updatedAt: new Date().toISOString()
+    const { data: updatedReview, error } = await supabase
+      .from('reviews')
+      .update({
+        content,
+        rating,
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', id)
+      .select()
+      .single();
+    
+    if (error) {
+      console.error('Ошибка при обновлении отзыва:', error);
+      return NextResponse.json(
+        { error: 'Не удалось обновить отзыв' },
+        { status: 500 }
+      );
+    }
+    
+    // Преобразуем данные
+    const formattedReview = {
+      id: updatedReview.id,
+      content: updatedReview.content,
+      rating: updatedReview.rating,
+      authorId: updatedReview.author_id,
+      targetId: updatedReview.target_id,
+      targetName: updatedReview.target_name,
+      targetType: updatedReview.target_type,
+      createdAt: updatedReview.created_at,
+      updatedAt: updatedReview.updated_at
     };
     
-    return NextResponse.json(reviews[reviewIndex]);
+    return NextResponse.json(formattedReview);
+    
   } catch (error) {
-    console.error('Error updating review:', error);
-    return NextResponse.json({ error: 'Server error' }, { status: 500 });
+    console.error('Внутренняя ошибка сервера:', error);
+    return NextResponse.json(
+      { error: 'Внутренняя ошибка сервера' },
+      { status: 500 }
+    );
   }
 }
 
-// DELETE - удаление отзыва
+// Обработчик DELETE-запросов для удаления отзывов
 export async function DELETE(request) {
   try {
-    const userId = getUserIdFromCookies();
-    if (!userId) {
-      return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
+    // Получаем данные текущего пользователя для проверки авторизации
+    const userData = getUserDataFromCookies();
+    
+    if (!userData || !userData.id) {
+      return NextResponse.json(
+        { error: 'Необходима авторизация для удаления отзыва' },
+        { status: 401 }
+      );
     }
     
-    const url = new URL(request.url);
-    const reviewId = url.searchParams.get('id');
+    const { searchParams } = new URL(request.url);
+    const id = searchParams.get('id');
     
-    if (!reviewId) {
-      return NextResponse.json({ error: 'Review ID is required' }, { status: 400 });
+    if (!id) {
+      return NextResponse.json(
+        { error: 'Отсутствует ID отзыва' },
+        { status: 400 }
+      );
     }
     
-    // Находим отзыв
-    const reviewIndex = reviews.findIndex(review => review.id === reviewId);
-    if (reviewIndex === -1) {
-      return NextResponse.json({ error: 'Review not found' }, { status: 404 });
-    }
+    // Создаем supabase клиент
+    const supabase = createClient(supabaseUrl, supabaseServiceKey);
     
     // Проверяем, принадлежит ли отзыв пользователю
-    if (reviews[reviewIndex].authorId !== userId) {
-      return NextResponse.json({ error: 'You can only delete your own reviews' }, { status: 403 });
+    const { data: existingReview, error: fetchError } = await supabase
+      .from('reviews')
+      .select('*')
+      .eq('id', id)
+      .single();
+    
+    if (fetchError) {
+      console.error('Ошибка при получении отзыва:', fetchError);
+      return NextResponse.json(
+        { error: 'Не удалось найти отзыв' },
+        { status: 404 }
+      );
+    }
+    
+    if (existingReview.author_id !== userData.id) {
+      return NextResponse.json(
+        { error: 'У вас нет прав на удаление этого отзыва' },
+        { status: 403 }
+      );
     }
     
     // Удаляем отзыв
-    reviews.splice(reviewIndex, 1);
+    const { error } = await supabase
+      .from('reviews')
+      .delete()
+      .eq('id', id);
     
-    return NextResponse.json({ success: true });
+    if (error) {
+      console.error('Ошибка при удалении отзыва:', error);
+      return NextResponse.json(
+        { error: 'Не удалось удалить отзыв' },
+        { status: 500 }
+      );
+    }
+    
+    return NextResponse.json({ 
+      success: true,
+      message: 'Отзыв успешно удален'
+    });
+    
   } catch (error) {
-    console.error('Error deleting review:', error);
-    return NextResponse.json({ error: 'Server error' }, { status: 500 });
+    console.error('Внутренняя ошибка сервера:', error);
+    return NextResponse.json(
+      { error: 'Внутренняя ошибка сервера' },
+      { status: 500 }
+    );
   }
 } 
