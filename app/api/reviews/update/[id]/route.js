@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
-import supabaseClient from '../../../../lib/supabaseClient';
-import { verifyToken } from '../../../../lib/auth';
+import supabaseClient from '@/lib/supabaseClient';
+import { verifyToken } from '@/lib/auth';
 
 export async function PUT(request, { params }) {
   try {

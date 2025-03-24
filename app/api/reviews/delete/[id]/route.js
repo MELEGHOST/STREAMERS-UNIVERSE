@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
-import supabaseClient from '../../../../lib/supabaseClient';
-import { verifyToken } from '../../../../lib/auth';
+import supabaseClient from '@/lib/supabaseClient';
+import { verifyToken } from '@/lib/auth';
+import { decrementCoins } from '@/lib/supabase/functions';
 
 export async function DELETE(request, { params }) {
   try {
@@ -40,9 +41,7 @@ export async function DELETE(request, { params }) {
     await supabaseClient.from('reviews').delete().eq('id', id);
     
     // Вычитаем StreamCoins за удаление отзыва
-    await supabaseClient.from('users').update({
-      streamCoins: supabaseClient.rpc('decrement_coins', { amount: 5 })
-    }).eq('id', userData.id);
+    await decrementCoins(userData.id, 5);
     
     // Создаем запись о транзакции
     await supabaseClient.from('streamCoinsTransactions').insert({

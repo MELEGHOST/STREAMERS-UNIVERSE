@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import supabaseClient from '@/lib/supabaseClient';
 import { verifyToken } from '@/lib/auth';
+import { incrementCoins } from '@/lib/supabase/functions';
 
 export async function POST(request) {
   try {
@@ -59,11 +60,7 @@ export async function POST(request) {
     }).returning('*');
     
     // Начисляем StreamCoins за отзыв
-    await supabaseClient.from('users').update({
-      streamCoins: {
-        increment: 10 // Начисляем 10 монет за отзыв
-      }
-    }).eq('id', userData.id);
+    await incrementCoins(userData.id, 10);
     
     // Создаем запись о транзакции
     await supabaseClient.from('streamCoinsTransactions').insert({

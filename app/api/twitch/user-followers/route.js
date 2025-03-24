@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
-import { supabaseClient } from '../../../utils/supabaseClient';
+import { supabaseClient } from '@/app/utils/supabaseClient';
 
 export async function GET(request) {
   try {
