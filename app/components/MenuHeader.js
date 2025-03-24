@@ -12,7 +12,7 @@ const MenuHeader = () => {
   const router = useRouter();
   
   useEffect(() => {
-    const checkUserAuthentication = () => {
+    const checkUserAuthentication = async () => {
       try {
         // Проверяем наличие данных пользователя в localStorage
         const storedUser = localStorage.getItem('twitch_user');
@@ -32,47 +32,53 @@ const MenuHeader = () => {
           }
         }
         
+        // Получаем ID пользователя из токена
+        const token = localStorage.getItem('twitch_access_token') || document.cookie.match(/twitch_access_token=([^;]+)/)?.[1];
+        if (!token) {
+          console.log('Токен Twitch не найден, перенаправляем на страницу авторизации');
+          setIsLoading(false);
+          router.push('/auth');
+          return;
+        }
+        
         // Пробуем получить данные из API
-        fetch('/api/twitch/user', {
+        const response = await fetch('/api/auth/verify', {
+          method: 'POST',
           credentials: 'include',
           headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json',
             'Cache-Control': 'no-cache',
             'Pragma': 'no-cache'
           }
-        })
-        .then(response => {
-          if (response.ok) {
-            return response.json();
-          }
-          throw new Error('Failed to fetch user data');
-        })
-        .then(data => {
-          if (data && data.id) {
-            console.log('Пользователь получен из API:', data.login);
-            setUserData(data);
-            localStorage.setItem('twitch_user', JSON.stringify(data));
+        });
+        
+        if (response.ok) {
+          const data = await response.json();
+          if (data.valid && data.user) {
+            console.log('Пользователь верифицирован через API:', data.user.name || data.user.login);
+            setUserData(data.user);
+            localStorage.setItem('twitch_user', JSON.stringify(data.user));
             localStorage.setItem('is_authenticated', 'true');
           } else {
-            console.log('Данные пользователя не получены из API');
-            setUserData(null);
+            console.log('Верификация не прошла, перенаправляем на страницу авторизации');
+            setIsLoading(false);
+            router.push('/auth');
           }
-        })
-        .catch(error => {
-          console.error('Ошибка при получении данных пользователя:', error);
-          setUserData(null);
-        })
-        .finally(() => {
+        } else {
+          console.error('Ошибка при верификации пользователя');
           setIsLoading(false);
-        });
+          router.push('/auth');
+        }
       } catch (error) {
         console.error('Глобальная ошибка при проверке аутентификации:', error);
         setIsLoading(false);
-        setUserData(null);
+        router.push('/auth');
       }
     };
     
     checkUserAuthentication();
-  }, []);
+  }, [router]);
   
   // Переход на страницу профиля
   const goToProfile = () => {
@@ -80,20 +86,18 @@ const MenuHeader = () => {
   };
   
   // Текст приветствия в зависимости от наличия данных пользователя
-  const greetingText = userData ? `Привет, ${userData.display_name || userData.login}!` : 'Привет, Гость!';
+  const greetingText = userData ? `Привет, ${userData.display_name || userData.name || userData.login}!` : 'Загрузка...';
   
   return (
     <div className={styles.header}>
       <div className={styles.userInfoContainer}>
-        {userData && userData.profile_image_url && (
-          <div className={styles.avatarContainer} onClick={goToProfile}>
-            <img 
-              src={userData.profile_image_url} 
-              alt={userData.display_name || userData.login} 
-              className={styles.avatarImage}
-            />
-          </div>
-        )}
+        <div className={styles.avatarContainer} onClick={goToProfile}>
+          <img 
+            src={userData?.profile_image_url || "https://static-cdn.jtvnw.net/user-default-pictures-uv/cdd517fe-def4-11e9-948e-784f43822e80-profile_image-300x300.png"} 
+            alt={userData ? (userData.display_name || userData.name || userData.login) : "Загрузка..."} 
+            className={styles.avatarImage}
+          />
+        </div>
         <div className={styles.userTextInfo}>
           <h1 className={styles.greeting}>{isLoading ? 'Загрузка...' : greetingText}</h1>
           {userData ? (
