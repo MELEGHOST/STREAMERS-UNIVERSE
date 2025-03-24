@@ -58,110 +58,70 @@ export default function Profile() {
   // Функция для получения данных пользователя с сервера с обработкой CORS ошибок
   const fetchUserData = async () => {
     try {
-      console.log('Начинаем загрузку данных пользователя...');
-      // Добавляем несколько стратегий получения данных
-      let userData = null;
-      
-      // Стратегия 1: Запрос к нашему API
+      console.log('Начало загрузки данных пользователя...');
+      const userData = await fetch('/api/twitch/user', {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          'Cache-Control': 'no-cache, no-store',
+          'Pragma': 'no-cache'
+        },
+        credentials: 'include',
+      })
+      .then(response => {
+        if (response.ok) return response.json();
+        throw new Error(`Ошибка API: ${response.status}`);
+      })
+      .catch(error => {
+        console.error('Ошибка при запросе к API:', error);
+        return null;
+      });
+
+      if (userData && userData.id) {
+        console.log('Данные пользователя получены успешно:', userData.id);
+        try {
+          localStorage.setItem('twitch_user', JSON.stringify(userData));
+          localStorage.setItem('is_authenticated', 'true');
+        } catch (e) {
+          console.error('Ошибка при сохранении в localStorage:', e);
+        }
+        return userData;
+      }
+
+      // Пробуем получить из localStorage
       try {
-        console.log('Попытка получить данные через API (/api/twitch/user)...');
-        const response = await fetch(`/api/twitch/user?_=${Date.now()}`, {
-          method: 'GET',
-          headers: {
-            'Content-Type': 'application/json',
-            'Cache-Control': 'no-cache, no-store, must-revalidate',
-            'Pragma': 'no-cache'
-          },
-          credentials: 'include',
-          mode: 'cors'
-        });
-        
-        if (response.ok) {
-          userData = await response.json();
-          console.log('Данные пользователя успешно получены с сервера:', userData);
+        const localData = localStorage.getItem('twitch_user');
+        if (localData) {
+          const parsedData = JSON.parse(localData);
+          if (parsedData && parsedData.id) {
+            console.log('Данные получены из localStorage:', parsedData.id);
+            return parsedData;
+          }
+        }
+      } catch (e) {
+        console.error('Ошибка при чтении из localStorage:', e);
+      }
+
+      // Пробуем получить из cookie
+      try {
+        const cookieData = Cookies.get('twitch_user');
+        if (cookieData) {
+          const parsedCookie = typeof cookieData === 'string' 
+            ? JSON.parse(cookieData) 
+            : cookieData;
           
-          // Обновляем localStorage для будущих запросов
-          if (userData && userData.id) {
-            try {
-              localStorage.setItem('twitch_user', JSON.stringify(userData));
-              localStorage.setItem('is_authenticated', 'true');
-            } catch (storageError) {
-              console.error('Ошибка при сохранении данных в localStorage:', storageError);
-            }
-          }
-          return userData;
-        } else {
-          console.error('Ошибка при получении данных пользователя с сервера:', response.status);
-        }
-      } catch (apiError) {
-        console.error('Сетевая ошибка при запросе к API:', apiError);
-      }
-      
-      // Стратегия 2: Использовать данные из localStorage
-      try {
-        console.log('Попытка получить данные из localStorage...');
-        const storedUserData = localStorage.getItem('twitch_user');
-        if (storedUserData) {
-          try {
-            userData = JSON.parse(storedUserData);
-            if (userData && userData.id) {
-              console.log('Данные пользователя успешно получены из localStorage:', userData.id);
-              return userData;
-            }
-          } catch (parseError) {
-            console.error('Ошибка при парсинге данных из localStorage:', parseError);
+          if (parsedCookie && parsedCookie.id) {
+            console.log('Данные получены из cookie:', parsedCookie.id);
+            return parsedCookie;
           }
         }
-      } catch (localError) {
-        console.error('Ошибка при получении данных из localStorage:', localError);
+      } catch (e) {
+        console.error('Ошибка при чтении из cookie:', e);
       }
-      
-      // Стратегия 3: Проверить cookie_twitch_user
-      try {
-        console.log('Попытка получить данные из cookie_twitch_user...');
-        const altUserData = localStorage.getItem('cookie_twitch_user');
-        if (altUserData) {
-          try {
-            userData = JSON.parse(altUserData);
-            if (userData && userData.id) {
-              console.log('Данные пользователя успешно получены из cookie_twitch_user:', userData.id);
-              // Обновляем основное хранилище
-              localStorage.setItem('twitch_user', JSON.stringify(userData));
-              return userData;
-            }
-          } catch (parseError) {
-            console.error('Ошибка при парсинге данных из cookie_twitch_user:', parseError);
-          }
-        }
-      } catch (cookieError) {
-        console.error('Ошибка при получении данных из cookie_twitch_user:', cookieError);
-      }
-      
-      // Стратегия 4: Проверяем cookies через js-cookie
-      try {
-        console.log('Попытка получить данные из cookies...');
-        const cookieUserData = Cookies.get('twitch_user');
-        if (cookieUserData) {
-          try {
-            userData = typeof cookieUserData === 'string' ? JSON.parse(cookieUserData) : cookieUserData;
-            if (userData && userData.id) {
-              console.log('Данные пользователя успешно получены из cookies:', userData.id);
-              localStorage.setItem('twitch_user', JSON.stringify(userData));
-              return userData;
-            }
-          } catch (parseError) {
-            console.error('Ошибка при парсинге данных из cookies:', parseError);
-          }
-        }
-      } catch (cookieJsError) {
-        console.error('Ошибка при получении данных из js-cookie:', cookieJsError);
-      }
-      
-      // Если все стратегии не сработали, возвращаем null
-      console.error('Не удалось получить данные пользователя ни одним из способов');
+
       return null;
     } catch (error) {
-      console.error('Критическая ошибка при запросе данных пользователя:', error);
+      console.error('Глобальная ошибка в fetchUserData:', error);
       return null;
     }
   };
@@ -444,239 +404,82 @@ export default function Profile() {
 
   // Загрузка данных при монтировании компонента
   useEffect(() => {
-    let isMounted = true; // Для предотвращения обновления unmounted компонента
+    let isMounted = true;
     
-    try {
-      console.log('[Vercel] Профиль: начало инициализации', { 
-        isInitialized, 
-        isAuthenticated, 
-        userId 
-      });
-      
-      // Если AuthContext еще не инициализирован, ждем
-      if (!isInitialized) {
-        console.log('[Vercel] AuthContext еще не инициализирован, ожидаем...');
-        return; // Выходим из эффекта и ждем следующего рендера
-      }
-      
-      // Проверяем есть ли данные авторизации в localStorage даже если контекст еще не обновил состояние
-      const checkLocalStorage = () => {
-        try {
-          const isAuthFromStorage = localStorage.getItem('is_authenticated') === 'true';
-          const storedUserData = localStorage.getItem('twitch_user');
-          
-          if (isAuthFromStorage && storedUserData) {
-            try {
-              const userData = JSON.parse(storedUserData);
-              console.log('[Vercel] Найдены локальные данные авторизации:', userData.id);
-              return true;
-            } catch (error) {
-              console.error('[Vercel] Ошибка при парсинге данных пользователя:', error);
-            }
-          }
-          return false;
-        } catch (error) {
-          console.error('[Vercel] Ошибка при проверке localStorage:', error);
-          return false;
-        }
-      };
-      
-      // Если контекст говорит, что пользователь не авторизован, 
-      // но в localStorage есть данные, установим флаг для загрузки профиля
-      const hasLocalData = checkLocalStorage();
-      
-      // Функция для загрузки данных профиля с обработкой ошибок для Vercel
-      const loadProfileData = async () => {
+    const loadData = async () => {
+      try {
         if (!isMounted) return;
+        setLoading(true);
+        setError(null);
+        
+        // Простая проверка аутентификации
+        const isAuth = localStorage.getItem('is_authenticated') === 'true';
+        
+        if (!isAuth && !isAuthenticated) {
+          console.log('Пользователь не авторизован');
+          router.push('/auth');
+          return;
+        }
+        
+        // Загружаем данные напрямую
+        const userData = await fetchUserData();
+        
+        if (!userData || !userData.id) {
+          console.error('Не удалось получить данные пользователя');
+          setError('Не удалось загрузить данные профиля');
+          setLoading(false);
+          return;
+        }
+        
+        console.log('Данные профиля загружены:', userData.id);
+        setProfileData(userData);
+        
+        // Загружаем дополнительные данные
+        try {
+          await loadFollowers(userData.id);
+        } catch (e) {
+          console.error('Ошибка при загрузке фолловеров:', e);
+        }
         
         try {
-          setLoading(true);
-          setError(null);
-          
-          // Сбрасываем возможные ошибки предыдущих загрузок
-          console.log('Очищаем предыдущие ошибки и начинаем загрузку профиля');
-          
-          // Проверяем, есть ли флаг авторизации в localStorage
-          const isAuthenticatedInStorage = localStorage.getItem('is_authenticated') === 'true';
-          console.log('Состояние авторизации:', { 
-            isAuthenticated, 
-            isAuthenticatedInStorage, 
-            userIdFromContext: userId,
-            hasLocalData
-          });
-          
-          // Проверка авторизации с надежной обработкой ошибок для Vercel
-          // Если пользователь не авторизован по состоянию из контекста и нет флага в localStorage
-          if (!isAuthenticated && !isAuthenticatedInStorage && !hasLocalData) {
-            console.log('[Vercel] Пользователь не авторизован, перенаправляем на страницу авторизации');
-            
-            // Сохраняем текущий путь для возврата после авторизации
-            try {
-              localStorage.setItem('auth_redirect', '/profile');
-            } catch (storageError) {
-              console.warn('[Vercel] Ошибка при записи в localStorage:', storageError);
-            }
-            
-            // Перенаправляем на страницу авторизации
-            router.push('/auth');
-            return;
-          }
-          
-          // Проверяем, есть ли userId в localStorage
-          let userIdFromStorage = null;
-          let userDataFromStorage = null;
-          
-          try {
-            // Пробуем загрузить данные из разных источников
-            const sources = [
-              { key: 'twitch_user', type: 'localStorage' },
-              { key: 'cookie_twitch_user', type: 'localStorage' },
-              { key: 'twitch_user', type: 'cookie' }
-            ];
-            
-            // Перебираем все возможные источники
-            for (const source of sources) {
-              if (source.type === 'localStorage') {
-                try {
-                  const data = localStorage.getItem(source.key);
-                  if (data) {
-                    userDataFromStorage = JSON.parse(data);
-                    if (userDataFromStorage && userDataFromStorage.id) {
-                      userIdFromStorage = userDataFromStorage.id;
-                      console.log(`Найдены данные пользователя в ${source.key}:`, userIdFromStorage);
-                      break; // Прерываем цикл, если нашли валидные данные
-                    }
-                  }
-                } catch (storageError) {
-                  console.error(`Ошибка при получении данных из ${source.key}:`, storageError);
-                }
-              } else if (source.type === 'cookie') {
-                try {
-                  const data = Cookies.get(source.key);
-                  if (data) {
-                    userDataFromStorage = typeof data === 'string' ? JSON.parse(data) : data;
-                    if (userDataFromStorage && userDataFromStorage.id) {
-                      userIdFromStorage = userDataFromStorage.id;
-                      console.log(`Найдены данные пользователя в cookie ${source.key}:`, userIdFromStorage);
-                      break;
-                    }
-                  }
-                } catch (cookieError) {
-                  console.error(`Ошибка при получении данных из cookie ${source.key}:`, cookieError);
-                }
-              }
-            }
-          } catch (error) {
-            console.error('Ошибка при получении данных из хранилищ:', error);
-          }
-          
-          // Используем ID из контекста или localStorage
-          const effectiveUserId = userId || userIdFromStorage;
-          
-          if (!effectiveUserId) {
-            console.error('Не удалось получить ID пользователя ни из контекста, ни из localStorage');
-            setError('Не удалось определить идентификатор пользователя. Попробуйте войти заново.');
-            setLoading(false);
-            
-            // Если не удалось получить ID пользователя, считаем что авторизация потеряна
-            localStorage.removeItem('is_authenticated');
-            router.push('/auth');
-            return;
-          }
-          
-          console.log('Использую ID пользователя:', effectiveUserId);
-          
-          // Если у нас есть данные из контекста авторизации, используем их
-          if (userId && userLogin) {
-            console.log('Используем данные из контекста авторизации:', userId);
-            
-            // Создаем базовый объект данных из контекста
-            const authContextData = {
-              id: userId,
-              login: userLogin,
-              profile_image_url: userAvatar,
-              display_name: userLogin
-            };
-            
-            setProfileData(authContextData);
-            console.log('Установлены данные профиля из контекста авторизации');
-            
-            // Загружаем дополнительные данные по очереди, чтобы избежать гонки запросов
-            await loadFollowers(userId);
-            await loadFollowings(userId);
-            await loadStats(userId);
-            await loadSocialLinks(userId);
-            await loadTierlists(userId);
-          } else if (userDataFromStorage && userIdFromStorage) {
-            console.log('Используем данные из localStorage:', userIdFromStorage);
-            
-            setProfileData(userDataFromStorage);
-            
-            // Загружаем дополнительные данные по очереди, чтобы избежать гонки запросов
-            await loadFollowers(userIdFromStorage);
-            await loadFollowings(userIdFromStorage);
-            await loadStats(userIdFromStorage);
-            await loadSocialLinks(userIdFromStorage);
-            await loadTierlists(userIdFromStorage);
-          } else {
-            console.log('Пытаемся получить данные с сервера');
-            
-            // Пробуем получить данные с сервера
-            const freshUserData = await fetchUserData();
-            
-            if (freshUserData && freshUserData.id) {
-              console.log('Получены свежие данные пользователя с сервера:', freshUserData.id);
-              
-              setProfileData(freshUserData);
-              
-              // Загружаем дополнительные данные по очереди, чтобы избежать гонки запросов
-              await loadFollowers(freshUserData.id);
-              await loadFollowings(freshUserData.id);
-              await loadStats(freshUserData.id);
-              await loadSocialLinks(freshUserData.id);
-              await loadTierlists(freshUserData.id);
-              
-              // Сохраняем данные в localStorage для будущего использования
-              localStorage.setItem('twitch_user', JSON.stringify(freshUserData));
-              localStorage.setItem('is_authenticated', 'true');
-            } else {
-              console.error('Не удалось получить данные пользователя ни из одного источника');
-              
-              // Проверяем еще раз флаг авторизации
-              if (!isAuthenticatedInStorage) {
-                console.log('Перенаправляем на страницу авторизации из-за отсутствия данных');
-                localStorage.setItem('auth_redirect', '/profile');
-                router.push('/auth');
-                return;
-              } else {
-                setError('Данные пользователя не найдены. Попробуйте обновить страницу или войти заново.');
-              }
-            }
-          }
-        } catch (error) {
-          console.error('Необработанная ошибка при загрузке профиля:', error);
-          setError('Произошла ошибка при загрузке профиля. Пожалуйста, попробуйте позже.');
-        } finally {
-          if (isMounted) {
-            setLoading(false);
-            setLoadAttempts(prev => prev + 1);
-          }
+          await loadFollowings(userData.id);
+        } catch (e) {
+          console.error('Ошибка при загрузке подписок:', e);
         }
-      };
-      
-      // Запускаем загрузку данных
-      loadProfileData();
-    } catch (error) {
-      console.error('Критическая ошибка в useEffect профиля:', error);
-      setError('Произошла критическая ошибка. Пожалуйста, обновите страницу.');
-      setLoading(false);
-    }
+        
+        try {
+          await loadStats(userData.id);
+        } catch (e) {
+          console.error('Ошибка при загрузке статистики:', e);
+        }
+        
+        try {
+          await loadSocialLinks(userData.id);
+        } catch (e) {
+          console.error('Ошибка при загрузке социальных ссылок:', e);
+        }
+        
+        try {
+          await loadTierlists(userData.id);
+        } catch (e) {
+          console.error('Ошибка при загрузке тирлистов:', e);
+        }
+      } catch (error) {
+        console.error('Глобальная ошибка при загрузке данных:', error);
+        setError('Произошла ошибка при загрузке профиля');
+      } finally {
+        if (isMounted) {
+          setLoading(false);
+        }
+      }
+    };
     
-    // Очистка при размонтировании компонента
+    loadData();
+    
     return () => {
       isMounted = false;
     };
-  }, [isInitialized, isAuthenticated, userId, userLogin, userAvatar, router]);
+  }, [isAuthenticated, router]);
 
   // Функция для сохранения настроек видимости статистики
   const saveStatsVisibility = async (newVisibility) => {
