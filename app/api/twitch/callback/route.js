@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
-import supabase from '@/lib/supabase';
+import supabase from '@/lib/supabaseClient';
 import { createToken } from '@/lib/auth';
 
 /**

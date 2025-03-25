@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { supabaseClient } from '@/app/utils/supabaseClient';
+import supabase from '@/lib/supabaseClient';
 
 export async function GET(request) {
   try {
@@ -16,7 +16,7 @@ export async function GET(request) {
     }
     
     // Получаем пользователя из базы данных используя Supabase
-    const { data: user, error: userError } = await supabaseClient
+    const { data: user, error: userError } = await supabase
       .from('users')
       .select('id')
       .eq('twitchId', userId)
@@ -32,7 +32,7 @@ export async function GET(request) {
     }
     
     // Получаем всех последователей пользователя
-    const { data: follows, error: followsError } = await supabaseClient
+    const { data: follows, error: followsError } = await supabase
       .from('follows')
       .select(`
         *,
@@ -49,7 +49,7 @@ export async function GET(request) {
     }
     
     // Получаем роли последователей
-    const { data: followerRoles, error: rolesError } = await supabaseClient
+    const { data: followerRoles, error: rolesError } = await supabase
       .from('userRoles')
       .select('*')
       .eq('assignerId', user.id)

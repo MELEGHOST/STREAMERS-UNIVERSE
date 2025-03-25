@@ -5,9 +5,16 @@
 import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
 import * as jwt from 'jsonwebtoken';
-import supabase from '../../lib/supabase';
+import supabase from '../../lib/supabaseClient';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
+
+// Проверка доступности Supabase
+const isSupabaseAvailable = () => {
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  return !!(supabaseUrl && supabaseAnonKey);
+};
 
 /**
  * Проверяет, авторизован ли пользователь
@@ -108,6 +115,19 @@ export const getOrCreateUser = async (twitchData: {
   profile_image_url: string;
 }) => {
   try {
+    // Проверяем, доступен ли Supabase
+    if (!isSupabaseAvailable()) {
+      console.error('Supabase не настроен, невозможно работать с пользователями');
+      // Возвращаем базовые данные о пользователе без сохранения в базу
+      return {
+        twitchId: twitchData.id,
+        username: twitchData.login,
+        displayName: twitchData.display_name,
+        email: twitchData.email,
+        avatar: twitchData.profile_image_url
+      };
+    }
+    
     // Ищем пользователя по Twitch ID
     const { data: user, error } = await supabase
       .from('users')
@@ -164,7 +184,14 @@ export const getOrCreateUser = async (twitchData: {
     }
   } catch (error) {
     console.error('Ошибка при получении/создании пользователя:', error);
-    throw error;
+    // В случае ошибки возвращаем базовые данные пользователя
+    return {
+      twitchId: twitchData.id,
+      username: twitchData.login,
+      displayName: twitchData.display_name,
+      email: twitchData.email,
+      avatar: twitchData.profile_image_url
+    };
   }
 };
 

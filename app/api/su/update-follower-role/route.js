@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
-import { supabaseClient } from '@/app/utils/supabaseClient';
+import supabase from '@/lib/supabaseClient';
 
 export async function POST(request) {
   try {
@@ -23,7 +23,7 @@ export async function POST(request) {
     const userData = JSON.parse(userCookie);
     
     // Проверяем существование связи между пользователями
-    const { data: follow, error: followError } = await supabaseClient
+    const { data: follow, error: followError } = await supabase
       .from('follows')
       .select('*')
       .eq('follower_id', followerId)
@@ -37,7 +37,7 @@ export async function POST(request) {
     
     // Если роль отсутствует, удаляем все роли этого пользователя
     if (!roleName) {
-      const { error: deleteError } = await supabaseClient
+      const { error: deleteError } = await supabase
         .from('userRoles')
         .delete()
         .eq('userId', followerId)
@@ -57,7 +57,7 @@ export async function POST(request) {
     }
     
     // Обновляем или создаем роль
-    const { data: existingRole, error: roleError } = await supabaseClient
+    const { data: existingRole, error: roleError } = await supabase
       .from('userRoles')
       .select('*')
       .eq('userId', followerId)
@@ -66,7 +66,7 @@ export async function POST(request) {
     
     if (existingRole) {
       // Обновляем существующую роль
-      const { data: updatedRole, error: updateError } = await supabaseClient
+      const { data: updatedRole, error: updateError } = await supabase
         .from('userRoles')
         .update({ roleName })
         .eq('id', existingRole.id)
@@ -87,7 +87,7 @@ export async function POST(request) {
       });
     } else {
       // Создаем новую роль
-      const { data: newRole, error: createError } = await supabaseClient
+      const { data: newRole, error: createError } = await supabase
         .from('userRoles')
         .insert({
           userId: followerId,

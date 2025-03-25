@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { supabaseClient } from '@/app/utils/supabaseClient';
+import supabase from '@/lib/supabaseClient';
 
 export async function POST(request) {
   try {
@@ -25,7 +25,7 @@ export async function POST(request) {
     const limitedIds = twitchIds.slice(0, maxIds);
     
     // Запрашиваем данные из базы с помощью Supabase
-    const { data: registeredUsers, error } = await supabaseClient
+    const { data: registeredUsers, error } = await supabase
       .from('users')
       .select('id, twitchId, username, userType')
       .in('twitchId', limitedIds);

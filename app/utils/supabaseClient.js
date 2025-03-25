@@ -1,5 +1,5 @@
-// Импортируем Supabase клиент
-import supabase from '../../lib/supabase';
+'use client';
+import supabase from '../../lib/supabaseClient';
 
-// Экспортируем supabase клиент
-export const supabaseClient = supabase; 
+// Экспортируем клиент Supabase для использования на клиентской стороне
+export default supabase; 
