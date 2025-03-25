@@ -67,8 +67,24 @@ export default function Settings() {
   useEffect(() => {
     const checkAuth = async () => {
       try {
+        // Проверяем все возможные источники данных авторизации
         const accessToken = Cookies.get('twitch_access_token');
-        if (!accessToken) {
+        const userDataCookie = Cookies.get('twitch_user') || Cookies.get('twitch_user_data');
+        const localStorageAuth = localStorage.getItem('is_authenticated') === 'true';
+        const localStorageUser = localStorage.getItem('twitch_user');
+        
+        // Устанавливаем куку для middleware, чтобы указать, что у нас есть данные в localStorage
+        if (localStorageUser) {
+          Cookies.set('has_local_storage_token', 'true', { 
+            expires: 1, // 1 день
+            path: '/',
+            sameSite: 'lax'
+          });
+          console.log('Установлена кука has_local_storage_token для middleware');
+        }
+        
+        if (!accessToken && !userDataCookie && !localStorageAuth && !localStorageUser) {
+          console.log('Пользователь не авторизован, перенаправляем на страницу авторизации');
           router.push('/auth');
           return;
         }
@@ -76,49 +92,60 @@ export default function Settings() {
         setIsAuthenticated(true);
         
         // Безопасно получаем данные пользователя
-        try {
-          const storedUser = localStorage.getItem('twitch_user');
-          if (storedUser) {
-            const parsedUser = JSON.parse(storedUser);
-            const userId = parsedUser.id || 'unknown';
-            setUserId(userId);
-            
-            // Загружаем сохраненные настройки
-            try {
-              const savedSettingsStr = localStorage.getItem(`settings_${userId}`);
-              if (savedSettingsStr) {
-                const savedSettings = JSON.parse(savedSettingsStr);
-                setTheme(savedSettings.theme || 'base');
-                setFontSize(savedSettings.fontSize || 'normal');
-                setTimezone(savedSettings.timezone || 'Europe/Moscow');
-                setLanguage(savedSettings.language || 'ru');
-              } else {
-                // Если нет пользовательских настроек, проверяем глобальные
-                const globalTheme = localStorage.getItem('global_theme');
-                const globalFontSize = localStorage.getItem('global_fontSize');
-                
-                if (globalTheme) setTheme(globalTheme);
-                if (globalFontSize) setFontSize(globalFontSize);
-                
-                // В будущем можно получать настройки с сервера
-                try {
-                  const serverSettings = await getUserSettingsFromServer(userId);
-                  if (serverSettings) {
-                    setTheme(serverSettings.theme);
-                    setFontSize(serverSettings.fontSize);
-                    setTimezone(serverSettings.timezone);
-                    setLanguage(serverSettings.language);
-                  }
-                } catch (err) {
-                  console.error('Ошибка при получении настроек с сервера:', err);
-                }
-              }
-            } catch (e) {
-              console.error('Ошибка при загрузке настроек:', e);
-            }
+        let userData = null;
+        
+        if (localStorageUser) {
+          try {
+            userData = JSON.parse(localStorageUser);
+          } catch (e) {
+            console.error('Ошибка при парсинге данных пользователя из localStorage:', e);
           }
-        } catch (e) {
-          console.error('Ошибка при получении данных пользователя:', e);
+        } else if (userDataCookie) {
+          try {
+            userData = JSON.parse(userDataCookie);
+          } catch (e) {
+            console.error('Ошибка при парсинге данных пользователя из cookie:', e);
+          }
+        }
+        
+        if (userData && userData.id) {
+          setUserId(userData.id);
+          
+          // Загружаем сохраненные настройки
+          try {
+            const savedSettingsStr = localStorage.getItem(`settings_${userData.id}`);
+            if (savedSettingsStr) {
+              const savedSettings = JSON.parse(savedSettingsStr);
+              setTheme(savedSettings.theme || 'base');
+              setFontSize(savedSettings.fontSize || 'normal');
+              setTimezone(savedSettings.timezone || 'Europe/Moscow');
+              setLanguage(savedSettings.language || 'ru');
+            } else {
+              // Если нет пользовательских настроек, проверяем глобальные
+              const globalTheme = localStorage.getItem('global_theme');
+              const globalFontSize = localStorage.getItem('global_fontSize');
+              
+              if (globalTheme) setTheme(globalTheme);
+              if (globalFontSize) setFontSize(globalFontSize);
+              
+              // В будущем можно получать настройки с сервера
+              try {
+                const serverSettings = await getUserSettingsFromServer(userData.id);
+                if (serverSettings) {
+                  setTheme(serverSettings.theme);
+                  setFontSize(serverSettings.fontSize);
+                  setTimezone(serverSettings.timezone);
+                  setLanguage(serverSettings.language);
+                }
+              } catch (err) {
+                console.error('Ошибка при получении настроек с сервера:', err);
+              }
+            }
+          } catch (e) {
+            console.error('Ошибка при загрузке настроек:', e);
+          }
+        } else {
+          console.warn('Данные пользователя получены, но ID отсутствует');
         }
         
         setLoading(false);

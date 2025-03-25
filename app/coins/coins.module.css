@@ -46,7 +46,7 @@
   font-size: 18px;
 }
 
-.balanceCard, .bonusCard, .transactionsCard, .infoCard {
+.balanceCard, .bonusCard, .transactionsCard, .infoCard, .shopCard {
   background-color: white;
   border-radius: 12px;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
@@ -118,6 +118,123 @@
 .claimButton:disabled {
   background-color: #b7a8d8;
   cursor: not-allowed;
+}
+
+/* Стили для секции магазина */
+.shopCard {
+  border-left: 4px solid #ff5722;
+}
+
+.shopCard h2 {
+  color: #ff5722;
+  font-size: 22px;
+  margin-top: 0;
+  margin-bottom: 12px;
+}
+
+.shopItems {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  margin-top: 16px;
+}
+
+.shopItem {
+  display: flex;
+  align-items: center;
+  padding: 16px;
+  background-color: #f7f5fe;
+  border-radius: 10px;
+  border: 1px solid #e0ddf5;
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.shopItem:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.1);
+}
+
+.itemIcon {
+  font-size: 36px;
+  margin-right: 16px;
+  background: linear-gradient(135deg, #ff5722, #ff9800);
+  width: 60px;
+  height: 60px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  color: white;
+  box-shadow: 0 4px 8px rgba(255, 87, 34, 0.2);
+}
+
+.itemInfo {
+  flex: 1;
+}
+
+.itemInfo h3 {
+  margin: 0 0 8px 0;
+  font-size: 18px;
+  color: #333;
+}
+
+.itemInfo p {
+  margin: 0 0 12px 0;
+  font-size: 14px;
+  color: #666;
+}
+
+.itemPrice {
+  display: flex;
+  align-items: center;
+  font-weight: 700;
+  color: #ff5722;
+}
+
+.itemPrice span {
+  margin-right: 6px;
+}
+
+.smallCoinIcon {
+  font-size: 18px;
+}
+
+.purchaseButton {
+  background-color: #ff5722;
+  color: white;
+  border: none;
+  padding: 10px 16px;
+  font-size: 14px;
+  font-weight: 600;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+  margin-left: 16px;
+}
+
+.purchaseButton:hover {
+  background-color: #e64a19;
+}
+
+.purchaseButton:disabled {
+  background-color: #ffccbc;
+  cursor: not-allowed;
+}
+
+.purchaseMessage {
+  margin-top: 16px;
+  padding: 12px 16px;
+  background-color: #fcf1e8;
+  border-left: 4px solid #ff5722;
+  border-radius: 6px;
+  color: #e64a19;
+  font-weight: 500;
+  animation: fadeIn 0.3s ease-in-out;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(-10px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 
 .transactionsCard h2, .infoCard h2 {
@@ -248,7 +365,7 @@
 /* Медиа-запросы для адаптивности */
 @media (max-width: 600px) {
   .coinsContainer {
-    padding: 15px;
+    padding: 16px;
   }
   
   .header {
@@ -258,10 +375,27 @@
   }
   
   .balanceAmount {
-    font-size: 36px;
+    font-size: 38px;
   }
   
   .transactionItem {
     padding: 10px;
+  }
+  
+  .shopItem {
+    flex-direction: column;
+    text-align: center;
+    padding: 12px;
+  }
+  
+  .itemIcon {
+    margin-right: 0;
+    margin-bottom: 10px;
+  }
+  
+  .purchaseButton {
+    margin-left: 0;
+    margin-top: 12px;
+    width: 100%;
   }
 } 

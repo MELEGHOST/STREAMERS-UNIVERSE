@@ -11,10 +11,11 @@ import NeonCheckbox from '../components/NeonCheckbox';
 
 export default function Search() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [userId, setUserId] = useState(null);
-  const [searchTerm, setSearchTerm] = useState('');
+  const [query, setQuery] = useState('');
   const [results, setResults] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+  const router = useRouter();
   const [showFilters, setShowFilters] = useState(false);
   const [filters, setFilters] = useState({
     category: 'all',
@@ -23,46 +24,47 @@ export default function Search() {
     activity: null,
     region: null
   });
-  const router = useRouter();
 
+  // Проверка авторизации
   useEffect(() => {
-    const accessToken = getAccessTokenFromCookie();
-    if (!accessToken) {
-      router.push('/auth');
-    } else {
-      setIsAuthenticated(true);
-      
-      // Безопасно получаем данные пользователя
-      const getUserDataSafely = () => {
-        if (typeof window === 'undefined') return;
+    const checkAuth = async () => {
+      try {
+        // Проверяем все возможные источники данных авторизации
+        const accessToken = Cookies.get('twitch_access_token');
+        const userDataCookie = Cookies.get('twitch_user') || Cookies.get('twitch_user_data');
+        const localStorageAuth = localStorage.getItem('is_authenticated') === 'true';
+        const localStorageUser = localStorage.getItem('twitch_user');
         
-        try {
-          // Сначала пробуем через Cookies
-          const cookieUser = Cookies.get('twitch_user');
-          if (cookieUser) {
-            const userData = JSON.parse(cookieUser);
-            setUserId(userData.id || 'unknown');
-            return;
-          }
-          
-          // Затем пробуем через localStorage
-          const storedUser = localStorage.getItem('twitch_user');
-          if (storedUser) {
-            const userData = JSON.parse(storedUser);
-            setUserId(userData.id || 'unknown');
-          }
-        } catch (e) {
-          console.error('Ошибка при обработке данных пользователя:', e);
-          setUserId('unknown');
+        // Устанавливаем куку для middleware, чтобы указать, что у нас есть данные в localStorage
+        if (localStorageUser) {
+          Cookies.set('has_local_storage_token', 'true', { 
+            expires: 1, // 1 день
+            path: '/',
+            sameSite: 'lax'
+          });
+          console.log('Установлена кука has_local_storage_token для middleware');
         }
-      };
-      
-      getUserDataSafely();
-    }
+        
+        const isAuth = accessToken || userDataCookie || localStorageAuth || localStorageUser;
+        
+        if (!isAuth) {
+          console.log('Пользователь не авторизован, перенаправляем на страницу авторизации');
+          router.push('/auth');
+          return;
+        }
+        
+        setIsAuthenticated(true);
+      } catch (error) {
+        console.error('Ошибка при проверке авторизации:', error);
+        router.push('/auth');
+      }
+    };
+    
+    checkAuth();
   }, [router]);
 
   const handleSearch = async () => {
-    if (!searchTerm) return;
+    if (!query) return;
     
     setLoading(true);
     setResults(null);
@@ -76,13 +78,13 @@ export default function Search() {
         return;
       }
       
-      const sanitizedSearchTerm = searchTerm.trim().toLowerCase();
+      const sanitizedQuery = query.trim().toLowerCase();
       
-      if (!sanitizedSearchTerm) {
+      if (!sanitizedQuery) {
         throw new Error('Пожалуйста, введите корректный запрос для поиска');
       }
       
-      const response = await fetch(`/api/twitch/search?login=${encodeURIComponent(sanitizedSearchTerm)}`, {
+      const response = await fetch(`/api/twitch/search?login=${encodeURIComponent(sanitizedQuery)}`, {
         method: 'GET',
         credentials: 'include',
         headers: {
@@ -225,8 +227,8 @@ export default function Search() {
       
       <div className={styles.searchInputContainer}>
         <Input 
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
           onSearch={handleSearch}
           placeholder="Введите никнейм с Twitch..."
         />

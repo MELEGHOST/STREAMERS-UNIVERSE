@@ -251,6 +251,25 @@ export function middleware(request) {
     // Проверяем наличие токенов в localStorage через куки
     const hasLocalStorageToken = request.cookies.has('has_local_storage_token');
     
+    // Если у нас есть любой токен авторизации, устанавливаем куку has_local_storage_token
+    if (hasTwitchAccessToken || hasTwitchUser || hasTwitchUserData) {
+      const response = NextResponse.next();
+      
+      // Установим куку для будущих запросов, чтобы указать наличие авторизации
+      response.cookies.set('has_local_storage_token', 'true', {
+        maxAge: 60 * 60 * 24, // 1 день
+        path: '/',
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'lax'
+      });
+      
+      if (process.env.NODE_ENV !== 'production') {
+        console.log('Middleware: установлена кука has_local_storage_token на основе других кук авторизации');
+      }
+      
+      return response;
+    }
+    
     // Установим куку, указывающую на присутствие данных в localStorage
     // Это поможет при следующих запросах без перезагрузки страницы
     if (hasLocalStorageToken) {

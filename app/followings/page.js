@@ -7,6 +7,7 @@ import Image from 'next/image';
 import styles from './followings.module.css';
 import { getUserData, getUserFollowings, getUserStats } from '../utils/twitchAPI';
 import { DataStorage } from '../utils/dataStorage';
+import Cookies from 'js-cookie';
 
 export default function Followings() {
   const router = useRouter();
@@ -21,9 +22,26 @@ export default function Followings() {
   useEffect(() => {
     const loadData = async () => {
       try {
-        // Проверяем авторизацию
-        if (!DataStorage.isAuthenticated()) {
-          console.error('Пользователь не авторизован, перенаправление на страницу авторизации');
+        // Проверяем все возможные источники данных авторизации
+        const accessToken = Cookies.get('twitch_access_token');
+        const userDataCookie = Cookies.get('twitch_user') || Cookies.get('twitch_user_data');
+        const localStorageAuth = localStorage.getItem('is_authenticated') === 'true';
+        const localStorageUser = localStorage.getItem('twitch_user');
+        
+        // Устанавливаем куку для middleware, чтобы указать, что у нас есть данные в localStorage
+        if (localStorageUser) {
+          Cookies.set('has_local_storage_token', 'true', { 
+            expires: 1, // 1 день
+            path: '/',
+            sameSite: 'lax'
+          });
+          console.log('Установлена кука has_local_storage_token для middleware');
+        }
+        
+        const isAuth = accessToken || userDataCookie || localStorageAuth || localStorageUser;
+        
+        if (!isAuth) {
+          console.log('Пользователь не авторизован, перенаправляем на страницу авторизации');
           router.push('/auth');
           return;
         }
@@ -31,7 +49,21 @@ export default function Followings() {
         setIsAuthenticated(true);
         
         // Получаем данные пользователя
-        const userData = await getUserData();
+        let userData = null;
+        
+        if (localStorageUser) {
+          try {
+            userData = JSON.parse(localStorageUser);
+          } catch (e) {
+            console.error('Ошибка при парсинге данных пользователя из localStorage:', e);
+          }
+        } else if (userDataCookie) {
+          try {
+            userData = JSON.parse(userDataCookie);
+          } catch (e) {
+            console.error('Ошибка при парсинге данных пользователя из cookie:', e);
+          }
+        }
         
         if (!userData || !userData.id) {
           console.error('Данные пользователя отсутствуют, перенаправление на страницу авторизации');
@@ -60,7 +92,7 @@ export default function Followings() {
         await loadFollowings(userData.id);
       } catch (error) {
         console.error('Ошибка при загрузке данных:', error);
-        setError('Не удалось загрузить данные. Пожалуйста, попробуйте позже.');
+        setError('Произошла ошибка при загрузке данных. Пожалуйста, попробуйте позже.');
         setLoading(false);
       }
     };

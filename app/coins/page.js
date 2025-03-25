@@ -19,6 +19,8 @@ export default function StreamerCoins() {
   const [error, setError] = useState(null);
   const [bonusAvailable, setBonusAvailable] = useState(false);
   const [bonusMessage, setBonusMessage] = useState('');
+  const [purchaseMessage, setPurchaseMessage] = useState('');
+  const [showPurchaseMessage, setShowPurchaseMessage] = useState(false);
 
   useEffect(() => {
     // Проверяем авторизацию
@@ -277,6 +279,79 @@ export default function StreamerCoins() {
     }
   };
 
+  // Функция для покупки предмета
+  const purchaseItem = (itemId, price, itemName) => {
+    if (!userData || coinsData.balance < price) {
+      setPurchaseMessage('Недостаточно стример-коинов для покупки!');
+      setShowPurchaseMessage(true);
+      setTimeout(() => setShowPurchaseMessage(false), 3000);
+      return;
+    }
+    
+    try {
+      // Получаем текущие данные о коинах
+      const coinsDataKey = `data_streamcoins_${userData.id}`;
+      
+      DataStorage.getData(coinsDataKey)
+        .then(storedData => {
+          if (storedData) {
+            // Создаем обновленные данные
+            const updatedData = { ...storedData };
+            
+            // Вычитаем стоимость предмета
+            const newBalance = updatedData.balance - price;
+            updatedData.balance = newBalance;
+            
+            // Увеличиваем общее количество потраченных коинов
+            updatedData.totalSpent = (updatedData.totalSpent || 0) + price;
+            
+            // Добавляем транзакцию
+            const transaction = {
+              id: `purchase-${Date.now()}`,
+              type: 'spend',
+              amount: price,
+              reason: 'item_purchase',
+              timestamp: new Date().toISOString(),
+              metadata: { note: `Покупка: ${itemName}`, itemId }
+            };
+            
+            updatedData.transactions = [transaction, ...(updatedData.transactions || [])];
+            
+            // Сохраняем обновленные данные
+            DataStorage.saveData(coinsDataKey, updatedData);
+            
+            // Также обновляем данные в старом формате для совместимости с меню
+            if (typeof window !== 'undefined' && window.localStorage) {
+              localStorage.setItem(`streamcoins_${userData.id}`, newBalance.toString());
+            }
+            
+            // Обновляем состояние
+            setCoinsData({
+              balance: newBalance,
+              transactions: updatedData.transactions,
+              lastDailyBonus: updatedData.lastDailyBonus
+            });
+            
+            // Показываем сообщение об успешной покупке
+            setPurchaseMessage(`Вы успешно приобрели ${itemName}!`);
+            setShowPurchaseMessage(true);
+            setTimeout(() => setShowPurchaseMessage(false), 3000);
+          }
+        })
+        .catch(error => {
+          console.error('Ошибка при покупке предмета:', error);
+          setPurchaseMessage('Произошла ошибка при покупке предмета');
+          setShowPurchaseMessage(true);
+          setTimeout(() => setShowPurchaseMessage(false), 3000);
+        });
+    } catch (error) {
+      console.error('Ошибка при покупке предмета:', error);
+      setPurchaseMessage('Произошла ошибка при покупке предмета');
+      setShowPurchaseMessage(true);
+      setTimeout(() => setShowPurchaseMessage(false), 3000);
+    }
+  };
+
   const handleReturnToMenu = () => {
     router.push('/menu');
   };
@@ -331,33 +406,35 @@ export default function StreamerCoins() {
         )}
       </div>
       
-      <div className={styles.transactionsCard}>
-        <h2>История транзакций</h2>
-        {coinsData.transactions.length > 0 ? (
-          <div className={styles.transactionsList}>
-            {coinsData.transactions.map(transaction => (
-              <div key={transaction.id} className={styles.transactionItem}>
-                <div className={styles.transactionInfo}>
-                  <span className={styles.transactionType}>
-                    {transaction.type === 'earn' ? '📈 Получено' : '📉 Потрачено'}
-                  </span>
-                  <span className={styles.transactionAmount}>
-                    {transaction.type === 'earn' ? '+' : '-'}{transaction.amount}
-                  </span>
-                </div>
-                <div className={styles.transactionDate}>
-                  {new Date(transaction.timestamp).toLocaleString('ru-RU')}
-                </div>
-                <div className={styles.transactionReason}>
-                  {transaction.reason === 'daily_bonus' ? 'Ежедневный бонус' : 
-                   transaction.reason === 'referral' ? 'Реферальная награда' : 
-                   transaction.reason === 'purchase' ? 'Покупка' : 'Операция'}
-                </div>
+      <div className={styles.shopCard}>
+        <h2>Магазин</h2>
+        <p>Приобретайте эксклюзивные предметы за стример-коины:</p>
+        
+        <div className={styles.shopItems}>
+          <div className={styles.shopItem}>
+            <div className={styles.itemIcon}>🌟</div>
+            <div className={styles.itemInfo}>
+              <h3>VIP-статус на стриме</h3>
+              <p>Получите VIP-значок и подсветку вашего ника на стримах</p>
+              <div className={styles.itemPrice}>
+                <span>50</span>
+                <div className={styles.smallCoinIcon}>💰</div>
               </div>
-            ))}
+            </div>
+            <button 
+              className={styles.purchaseButton}
+              onClick={() => purchaseItem('vip-status', 50, 'VIP-статус на стриме')}
+              disabled={coinsData.balance < 50}
+            >
+              Купить
+            </button>
           </div>
-        ) : (
-          <p className={styles.noTransactions}>У вас пока нет транзакций.</p>
+        </div>
+        
+        {showPurchaseMessage && (
+          <div className={styles.purchaseMessage}>
+            {purchaseMessage}
+          </div>
         )}
       </div>
       
