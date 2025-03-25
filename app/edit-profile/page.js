@@ -166,10 +166,20 @@ export default function EditProfile() {
         
         setSaveSuccess(true);
         
-        // Скрываем сообщение об успехе через 3 секунды
+        // Ожидаем немного для отображения сообщения об успехе и перенаправляем на профиль
         setTimeout(() => {
-          setSaveSuccess(false);
-        }, 3000);
+          // Принудительно обновляем данные в localStorage, чтобы профиль их сразу увидел
+          if (userData) {
+            // Если есть URL изображения профиля, сохраняем и его для обновления аватарки
+            if (userData.profile_image_url) {
+              const updatedUserData = { ...userData };
+              localStorage.setItem('twitch_user', JSON.stringify(updatedUserData));
+            }
+          }
+          
+          // Перенаправляем на профиль с параметром обновления для обхода кэша
+          router.push('/profile?refresh=' + Date.now());
+        }, 1500);
       }
     } catch (error) {
       console.error('Ошибка при сохранении данных:', error);

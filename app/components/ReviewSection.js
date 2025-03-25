@@ -141,14 +141,19 @@ const ReviewSection = ({ userId, isAuthor = false, onReviewAdded }) => {
       setNewRating(5);
       setReviewTarget('');
       
-      // Перезагружаем отзывы
+      // Получаем данные созданного отзыва
+      const createdReview = await response.json();
+      
+      // Добавляем новый отзыв в начало списка
+      setReviews(prevReviews => [createdReview, ...prevReviews]);
+      
+      // Вызываем колбэк, если он передан
       if (onReviewAdded) {
         onReviewAdded();
       }
       
-      // Добавляем новый отзыв в список
-      const createdReview = await response.json();
-      setReviews(prevReviews => [createdReview, ...prevReviews]);
+      // Перезагружаем отзывы для актуализации данных
+      fetchReviews();
       
       alert('Отзыв успешно добавлен!');
     } catch (error) {

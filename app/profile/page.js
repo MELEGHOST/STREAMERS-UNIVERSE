@@ -55,25 +55,36 @@ export default function Profile() {
   const [totalFollowings, setTotalFollowings] = useState(0);
 
   // Упрощенная функция для получения данных пользователя
-  const fetchUserData = async () => {
+  const fetchUserData = async (forceRefresh = false) => {
     try {
       console.log('Начало загрузки данных пользователя...');
       
-      // Сначала пробуем получить из localStorage, так как это самый надежный источник
-      try {
-        const localData = localStorage.getItem('twitch_user');
-        if (localData) {
-          const parsedData = JSON.parse(localData);
-          if (parsedData && parsedData.id) {
-            console.log('Данные получены из localStorage:', parsedData.id);
-            return parsedData;
+      // Проверяем наличие параметра refresh в URL
+      const urlParams = new URLSearchParams(window.location.search);
+      const refreshParam = urlParams.get('refresh');
+      
+      // Если параметр refresh есть или передан forceRefresh, не используем кэш
+      const shouldRefresh = forceRefresh || refreshParam;
+      
+      // Сначала пробуем получить из localStorage, если не требуется обновление
+      if (!shouldRefresh) {
+        try {
+          const localData = localStorage.getItem('twitch_user');
+          if (localData) {
+            const parsedData = JSON.parse(localData);
+            if (parsedData && parsedData.id) {
+              console.log('Данные получены из localStorage:', parsedData.id);
+              return parsedData;
+            }
           }
+        } catch (e) {
+          console.error('Ошибка при чтении из localStorage:', e);
         }
-      } catch (e) {
-        console.error('Ошибка при чтении из localStorage:', e);
+      } else {
+        console.log('Запрошено принудительное обновление данных, пропускаем кэш');
       }
       
-      // Если из localStorage не удалось, делаем запрос к API
+      // Если из localStorage не удалось или требуется обновление, делаем запрос к API
       try {
         const response = await fetch('/api/twitch/user', {
           method: 'GET',
@@ -415,6 +426,35 @@ export default function Profile() {
     }
   };
 
+  // Добавляем функцию для загрузки отзывов
+  const loadReviews = async (userId) => {
+    try {
+      console.log('Загрузка отзывов для пользователя:', userId);
+      
+      // Добавляем параметр для предотвращения кэширования
+      const response = await fetch(`/api/reviews?authorId=${userId}&_=${Date.now()}`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          'Cache-Control': 'no-cache'
+        },
+        credentials: 'include',
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        console.log('Отзывы успешно загружены:', data);
+        return data;
+      } else {
+        console.error('Ошибка при загрузке отзывов:', response.status);
+        return null;
+      }
+    } catch (error) {
+      console.error('Ошибка при загрузке отзывов:', error);
+      return null;
+    }
+  };
+
   // Добавим функцию для загрузки дополнительных данных
   const loadAdditionalData = async (userId) => {
     try {
@@ -433,6 +473,9 @@ export default function Profile() {
       // Загружаем данные постепенно, не блокируя рендеринг
       loadSocialLinks(userId).catch(e => console.error('Ошибка загрузки соц. ссылок:', e));
       loadStats(userId).catch(e => console.error('Ошибка загрузки статистики:', e));
+      
+      // Также загружаем отзывы
+      loadReviews(userId).catch(e => console.error('Ошибка загрузки отзывов:', e));
       
       // Проверяем день рождения, если есть в профиле
       const userBirthday = localStorage.getItem(`birthday_${userId}`);
@@ -453,24 +496,22 @@ export default function Profile() {
     
     const loadData = async () => {
       try {
-        if (!isMounted) return;
+        setLoading(true);
+        // Проверяем параметры URL для возможного принудительного обновления
+        const urlParams = new URLSearchParams(window.location.search);
+        const refreshParam = urlParams.get('refresh');
         
-        // Простая проверка аутентификации
-        const isAuth = localStorage.getItem('is_authenticated') === 'true';
-        
-        if (!isAuth) {
-          console.log('Пользователь не авторизован');
-          router.push('/auth');
-          return;
+        // При наличии параметра refresh, очищаем кэш
+        if (refreshParam) {
+          console.log('Обнаружен параметр refresh, выполняем принудительное обновление данных');
         }
         
-        // Загружаем данные
-        const userData = await fetchUserData();
+        // Получаем данные пользователя
+        const userData = await fetchUserData(refreshParam ? true : false);
         
         if (!userData || !userData.id) {
-          console.error('Не удалось получить данные пользователя');
-          setError('Не удалось загрузить данные профиля');
-          setLoading(false);
+          console.log('Профиль: Данные пользователя не найдены или нет ID, перенаправление на страницу входа');
+          router.push('/login');
           return;
         }
         
@@ -482,6 +523,9 @@ export default function Profile() {
           
           // Загружаем базовые данные
           await loadFollowers(userData.id).catch(() => {});
+          
+          // Загружаем отзывы при инициализации
+          await loadReviews(userData.id).catch(() => {});
           
           // После загрузки профиля и базовых данных, загружаем дополнительные
           loadAdditionalData(userData.id);
@@ -780,6 +824,12 @@ export default function Profile() {
     setShowReviews(!showReviews);
     setShowAchievements(false);
     setShowStats(false);
+    
+    // Если включаем отображение отзывов, обновляем их
+    if (!showReviews && profileData && profileData.id) {
+      // Загружаем отзывы пользователя
+      loadReviews(profileData.id).catch(e => console.error('Ошибка загрузки отзывов:', e));
+    }
   };
   
   // Функция для переключения отображения статистики

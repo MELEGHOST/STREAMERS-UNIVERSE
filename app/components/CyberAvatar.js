@@ -7,12 +7,16 @@ import styles from './CyberAvatar.module.css';
  * Компонент стилизованной аватарки с 3D эффектом
  * @param {object} props - Свойства компонента
  * @param {string} props.imageUrl - URL изображения аватарки
+ * @param {string} props.src - Альтернативный prop для URL изображения аватарки
  * @param {string} props.alt - Альтернативный текст для изображения
  * @param {number} props.size - Размер аватарки (по умолчанию 190px)
  */
-const CyberAvatar = ({ imageUrl, alt, size = 190 }) => {
+const CyberAvatar = ({ imageUrl, src, alt, size = 190 }) => {
   const containerRef = useRef(null);
   const cardRef = useRef(null);
+  
+  // Используем либо imageUrl, либо src параметр
+  const imageSrc = imageUrl || src || '/default-avatar.png';
   
   useEffect(() => {
     const container = containerRef.current;
@@ -99,7 +103,7 @@ const CyberAvatar = ({ imageUrl, alt, size = 190 }) => {
                 <span /><span /><span /><span />
               </div>
               <div className={styles.avatarImage}>
-                <img src={imageUrl || '/default-avatar.png'} alt={alt || 'Аватар'} />
+                <img src={imageSrc} alt={alt || 'Аватар'} />
               </div>
               <div className={styles.glowingElements}>
                 <div className={styles.glow1} />
