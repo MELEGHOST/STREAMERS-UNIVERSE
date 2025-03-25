@@ -125,6 +125,17 @@ export default function Menu() {
                       Cookies.get('twitch_user') ||
                       Cookies.get('twitch_user_data');
         
+        // Если у нас есть данные пользователя в localStorage, устанавливаем куку
+        // для уведомления middleware о наличии данных
+        if (clientStorage.getItem('twitch_user')) {
+          Cookies.set('has_local_storage_token', 'true', { 
+            expires: 1, // 1 день
+            path: '/',
+            sameSite: 'lax'
+          });
+          console.log('Установлена кука has_local_storage_token для middleware');
+        }
+        
         // Если данных нет, но мы не с авторизации - перенаправляем
         if (!userData && !hasRedirectedRef.current) {
           if (!cameFromAuth) {

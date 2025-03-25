@@ -248,8 +248,17 @@ export function middleware(request) {
     const hasTwitchUserData = request.cookies.has('twitch_user_data');
     const hasAuthHeader = request.headers.has('Authorization');
     
-    // Проверяем наличие токена в localStorage через куки
+    // Проверяем наличие токенов в localStorage через куки
     const hasLocalStorageToken = request.cookies.has('has_local_storage_token');
+    
+    // Установим куку, указывающую на присутствие данных в localStorage
+    // Это поможет при следующих запросах без перезагрузки страницы
+    if (hasLocalStorageToken) {
+      if (process.env.NODE_ENV !== 'production') {
+        console.log('Middleware: обнаружен токен в localStorage, пропускаем проверку авторизации');
+      }
+      return NextResponse.next();
+    }
     
     // Если нет ни куки, ни заголовка, перенаправляем на страницу авторизации
     if (!hasTwitchAccessToken && !hasAuthHeader && !hasTwitchUser && !hasTwitchUserData && !hasLocalStorageToken) {

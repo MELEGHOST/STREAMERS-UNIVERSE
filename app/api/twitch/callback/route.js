@@ -249,7 +249,7 @@ export async function GET(request) {
         avatar: user.avatar,
       }), {
         path: '/',
-        httpOnly: true, // Изменяем на httpOnly: true для повышения безопасности
+        httpOnly: false, // Изменяем на httpOnly: false чтобы JavaScript мог получить доступ
         secure: process.env.NODE_ENV === 'production',
         sameSite: 'lax',
         maxAge: 60 * 60 * 24 * 7, // 7 дней
