@@ -22,58 +22,95 @@ export default function CookieChecker() {
     // Проверяем, нужно ли отображать компонент
     // Отображаем только в режиме разработки или если в URL есть параметр debug=true
     const isDev = process.env.NODE_ENV === 'development';
-    const urlParams = new URLSearchParams(window.location.search);
-    const debugMode = urlParams.get('debug') === 'true';
+    
+    // Безопасно получаем параметры URL
+    let debugMode = false;
+    try {
+      const urlParams = new URLSearchParams(window.location.search);
+      debugMode = urlParams.get('debug') === 'true';
+    } catch (e) {
+      console.error('Ошибка при получении параметров URL:', e);
+    }
     
     setIsVisible(isDev || debugMode);
 
     // Проверяем наличие куков
     const checkCookies = () => {
-      // Проверяем куки
-      const cookiesStatus = {
-        twitch_access_token: hasCookie('twitch_access_token'),
-        twitch_refresh_token: hasCookie('twitch_refresh_token'),
-        twitch_user: hasCookie('twitch_user'),
-        twitch_state: hasCookie('twitch_state')
-      };
-      setCookieStatus(cookiesStatus);
-      
-      // Проверяем localStorage
-      const localStorageItems = {
-        cookie_twitch_access_token: !!localStorage.getItem('cookie_twitch_access_token'),
-        cookie_twitch_refresh_token: !!localStorage.getItem('cookie_twitch_refresh_token'),
-        cookie_twitch_user: !!localStorage.getItem('cookie_twitch_user'),
-        twitch_user: !!localStorage.getItem('twitch_user')
-      };
-      setLocalStorageStatus(localStorageItems);
-      
-      // Проверяем, изменился ли домен
-      const currentDomain = window.location.origin;
-      const savedDomain = localStorage.getItem('current_domain');
-      
-      // Если домен изменился и у нас есть данные в localStorage, но нет в куках
-      if (savedDomain && currentDomain !== savedDomain) {
-        console.log('Обнаружено изменение домена:', { savedDomain, currentDomain });
+      try {
+        // Проверяем куки
+        const cookiesStatus = {
+          twitch_access_token: hasCookie('twitch_access_token'),
+          twitch_refresh_token: hasCookie('twitch_refresh_token'),
+          twitch_user: hasCookie('twitch_user'),
+          twitch_state: hasCookie('twitch_state')
+        };
+        setCookieStatus(cookiesStatus);
         
-        // Если в localStorage есть данные, но в куках нет, восстанавливаем куки
-        if (localStorageItems.twitch_user && !cookiesStatus.twitch_user) {
+        // Безопасно проверяем localStorage
+        const localStorageItems = {
+          cookie_twitch_access_token: false,
+          cookie_twitch_refresh_token: false,
+          cookie_twitch_user: false,
+          twitch_user: false
+        };
+        
+        // Проверяем доступность localStorage
+        if (typeof window !== 'undefined' && window.localStorage) {
           try {
-            const userData = localStorage.getItem('twitch_user');
-            document.cookie = `twitch_user=${encodeURIComponent(userData)}; path=/; max-age=86400; samesite=lax`;
-            console.log('Восстановлены куки twitch_user из localStorage');
-          } catch (e) {
-            console.error('Ошибка при восстановлении куки twitch_user:', e);
+            localStorageItems.cookie_twitch_access_token = !!localStorage.getItem('cookie_twitch_access_token');
+            localStorageItems.cookie_twitch_refresh_token = !!localStorage.getItem('cookie_twitch_refresh_token');
+            localStorageItems.cookie_twitch_user = !!localStorage.getItem('cookie_twitch_user');
+            localStorageItems.twitch_user = !!localStorage.getItem('twitch_user');
+            
+            setLocalStorageStatus(localStorageItems);
+            
+            // Проверяем, изменился ли домен
+            const currentDomain = window.location.origin;
+            const savedDomain = localStorage.getItem('current_domain');
+            
+            // Если домен изменился и у нас есть данные в localStorage, но нет в куках
+            if (savedDomain && currentDomain !== savedDomain) {
+              console.log('Обнаружено изменение домена:', { savedDomain, currentDomain });
+              
+              // Если в localStorage есть данные, но в куках нет, восстанавливаем куки
+              if (localStorageItems.twitch_user && !cookiesStatus.twitch_user) {
+                try {
+                  const userData = localStorage.getItem('twitch_user');
+                  if (userData) {
+                    document.cookie = `twitch_user=${encodeURIComponent(userData)}; path=/; max-age=86400; samesite=lax`;
+                    console.log('Восстановлены куки twitch_user из localStorage');
+                  }
+                } catch (e) {
+                  console.error('Ошибка при восстановлении куки twitch_user:', e);
+                }
+              }
+              
+              // Обновляем сохраненный домен
+              try {
+                localStorage.setItem('current_domain', currentDomain);
+              } catch (e) {
+                console.error('Ошибка при обновлении домена в localStorage:', e);
+              }
+            } else if (!savedDomain) {
+              // Если домен еще не сохранен, сохраняем текущий
+              try {
+                localStorage.setItem('current_domain', currentDomain);
+              } catch (e) {
+                console.error('Ошибка при сохранении домена в localStorage:', e);
+              }
+            }
+          } catch (localStorageError) {
+            console.error('Ошибка при работе с localStorage:', localStorageError);
           }
         }
         
-        // Обновляем сохраненный домен
-        localStorage.setItem('current_domain', currentDomain);
-      }
-      
-      // Выводим информацию в консоль только в режиме отладки
-      if (isDev || debugMode) {
-        console.log('Статус куков:', cookiesStatus);
-        console.log('Статус localStorage:', localStorageItems);
+        // Выводим информацию в консоль только в режиме отладки
+        if (isDev || debugMode) {
+          console.log('Статус куков:', cookiesStatus);
+          console.log('Статус localStorage:', localStorageItems);
+        }
+      } catch (e) {
+        console.error('Общая ошибка при проверке куков и localStorage:', e);
       }
     };
 

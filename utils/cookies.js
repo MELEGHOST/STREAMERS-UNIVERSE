@@ -2,6 +2,57 @@
 
 import Cookies from 'js-cookie';
 
+// Проверка доступности localStorage
+const isLocalStorageAvailable = () => {
+  try {
+    const testKey = '__test__';
+    localStorage.setItem(testKey, testKey);
+    localStorage.removeItem(testKey);
+    return true;
+  } catch (e) {
+    return false;
+  }
+};
+
+// Безопасная работа с localStorage
+const safeLocalStorage = {
+  getItem: (key) => {
+    try {
+      if (typeof window !== 'undefined' && isLocalStorageAvailable()) {
+        return localStorage.getItem(key);
+      }
+      return null;
+    } catch (e) {
+      console.error(`Ошибка при получении значения из localStorage (${key}):`, e);
+      return null;
+    }
+  },
+  setItem: (key, value) => {
+    try {
+      if (typeof window !== 'undefined' && isLocalStorageAvailable()) {
+        localStorage.setItem(key, value);
+        return true;
+      }
+      return false;
+    } catch (e) {
+      console.error(`Ошибка при установке значения в localStorage (${key}):`, e);
+      return false;
+    }
+  },
+  removeItem: (key) => {
+    try {
+      if (typeof window !== 'undefined' && isLocalStorageAvailable()) {
+        localStorage.removeItem(key);
+        return true;
+      }
+      return false;
+    } catch (e) {
+      console.error(`Ошибка при удалении значения из localStorage (${key}):`, e);
+      return false;
+    }
+  }
+};
+
 // Функция для установки куки
 export const setCookie = (name, value, options = {}) => {
   try {
@@ -12,7 +63,7 @@ export const setCookie = (name, value, options = {}) => {
     
     const defaultOptions = {
       path: '/',
-      secure: window.location.protocol === 'https:', // Автоматически определяем по протоколу
+      secure: typeof window !== 'undefined' && window.location.protocol === 'https:', // Автоматически определяем по протоколу
       sameSite: 'lax',
       // Для токенов аутентификации используем httpOnly
       httpOnly: name.includes('token') || name.includes('access'),
@@ -20,47 +71,65 @@ export const setCookie = (name, value, options = {}) => {
     
     const cookieOptions = { ...defaultOptions, ...options };
     
-    // Логируем установку куки
-    console.log(`Установка куки ${name} с опциями:`, {
-      path: cookieOptions.path,
-      secure: cookieOptions.secure,
-      sameSite: cookieOptions.sameSite,
-      httpOnly: cookieOptions.httpOnly,
-      expires: cookieOptions.expires ? 'установлено' : 'не установлено',
-      maxAge: cookieOptions.maxAge || 'не установлено'
-    });
+    // Уменьшаем логирование в production среде
+    if (process.env.NODE_ENV !== 'production') {
+      console.log(`Установка куки ${name} с опциями:`, {
+        path: cookieOptions.path,
+        secure: cookieOptions.secure,
+        sameSite: cookieOptions.sameSite,
+        httpOnly: cookieOptions.httpOnly,
+        expires: cookieOptions.expires ? 'установлено' : 'не установлено',
+        maxAge: cookieOptions.maxAge || 'не установлено'
+      });
+    }
     
-    Cookies.set(name, value, cookieOptions);
-    console.log(`Кука ${name} успешно установлена`);
-    
-    // Проверяем, установилась ли кука
-    const cookieExists = Cookies.get(name);
-    if (!cookieExists) {
-      console.warn(`Кука ${name} не была установлена, пробуем альтернативный метод`);
-      // Пробуем установить через document.cookie
-      try {
-        const expires = cookieOptions.expires ? `; expires=${cookieOptions.expires}` : '';
-        const maxAge = cookieOptions.maxAge ? `; max-age=${cookieOptions.maxAge}` : '';
-        const secure = cookieOptions.secure ? '; secure' : '';
-        const sameSite = cookieOptions.sameSite ? `; samesite=${cookieOptions.sameSite}` : '';
-        const httpOnly = cookieOptions.httpOnly ? '; httpOnly' : '';
-        
-        document.cookie = `${name}=${encodeURIComponent(value)}; path=${cookieOptions.path}${expires}${maxAge}${secure}${sameSite}${httpOnly}`;
-        console.log(`Кука ${name} установлена через document.cookie`);
-        
-        // Сохраняем в localStorage только нечувствительные данные
-        if (!name.includes('token') && !name.includes('access')) {
-          localStorage.setItem(`cookie_${name}`, value);
-          console.log(`Резервная копия куки ${name} сохранена в localStorage`);
-        }
-      } catch (docCookieError) {
-        console.error(`Ошибка при установке куки ${name} через document.cookie:`, docCookieError);
+    try {
+      Cookies.set(name, value, cookieOptions);
+      
+      if (process.env.NODE_ENV !== 'production') {
+        console.log(`Кука ${name} успешно установлена`);
       }
+      
+      // Проверяем, установилась ли кука
+      const cookieExists = Cookies.get(name);
+      if (!cookieExists) {
+        console.warn(`Кука ${name} не была установлена через js-cookie, пробуем альтернативный метод`);
+        // Пробуем установить через document.cookie
+        try {
+          if (typeof document !== 'undefined') {
+            const expires = cookieOptions.expires ? `; expires=${cookieOptions.expires}` : '';
+            const maxAge = cookieOptions.maxAge ? `; max-age=${cookieOptions.maxAge}` : '';
+            const secure = cookieOptions.secure ? '; secure' : '';
+            const sameSite = cookieOptions.sameSite ? `; samesite=${cookieOptions.sameSite}` : '';
+            const httpOnly = cookieOptions.httpOnly ? '; httpOnly' : '';
+            
+            document.cookie = `${name}=${encodeURIComponent(value)}; path=${cookieOptions.path}${expires}${maxAge}${secure}${sameSite}${httpOnly}`;
+            
+            if (process.env.NODE_ENV !== 'production') {
+              console.log(`Кука ${name} установлена через document.cookie`);
+            }
+            
+            // Сохраняем в localStorage только нечувствительные данные
+            if (!name.includes('token') && !name.includes('access')) {
+              safeLocalStorage.setItem(`cookie_${name}`, value);
+              
+              if (process.env.NODE_ENV !== 'production') {
+                console.log(`Резервная копия куки ${name} сохранена в localStorage`);
+              }
+            }
+          }
+        } catch (docCookieError) {
+          console.error(`Ошибка при установке куки ${name} через document.cookie:`, docCookieError);
+        }
+      }
+    } catch (cookieError) {
+      console.error(`Ошибка при установке куки ${name} через js-cookie:`, cookieError);
+      return false;
     }
     
     return true;
   } catch (error) {
-    console.error(`Ошибка при установке куки ${name}:`, error);
+    console.error(`Общая ошибка при установке куки ${name}:`, error);
     return false;
   }
 };
@@ -68,11 +137,33 @@ export const setCookie = (name, value, options = {}) => {
 // Функция для получения куки
 export const getCookie = (name) => {
   try {
-    const value = Cookies.get(name);
-    console.log(`Получение куки ${name}:`, value ? 'присутствует' : 'отсутствует');
+    let value;
+    
+    try {
+      value = Cookies.get(name);
+    } catch (cookieError) {
+      console.error(`Ошибка при получении куки ${name} через js-cookie:`, cookieError);
+      
+      // Пробуем получить через document.cookie
+      if (typeof document !== 'undefined') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+          const cookie = cookies[i].trim();
+          if (cookie.startsWith(name + '=')) {
+            value = decodeURIComponent(cookie.substring(name.length + 1));
+            break;
+          }
+        }
+      }
+    }
+    
+    if (process.env.NODE_ENV !== 'production') {
+      console.log(`Получение куки ${name}:`, value ? 'присутствует' : 'отсутствует');
+    }
+    
     return value;
   } catch (error) {
-    console.error(`Ошибка при получении куки ${name}:`, error);
+    console.error(`Общая ошибка при получении куки ${name}:`, error);
     return null;
   }
 };
@@ -80,17 +171,31 @@ export const getCookie = (name) => {
 // Функция для удаления куки
 export const removeCookie = (name) => {
   try {
-    Cookies.remove(name, { path: '/' });
-    console.log(`Кука ${name} успешно удалена`);
+    try {
+      Cookies.remove(name, { path: '/' });
+      
+      if (process.env.NODE_ENV !== 'production') {
+        console.log(`Кука ${name} успешно удалена через js-cookie`);
+      }
+    } catch (cookieError) {
+      console.error(`Ошибка при удалении куки ${name} через js-cookie:`, cookieError);
+      
+      // Пробуем удалить через document.cookie, устанавливая дату истечения в прошлое
+      if (typeof document !== 'undefined') {
+        document.cookie = `${name}=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT`;
+        
+        if (process.env.NODE_ENV !== 'production') {
+          console.log(`Кука ${name} удалена через document.cookie`);
+        }
+      }
+    }
     
     // Также удаляем из localStorage, если есть
-    if (typeof window !== 'undefined') {
-      localStorage.removeItem(`cookie_${name}`);
-    }
+    safeLocalStorage.removeItem(`cookie_${name}`);
     
     return true;
   } catch (error) {
-    console.error(`Ошибка при удалении куки ${name}:`, error);
+    console.error(`Общая ошибка при удалении куки ${name}:`, error);
     return false;
   }
 };
@@ -98,10 +203,29 @@ export const removeCookie = (name) => {
 // Функция для проверки наличия куки
 export const hasCookie = (name) => {
   try {
-    const exists = !!Cookies.get(name);
+    let exists = false;
+    
+    try {
+      exists = !!Cookies.get(name);
+    } catch (cookieError) {
+      console.error(`Ошибка при проверке наличия куки ${name} через js-cookie:`, cookieError);
+      
+      // Пробуем проверить через document.cookie
+      if (typeof document !== 'undefined') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+          const cookie = cookies[i].trim();
+          if (cookie.startsWith(name + '=')) {
+            exists = true;
+            break;
+          }
+        }
+      }
+    }
+    
     return exists;
   } catch (error) {
-    console.error(`Ошибка при проверке наличия куки ${name}:`, error);
+    console.error(`Общая ошибка при проверке наличия куки ${name}:`, error);
     return false;
   }
 };
@@ -110,9 +234,19 @@ export const hasCookie = (name) => {
 export const setClientCookiesFromServer = (userData) => {
   try {
     if (userData) {
-      setCookie('twitch_user', JSON.stringify(userData));
-      console.log('Данные пользователя успешно сохранены в куки на стороне клиента');
-      return true;
+      try {
+        const userDataStr = typeof userData === 'string' ? userData : JSON.stringify(userData);
+        setCookie('twitch_user', userDataStr);
+        
+        if (process.env.NODE_ENV !== 'production') {
+          console.log('Данные пользователя успешно сохранены в куки на стороне клиента');
+        }
+        
+        return true;
+      } catch (e) {
+        console.error('Ошибка при сериализации или установке данных пользователя:', e);
+        return false;
+      }
     }
     return false;
   } catch (error) {
@@ -128,9 +262,12 @@ export const setCookieWithLocalStorage = (name, value, options = {}) => {
     const cookieSet = setCookie(name, value, options);
     
     // Сохраняем в localStorage только нечувствительные данные
-    if (cookieSet && !name.includes('token') && !name.includes('access') && typeof window !== 'undefined') {
-      localStorage.setItem(`cookie_${name}`, value);
-      console.log(`Резервная копия куки ${name} сохранена в localStorage`);
+    if (cookieSet && !name.includes('token') && !name.includes('access')) {
+      safeLocalStorage.setItem(`cookie_${name}`, value);
+      
+      if (process.env.NODE_ENV !== 'production') {
+        console.log(`Резервная копия куки ${name} сохранена в localStorage`);
+      }
     }
     
     return cookieSet;
@@ -147,26 +284,33 @@ export const getCookieWithLocalStorage = (name) => {
     let cookieValue = getCookie(name);
     
     // Если не нашли в куках, пробуем получить из localStorage
-    if (!cookieValue && typeof window !== 'undefined') {
-      cookieValue = localStorage.getItem(`cookie_${name}`);
+    if (!cookieValue) {
+      const lsValue = safeLocalStorage.getItem(`cookie_${name}`);
       
-      if (cookieValue) {
-        console.log(`Кука ${name} получена из localStorage`);
+      if (lsValue) {
+        if (process.env.NODE_ENV !== 'production') {
+          console.log(`Кука ${name} получена из localStorage`);
+        }
         
         // Восстанавливаем куку из localStorage
-        setCookie(name, cookieValue);
+        setCookie(name, lsValue);
+        cookieValue = lsValue;
       }
     }
     
     // Если не нашли ни в куках, ни в localStorage, но это токен доступа,
     // пробуем получить его из заголовка Authorization
-    if (!cookieValue && name === 'twitch_access_token' && typeof window !== 'undefined') {
+    if (!cookieValue && name === 'twitch_access_token') {
       // Проверяем, есть ли токен в sessionStorage (мог быть сохранен из заголовка)
-      const sessionToken = sessionStorage.getItem('auth_header_token');
-      if (sessionToken) {
-        console.log('Токен доступа получен из sessionStorage (заголовок Authorization)');
+      const sessionToken = typeof sessionStorage !== 'undefined' ? 
+        sessionStorage.getItem('auth_header_token') : null;
         
-        // Восстанавливаем куку и localStorage
+      if (sessionToken) {
+        if (process.env.NODE_ENV !== 'production') {
+          console.log('Токен доступа получен из sessionStorage (заголовок Authorization)');
+        }
+        
+        // Восстанавливаем куку
         setCookie(name, sessionToken);
         
         return sessionToken;
