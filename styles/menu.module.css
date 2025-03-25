@@ -58,6 +58,32 @@
   object-fit: cover;
 }
 
+.userAvatarPlaceholder {
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  overflow: hidden;
+  border: 3px solid var(--primary-color, #7B41C9);
+  background-color: var(--secondary-color, #5A2E94);
+  cursor: pointer;
+  transition: transform 0.3s, box-shadow 0.3s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.userAvatarPlaceholder:hover {
+  transform: scale(1.05);
+  box-shadow: 0 0 15px rgba(123, 65, 201, 0.7);
+}
+
+.userAvatarPlaceholder span {
+  font-size: 28px;
+  font-weight: bold;
+  color: white;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+}
+
 .userDetails {
   display: flex;
   flex-direction: column;

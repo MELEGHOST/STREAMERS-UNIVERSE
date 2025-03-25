@@ -127,106 +127,147 @@ export function AuthProvider({ children }) {
                           Cookies.get('twitch_access_token');
                           
         // Проверяем все возможные места хранения данных пользователя
-        let userDataStr = localStorage.getItem('twitch_user') || 
-                         localStorage.getItem('cookie_twitch_user') || 
-                         Cookies.get('twitch_user');
-                         
-        // Проверяем новую куку twitch_user_data, если основные данные не найдены
-        if (!userDataStr) {
-          userDataStr = Cookies.get('twitch_user_data');
-        }
+        const userSources = {
+          localStorage: localStorage.getItem('twitch_user'),
+          cookieInLS: localStorage.getItem('cookie_twitch_user'),
+          cookie: Cookies.get('twitch_user'),
+          cookieData: Cookies.get('twitch_user_data')
+        };
+        
+        // Берем первый доступный источник данных
+        let userDataStr = userSources.localStorage || 
+                        userSources.cookieInLS || 
+                        userSources.cookie || 
+                        userSources.cookieData;
+        
+        const sourceInfo = {
+          fromLocalStorage: !!userSources.localStorage,
+          fromCookieInLS: !!userSources.cookieInLS,
+          fromCookie: !!userSources.cookie,
+          fromCookieData: !!userSources.cookieData
+        };
         
         console.log('Найденные данные:', { 
           hasToken: !!accessToken, 
           hasUserData: !!userDataStr,
-          isAlreadyAuthenticated: isAlreadyAuthenticated
+          isAlreadyAuthenticated,
+          rawUserData: userDataStr ? userDataStr.substring(0, 50) + '...' : 'отсутствует',
+          ...sourceInfo
         });
         
-        // Если пользователь уже авторизован по флагу в localStorage,
-        // и у нас есть хотя бы данные пользователя, считаем его авторизованным
-        if (isAlreadyAuthenticated && userDataStr) {
-          console.log('Пользователь уже авторизован по флагу в localStorage');
-          
-          // Пытаемся распарсить данные пользователя
+        let userData = null;
+        
+        // Парсим строку если она есть
+        if (userDataStr) {
           try {
-            const userData = JSON.parse(userDataStr);
+            userData = typeof userDataStr === 'string' ? JSON.parse(userDataStr) : userDataStr;
             
-            if (userData && userData.id) {
+            // Логируем доступные ключи
+            console.log('Доступные ключи в данных пользователя:', Object.keys(userData));
+            
+            const extractedUserId = userData.id || userData.twitchId;
+            const extractedUserLogin = userData.login || userData.display_name || 
+                                    userData.displayName || userData.username || 'Пользователь';
+            const extractedUserAvatar = userData.profile_image_url || userData.avatar;
+            
+            console.log('Извлеченные данные пользователя:', {
+              id: extractedUserId,
+              login: extractedUserLogin,
+              avatar: extractedUserAvatar ? extractedUserAvatar.substring(0, 30) + '...' : 'отсутствует'
+            });
+            
+            // Проверяем обязательные поля
+            if (!extractedUserId) {
+              console.warn('ВНИМАНИЕ: ID пользователя отсутствует в данных');
+            }
+            
+            if (!extractedUserLogin) {
+              console.warn('ВНИМАНИЕ: Логин пользователя отсутствует в данных');
+            }
+            
+            // Если у нас есть хотя бы ID (обязательное поле), считаем пользователя авторизованным
+            if (extractedUserId) {
               // Устанавливаем состояние авторизации
               setIsAuthenticated(true);
-              setUserId(userData.id);
-              setUserLogin(userData.login || userData.display_name);
-              setUserAvatar(userData.profile_image_url);
+              setUserId(extractedUserId);
+              setUserLogin(extractedUserLogin);
               
-              console.log('Авторизация восстановлена из localStorage для:', userData.id);
+              if (extractedUserAvatar) {
+                setUserAvatar(extractedUserAvatar);
+              }
+              
+              // Сохраняем данные в localStorage для последующего использования
+              localStorage.setItem('is_authenticated', 'true');
+              
+              // Сохраняем полные данные пользователя
+              const userDataToStore = {
+                id: extractedUserId,
+                twitchId: userData.twitchId || extractedUserId,
+                username: extractedUserLogin,
+                displayName: userData.displayName || userData.display_name || extractedUserLogin,
+                avatar: extractedUserAvatar
+              };
+              
+              localStorage.setItem('twitch_user', JSON.stringify(userDataToStore));
+              
+              // Устанавливаем куку для middleware
+              Cookies.set('has_local_storage_token', 'true', { 
+                expires: 1, // 1 день
+                path: '/',
+                sameSite: 'lax'
+              });
+              
+              console.log('Авторизация успешна для пользователя:', extractedUserId, 'с логином:', extractedUserLogin);
               setIsInitialized(true);
               return;
             }
           } catch (e) {
-            console.error('Ошибка при парсинге данных пользователя из localStorage:', e);
+            console.error('Ошибка при парсинге данных пользователя:', e, 'Исходные данные:', userDataStr);
           }
         }
         
-        // Основная проверка, если не удалось восстановить по флагу
-        if (!accessToken || !userDataStr) {
-          console.log('Токен или данные пользователя отсутствуют');
-          setIsAuthenticated(false);
-          setIsInitialized(true);
-          return;
-        }
-        
-        // Пытаемся распарсить данные пользователя
-        let userData;
-        try {
-          userData = JSON.parse(userDataStr);
-        } catch (e) {
-          console.error('Ошибка при парсинге данных пользователя:', e);
-          setIsAuthenticated(false);
-          setIsInitialized(true);
-          return;
-        }
-        
-        if (!userData || !userData.id) {
-          console.warn('Данные пользователя некорректны');
+        // Если дошли сюда, значит не удалось авторизоваться
+        // Но проверим, может у нас есть токен без пользовательских данных
+        if (accessToken) {
+          console.log('Найден токен доступа, но нет данных пользователя. Попытка получить данные с сервера...');
           
-          // Очищаем некорректные данные
-          localStorage.removeItem('twitch_user');
-          localStorage.removeItem('cookie_twitch_user');
-          localStorage.removeItem('cookie_twitch_access_token');
-          Cookies.remove('twitch_user', { path: '/' });
-          Cookies.remove('twitch_access_token', { path: '/' });
-          
-          setIsAuthenticated(false);
-          setIsInitialized(true);
-          return;
-        }
-        
-        // Проверка токена локально, без обращения к внешним API
-        // Это позволит избежать ошибки 500 и других проблем
-        console.log('Проверка локальных данных пользователя');
-        
-        // Устанавливаем состояние авторизации на основе локальных данных
-        setIsAuthenticated(true);
-        setUserId(userData.id);
-        setUserLogin(userData.login || userData.display_name);
-        setUserAvatar(userData.profile_image_url);
-          
-        // Обновляем данные в localStorage для надежности
-        localStorage.setItem('is_authenticated', 'true');
-        localStorage.setItem('twitch_user', JSON.stringify(userData));
-        localStorage.setItem('cookie_twitch_access_token', accessToken);
+          try {
+            // TODO: Запрос на сервер для получения данных пользователя
+            // Пока просто считаем авторизацию неуспешной
+            setIsAuthenticated(false);
+            setUserId(null);
+            setUserLogin('');
+            setUserAvatar('');
             
-        console.log('AuthContext: пользователь успешно аутентифицирован:', userData.id);
+            localStorage.removeItem('is_authenticated');
+          } catch (tokenError) {
+            console.error('Ошибка при получении данных пользователя с сервера:', tokenError);
+          }
+        } else {
+          // Нет ни токена, ни данных пользователя
+          setIsAuthenticated(false);
+          setUserId(null);
+          setUserLogin('');
+          setUserAvatar('');
+          
+          localStorage.removeItem('is_authenticated');
+        }
+        
+        setIsInitialized(true);
       } catch (error) {
-        console.error('Ошибка при инициализации AuthContext:', error);
+        console.error('Ошибка при инициализации авторизации:', error);
+        
+        // При ошибке устанавливаем безопасные значения
         setIsAuthenticated(false);
-      } finally {
-        // В любом случае отмечаем, что инициализация завершена
+        setUserId(null);
+        setUserLogin('');
+        setUserAvatar('');
+        
+        localStorage.removeItem('is_authenticated');
         setIsInitialized(true);
       }
     };
-    
-    // Запускаем инициализацию
+
     initializeAuth();
   }, []);
   
@@ -238,8 +279,10 @@ export function AuthProvider({ children }) {
     userAvatar,
     isInitialized,
     login,
-    logout
-  }), [isAuthenticated, userId, userLogin, userAvatar, isInitialized, login, logout]);
+    logout,
+    setUserLogin,
+    setUserAvatar
+  }), [isAuthenticated, userId, userLogin, userAvatar, isInitialized, login, logout, setUserLogin, setUserAvatar]);
   
   return (
     <AuthContext.Provider value={contextValue}>

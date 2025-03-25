@@ -119,11 +119,24 @@ export default function Menu() {
         }
         
         // Получаем данные пользователя из всех возможных источников
-        const userData = 
-                      clientStorage.getItem('twitch_user') || 
-                      clientStorage.getItem('cookie_twitch_user') ||
-                      Cookies.get('twitch_user') ||
-                      Cookies.get('twitch_user_data');
+        let userData = null;
+        let userDataStr = null;
+        
+        // Сначала проверяем localStorage
+        const lsUserData = clientStorage.getItem('twitch_user');
+        if (lsUserData) {
+          console.log('Найдены данные пользователя в localStorage');
+          userDataStr = lsUserData;
+        }
+        
+        // Затем проверяем куки
+        if (!userDataStr) {
+          const cookieUserData = Cookies.get('twitch_user_data') || Cookies.get('twitch_user');
+          if (cookieUserData) {
+            console.log('Найдены данные пользователя в куках');
+            userDataStr = cookieUserData;
+          }
+        }
         
         // Если у нас есть данные пользователя в localStorage, устанавливаем куку
         // для уведомления middleware о наличии данных
@@ -137,7 +150,7 @@ export default function Menu() {
         }
         
         // Если данных нет, но мы не с авторизации - перенаправляем
-        if (!userData && !hasRedirectedRef.current) {
+        if (!userDataStr && !hasRedirectedRef.current) {
           if (!cameFromAuth) {
             console.log('Данные пользователя не найдены, перенаправляем на страницу авторизации');
             hasRedirectedRef.current = true;
@@ -156,20 +169,53 @@ export default function Menu() {
         let userLoginToUse = userLogin;
         let userAvatarToUse = userAvatar;
         
-        if (userData) {
+        if (userDataStr) {
           try {
-            const parsedData = typeof userData === 'string' ? JSON.parse(userData) : userData;
-            userIdToUse = parsedData.id || parsedData.twitchId || userIdToUse;
-            userLoginToUse = parsedData.login || parsedData.displayName || parsedData.username || userLoginToUse;
-            userAvatarToUse = parsedData.profile_image_url || parsedData.avatar || userAvatarToUse;
+            userData = typeof userDataStr === 'string' ? JSON.parse(userDataStr) : userDataStr;
             
-            // Устанавливаем состояние пользователя
-            if (userLoginToUse && !userLogin) {
-              setUserLogin(userLoginToUse);
+            console.log('Парсинг данных пользователя в меню:', {
+              id: userData.id || userData.twitchId,
+              login: userData.login || userData.displayName || userData.display_name || userData.username,
+              hasAvatar: !!(userData.avatar || userData.profile_image_url)
+            });
+            
+            userIdToUse = userData.id || userData.twitchId || userIdToUse;
+            userLoginToUse = userData.login || userData.displayName || userData.display_name || userData.username || userLoginToUse || 'Пользователь';
+            userAvatarToUse = userData.avatar || userData.profile_image_url || userAvatarToUse;
+            
+            // Всегда обновляем данные в контексте авторизации
+            setUserLogin(userLoginToUse);
+            
+            if (userAvatarToUse) {
+              setUserAvatar(userAvatarToUse);
             }
             
-            if (userAvatarToUse && !userAvatar) {
-              setUserAvatar(userAvatarToUse);
+            // Сохраняем обновленные данные пользователя в localStorage
+            if (userIdToUse) {
+              const userDataToStore = {
+                id: userIdToUse,
+                twitchId: userData.twitchId || userIdToUse,
+                username: userLoginToUse,
+                displayName: userData.displayName || userData.display_name || userLoginToUse,
+                avatar: userAvatarToUse
+              };
+              
+              localStorage.setItem('twitch_user', JSON.stringify(userDataToStore));
+              localStorage.setItem('is_authenticated', 'true');
+              
+              // Устанавливаем куку для middleware
+              Cookies.set('has_local_storage_token', 'true', { 
+                expires: 1, // 1 день
+                path: '/',
+                sameSite: 'lax'
+              });
+              
+              // Дублируем данные в куку для доступа на стороне клиента
+              Cookies.set('twitch_user_data', JSON.stringify(userDataToStore), {
+                expires: 7, // 7 дней
+                path: '/',
+                sameSite: 'lax'
+              });
             }
           } catch (e) {
             console.error('Ошибка при получении данных пользователя из хранилища:', e);
@@ -291,9 +337,13 @@ export default function Menu() {
       <div className={styles.menuContainer}>
         <div className={styles.menuHeader}>
           <div className={styles.userInfo}>
-            {userAvatar && (
+            {userAvatar ? (
               <div className={styles.userAvatar} onClick={goToProfile} title="Перейти в профиль">
                 <img src={userAvatar} alt={userLogin || 'Пользователь'} />
+              </div>
+            ) : (
+              <div className={styles.userAvatarPlaceholder} onClick={goToProfile} title="Перейти в профиль">
+                <span>{(userLogin || 'П')[0].toUpperCase()}</span>
               </div>
             )}
             <div className={styles.userDetails}>

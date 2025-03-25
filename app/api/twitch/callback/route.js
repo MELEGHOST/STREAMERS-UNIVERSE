@@ -240,7 +240,7 @@ export async function GET(request) {
         maxAge: 60 * 60 * 24 * 7, // 7 дней
       });
       
-      // Устанавливаем данные пользователя в куки
+      // Данные пользователя для доступа на стороне сервера
       cookieStore.set('twitch_user', JSON.stringify({
         id: user.id,
         twitchId: user.twitchId,
@@ -249,25 +249,35 @@ export async function GET(request) {
         avatar: user.avatar,
       }), {
         path: '/',
-        httpOnly: false, // Изменяем на httpOnly: false чтобы JavaScript мог получить доступ
+        httpOnly: false, // Обязательно false, чтобы JavaScript мог читать
         secure: process.env.NODE_ENV === 'production',
         sameSite: 'lax',
         maxAge: 60 * 60 * 24 * 7, // 7 дней
       });
       
-      // Добавляем дополнительную куку для чтения через JavaScript
+      // Дополнительная кука с данными пользователя для максимальной совместимости
       cookieStore.set('twitch_user_data', JSON.stringify({
         id: user.id,
         twitchId: user.twitchId,
         username: user.username,
         displayName: user.displayName,
         avatar: user.avatar,
+        login: user.username // Добавляем login для совместимости со стандартным API
       }), {
         path: '/',
         httpOnly: false, // Доступно для JavaScript
         secure: process.env.NODE_ENV === 'production',
         sameSite: 'lax',
         maxAge: 60 * 60 * 24 * 7, // 7 дней
+      });
+      
+      // Устанавливаем куку для middleware
+      cookieStore.set('has_local_storage_token', 'true', { 
+        path: '/',
+        httpOnly: false, // Доступно для JavaScript
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'lax',
+        maxAge: 60 * 60 * 24, // 1 день
       });
       
       console.log('Аутентификация успешна! Перенаправляем пользователя в меню');
