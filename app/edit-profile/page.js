@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import styles from './edit-profile.module.css';
 import Cookies from 'js-cookie';
 import NeonCheckbox from '../components/NeonCheckbox';
+import { DataStorage } from '../utils/dataStorage';
 
 export default function EditProfile() {
   const [userData, setUserData] = useState(null);
@@ -37,8 +38,8 @@ export default function EditProfile() {
   useEffect(() => {
     const loadUserData = async () => {
       try {
-        // Получаем данные пользователя из localStorage
-        const userData = JSON.parse(localStorage.getItem('twitch_user') || '{}');
+        // Получаем данные пользователя из DataStorage
+        const userData = await DataStorage.getData('user');
         
         if (!userData || !userData.id) {
           router.push('/login');
@@ -168,12 +169,13 @@ export default function EditProfile() {
         
         // Ожидаем немного для отображения сообщения об успехе и перенаправляем на профиль
         setTimeout(() => {
-          // Принудительно обновляем данные в localStorage, чтобы профиль их сразу увидел
+          // Принудительно обновляем данные в localStorage и DataStorage для синхронизации
           if (userData) {
             // Если есть URL изображения профиля, сохраняем и его для обновления аватарки
             if (userData.profile_image_url) {
               const updatedUserData = { ...userData };
               localStorage.setItem('twitch_user', JSON.stringify(updatedUserData));
+              DataStorage.saveData('user', updatedUserData);
             }
           }
           

@@ -66,25 +66,22 @@ export default function Profile() {
       // Если параметр refresh есть или передан forceRefresh, не используем кэш
       const shouldRefresh = forceRefresh || refreshParam;
       
-      // Сначала пробуем получить из localStorage, если не требуется обновление
+      // Сначала пробуем получить из DataStorage, если не требуется обновление
       if (!shouldRefresh) {
         try {
-          const localData = localStorage.getItem('twitch_user');
-          if (localData) {
-            const parsedData = JSON.parse(localData);
-            if (parsedData && parsedData.id) {
-              console.log('Данные получены из localStorage:', parsedData.id);
-              return parsedData;
-            }
+          const userData = await DataStorage.getData('user');
+          if (userData && userData.id) {
+            console.log('Данные получены из DataStorage:', userData.id);
+            return userData;
           }
         } catch (e) {
-          console.error('Ошибка при чтении из localStorage:', e);
+          console.error('Ошибка при получении данных из DataStorage:', e);
         }
       } else {
         console.log('Запрошено принудительное обновление данных, пропускаем кэш');
       }
       
-      // Если из localStorage не удалось или требуется обновление, делаем запрос к API
+      // Если из DataStorage не удалось или требуется обновление, делаем запрос к API
       try {
         const response = await fetch('/api/twitch/user', {
           method: 'GET',
@@ -101,10 +98,12 @@ export default function Profile() {
           if (userData && userData.id) {
             console.log('Данные пользователя получены успешно:', userData.id);
             try {
+              // Сохраняем данные в DataStorage и localStorage для обратной совместимости
+              await DataStorage.saveData('user', userData);
               localStorage.setItem('twitch_user', JSON.stringify(userData));
               localStorage.setItem('is_authenticated', 'true');
             } catch (e) {
-              console.error('Ошибка при сохранении в localStorage:', e);
+              console.error('Ошибка при сохранении данных пользователя:', e);
             }
             return userData;
           }
@@ -125,6 +124,8 @@ export default function Profile() {
           
           if (parsedCookie && parsedCookie.id) {
             console.log('Данные получены из cookie:', parsedCookie.id);
+            // Сохраняем в DataStorage для будущего использования
+            await DataStorage.saveData('user', parsedCookie);
             return parsedCookie;
           }
         }
