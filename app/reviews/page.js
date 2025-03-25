@@ -127,18 +127,42 @@ export default function Reviews() {
     setSubmitError('');
     
     try {
-      // Здесь будет запрос к API для сохранения отзыва
-      // Имитируем отправку данных
-      console.log('Отправка отзыва:', {
+      // Получаем данные пользователя
+      const userData = await DataStorage.getData('user');
+      
+      if (!userData || !userData.id) {
+        setSubmitError('Необходимо авторизоваться для публикации отзыва');
+        setSubmitting(false);
+        return;
+      }
+
+      // Готовим данные для отправки на сервер
+      const reviewData = {
         category: selectedCategory.id,
         subcategory: selectedSubcategory.id,
         productName,
         rating,
-        reviewText
+        content: reviewText,
+        authorId: userData.id
+      };
+      
+      // Отправляем данные на сервер
+      const response = await fetch('/api/reviews', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(reviewData),
       });
       
-      // Имитируем задержку API
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      const data = await response.json();
+      
+      if (!response.ok) {
+        console.error('Ошибка при публикации отзыва:', data.error);
+        setSubmitError(data.error || 'Произошла ошибка при публикации отзыва. Пожалуйста, попробуйте еще раз.');
+        setSubmitting(false);
+        return;
+      }
       
       // Успешно опубликовано
       alert('Ваш отзыв успешно опубликован!');

@@ -155,37 +155,50 @@ export default function EditProfile() {
             headers: {
               'Content-Type': 'application/json'
             },
-            body: JSON.stringify(socialLinks)
+            body: JSON.stringify({
+              userId: userData.id,
+              socialLinks,
+              birthday: birthday || null,
+              showBirthday,
+              statsVisibility
+            })
           });
           
           if (!response.ok) {
-            console.warn('Не удалось сохранить данные на сервере, но они сохранены локально');
+            const errorData = await response.json();
+            console.warn('Не удалось сохранить данные на сервере:', errorData.error);
+            throw new Error(errorData.error || 'Не удалось сохранить данные на сервере');
           }
         } catch (serverError) {
           console.warn('Ошибка при сохранении на сервере:', serverError);
+          // Продолжаем выполнение, так как данные уже сохранены локально
         }
         
         setSaveSuccess(true);
         
+        // Обновляем данные пользователя в DataStorage для синхронизации
+        const updatedUserData = { ...userData };
+        
+        // Добавляем социальные ссылки в данные пользователя
+        updatedUserData.socialLinks = socialLinks;
+        updatedUserData.birthday = birthday;
+        updatedUserData.showBirthday = showBirthday;
+        updatedUserData.statsVisibility = statsVisibility;
+        
+        // Сохраняем обновленные данные
+        DataStorage.saveData('user', updatedUserData);
+        
         // Ожидаем немного для отображения сообщения об успехе и перенаправляем на профиль
         setTimeout(() => {
-          // Принудительно обновляем данные в localStorage и DataStorage для синхронизации
-          if (userData) {
-            // Если есть URL изображения профиля, сохраняем и его для обновления аватарки
-            if (userData.profile_image_url) {
-              const updatedUserData = { ...userData };
-              localStorage.setItem('twitch_user', JSON.stringify(updatedUserData));
-              DataStorage.saveData('user', updatedUserData);
-            }
-          }
-          
           // Перенаправляем на профиль с параметром обновления для обхода кэша
           router.push('/profile?refresh=' + Date.now());
         }, 1500);
+      } else {
+        throw new Error('Не удалось получить данные пользователя для сохранения');
       }
     } catch (error) {
       console.error('Ошибка при сохранении данных:', error);
-      setSaveError('Произошла ошибка при сохранении данных. Пожалуйста, попробуйте снова.');
+      setSaveError(error.message || 'Произошла ошибка при сохранении данных. Пожалуйста, попробуйте снова.');
     } finally {
       setSubmitting(false);
     }

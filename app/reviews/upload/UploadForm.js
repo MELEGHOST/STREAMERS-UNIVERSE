@@ -99,7 +99,7 @@ export default function UploadForm() {
       }
       
       // Запускаем обработку файлов нейросетью
-      const { data: aiData, error: aiError } = await fetch('/api/reviews/generate', {
+      const response = await fetch('/api/reviews/generate', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -112,11 +112,13 @@ export default function UploadForm() {
           category: category || undefined,
           rating: rating ? parseInt(rating, 10) : undefined
         }),
-      }).then(res => res.json());
+      });
       
-      if (aiError) {
-        console.error('Ошибка при обработке файлов нейросетью:', aiError);
-        setErrorMessage(`Файлы загружены, но произошла ошибка при их обработке: ${aiError}`);
+      const responseData = await response.json();
+      
+      if (!response.ok) {
+        console.error('Ошибка при обработке файлов нейросетью:', responseData.error);
+        setErrorMessage(`Файлы загружены, но произошла ошибка при их обработке: ${responseData.error}`);
       } else {
         // Очищаем форму
         setAuthorName('');

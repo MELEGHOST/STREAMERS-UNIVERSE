@@ -100,27 +100,67 @@ export async function GET(request) {
         // Получаем социальные ссылки из базы данных
         console.log('User-Socials API: Попытка получить социальные ссылки из базы данных');
         const pool = createPool({ connectionString: process.env.POSTGRES_URL });
-        const result = await pool.query('SELECT social_links FROM user_socials WHERE user_id = $1', [userId]);
+        const result = await pool.query('SELECT user_data FROM user_socials WHERE user_id = $1', [userId]);
         
-        if (result.rows.length > 0 && result.rows[0].social_links) {
-          console.log('User-Socials API: Данные получены из базы данных:', JSON.stringify(result.rows[0].social_links).substring(0, 100) + '...');
+        if (result.rows.length > 0 && result.rows[0].user_data) {
+          console.log('User-Socials API: Данные получены из базы данных:', JSON.stringify(result.rows[0].user_data).substring(0, 100) + '...');
           
-          // Проверка на полноту данных
-          const socialLinks = result.rows[0].social_links;
+          // Получаем данные пользователя
+          const userData = result.rows[0].user_data;
           
-          // Проверяем структуру данных и добавляем отсутствующие поля
-          const validatedLinks = {
-            description: socialLinks.description || '',
-            twitch: socialLinks.twitch || '',
-            youtube: socialLinks.youtube || '',
-            discord: socialLinks.discord || '',
-            telegram: socialLinks.telegram || '',
-            vk: socialLinks.vk || '',
-            yandexMusic: socialLinks.yandexMusic || '',
-            isMusician: !!socialLinks.isMusician
+          // Формируем ответ
+          const response = {
+            // Социальные ссылки
+            description: '',
+            twitch: '',
+            youtube: '',
+            discord: '',
+            telegram: '',
+            vk: '',
+            yandexMusic: '',
+            isMusician: false,
+            
+            // Дополнительные данные профиля
+            birthday: null,
+            showBirthday: true,
+            statsVisibility: {
+              followers: true,
+              followings: true,
+              streams: true,
+              channel: true,
+              accountInfo: true
+            }
           };
           
-          return NextResponse.json(validatedLinks);
+          // Обновляем данные из базы, если они есть
+          if (userData.socialLinks) {
+            response.description = userData.socialLinks.description || '';
+            response.twitch = userData.socialLinks.twitch || '';
+            response.youtube = userData.socialLinks.youtube || '';
+            response.discord = userData.socialLinks.discord || '';
+            response.telegram = userData.socialLinks.telegram || '';
+            response.vk = userData.socialLinks.vk || '';
+            response.yandexMusic = userData.socialLinks.yandexMusic || '';
+            response.isMusician = !!userData.socialLinks.isMusician;
+          }
+          
+          // Обновляем дополнительные данные
+          if (userData.birthday !== undefined) {
+            response.birthday = userData.birthday;
+          }
+          
+          if (userData.showBirthday !== undefined) {
+            response.showBirthday = userData.showBirthday;
+          }
+          
+          if (userData.statsVisibility) {
+            response.statsVisibility = {
+              ...response.statsVisibility,
+              ...userData.statsVisibility
+            };
+          }
+          
+          return NextResponse.json(response);
         } else {
           console.log('User-Socials API: Социальные ссылки не найдены в базе данных, возвращаем пустой объект');
           // Возвращаем пустую структуру, если нет данных
@@ -132,7 +172,16 @@ export async function GET(request) {
             telegram: '',
             vk: '',
             yandexMusic: '',
-            isMusician: false
+            isMusician: false,
+            birthday: null,
+            showBirthday: true,
+            statsVisibility: {
+              followers: true,
+              followings: true,
+              streams: true,
+              channel: true,
+              accountInfo: true
+            }
           });
         }
       } catch (dbError) {
@@ -146,7 +195,16 @@ export async function GET(request) {
           telegram: '',
           vk: '',
           yandexMusic: '',
-          isMusician: false
+          isMusician: false,
+          birthday: null,
+          showBirthday: true,
+          statsVisibility: {
+            followers: true,
+            followings: true,
+            streams: true,
+            channel: true,
+            accountInfo: true
+          }
         });
       }
     } catch (twitchError) {
@@ -204,24 +262,38 @@ export async function POST(request) {
       throw new Error(`Failed to get user: ${userResponse.status}`);
     }
     
-    const userData = await userResponse.json();
+    const twitchUserData = await userResponse.json();
     
-    if (!userData.data || userData.data.length === 0) {
+    if (!twitchUserData.data || twitchUserData.data.length === 0) {
       console.log('User Socials API - Данные пользователя не найдены');
       return NextResponse.json({ error: 'No user data found' }, { status: 404 });
     }
     
-    const userId = userData.data[0].id;
+    const userId = twitchUserData.data[0].id;
     console.log(`User Socials API - Получены данные пользователя: ${userId}`);
 
     // Получаем данные из запроса
     const requestBody = await request.json();
     console.log('User Socials API - Получены данные из запроса:', requestBody);
     
-    // Проверяем формат данных
+    // Извлекаем данные из запроса
     let socialLinks = requestBody;
+    let birthday = null;
+    let showBirthday = true;
+    let statsVisibility = {
+      followers: true,
+      followings: true,
+      streams: true,
+      channel: true,
+      accountInfo: true
+    };
+    
+    // Если используется структурированный формат запроса
     if (requestBody.socialLinks) {
       socialLinks = requestBody.socialLinks;
+      birthday = requestBody.birthday || null;
+      showBirthday = requestBody.showBirthday !== undefined ? requestBody.showBirthday : true;
+      statsVisibility = requestBody.statsVisibility || statsVisibility;
     }
     
     console.log('User Socials API - Обрабатываемые данные:', socialLinks);
@@ -242,15 +314,22 @@ export async function POST(request) {
     
     // Санитизация данных перед сохранением в базу данных
     const sanitizedSocialLinks = sanitizeObject(socialLinks);
-    console.log('User Socials API - Санитизированные данные:', sanitizedSocialLinks);
+    const userProfileData = {
+      socialLinks: sanitizedSocialLinks,
+      birthday: birthday,
+      showBirthday: showBirthday,
+      statsVisibility: statsVisibility
+    };
+    
+    console.log('User Socials API - Санитизированные данные:', userProfileData);
 
-    // Сохраняем социальные ссылки в базу данных
+    // Сохраняем данные пользователя в базу данных
     console.log('User Socials API - Сохранение данных в базу данных...');
     try {
       const pool = createPool({ connectionString: process.env.POSTGRES_URL });
       await pool.query(
-        'INSERT INTO user_socials (user_id, social_links) VALUES ($1, $2) ON CONFLICT (user_id) DO UPDATE SET social_links = $2',
-        [userId, sanitizedSocialLinks]
+        'INSERT INTO user_socials (user_id, user_data) VALUES ($1, $2) ON CONFLICT (user_id) DO UPDATE SET user_data = $2',
+        [userId, userProfileData]
       );
       console.log('User Socials API - Данные успешно сохранены');
     } catch (dbError) {
