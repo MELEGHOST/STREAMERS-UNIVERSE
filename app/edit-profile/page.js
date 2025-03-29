@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import Cookies from 'js-cookie';
-import styles from './EditProfile.module.css';
+import styles from './edit-profile.module.css';
 import Footer from '../components/Footer';
 import { supabase } from '../../lib/supabaseClient';
 import SocialButton from '../components/SocialButton';
