@@ -41,6 +41,9 @@ export default function Profile() {
 
   const [globalError, setGlobalError] = useState(null);
   const [specificErrors, setSpecificErrors] = useState({});
+  const [loadingState, setLoadingState] = useState({ followers: false });
+  const [errorMessages, setErrorMessages] = useState({ followers: null });
+  const [totalFollowers, setTotalFollowers] = useState(0);
 
   const [showAchievements, setShowAchievements] = useState(false);
   const [showReviews, setShowReviews] = useState(false);
@@ -263,7 +266,7 @@ export default function Profile() {
         const date = new Date(dateString);
         if (isNaN(date.getTime())) return 'Неверная дата';
         return date.toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', year: 'numeric' });
-    } catch (error) {
+    } catch {
         return 'Ошибка даты';
     }
   };
@@ -320,7 +323,7 @@ export default function Profile() {
         <div className={styles.emptySocialLinks}>
           Нет социальных ссылок.
           {twitchUserData?.id === userId && (
-            <p>Добавьте их в разделе "Редактировать профиль".</p>
+            <p>Добавьте их в разделе &quot;Редактировать профиль&quot;.</p>
           )}
         </div>
       );
@@ -339,7 +342,7 @@ export default function Profile() {
         <div className={styles.emptySocialLinks}>
           Нет активных социальных ссылок.
            {twitchUserData?.id === userId && (
-            <p>Добавьте их в разделе "Редактировать профиль".</p>
+            <p>Добавьте их в разделе &quot;Редактировать профиль&quot;.</p>
           )}
         </div>
       );
@@ -641,7 +644,7 @@ export default function Profile() {
                   <div className={styles.emptyDescription}>
                     <p>Нет описания профиля.</p>
                      {twitchUserData?.id === userId && (
-                      <p>Добавьте его в разделе "Редактировать профиль".</p>
+                      <p>Добавьте его в разделе &quot;Редактировать профиль&quot;.</p>
                      )}
                   </div>
                 )}
