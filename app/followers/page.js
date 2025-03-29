@@ -265,7 +265,7 @@ export default function Followers() {
             <div className={styles.filterOptions}>
               <select 
                 className={styles.filterSelect}
-                onChange={(e) => {
+                onChange={() => {
                   // TODO: добавить фильтрацию
                 }}
               >

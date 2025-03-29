@@ -263,7 +263,7 @@ export default function Profile() {
         const date = new Date(dateString);
         if (isNaN(date.getTime())) return 'Неверная дата';
         return date.toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', year: 'numeric' });
-    } catch (e) {
+    } catch (error) {
         return 'Ошибка даты';
     }
   };
@@ -657,6 +657,13 @@ export default function Profile() {
                 </div>
                 {renderSocialLinks()}
               </div>
+            </div>
+            <div className={styles.sectionDescription}>
+              <p>
+                Здесь вы можете найти ответы на часто задаваемые вопросы о Streamers Universe,
+                например, <code className={styles.codeText}>&quot;Как получить роль модератора?&quot;</code> или
+                <code className={styles.codeText}>&quot;Как добавить свое расписание?&quot;</code>.
+              </p>
             </div>
           </>
         )}
