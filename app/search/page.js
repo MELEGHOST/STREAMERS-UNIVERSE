@@ -16,7 +16,6 @@ export default function Search() {
   const [results, setResults] = useState(null);
   const [loading, setLoading] = useState(false);
   const router = useRouter();
-  const searchParams = useSearchParams();
   const [showFilters, setShowFilters] = useState(false);
   const [filters, setFilters] = useState({
     category: 'all',
@@ -126,7 +125,7 @@ export default function Search() {
       let data;
       try {
         data = await response.json();
-      } catch (jsonError) {
+      } catch {
         throw new Error('Не удалось обработать ответ от сервера');
       }
       

@@ -285,7 +285,7 @@ export default function Followers() {
                     alt={follower.name}
                     width={50}
                     height={50}
-                    onError={(/* Удаляем e */) => {e.target.src = '/images/default-avatar.png'}}
+                    onError={(event) => { event.target.src = '/images/default-avatar.png'; }}
                     className={styles.avatarImage}
                     priority
                   />

@@ -42,7 +42,9 @@ export default function Profile() {
   const [globalError, setGlobalError] = useState(null);
   const [specificErrors, setSpecificErrors] = useState({});
 
-  const [totalFollowers, setTotalFollowers] = useState(0);
+  const [achievements, setAchievements] = useState([]);
+  const [errorMessages, setErrorMessages] = useState({ socials: null, reviews: null, achievements: null, profile: null });
+  const [loadingState, setLoadingState] = useState({ socials: true, reviews: true, achievements: true, profile: true });
   const [showAchievements, setShowAchievements] = useState(false);
   const [showReviews, setShowReviews] = useState(false);
   const [showStats, setShowStats] = useState(false);
@@ -510,6 +512,10 @@ export default function Profile() {
               alt={display_name || login || 'Пользователь'} 
               size={150}
               className={styles.profileAvatar}
+              layout="responsive"
+              width={150}
+              height={150}
+              onError={(event) => { event.target.src = '/images/default-avatar.png'; }}
             />
           </div>
           <div className={styles.profileDetails}>
@@ -521,12 +527,12 @@ export default function Profile() {
                   <div className={styles.userStats}>
                     <div className={styles.statItem}>
                       <span className={styles.statLabel}>Подписчики Twitch</span>
-                      {loadingStats ? (
+                      {loadingState.followers ? (
                         <div className={styles.smallLoader}></div>
-                      ) : specificErrors.reviews ? (
+                      ) : errorMessages.followers ? (
                         <div className={styles.statError}>
                           <span className={styles.errorText}>Ошибка</span>
-                          <button onClick={() => retryLoading('reviews')} className={styles.retryButtonSmall} title="Повторить">↺</button>
+                          <button onClick={() => retryLoading('followers')} className={styles.retryButtonSmall} title="Повторить">↺</button>
                         </div>
                       ) : (
                         <span className={styles.statValue}>{totalFollowers.toLocaleString('ru-RU') ?? '0'}</span>
@@ -645,6 +651,13 @@ export default function Profile() {
               </div>
               <div className={styles.socialLinksSection}>
                 <h3 className={styles.sectionTitle}>Социальные сети</h3>
+                <div className={styles.sectionDescription}>
+                  <p>
+                    Здесь вы можете настроить социальные ссылки, которые будут отображаться в вашем профиле.
+                    Используйте полные URL (например, <code className={styles.codeText}>&quot;https://twitch.tv/yourchannel&quot;</code>),
+                    чтобы ссылки работали корректно.
+                  </p>
+                </div>
                 {renderSocialLinks()}
               </div>
             </div>

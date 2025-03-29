@@ -13,7 +13,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { categories } from '../components/ReviewCategories';
 
 export default function Reviews() {
-  const { /* Удаляем userId */ isAuthenticated } = useAuth();
+  const { /* Удаляем userId */ /* Удаляем isAuthenticated */ } = useAuth();
   const [isLoading, setIsLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState(null);

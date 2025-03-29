@@ -21,7 +21,7 @@ const ReviewSection = ({ streamerId, streamerLogin, isOwnProfile }) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   // Удаляем неиспользуемые состояния submitError, setSubmitError
   // Удаляем неиспользуемые состояния userReview, setUserReview
-  const [sortOrder, setSortOrder] = useState('newest'); // 'newest', 'oldest', 'rating_high', 'rating_low'
+  const [sortOrder] = useState('newest'); // 'newest', 'oldest', 'rating_high', 'rating_low'
   // Удаляем неиспользуемые состояния editingReview, setEditingReview
   // Удаляем неиспользуемые состояния showLoginPrompt, setShowLoginPrompt
   // const [pagination, setPagination] = useState({ currentPage: 1, totalPages: 1, pageSize: 10 }); // Не используется
