@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import styles from './edit-profile.module.css';
 import Cookies from 'js-cookie';
@@ -10,6 +10,8 @@ import { DataStorage } from '../utils/dataStorage';
 export default function EditProfile() {
   const [editData, setEditData] = useState({
     description: '',
+    birthday: '',
+    showBirthday: true,
     twitch: '',
     youtube: '',
     discord: '',
@@ -17,8 +19,6 @@ export default function EditProfile() {
     vk: '',
     yandexMusic: '',
     isMusician: false,
-    birthday: '',
-    showBirthday: true,
     statsVisibility: {
       followers: true,
       followings: true,
@@ -28,7 +28,6 @@ export default function EditProfile() {
     }
   });
 
-  const [userId, setUserId] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const router = useRouter();
@@ -36,85 +35,80 @@ export default function EditProfile() {
   const [saveSuccess, setSaveSuccess] = useState(false);
   const [saveError, setSaveError] = useState(null);
 
-  useEffect(() => {
-    const loadInitialData = async () => {
-      setLoading(true);
-      setError(null);
-      try {
-        const userData = await DataStorage.getData('user');
-        if (!userData || !userData.id) {
-          console.log('EditProfile: User not found, redirecting to login.');
-          router.push('/login');
-          return;
-        }
-        setUserId(userData.id);
+  const loadInitialData = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      console.log('EditProfile: Fetching editable data...');
+      const response = await fetch(`/api/user-profile-data?_=${Date.now()}`, {
+        method: 'GET',
+        headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-cache' },
+        credentials: 'include',
+      });
 
-        console.log('EditProfile: Fetching editable data for user:', userData.id);
-        const response = await fetch(`/api/user-profile-data?userId=${userData.id}&_=${Date.now()}`, {
-            method: 'GET',
-            headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-cache' },
-            credentials: 'include',
-        });
-
-        if (!response.ok) {
-            throw new Error(`Failed to fetch profile data: ${response.status}`);
-        }
-
-        const data = await response.json();
-        console.log('EditProfile: Received data:', data);
-
-        setEditData({
-            description: data.description || '',
-            twitch: data.socialLinks?.twitch || '',
-            youtube: data.socialLinks?.youtube || '',
-            discord: data.socialLinks?.discord || '',
-            telegram: data.socialLinks?.telegram || '',
-            vk: data.socialLinks?.vk || '',
-            yandexMusic: data.socialLinks?.yandexMusic || '',
-            isMusician: data.socialLinks?.isMusician || false,
-            birthday: data.birthday || '',
-            showBirthday: data.showBirthday !== undefined ? data.showBirthday : true,
-            statsVisibility: data.statsVisibility || {
-                followers: true,
-                followings: true,
-                streams: true,
-                channel: true,
-                accountInfo: true
-            }
-        });
-
-      } catch (err) {
-        console.error('Error loading initial data for edit profile:', err);
-        setError(err.message || 'Не удалось загрузить данные для редактирования. Попробуйте обновить страницу.');
-      } finally {
-        setLoading(false);
+      if (response.status === 401) {
+        console.log('EditProfile: Not authenticated, redirecting to login.');
+        router.push('/login?reason=unauthenticated');
+        return;
       }
-    };
 
-    loadInitialData();
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || `Failed to fetch profile data: ${response.status}`);
+      }
+
+      const data = await response.json();
+      console.log('EditProfile: Received data:', data);
+
+      setEditData({
+        description: data.description || '',
+        birthday: data.birthday ? data.birthday.split('T')[0] : '',
+        showBirthday: data.show_birthday !== undefined ? data.show_birthday : true,
+        twitch: data.social_links?.twitch || '',
+        youtube: data.social_links?.youtube || '',
+        discord: data.social_links?.discord || '',
+        telegram: data.social_links?.telegram || '',
+        vk: data.social_links?.vk || '',
+        yandexMusic: data.social_links?.yandexMusic || '',
+        isMusician: data.social_links?.isMusician || false,
+        statsVisibility: data.stats_visibility || {
+          followers: true,
+          followings: true,
+          streams: true,
+          channel: true,
+          accountInfo: true
+        }
+      });
+
+    } catch (err) {
+      console.error('Error loading initial data for edit profile:', err);
+      setError(err.message || 'Не удалось загрузить данные для редактирования. Попробуйте обновить страницу.');
+    } finally {
+      setLoading(false);
+    }
   }, [router]);
+
+  useEffect(() => {
+    loadInitialData();
+  }, [loadInitialData]);
 
   const handleInputChange = (e) => {
     const { name, value, type, checked } = e.target;
     const keys = name.split('.');
 
     setEditData(prev => {
-        if (keys.length === 1) {
-            return { ...prev, [name]: type === 'checkbox' ? checked : value };
-        } else if (keys.length === 2 && keys[0] === 'statsVisibility') {
-            return {
-                ...prev,
-                statsVisibility: {
-                    ...prev.statsVisibility,
-                    [keys[1]]: checked
-                }
-            };
-        } else {
-             return {
-                 ...prev,
-                 [name]: value
-             };
-        }
+      if (keys.length === 1) {
+        return { ...prev, [name]: type === 'checkbox' ? checked : value };
+      } else if (keys.length === 2 && keys[0] === 'statsVisibility') {
+        return {
+          ...prev,
+          statsVisibility: {
+            ...prev.statsVisibility,
+            [keys[1]]: checked
+          }
+        };
+      }
+      return prev;
     });
   };
 
@@ -124,57 +118,56 @@ export default function EditProfile() {
     setSaveSuccess(false);
     setSaveError(null);
 
-    if (!userId) {
-        setSaveError('Ошибка: ID пользователя не найден.');
-        setSubmitting(false);
-        return;
-    }
-
     try {
-      console.log('EditProfile: Submitting data for user:', userId, editData);
+      console.log('EditProfile: Submitting data:', editData);
       const response = await fetch('/api/user-profile-data', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         credentials: 'include',
-        body: JSON.stringify({
-          userId: userId,
-          ...editData
-        })
+        body: JSON.stringify(editData)
       });
 
       if (!response.ok) {
-        let errorMessage = 'Не удалось сохранить данные на сервере.';
+        let errorMessage = 'Не удалось сохранить данные.';
         try {
-            const errorData = await response.json();
-            errorMessage = errorData.error || errorMessage;
+          const errorData = await response.json();
+          errorMessage = errorData.error || errorMessage;
         } catch (parseError) {
+          errorMessage = `Ошибка сервера: ${response.status}`;
         }
         console.warn('Server save failed:', response.status, errorMessage);
         throw new Error(errorMessage);
       }
 
       console.log('EditProfile: Data saved successfully on server.');
+      
       try {
-          const currentUserData = await DataStorage.getData('user');
-          if (currentUserData) {
-              await DataStorage.saveData('user', { ...currentUserData, /* обновленные поля */ });
-              console.log('DataStorage updated.');
-          }
+        const currentUserData = await DataStorage.getData('user');
+        if (currentUserData) {
+          const updatedUserData = {
+            ...currentUserData,
+            description: editData.description
+          };
+          await DataStorage.saveData('user', updatedUserData);
+          console.log('DataStorage user data partially updated (description).');
+        }
       } catch (storageError) {
-          console.warn('Failed to update DataStorage after save:', storageError);
+        console.warn('Failed to update DataStorage after save:', storageError);
       }
 
       setSaveSuccess(true);
+      setError(null);
 
       setTimeout(() => {
-        router.push('/profile');
+        router.push('/profile?refresh=true');
       }, 1500);
 
     } catch (error) {
       console.error('Error submitting profile data:', error);
       setSaveError(error.message || 'Произошла неизвестная ошибка при сохранении.');
+      setSaveSuccess(false);
     } finally {
       setSubmitting(false);
     }
@@ -192,8 +185,8 @@ export default function EditProfile() {
       ) : error ? (
         <div className={styles.error}>
           <p>{error}</p>
-          <button className={styles.button} onClick={() => window.location.reload()}>
-            Обновить страницу
+          <button className={styles.button} onClick={loadInitialData}>
+            Попробовать снова
           </button>
           <button className={styles.button} onClick={() => router.push('/menu')}>
             Вернуться в меню
@@ -201,6 +194,17 @@ export default function EditProfile() {
         </div>
       ) : (
         <form className={styles.editForm} onSubmit={handleSubmit}>
+          {saveSuccess && (
+            <div className={styles.successMessage}>
+              Профиль успешно сохранен! Перенаправление...
+            </div>
+          )}
+          {saveError && (
+            <div className={styles.errorMessage}>
+              Ошибка сохранения: {saveError}
+            </div>
+          )}
+
           <div className={styles.formSection}>
             <h2>Описание профиля</h2>
             <div className={styles.inputGroup}>
@@ -213,9 +217,10 @@ export default function EditProfile() {
                 onChange={handleInputChange}
                 placeholder="Расскажите о себе..."
                 maxLength={500}
+                disabled={submitting}
               />
               <div className={styles.charCount}>
-                {editData.description.length}/500
+                {editData.description?.length || 0}/500
               </div>
             </div>
           </div>
@@ -231,6 +236,7 @@ export default function EditProfile() {
                 className={styles.input}
                 value={editData.birthday}
                 onChange={handleInputChange}
+                disabled={submitting}
               />
               <p className={styles.birthdayNote}>
                 В день рождения вы получите 100 стример-коинов в подарок! 🎁
@@ -238,207 +244,73 @@ export default function EditProfile() {
             </div>
             <div className={styles.checkboxGroup}>
               <NeonCheckbox
-                label="Показывать день рождения другим пользователям"
+                label="Показывать дату рождения другим"
+                id="showBirthday"
+                name="showBirthday"
                 checked={editData.showBirthday}
                 onChange={handleInputChange}
-                name="showBirthday"
+                disabled={submitting}
               />
-            </div>
-          </div>
-          
-          <div className={styles.formSection}>
-            <h2>Настройки видимости статистики</h2>
-            <p className={styles.sectionDescription}>
-              Выберите, какую информацию вы хотите отображать в своем профиле:
-            </p>
-            
-            <div className={styles.checkboxGrid}>
-              <div className={styles.checkboxGroup}>
-                <NeonCheckbox
-                  label="Подписчики"
-                  checked={editData.statsVisibility.followers}
-                  onChange={handleInputChange}
-                  name="statsVisibility.followers"
-                />
-              </div>
-              
-              <div className={styles.checkboxGroup}>
-                <NeonCheckbox
-                  label="Подписки"
-                  checked={editData.statsVisibility.followings}
-                  onChange={handleInputChange}
-                  name="statsVisibility.followings"
-                />
-              </div>
-              
-              <div className={styles.checkboxGroup}>
-                <NeonCheckbox
-                  label="Стримы"
-                  checked={editData.statsVisibility.streams}
-                  onChange={handleInputChange}
-                  name="statsVisibility.streams"
-                />
-              </div>
-              
-              <div className={styles.checkboxGroup}>
-                <NeonCheckbox
-                  label="Информация о канале"
-                  checked={editData.statsVisibility.channel}
-                  onChange={handleInputChange}
-                  name="statsVisibility.channel"
-                />
-              </div>
-              
-              <div className={styles.checkboxGroup}>
-                <NeonCheckbox
-                  label="Информация об аккаунте"
-                  checked={editData.statsVisibility.accountInfo}
-                  onChange={handleInputChange}
-                  name="statsVisibility.accountInfo"
-                />
-              </div>
             </div>
           </div>
           
           <div className={styles.formSection}>
             <h2>Социальные сети</h2>
-            
             <div className={styles.inputGroup}>
               <label htmlFor="twitch">Twitch:</label>
-              <div className={styles.inputWithIcon}>
-                <span className={styles.inputIcon}>🟣</span>
-                <input
-                  type="text"
-                  id="twitch"
-                  name="twitch"
-                  className={styles.input}
-                  value={editData.twitch}
-                  onChange={handleInputChange}
-                  placeholder="https://twitch.tv/username"
-                />
-              </div>
+              <input type="url" id="twitch" name="twitch" value={editData.twitch} onChange={handleInputChange} placeholder="https://twitch.tv/yourchannel" className={styles.input} disabled={submitting} />
             </div>
-            
             <div className={styles.inputGroup}>
               <label htmlFor="youtube">YouTube:</label>
-              <div className={styles.inputWithIcon}>
-                <span className={styles.inputIcon}>🔴</span>
-                <input
-                  type="text"
-                  id="youtube"
-                  name="youtube"
-                  className={styles.input}
-                  value={editData.youtube}
-                  onChange={handleInputChange}
-                  placeholder="https://youtube.com/c/username"
-                />
-              </div>
+              <input type="url" id="youtube" name="youtube" value={editData.youtube} onChange={handleInputChange} placeholder="https://youtube.com/c/yourchannel" className={styles.input} disabled={submitting} />
             </div>
-            
-            <div className={styles.inputGroup}>
-              <label htmlFor="discord">Discord:</label>
-              <div className={styles.inputWithIcon}>
-                <span className={styles.inputIcon}>🔵</span>
-                <input
-                  type="text"
-                  id="discord"
-                  name="discord"
-                  className={styles.input}
-                  value={editData.discord}
-                  onChange={handleInputChange}
-                  placeholder="https://discord.gg/invite"
-                />
-              </div>
+             <div className={styles.inputGroup}>
+              <label htmlFor="discord">Discord (ссылка на сервер или профиль):</label>
+              <input type="url" id="discord" name="discord" value={editData.discord} onChange={handleInputChange} placeholder="https://discord.gg/yourserver" className={styles.input} disabled={submitting} />
             </div>
-            
-            <div className={styles.inputGroup}>
-              <label htmlFor="telegram">Telegram:</label>
-              <div className={styles.inputWithIcon}>
-                <span className={styles.inputIcon}>📱</span>
-                <input
-                  type="text"
-                  id="telegram"
-                  name="telegram"
-                  className={styles.input}
-                  value={editData.telegram}
-                  onChange={handleInputChange}
-                  placeholder="https://t.me/username"
-                />
-              </div>
+             <div className={styles.inputGroup}>
+              <label htmlFor="telegram">Telegram (канал или профиль):</label>
+              <input type="url" id="telegram" name="telegram" value={editData.telegram} onChange={handleInputChange} placeholder="https://t.me/yourchannel" className={styles.input} disabled={submitting} />
             </div>
-            
-            <div className={styles.inputGroup}>
-              <label htmlFor="vk">ВКонтакте:</label>
-              <div className={styles.inputWithIcon}>
-                <span className={styles.inputIcon}>💙</span>
-                <input
-                  type="text"
-                  id="vk"
-                  name="vk"
-                  className={styles.input}
-                  value={editData.vk}
-                  onChange={handleInputChange}
-                  placeholder="https://vk.com/username"
-                />
-              </div>
+             <div className={styles.inputGroup}>
+              <label htmlFor="vk">VK:</label>
+              <input type="url" id="vk" name="vk" value={editData.vk} onChange={handleInputChange} placeholder="https://vk.com/yourgroup" className={styles.input} disabled={submitting} />
             </div>
-            
             <div className={styles.checkboxGroup}>
-              <NeonCheckbox
+               <NeonCheckbox
                 label="Я музыкант"
+                id="isMusician"
+                name="isMusician"
                 checked={editData.isMusician}
                 onChange={handleInputChange}
-                name="isMusician"
+                disabled={submitting}
               />
             </div>
-            
             {editData.isMusician && (
-              <div className={styles.inputGroup}>
-                <label htmlFor="yandexMusic">Яндекс Музыка:</label>
-                <div className={styles.inputWithIcon}>
-                  <span className={styles.inputIcon}>🎵</span>
-                  <input
-                    type="text"
-                    id="yandexMusic"
-                    name="yandexMusic"
-                    className={styles.input}
-                    value={editData.yandexMusic}
-                    onChange={handleInputChange}
-                    placeholder="https://music.yandex.ru/artist/..."
-                  />
+                 <div className={styles.inputGroup}>
+                  <label htmlFor="yandexMusic">Яндекс Музыка:</label>
+                  <input type="url" id="yandexMusic" name="yandexMusic" value={editData.yandexMusic} onChange={handleInputChange} placeholder="https://music.yandex.ru/artist/yourartist" className={styles.input} disabled={submitting} />
                 </div>
-              </div>
             )}
           </div>
           
-          <div className={styles.buttonGroup}>
-            <button
-              type="submit"
-              className={styles.button}
-              disabled={submitting}
-            >
-              {submitting ? 'Сохранение...' : 'Сохранить профиль'}
-            </button>
-            <button
-              type="button"
-              className={styles.button}
-              onClick={() => router.push('/profile')}
-            >
-              Вернуться в профиль
-            </button>
+          <div className={styles.formSection}>
+            <h2>Настройки видимости статистики</h2>
+            <p className={styles.visibilityNote}>Выберите, какие разделы статистики будут видны другим пользователям на вашей странице профиля.</p>
+            <div className={styles.checkboxGrid}> 
+              <NeonCheckbox label="Подписчики" id="statsVisibility.followers" name="statsVisibility.followers" checked={editData.statsVisibility.followers} onChange={handleInputChange} disabled={submitting}/>
+              <NeonCheckbox label="Подписки" id="statsVisibility.followings" name="statsVisibility.followings" checked={editData.statsVisibility.followings} onChange={handleInputChange} disabled={submitting}/>
+            </div>
           </div>
           
-          {saveSuccess && (
-            <div className={styles.successMessage}>
-              Профиль успешно обновлен!
-            </div>
-          )}
-          
-          {saveError && (
-            <div className={styles.errorMessage}>
-              {saveError}
-            </div>
-          )}
+          <div className={styles.formActions}>
+            <button type="submit" className={styles.saveButton} disabled={submitting || loading}> 
+              {submitting ? 'Сохранение...' : 'Сохранить изменения'}
+            </button>
+            <button type="button" className={styles.cancelButton} onClick={() => router.push('/profile')} disabled={submitting}>
+              Отмена
+            </button>
+          </div>
         </form>
       )}
     </div>

@@ -3,25 +3,21 @@ import { cookies } from 'next/headers';
 
 export async function GET(request) {
   try {
-    const { searchParams } = new URL(request.url);
-    const userId = searchParams.get('id');
-    
-    if (!userId) {
-      return NextResponse.json({ error: 'Не указан ID пользователя' }, { status: 400 });
-    }
-    
     // Получаем токен доступа из cookies
     const cookieStore = cookies();
     const accessTokenCookie = cookieStore.get('twitch_token');
     
     if (!accessTokenCookie) {
-      return NextResponse.json({ error: 'Не найден токен доступа' }, { status: 401 });
+      // Если токена нет, пользователь не аутентифицирован
+      // Можно вернуть ошибку или пустой объект, в зависимости от логики приложения
+      // В данном случае, страница профиля требует аутентификации
+      return NextResponse.json({ error: 'Необходима аутентификация' }, { status: 401 });
     }
     
     const accessToken = accessTokenCookie.value;
     
-    // Получаем данные пользователя из Twitch API
-    const twitchResponse = await fetch(`https://api.twitch.tv/helix/users?id=${userId}`, {
+    // Получаем данные пользователя из Twitch API по токену (без ID)
+    const twitchResponse = await fetch(`https://api.twitch.tv/helix/users`, { // Изменили URL
       headers: {
         'Client-ID': process.env.TWITCH_CLIENT_ID,
         'Authorization': `Bearer ${accessToken}`
@@ -29,19 +25,25 @@ export async function GET(request) {
     });
     
     if (!twitchResponse.ok) {
+      // Обработка ошибок Twitch API (например, невалидный токен)
       if (twitchResponse.status === 401) {
-        return NextResponse.json({ error: 'Токен доступа истек' }, { status: 401 });
+         // Попытка обновить токен может быть реализована здесь или на клиенте
+        return NextResponse.json({ error: 'Токен доступа недействителен или истек' }, { status: 401 });
       }
-      return NextResponse.json({ error: 'Ошибка при получении данных пользователя' }, { status: twitchResponse.status });
+      console.error('Ошибка Twitch API при получении пользователя:', twitchResponse.status, await twitchResponse.text());
+      return NextResponse.json({ error: 'Ошибка при получении данных пользователя от Twitch' }, { status: twitchResponse.status });
     }
     
     const twitchData = await twitchResponse.json();
     
     if (!twitchData.data || twitchData.data.length === 0) {
-      return NextResponse.json({ error: 'Пользователь не найден' }, { status: 404 });
+       // Это не должно произойти при валидном токене, но на всякий случай проверяем
+      console.error('Не удалось получить данные пользователя от Twitch, хотя ответ был 200 OK');
+      return NextResponse.json({ error: 'Не удалось найти данные пользователя по токену' }, { status: 404 });
     }
     
     const userData = twitchData.data[0];
+    const userId = userData.id; // Получаем ID пользователя из ответа
     
     // Получаем количество фолловеров пользователя
     const followersResponse = await fetch(`https://api.twitch.tv/helix/users/follows?to_id=${userId}`, {
@@ -51,9 +53,15 @@ export async function GET(request) {
       }
     });
     
+    // Инициализируем счетчики на случай ошибки
+    userData.follower_count = 0;
+    userData.following_count = 0;
+
     if (followersResponse.ok) {
       const followersData = await followersResponse.json();
       userData.follower_count = followersData.total || 0;
+    } else {
+       console.warn(`Не удалось получить количество подписчиков для ${userId}: ${followersResponse.status}`);
     }
     
     // Получаем количество фолловингов пользователя
@@ -67,11 +75,13 @@ export async function GET(request) {
     if (followingResponse.ok) {
       const followingData = await followingResponse.json();
       userData.following_count = followingData.total || 0;
+    } else {
+       console.warn(`Не удалось получить количество подписок для ${userId}: ${followingResponse.status}`);
     }
     
     return NextResponse.json(userData);
   } catch (error) {
-    console.error('Ошибка при получении данных пользователя:', error);
+    console.error('Внутренняя ошибка сервера при получении данных пользователя:', error);
     return NextResponse.json({ error: 'Внутренняя ошибка сервера' }, { status: 500 });
   }
 } 
