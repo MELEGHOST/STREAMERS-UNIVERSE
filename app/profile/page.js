@@ -12,6 +12,23 @@ import { DataStorage } from '../utils/dataStorage';
 import Cookies from 'js-cookie';
 import CyberAvatar from '../components/CyberAvatar';
 
+// Вспомогательная функция для склонения слова "день"
+const getDaysText = (days) => {
+  if (days === null) return '';
+  const lastDigit = days % 10;
+  const lastTwoDigits = days % 100;
+  if (lastTwoDigits >= 11 && lastTwoDigits <= 19) {
+    return 'дней';
+  }
+  if (lastDigit === 1) {
+    return 'день';
+  }
+  if (lastDigit >= 2 && lastDigit <= 4) {
+    return 'дня';
+  }
+  return 'дней';
+};
+
 export default function Profile() {
   const [profileData, setProfileData] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -44,6 +61,11 @@ export default function Profile() {
   const [followings, setFollowings] = useState([]);
   const [tierlists, setTierlists] = useState([]);
   const [showTierlists, setShowTierlists] = useState(false);
+  const [loadingFollowers, setLoadingFollowers] = useState(false);
+  const [loadingFollowings, setLoadingFollowings] = useState(false);
+  const [loadingStats, setLoadingStats] = useState(false);
+  const [loadingSocialLinks, setLoadingSocialLinks] = useState(false);
+  const [loadingBirthday, setLoadingBirthday] = useState(false);
   const [statsVisibility, setStatsVisibility] = useState({
     followers: true,
     followings: true,
@@ -128,6 +150,7 @@ export default function Profile() {
 
   const loadFollowers = async (userId) => {
     setSpecificErrors(prev => ({ ...prev, followers: null }));
+    setLoadingFollowers(true);
     try {
       console.log('Загрузка фолловеров для ID:', userId);
       if (!userId) {
@@ -164,11 +187,14 @@ export default function Profile() {
       setSpecificErrors(prev => ({ ...prev, followers: 'Не удалось загрузить подписчиков' }));
       setFollowers([]);
       setTotalFollowers(0);
+    } finally {
+      setLoadingFollowers(false);
     }
   };
 
   const loadFollowings = async (userId) => {
     setSpecificErrors(prev => ({ ...prev, followings: null }));
+    setLoadingFollowings(true);
     try {
       console.log('Загрузка подписок для ID:', userId);
        if (!userId) {
@@ -207,11 +233,14 @@ export default function Profile() {
       setSpecificErrors(prev => ({ ...prev, followings: 'Не удалось загрузить подписки' }));
       setFollowings([]);
       setTotalFollowings(0);
+    } finally {
+      setLoadingFollowings(false);
     }
   };
 
   const loadStats = async (userId) => {
      setSpecificErrors(prev => ({ ...prev, stats: null }));
+     setLoadingStats(true);
     try {
       console.log('Загрузка статистики пользователя для:', userId);
        if (!userId) throw new Error('ID пользователя не определен');
@@ -229,101 +258,114 @@ export default function Profile() {
       if (response.ok) {
         const stats = await response.json();
         console.log('Статистика пользователя успешно загружена:', stats);
-        if (stats) {
+        if (stats && Object.keys(stats).length > 0) {
             setUserStats(stats);
             if (stats.stream && typeof stats.stream.completedStreams === 'number') {
                 setStreamsCompleted(stats.stream.completedStreams);
             }
         } else {
-             console.warn('Данные статистики получены, но пусты:', stats);
-             setUserStats({});
-             throw new Error('Пустые данные статистики');
+             console.warn('Данные статистики получены, но пусты или некорректны:', stats);
+             setUserStats(null);
         }
       } else {
         console.error('Ошибка при загрузке статистики пользователя:', response.status);
+        setUserStats(null);
         throw new Error(`API Error Stats: ${response.status}`);
       }
     } catch (error) {
       console.error('Ошибка при получении статистики пользователя:', error);
       setSpecificErrors(prev => ({ ...prev, stats: 'Не удалось загрузить статистику' }));
-      setUserStats({});
+      setUserStats(null);
+    } finally {
+      setLoadingStats(false);
     }
   };
 
   const loadSocialLinks = async (userId) => {
-     setSpecificErrors(prev => ({ ...prev, socialLinks: null }));
+    setSpecificErrors(prev => ({ ...prev, socialLinks: null }));
+    setLoadingSocialLinks(true);
     try {
-      console.log('Загрузка социальных ссылок для:', userId);
-       if (!userId) throw new Error('ID пользователя не определен');
-      const response = await fetch(`/api/user-socials?userId=${userId}&_=${Date.now()}`, {
-        method: 'GET',
-        headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-cache' },
-        credentials: 'include',
+      console.log('Загрузка социальных ссылок для ID:', userId);
+      if (!userId) throw new Error('ID пользователя не определен');
+
+      const response = await fetch(`/api/user/${userId}/social-links?_=${Date.now()}`, {
+          method: 'GET',
+          headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-cache' },
+          credentials: 'include',
       });
 
       if (response.ok) {
         const data = await response.json();
         console.log('Социальные ссылки успешно загружены:', data);
-        const filteredLinks = {
-            twitch: data?.twitch || '',
-            youtube: data?.youtube || '',
-            discord: data?.discord || '',
-            telegram: data?.telegram || '',
-            vk: data?.vk || '',
-            yandexMusic: data?.yandexMusic || '',
-            isMusician: data?.isMusician || false
-        };
-        setSocialLinks(filteredLinks);
+        if (data && typeof data === 'object' && Object.values(data).some(val => typeof val === 'string' && val.trim() !== '')) {
+           setSocialLinks(data);
+        } else {
+           console.warn('Социальные ссылки получены, но пусты или некорректны:', data);
+           setSocialLinks(null);
+        }
       } else {
-        console.error('Ошибка при загрузке социальных ссылок:', response.status);
-         throw new Error(`API Error Social Links: ${response.status}`);
+        console.error('Ошибка при загрузке соц. ссылок:', response.status);
+         setSocialLinks(null);
+        throw new Error(`API Error Social Links: ${response.status}`);
       }
     } catch (error) {
-      console.error('Ошибка при загрузке социальных ссылок:', error);
+      console.error('Ошибка при получении социальных ссылок:', error);
       setSpecificErrors(prev => ({ ...prev, socialLinks: 'Не удалось загрузить соц. ссылки' }));
+      setSocialLinks(null);
+    } finally {
+      setLoadingSocialLinks(false);
     }
   };
 
   const loadBirthdayData = async (userId) => {
-       setSpecificErrors(prev => ({ ...prev, birthday: null }));
-      try {
-          console.log('Загрузка данных о дне рождения для:', userId);
-          if (!userId) throw new Error('ID пользователя не определен');
+    setSpecificErrors(prev => ({ ...prev, birthday: null }));
+    setLoadingBirthday(true);
+    try {
+      console.log('Загрузка данных о дне рождения для ID:', userId);
+       if (!userId) throw new Error('ID пользователя не определен');
+      const response = await fetch(`/api/user/${userId}/birthday?_=${Date.now()}`, {
+           method: 'GET',
+           headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-cache' },
+           credentials: 'include',
+       });
 
-          const response = await fetch(`/api/user-birthday?userId=${userId}&_=${Date.now()}`, {
-            method: 'GET',
-            headers: {
-              'Content-Type': 'application/json',
-              'Cache-Control': 'no-cache'
-            },
-            credentials: 'include',
-          });
-
-          if (response.ok) {
-              const data = await response.json();
-              if (data) {
-                  const userBirthday = data.birthday;
-                  if (userBirthday) {
-                      const birthdayResult = checkBirthday(userBirthday);
-                      setIsBirthday(birthdayResult.isBirthday);
-                      setDaysToBirthday(getDaysToBirthday(userBirthday));
-                      setProfileData(prev => ({ ...prev, birthday: userBirthday, showBirthday: data.showBirthday }));
-                  } else {
-                       setIsBirthday(false);
-                       setDaysToBirthday(null);
-                       setProfileData(prev => ({ ...prev, birthday: null, showBirthday: true }));
-                  }
-              }
+      if (response.ok) {
+        const data = await response.json();
+        console.log('Данные о дне рождения успешно загружены:', data);
+        if (data && data.birthday) {
+          const birthDate = new Date(data.birthday);
+          if (!isNaN(birthDate.getTime())) {
+              const { isToday, daysLeft } = checkBirthday(birthDate);
+              setIsBirthday(isToday);
+              setDaysToBirthday(daysLeft);
+              setProfileData(prev => ({ ...prev, birthday: data.birthday }));
           } else {
-              console.error('Ошибка при загрузке данных о дне рождения:', response.status);
-              throw new Error(`API Error Birthday: ${response.status}`);
+              console.warn('Получена некорректная дата рождения:', data.birthday);
+              setIsBirthday(false);
+              setDaysToBirthday(null);
+              setProfileData(prev => ({ ...prev, birthday: null }));
           }
-      } catch (error) {
-          console.error('Ошибка при загрузке данных о дне рождения:', error);
-          setSpecificErrors(prev => ({ ...prev, birthday: 'Не удалось загрузить инфо о дне рождения' }));
+        } else {
           setIsBirthday(false);
           setDaysToBirthday(null);
+          setProfileData(prev => ({ ...prev, birthday: null }));
+        }
+      } else {
+        console.error('Ошибка при загрузке данных о дне рождения:', response.status);
+        setIsBirthday(false);
+        setDaysToBirthday(null);
+        setProfileData(prev => ({ ...prev, birthday: null }));
+        throw new Error(`API Error Birthday: ${response.status}`);
       }
+    } catch (error) {
+      console.error('Ошибка при получении данных о дне рождения:', error);
+      setSpecificErrors(prev => ({ ...prev, birthday: 'Не удалось загрузить инфо о дне рождения' }));
+      setIsBirthday(false);
+      setDaysToBirthday(null);
+      setProfileData(prev => ({ ...prev, birthday: null }));
+    } finally {
+      setLoadingBirthday(false);
+    }
   };
 
   const loadTierlists = async (userId) => {
@@ -490,7 +532,7 @@ export default function Profile() {
         <div className={styles.birthdayContainer}>
           <span className={styles.birthdayIcon}>🎂</span>
           <span className={styles.birthdayText}>
-            День рождения через {daysToBirthday} {getDayWord(daysToBirthday)}!
+            День рождения через {daysToBirthday} {getDaysText(daysToBirthday)}!
           </span>
         </div>
       );
@@ -626,8 +668,34 @@ export default function Profile() {
     );
   }
 
-  const retryLoading = () => {
-    window.location.reload();
+  const retryLoading = (section) => {
+    console.log(`Повторная попытка загрузки секции: ${section}`);
+    if (!userId) {
+      console.error('Невозможно повторить загрузку: userId отсутствует');
+      return;
+    }
+    switch (section) {
+      case 'followers':
+        loadFollowers(userId);
+        break;
+      case 'followings':
+        loadFollowings(userId);
+        break;
+      case 'stats':
+        loadStats(userId);
+        break;
+      case 'socialLinks':
+        loadSocialLinks(userId);
+        break;
+      case 'birthday':
+        loadBirthdayData(userId);
+        break;
+      case 'tierlists':
+        loadTierlists(userId);
+        break;
+      default:
+        console.warn(`Неизвестная секция для повторной загрузки: ${section}`);
+    }
   };
 
   if (error) {
@@ -636,7 +704,7 @@ export default function Profile() {
         <div className={styles.error}>
           <h2>Произошла ошибка</h2>
           <p>{error}</p>
-          <button onClick={retryLoading} className={styles.button}>
+          <button onClick={() => retryLoading('followers')} className={styles.button}>
             Попробовать снова
           </button>
         </div>
@@ -649,7 +717,7 @@ export default function Profile() {
       <div className={styles.profileContainer}>
         <div className={styles.profileHeader}>
           <h2>Не удалось загрузить профиль</h2>
-          <button onClick={retryLoading} className={styles.button}>
+          <button onClick={() => retryLoading('followers')} className={styles.button}>
             Попробовать снова
           </button>
         </div>
@@ -703,8 +771,21 @@ export default function Profile() {
             <div className={styles.profileStats}>
               <div className={styles.profileStat}>
                 <span className={styles.statIcon}>👥</span>
-                <span className={styles.statValue}>{totalFollowers.toLocaleString('ru-RU')}</span>
-                <span className={styles.statLabel}>Подписчиков</span>
+                <div className={styles.userStats}>
+                  <div className={styles.statItem}>
+                    <span className={styles.statLabel}>Подписчики</span>
+                    {loadingFollowers ? (
+                      <div className={styles.smallLoader}></div>
+                    ) : specificErrors.followers ? (
+                      <div className={styles.statError}>
+                        <span className={styles.errorText}>Ошибка</span>
+                        <button onClick={() => retryLoading('followers')} className={styles.retryButton} title="Повторить">↺</button>
+                      </div>
+                    ) : (
+                      <span className={styles.statValue}>{totalFollowers ?? '0'}</span>
+                    )}
+                  </div>
+                </div>
               </div>
               {profileData?.view_count > 0 && (
                 <div className={styles.profileStat}>
@@ -853,9 +934,17 @@ export default function Profile() {
             </div>
           </>
         )}
-        {Object.values(specificErrors).map((errMsg, index) =>
-            errMsg ? <p key={index} className={styles.specificError}>{errMsg}</p> : null
-        )}
+        <div className={styles.loadingErrors}>
+          {Object.entries(specificErrors).map(([key, errorMsg]) => {
+            if (!errorMsg || ['followers', 'followings', 'stats', 'socialLinks', 'birthday'].includes(key)) return null;
+            return (
+              <div key={key} className={styles.errorItem}>
+                <span className={styles.errorIcon}>⚠️</span> 
+                {errorMsg}
+              </div>
+            );
+          })}
+        </div>
       </div>
     </div>
   );

@@ -1646,3 +1646,46 @@
   white-space: pre-line;
   line-height: 1.5;
 }
+
+/* Styles for inline loading/error states in stats */
+.smallLoader {
+  display: inline-block;
+  border: 3px solid rgba(255, 255, 255, 0.2);
+  border-top: 3px solid #9146FF; /* Twitch purple */
+  border-radius: 50%;
+  width: 16px;
+  height: 16px;
+  animation: spin 0.8s linear infinite;
+  vertical-align: middle; /* Align with text */
+}
+
+.statError {
+  display: inline-flex; /* Use flex to align items */
+  align-items: center;
+  gap: 5px; /* Space between error text and button */
+}
+
+.errorText {
+  color: #ff4d4f; /* Red color for error */
+  font-size: 0.9em; /* Slightly smaller */
+  font-weight: 500;
+}
+
+.retryButton {
+  background: none;
+  border: none;
+  color: #9146FF; /* Twitch purple */
+  font-size: 1.1em; /* Slightly larger */
+  cursor: pointer;
+  padding: 0 3px;
+  line-height: 1;
+  transition: transform 0.2s;
+}
+
+.retryButton:hover {
+  transform: rotate(360deg); /* Spin on hover */
+}
+
+.userStats {
+  display: flex;
+}

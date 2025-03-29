@@ -229,6 +229,34 @@
   font-size: 14px;
 }
 
+/* Styles for specific field errors */
+.fieldError {
+  color: #ff3b30; /* Red color for error text */
+  font-size: 13px; /* Slightly smaller font size */
+  margin-top: 5px; /* Space above the error message */
+  display: block; /* Ensure it takes its own line */
+}
+
+/* Style for input/select/textarea fields with errors */
+.errorInput,
+.errorInput:focus {
+  border-color: #ff3b30 !important; /* Red border, important to override focus */
+  box-shadow: 0 0 0 2px rgba(255, 59, 48, 0.2); /* Red glow on focus */
+}
+
+/* Style for the rating container when there's an error */
+.errorRating {
+  border: 1px solid #ff3b30;
+  border-radius: 8px;
+  padding: 5px; /* Add some padding to visualize the border */
+  margin-top: 5px; /* Consistent margin */
+}
+
+/* Style for general submit error message */
+.generalErrorMessage {
+  margin-bottom: 20px; /* More space below the general error */
+}
+
 .formGroup {
   margin-bottom: 20px;
 }

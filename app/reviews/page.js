@@ -22,6 +22,7 @@ export default function Reviews() {
   const [reviewText, setReviewText] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState('');
+  const [formErrors, setFormErrors] = useState({});
   const router = useRouter();
 
   useEffect(() => {
@@ -75,6 +76,7 @@ export default function Reviews() {
     setProductName('');
     setReviewText('');
     setSubmitError('');
+    setFormErrors({});
   };
 
   const handleRatingClick = (starIndex) => {
@@ -90,41 +92,40 @@ export default function Reviews() {
   };
 
   const validateForm = () => {
+    const errors = {};
     if (!selectedCategory) {
-      setSubmitError('Выберите категорию');
-      return false;
+      errors.category = 'Выберите категорию';
     }
     
-    if (!selectedSubcategory) {
-      setSubmitError('Выберите подкатегорию');
-      return false;
+    if (selectedCategory && !selectedSubcategory) {
+      errors.subcategory = 'Выберите подкатегорию';
     }
     
     if (!productName.trim()) {
-      setSubmitError('Введите название товара или услуги');
-      return false;
+      errors.productName = 'Введите название товара или услуги';
     }
     
     if (rating === 0) {
-      setSubmitError('Поставьте оценку (от 1 до 5 звезд)');
-      return false;
+      errors.rating = 'Поставьте оценку (от 1 до 5 звезд)';
     }
     
     if (!reviewText.trim() || reviewText.length < 10) {
-      setSubmitError('Напишите отзыв (минимум 10 символов)');
-      return false;
+      errors.reviewText = 'Напишите отзыв (минимум 10 символов)';
     }
     
-    return true;
+    setFormErrors(errors);
+    return Object.keys(errors).length === 0;
   };
 
   const submitReview = async () => {
+    setSubmitError('');
+    setFormErrors({});
+    
     if (!validateForm()) {
       return;
     }
     
     setSubmitting(true);
-    setSubmitError('');
     
     try {
       // Получаем данные пользователя
@@ -244,7 +245,7 @@ export default function Reviews() {
             </div>
             <div className={styles.modalContent}>
               {submitError && (
-                <div className={styles.errorMessage}>
+                <div className={`${styles.errorMessage} ${styles.generalErrorMessage}`}>
                   {submitError}
                 </div>
               )}
@@ -252,12 +253,13 @@ export default function Reviews() {
               <div className={styles.formGroup}>
                 <label>Категория</label>
                 <select 
-                  className={styles.selectField}
+                  className={`${styles.selectField} ${formErrors.category ? styles.errorInput : ''}`}
                   value={selectedCategory ? selectedCategory.id : ""}
                   onChange={(e) => {
                     const cat = categories.find(c => c.id === e.target.value);
                     setSelectedCategory(cat);
                     setSelectedSubcategory(null);
+                    setFormErrors(prev => ({...prev, category: '', subcategory: ''}));
                   }}
                 >
                   <option value="">Выберите категорию</option>
@@ -265,24 +267,28 @@ export default function Reviews() {
                     <option key={cat.id} value={cat.id}>{cat.name}</option>
                   ))}
                 </select>
+                {formErrors.category && <span className={styles.fieldError}>{formErrors.category}</span>}
               </div>
               
               {selectedCategory && (
                 <div className={styles.formGroup}>
                   <label>Подкатегория</label>
                   <select 
-                    className={styles.selectField}
+                    className={`${styles.selectField} ${formErrors.subcategory ? styles.errorInput : ''}`}
                     value={selectedSubcategory ? selectedSubcategory.id : ""}
                     onChange={(e) => {
                       const subcat = selectedCategory.subcategories.find(sc => sc.id === e.target.value);
                       setSelectedSubcategory(subcat);
+                      setFormErrors(prev => ({...prev, subcategory: ''}));
                     }}
+                    disabled={!selectedCategory}
                   >
                     <option value="">Выберите подкатегорию</option>
                     {selectedCategory.subcategories.map(subcat => (
                       <option key={subcat.id} value={subcat.id}>{subcat.name}</option>
                     ))}
                   </select>
+                  {formErrors.subcategory && <span className={styles.fieldError}>{formErrors.subcategory}</span>}
                 </div>
               )}
               
@@ -290,20 +296,27 @@ export default function Reviews() {
                 <label>Название товара или услуги</label>
                 <input 
                   type="text" 
-                  className={styles.inputField} 
+                  className={`${styles.inputField} ${formErrors.productName ? styles.errorInput : ''}`} 
                   placeholder="Например: Logitech G Pro X" 
                   value={productName}
-                  onChange={(e) => setProductName(e.target.value)}
+                  onChange={(e) => {
+                    setProductName(e.target.value);
+                    setFormErrors(prev => ({...prev, productName: ''}));
+                  }}
                 />
+                {formErrors.productName && <span className={styles.fieldError}>{formErrors.productName}</span>}
               </div>
               <div className={styles.formGroup}>
                 <label>Оценка</label>
-                <div className={styles.ratingSelector}>
+                <div className={`${styles.ratingSelector} ${formErrors.rating ? styles.errorRating : ''}`}>
                   {[1, 2, 3, 4, 5].map(star => (
                     <span 
                       key={star} 
                       className={`${styles.ratingStar} ${(hoverRating || rating) >= star ? styles.active : ''}`}
-                      onClick={() => handleRatingClick(star)}
+                      onClick={() => {
+                        handleRatingClick(star);
+                        setFormErrors(prev => ({...prev, rating: ''}));
+                      }}
                       onMouseEnter={() => handleMouseEnter(star)}
                       onMouseLeave={handleMouseLeave}
                     >
@@ -311,16 +324,21 @@ export default function Reviews() {
                     </span>
                   ))}
                 </div>
+                {formErrors.rating && <span className={styles.fieldError}>{formErrors.rating}</span>}
               </div>
               <div className={styles.formGroup}>
                 <label>Отзыв</label>
                 <textarea 
-                  className={styles.textareaField} 
+                  className={`${styles.textareaField} ${formErrors.reviewText ? styles.errorInput : ''}`} 
                   placeholder="Поделитесь своим опытом использования..."
                   rows="5"
                   value={reviewText}
-                  onChange={(e) => setReviewText(e.target.value)}
+                  onChange={(e) => {
+                    setReviewText(e.target.value);
+                    setFormErrors(prev => ({...prev, reviewText: ''}));
+                  }}
                 ></textarea>
+                {formErrors.reviewText && <span className={styles.fieldError}>{formErrors.reviewText}</span>}
               </div>
               <div className={styles.formActions}>
                 <button 
