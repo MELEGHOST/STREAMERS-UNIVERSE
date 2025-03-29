@@ -173,6 +173,16 @@ export default function EditProfile() {
     }
   };
 
+  // Отладочный лог перед рендерингом
+  console.log('EditProfile RENDERING with state:', { 
+    loading, 
+    error, 
+    submitting, 
+    saveSuccess, 
+    saveError, 
+    editData 
+  });
+
   return (
     <div className={styles.editProfileContainer}>
       <h1 className={styles.editProfileTitle}>Редактирование профиля</h1>
