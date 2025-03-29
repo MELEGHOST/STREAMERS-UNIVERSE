@@ -43,6 +43,8 @@
     "@types/jsonwebtoken": "^9.0.5",
     "@types/node": "22.13.9",
     "@types/react": "19.0.10",
+    "eslint": "9.23.0",
+    "eslint-config-next": "15.2.4",
     "typescript": "5.7.3"
   },
   "engines": {

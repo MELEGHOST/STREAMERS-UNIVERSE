@@ -43,7 +43,7 @@ function isValidUrl(url) {
   try {
     const parsedUrl = new URL(url);
     return ['http:', 'https:'].includes(parsedUrl.protocol);
-  } catch (e) {
+  } catch {
     return false;
   }
 }

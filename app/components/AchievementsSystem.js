@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react';
 import styles from './AchievementsSystem.module.css';
 
 // Компонент системы достижений
-const AchievementsSystem = ({ user, followerCount, isStreamer, streamsCompleted = 0, hasCollaborations = false }) => {
+const AchievementsSystem = ({ followerCount, isStreamer, streamsCompleted = 0, hasCollaborations = false }) => {
   const [achievements, setAchievements] = useState([]);
   const [unlockedAchievements, setUnlockedAchievements] = useState([]);
   const [showEasterEgg, setShowEasterEgg] = useState(false);
@@ -134,7 +134,7 @@ const AchievementsSystem = ({ user, followerCount, isStreamer, streamsCompleted 
     if (secretClickCount >= 10) {
       setShowEasterEgg(true);
     }
-  }, [followerCount, isStreamer, streamsCompleted, hasCollaborations, secretClickCount]);
+  }, [followerCount, isStreamer, streamsCompleted, hasCollaborations, secretClickCount, allAchievements]);
 
   // Обработчик для скрытой пасхалки
   const handleSecretClick = () => {

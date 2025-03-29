@@ -2,8 +2,6 @@
 
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import Cookies from 'js-cookie';
-import Image from 'next/image';
 import styles from './coins.module.css';
 import { DataStorage } from '../utils/dataStorage';
 
@@ -50,7 +48,7 @@ export default function StreamerCoins() {
     };
 
     loadUserData();
-  }, [router]);
+  }, [router, loadCoinsData]);
 
   // Функция для загрузки данных о коинах
   const loadCoinsData = (userId) => {

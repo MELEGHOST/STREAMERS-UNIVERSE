@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useRef } from 'react';
+import Image from 'next/image';
 import styles from './FileUploader.module.css';
 
 /**
@@ -187,7 +188,13 @@ export default function FileUploader({
               <div key={index} className={styles.previewItem}>
                 <div className={styles.previewContent}>
                   {preview.type === 'image' && (
-                    <img src={preview.url} alt={preview.name} className={styles.imagePreview} />
+                    <Image 
+                      src={preview.url} 
+                      alt={preview.name} 
+                      className={styles.imagePreview} 
+                      width={60}
+                      height={60}
+                    />
                   )}
                   {preview.type === 'video' && (
                     <video 

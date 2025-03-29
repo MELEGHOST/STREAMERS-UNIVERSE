@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import Image from 'next/image';
 import supabase from '../../../lib/supabase';
 import { checkAdminAccess, isModeratorOrHigher } from '../../utils/adminUtils';
 import { DataStorage } from '../../utils/dataStorage';
@@ -31,7 +32,7 @@ export default function AdminReviewsPage() {
     };
     
     checkAccess();
-  }, [router]);
+  }, [router, filter]);
 
   // Загрузка отзывов из Supabase
   const loadReviews = async (status) => {
@@ -224,7 +225,13 @@ export default function AdminReviewsPage() {
                     {review.sources.map((source, index) => (
                       <div key={index} className={styles.sourceItem}>
                         {source.includes('jpg') || source.includes('jpeg') || source.includes('png') || source.includes('gif') ? (
-                          <img src={source} alt={`Источник ${index + 1}`} className={styles.sourceImage} />
+                          <Image 
+                            src={source} 
+                            alt={`Источник ${index + 1}`} 
+                            className={styles.sourceImage} 
+                            width={100}
+                            height={100}
+                          />
                         ) : source.includes('mp4') || source.includes('webm') || source.includes('avi') ? (
                           <video src={source} controls className={styles.sourceVideo} />
                         ) : (

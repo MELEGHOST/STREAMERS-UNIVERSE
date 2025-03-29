@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useRef, useEffect } from 'react';
+import Image from 'next/image';
 import styles from './CyberAvatar.module.css';
 
 /**
@@ -103,7 +104,12 @@ const CyberAvatar = ({ imageUrl, src, alt, size = 190 }) => {
                 <span /><span /><span /><span />
               </div>
               <div className={styles.avatarImage}>
-                <img src={imageSrc} alt={alt || 'Аватар'} />
+                <Image 
+                  src={imageSrc} 
+                  alt={alt || 'Аватар'} 
+                  layout="fill" 
+                  objectFit="cover"
+                />
               </div>
               <div className={styles.glowingElements}>
                 <div className={styles.glow1} />

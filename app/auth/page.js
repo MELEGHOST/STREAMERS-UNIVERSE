@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { signIn, useSession } from 'next-auth/react';
+import { useSession } from 'next-auth/react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Cookies from 'js-cookie';
 import { DataStorage } from '../utils/dataStorage';
@@ -26,7 +26,7 @@ function TwitchErrorInfo({ errorType, errorDetails }) {
           <ol>
             <li>Перейдите в <a href="https://dev.twitch.tv/console/apps" target="_blank" rel="noreferrer">консоль разработчика Twitch</a></li>
             <li>Откройте настройки вашего приложения</li>
-            <li>В поле "OAuth Redirect URLs" убедитесь, что указан следующий URL:</li>
+            <li>В поле &quot;OAuth Redirect URLs&quot; убедитесь, что указан следующий URL:</li>
             <div className={styles.codeBlock}>
               <code>{errorDetails.actual}</code>
             </div>
@@ -103,7 +103,7 @@ export default function AuthPage() {
     if (errorType) {
       setError(`Ошибка авторизации: ${errorType}`);
     }
-  }, [session, status, errorType]);
+  }, [session, status, errorType, handleSuccessfulAuth]);
 
   // Функция для обработки успешной авторизации
   const handleSuccessfulAuth = async () => {

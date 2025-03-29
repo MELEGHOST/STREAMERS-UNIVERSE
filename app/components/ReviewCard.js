@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Image from 'next/image';
 import styles from './ReviewCard.module.css';
 
@@ -9,9 +9,11 @@ const ReviewCard = ({ review }) => {
   const [likes, setLikes] = useState(review?.likes || 0);
   const [dislikes, setDislikes] = useState(review?.dislikes || 0);
   const [userAction, setUserAction] = useState(null); // 'like', 'dislike', null
+  const [isLoadingVote, setIsLoadingVote] = useState(false);
+  const [errorMessage, setErrorMessage] = useState('');
   
   // Если отзыва нет, отображаем заглушку
-  if (!review) {
+  if (!review || !review.id) {
     return (
       <div className={styles.reviewCardPlaceholder}>
         <div className={styles.shimmerEffect}></div>
@@ -21,6 +23,7 @@ const ReviewCard = ({ review }) => {
   
   // Формирование даты в читаемом формате
   const formatDate = (dateString) => {
+    if (!dateString) return '';
     const date = new Date(dateString);
     return date.toLocaleDateString('ru-RU', {
       day: 'numeric',
@@ -32,8 +35,9 @@ const ReviewCard = ({ review }) => {
   // Генерация звезд для отображения рейтинга
   const renderStars = (rating) => {
     const stars = [];
+    const numRating = Number(rating) || 0;
     for (let i = 1; i <= 5; i++) {
-      if (i <= rating) {
+      if (i <= numRating) {
         stars.push(<span key={i} className={styles.starFilled}>★</span>);
       } else {
         stars.push(<span key={i} className={styles.starEmpty}>☆</span>);
@@ -42,30 +46,47 @@ const ReviewCard = ({ review }) => {
     return stars;
   };
   
-  // Обработка лайка/дизлайка
-  const handleVote = (action) => {
-    if (userAction === action) {
-      // Отмена голоса
-      if (action === 'like') {
-        setLikes(likes - 1);
-      } else {
-        setDislikes(dislikes - 1);
-      }
-      setUserAction(null);
+  // Обработка голоса через API
+  const handleVote = async (actionType) => {
+    if (isLoadingVote) return;
+    setIsLoadingVote(true);
+    setErrorMessage('');
+
+    let voteToSend;
+    if (userAction === actionType) {
+      voteToSend = 0;
     } else {
-      // Новый голос или смена голоса
-      if (userAction === 'like' && action === 'dislike') {
-        setLikes(likes - 1);
-        setDislikes(dislikes + 1);
-      } else if (userAction === 'dislike' && action === 'like') {
-        setLikes(likes + 1);
-        setDislikes(dislikes - 1);
-      } else if (action === 'like') {
-        setLikes(likes + 1);
-      } else {
-        setDislikes(dislikes + 1);
+      voteToSend = actionType;
+    }
+
+    try {
+      const response = await fetch(`/api/reviews/${review.id}/vote`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ voteType: voteToSend }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Ошибка при голосовании');
       }
-      setUserAction(action);
+
+      if (data.success) {
+        setLikes(data.likes);
+        setDislikes(data.dislikes);
+        setUserAction(data.currentUserVote);
+      } else {
+        setErrorMessage(data.message || 'Не удалось обработать голос');
+      }
+
+    } catch (error) {
+      console.error('Ошибка при голосовании:', error);
+      setErrorMessage(error.message);
+    } finally {
+      setIsLoadingVote(false);
     }
   };
   
@@ -73,36 +94,42 @@ const ReviewCard = ({ review }) => {
     <div className={styles.reviewCard}>
       <div className={styles.reviewHeader}>
         <div className={styles.reviewUser}>
-          <img 
+          <Image 
             src={review.userAvatar || 'https://via.placeholder.com/40'} 
-            alt={review.userName} 
+            alt={review.userName || 'User'}
             className={styles.userAvatar} 
+            width={40}
+            height={40}
           />
           <div className={styles.userInfo}>
-            <div className={styles.userName}>{review.userName}</div>
-            <div className={styles.reviewDate}>{formatDate(review.date || new Date())}</div>
+            <div className={styles.userName}>{review.userName || 'Аноним'}</div>
+            <div className={styles.reviewDate}>{formatDate(review.created_at || review.date)}</div>
           </div>
         </div>
         <div className={styles.reviewRating}>
           {renderStars(review.rating)}
-          <span className={styles.ratingValue}>{review.rating}/5</span>
+          <span className={styles.ratingValue}>{review.rating ?? '-'}/5</span>
         </div>
       </div>
       
       <div className={styles.reviewContent}>
-        <h3 className={styles.reviewTitle}>{review.title}</h3>
+        <h3 className={styles.reviewTitle}>{review.title || review.productName || 'Отзыв'}</h3>
         
-        <div className={styles.reviewProduct}>
-          <img 
-            src={review.productImage || 'https://via.placeholder.com/60'} 
-            alt={review.productName} 
-            className={styles.productImage} 
-          />
-          <div className={styles.productInfo}>
-            <div className={styles.productName}>{review.productName}</div>
-            <div className={styles.productPrice}>{review.productPrice}</div>
+        {review.productName && (
+          <div className={styles.reviewProduct}>
+            <Image 
+              src={review.productImage || 'https://via.placeholder.com/60'} 
+              alt={review.productName} 
+              className={styles.productImage} 
+              width={60}
+              height={60}
+            />
+            <div className={styles.productInfo}>
+              <div className={styles.productName}>{review.productName}</div>
+              {review.productPrice && <div className={styles.productPrice}>{review.productPrice}</div>}
+            </div>
           </div>
-        </div>
+        )}
         
         <div className={`${styles.reviewText} ${isExpanded ? styles.expanded : ''}`}>
           {review.text}
@@ -126,55 +153,67 @@ const ReviewCard = ({ review }) => {
           </button>
         )}
         
-        <div className={styles.prosConsContainer}>
-          <div className={styles.prosContainer}>
-            <div className={styles.prosTitle}>
-              <span className={styles.prosIcon}>👍</span> Плюсы
-            </div>
-            <ul className={styles.prosList}>
-              {review.pros && review.pros.map((pro, index) => (
-                <li key={index} className={styles.prosItem}>{pro}</li>
-              ))}
-            </ul>
+        {(review.pros?.length > 0 || review.cons?.length > 0) && (
+          <div className={styles.prosConsContainer}>
+            {review.pros?.length > 0 && (
+              <div className={styles.prosContainer}>
+                <div className={styles.prosTitle}>
+                  <span className={styles.prosIcon}>👍</span> Плюсы
+                </div>
+                <ul className={styles.prosList}>
+                  {review.pros.map((pro, index) => (
+                    <li key={index} className={styles.prosItem}>{pro}</li>
+                  ))}
+                </ul>
+              </div>
+            )}
+            
+            {review.cons?.length > 0 && (
+              <div className={styles.consContainer}>
+                <div className={styles.consTitle}>
+                  <span className={styles.consIcon}>👎</span> Минусы
+                </div>
+                <ul className={styles.consList}>
+                  {review.cons.map((con, index) => (
+                    <li key={index} className={styles.consItem}>{con}</li>
+                  ))}
+                </ul>
+              </div>
+            )}
           </div>
-          
-          <div className={styles.consContainer}>
-            <div className={styles.consTitle}>
-              <span className={styles.consIcon}>👎</span> Минусы
-            </div>
-            <ul className={styles.consList}>
-              {review.cons && review.cons.map((con, index) => (
-                <li key={index} className={styles.consItem}>{con}</li>
-              ))}
-            </ul>
-          </div>
-        </div>
+        )}
       </div>
       
       <div className={styles.reviewFooter}>
+        {errorMessage && <div className={styles.errorMessage}>{errorMessage}</div>}
+        
         <div className={styles.voteButtons}>
-          <button 
-            className={`${styles.likeButton} ${userAction === 'like' ? styles.active : ''}`}
-            onClick={() => handleVote('like')}
+          <button
+            className={`${styles.likeButton} ${userAction === 1 ? styles.active : ''} ${isLoadingVote ? styles.loading : ''}`}
+            onClick={() => handleVote(1)}
+            disabled={isLoadingVote}
           >
             <span className={styles.likeIcon}>👍</span>
             <span className={styles.likeCount}>{likes}</span>
           </button>
           
-          <button 
-            className={`${styles.dislikeButton} ${userAction === 'dislike' ? styles.active : ''}`}
-            onClick={() => handleVote('dislike')}
+          <button
+            className={`${styles.dislikeButton} ${userAction === -1 ? styles.active : ''} ${isLoadingVote ? styles.loading : ''}`}
+            onClick={() => handleVote(-1)}
+            disabled={isLoadingVote}
           >
             <span className={styles.dislikeIcon}>👎</span>
             <span className={styles.dislikeCount}>{dislikes}</span>
           </button>
         </div>
         
-        <div className={styles.reviewTags}>
-          {review.tags && review.tags.map((tag, index) => (
-            <span key={index} className={styles.tag}>#{tag}</span>
-          ))}
-        </div>
+        {review.tags?.length > 0 && (
+          <div className={styles.reviewTags}>
+            {review.tags.map((tag, index) => (
+              <span key={index} className={styles.tag}>#{tag}</span>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );

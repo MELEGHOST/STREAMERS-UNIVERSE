@@ -27,7 +27,7 @@ const createSupabaseServerClient = () => {
 };
 
 // GET-обработчик: получение данных профиля
-export async function GET(request) {
+export async function GET() {
   const supabase = createSupabaseServerClient();
 
   try {

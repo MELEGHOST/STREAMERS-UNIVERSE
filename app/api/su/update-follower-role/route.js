@@ -64,6 +64,15 @@ export async function POST(request) {
       .eq('assignerId', userData.id)
       .single();
     
+    // Проверяем ошибку при получении существующей роли,
+    // Игнорируем ошибку "строка не найдена" (PGRST116), так как это означает, что роль нужно создать
+    if (roleError && roleError.code !== 'PGRST116') {
+      console.error('Ошибка при проверке существующей роли:', roleError);
+      return NextResponse.json({ 
+        error: 'Не удалось проверить существующую роль пользователя' 
+      }, { status: 500 });
+    }
+    
     if (existingRole) {
       // Обновляем существующую роль
       const { data: updatedRole, error: updateError } = await supabase

@@ -37,11 +37,10 @@ function sanitizeObject(obj) {
 
 /**
  * Проверяет, зарегистрирован ли пользователь в Streamers Universe
- * @param {string} userId - ID пользователя для проверки
  * @param {object} cookies - Объект с куками для проверки
  * @returns {boolean} - true, если пользователь зарегистрирован, иначе false
  */
-function checkUserRegistrationInSU(userId, cookies) {
+function checkUserRegistrationInSU() {
   try {
     // Все пользователи Twitch считаются зарегистрированными в Streamers Universe
     return true;
@@ -188,7 +187,7 @@ export async function GET(request) {
     const isStreamer = follower_count >= 265;
     
     // Проверяем, зарегистрирован ли пользователь в Streamers Universe
-    const isRegisteredInSU = checkUserRegistrationInSU(twitchUser.id, cookieStore);
+    const isRegisteredInSU = checkUserRegistrationInSU();
     
     // Получаем социальные ссылки пользователя, если он зарегистрирован в SU
     const socialLinks = isRegisteredInSU ? await getUserSocialLinks(twitchUser.id) : null;

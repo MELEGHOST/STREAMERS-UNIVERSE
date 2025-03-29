@@ -5,22 +5,6 @@ import { createClient } from '@supabase/supabase-js';
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
-// Функция для получения ID пользователя из куки
-function getUserIdFromCookies() {
-  try {
-    const cookieStore = cookies();
-    const userCookie = cookieStore.get('twitch_user')?.value;
-    if (userCookie) {
-      const userData = JSON.parse(userCookie);
-      return userData.id;
-    }
-    return null;
-  } catch (error) {
-    console.error('Ошибка при получении ID пользователя из куки:', error);
-    return null;
-  }
-}
-
 // Функция для получения данных пользователя из куки
 function getUserDataFromCookies() {
   try {

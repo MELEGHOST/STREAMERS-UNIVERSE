@@ -1,7 +1,6 @@
 'use server';
 
 import { NextResponse } from 'next/server';
-import { cookies } from 'next/headers';
 import { createPool } from '@vercel/postgres';
 import { authenticateUser } from '../../lib/auth';
 
@@ -37,7 +36,7 @@ export async function GET(request) {
     result.rows.forEach(row => {
       try {
         userData[row.data_type] = JSON.parse(row.data_value);
-      } catch (e) {
+      } catch {
         userData[row.data_type] = row.data_value;
       }
     });

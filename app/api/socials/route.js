@@ -1,6 +1,7 @@
 import { createPool } from '@vercel/postgres';
 import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
+import { escapeHtml, sanitizeObject, isValidUrl } from '@/utils/securityUtils';
 
 // Функция для экранирования HTML-тегов
 function escapeHtml(text) {
@@ -43,12 +44,12 @@ function isValidUrl(url) {
   try {
     const parsedUrl = new URL(url);
     return ['http:', 'https:'].includes(parsedUrl.protocol);
-  } catch (e) {
+  } catch {
     return false;
   }
 }
 
-export async function GET(request) {
+export async function GET() {
   try {
     // Получаем токен доступа из куки
     const cookieStore = cookies();
@@ -120,20 +121,23 @@ export async function GET(request) {
 
 export async function POST(request) {
   try {
-    // Удаляем проверку CSRF-токена, так как она вызывает ошибку
-    // const cookieStore = cookies();
-    // const csrfToken = cookieStore.get('csrf_token')?.value;
-    // const requestCsrfToken = request.headers.get('x-csrf-token');
-    
-    // if (!csrfToken || !requestCsrfToken || csrfToken !== requestCsrfToken) {
-    //   console.error('CSRF token validation failed');
-    //   return NextResponse.json({ error: 'CSRF token validation failed' }, { status: 403 });
-    // }
+    // Восстанавливаем проверку CSRF с использованием паттерна Double Submit Cookie
+    // Важно: HttpOnly cookie 'csrf_secret' и обычный cookie 'csrf_token' (или аналоги) 
+    // должны быть установлены заранее (например, при загрузке страницы/формы или логине).
+    // Клиент должен прочитать 'csrf_token' и отправить его в заголовке 'x-csrf-token'.
+    const cookieStore = cookies();
+    const csrfSecret = cookieStore.get('csrf_secret')?.value; // Читаем секретный HttpOnly cookie
+    const requestCsrfToken = request.headers.get('x-csrf-token'); // Читаем токен из заголовка
+
+    if (!csrfSecret || !requestCsrfToken || csrfSecret !== requestCsrfToken) {
+      console.error('CSRF token validation failed. Secret:', csrfSecret, 'Token:', requestCsrfToken);
+      // В production не логируйте значения токенов
+      return NextResponse.json({ error: 'CSRF token validation failed' }, { status: 403 });
+    }
     
     const body = await request.json();
     
     // Получаем токен доступа из куки
-    const cookieStore = cookies();
     const accessToken = cookieStore.get('twitch_access_token')?.value;
     
     if (!accessToken) {

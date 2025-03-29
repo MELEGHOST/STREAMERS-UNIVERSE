@@ -1,10 +1,12 @@
 import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import supabase from '../../../../lib/supabase';
-import { DataStorage } from '../../../utils/dataStorage';
+
+// Адрес Hugging Face Inference API для модели distilgpt2
+const HF_API_URL = "https://api-inference.huggingface.co/models/distilgpt2";
 
 /**
- * Обработка запроса на генерацию отзыва с помощью нейросети
+ * Обработка запроса на генерацию отзыва с помощью AI
  */
 export async function POST(request) {
   try {
@@ -34,12 +36,12 @@ export async function POST(request) {
     
     for (const filePath of files) {
       // Получаем публичный URL файла
-      const { data: publicUrl } = supabase.storage
+      const { data: publicUrlData } = supabase.storage
         .from('user-uploads')
         .getPublicUrl(filePath);
       
-      if (publicUrl && publicUrl.publicUrl) {
-        fileUrls.push(publicUrl.publicUrl);
+      if (publicUrlData && publicUrlData.publicUrl) {
+        fileUrls.push(publicUrlData.publicUrl);
       }
     }
     
@@ -50,18 +52,57 @@ export async function POST(request) {
       );
     }
     
-    // Здесь будет отправка запроса к AI API (OpenAI или другому сервису)
-    // В данном примере мы имитируем работу нейросети с задержкой
+    // Формируем промпт для AI
+    // TODO: Улучшить промпт для более качественных и релевантных отзывов
+    const prompt = `Напиши короткий отзыв на русском языке о "${productName}" от пользователя ${authorName}. Учти, что категория продукта: ${category || 'не указана'}, а рейтинг: ${rating || 'не указан'} из 5. Упомяни, что отзыв основан на предоставленных материалах.`;
     
-    // Пример функции для имитации обработки нейросетью
-    const generatedReview = await simulateAIProcessing(fileUrls, authorName, productName, category, rating);
+    // Отправляем запрос к Hugging Face Inference API
+    let generatedContent = "Не удалось сгенерировать отзыв с помощью AI."; // Значение по умолчанию
+    try {
+      const response = await fetch(HF_API_URL, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          // 'Authorization': `Bearer ${process.env.HF_TOKEN}` // Раскомментируйте и добавьте токен в переменные окружения Vercel, если потребуется
+        },
+        body: JSON.stringify({
+          inputs: prompt,
+          parameters: { // Параметры генерации (можно настроить)
+            max_length: 100, // Максимальная длина отзыва
+            num_return_sequences: 1,
+            temperature: 0.7, // "Креативность" модели
+            // repetition_penalty: 1.1 // Штраф за повторения
+          }
+        }),
+      });
+
+      if (!response.ok) {
+        const errorBody = await response.text();
+        console.error(`Ошибка от Hugging Face API (${response.status}): ${errorBody}`);
+        // Не прерываем выполнение, используем текст по умолчанию
+      } else {
+        const result = await response.json();
+        if (result && result.length > 0 && result[0].generated_text) {
+          // Очищаем результат от исходного промпта, если модель его повторяет
+          generatedContent = result[0].generated_text.replace(prompt, '').trim();
+           // Дополнительная обработка для удаления возможных артефактов
+          generatedContent = generatedContent.split('\n')[0].trim(); // Берем первую строку
+          if (generatedContent.length < 20) { // Если результат слишком короткий, используем шаблон
+             generatedContent = `Отзыв о "${productName}" (${category || 'разное'}), рейтинг ${rating || '?'}/5. Основан на материалах от ${authorName}.`;
+          }
+        }
+      }
+    } catch (apiError) {
+      console.error('Ошибка при вызове Hugging Face API:', apiError);
+      // Используем текст по умолчанию
+    }
     
     // Обновляем запись отзыва в базе данных
     const { data: updatedReview, error: updateError } = await supabase
       .from('reviews')
       .update({
-        content: generatedReview.content,
-        sources: generatedReview.sources
+        content: generatedContent, // Используем сгенерированный текст
+        sources: fileUrls // Используем полученные URL файлов как источники
       })
       .eq('id', reviewId)
       .select()
@@ -81,101 +122,10 @@ export async function POST(request) {
     });
     
   } catch (error) {
-    console.error('Произошла ошибка при обработке файлов нейросетью:', error);
+    console.error('Произошла ошибка при обработке генерации отзыва:', error);
     return NextResponse.json(
       { error: 'Произошла ошибка при обработке запроса' },
       { status: 500 }
     );
   }
-}
-
-/**
- * Функция для имитации обработки файлов нейросетью
- * В реальном приложении здесь будет запрос к API OpenAI или другому сервису AI
- */
-async function simulateAIProcessing(fileUrls, authorName, productName, category, rating) {
-  // Имитируем задержку обработки
-  await new Promise(resolve => setTimeout(resolve, 2000));
-  
-  // Информация о категории
-  const categoryInfo = category 
-    ? `в категории "${getCategoryDisplayName(category)}"` 
-    : '';
-  
-  // Информация о рейтинге
-  const ratingInfo = rating 
-    ? `с рейтингом ${rating}/5` 
-    : '';
-  
-  // Генерируем текст отзыва
-  const content = `
-    По результатам анализа материалов, ${authorName} оставил отзыв о продукте "${productName}" ${categoryInfo} ${ratingInfo}.
-    
-    ${getRandomReviewText(productName, rating)}
-    
-    Отзыв создан на основе загруженных материалов с использованием технологии искусственного интеллекта.
-  `.trim();
-  
-  // Генерируем список источников
-  const sources = fileUrls.map(url => url);
-  
-  return {
-    content,
-    sources
-  };
-}
-
-/**
- * Получение отображаемого имени категории
- */
-function getCategoryDisplayName(category) {
-  const categories = {
-    'electronics': 'Электроника',
-    'clothing': 'Одежда',
-    'food': 'Еда',
-    'games': 'Игры',
-    'services': 'Услуги',
-    'other': 'Другое'
-  };
-  
-  return categories[category] || category;
-}
-
-/**
- * Генерация случайного текста отзыва
- */
-function getRandomReviewText(productName, rating) {
-  // Варианты текстов для разных рейтингов
-  const reviewTexts = {
-    1: [
-      `К сожалению, продукт "${productName}" не оправдал ожиданий. Были выявлены серьезные недостатки в качестве и функциональности.`,
-      `Автор крайне разочарован продуктом "${productName}". В материалах отмечены многочисленные проблемы и дефекты.`
-    ],
-    2: [
-      `Продукт "${productName}" вызвал смешанные чувства. В нем есть как положительные стороны, так и существенные недостатки.`,
-      `Автор скорее не рекомендует продукт "${productName}". Несмотря на некоторые достоинства, недостатки перевешивают.`
-    ],
-    3: [
-      `Продукт "${productName}" получил среднюю оценку. Он в целом соответствует заявленным характеристикам, но не выделяется на фоне конкурентов.`,
-      `"${productName}" - обычный продукт без особых преимуществ, но и без серьезных недостатков.`
-    ],
-    4: [
-      `Автор положительно оценивает продукт "${productName}". Отмечены хорошее качество, функциональность и соотношение цена/качество.`,
-      `"${productName}" получил высокую оценку. Продукт соответствует ожиданиям и обладает рядом преимуществ.`
-    ],
-    5: [
-      `Автор в восторге от продукта "${productName}". В материалах отмечается исключительное качество, надежность и функциональность.`,
-      `"${productName}" заслужил наивысшую оценку! Продукт превзошел все ожидания и является лучшим в своей категории.`
-    ]
-  };
-  
-  // Если рейтинг не указан, выбираем случайный текст
-  if (!rating) {
-    const allTexts = [].concat(...Object.values(reviewTexts));
-    return allTexts[Math.floor(Math.random() * allTexts.length)];
-  }
-  
-  // Возвращаем случайный текст для указанного рейтинга
-  const textsForRating = reviewTexts[rating] || reviewTexts[3];
-  return textsForRating[Math.floor(Math.random() * textsForRating.length)];
 } 

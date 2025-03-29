@@ -4,7 +4,6 @@ import { useEffect, useState, useRef, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '../../../contexts/AuthContext';
 import styles from '../auth.module.css';
-import clientStorage from '../../utils/clientStorage';
 import Cookies from 'js-cookie';
 import { DataStorage } from '../../utils/dataStorage';
 
@@ -228,7 +227,7 @@ function AuthResultContent() {
         clearTimeout(redirectTimeoutRef.current);
       }
     };
-  }, [searchParams, router, login]);
+  }, [searchParams, router, login, redirectToMenu]);
 
   return (
     <div className={styles.oldContainer}>

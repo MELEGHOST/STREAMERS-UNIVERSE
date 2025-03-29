@@ -4,7 +4,9 @@ import styled from 'styled-components';
 const Input = ({ value, onChange, onSearch, placeholder = "Поиск..." }) => {
   const handleKeyPress = (e) => {
     if (e.key === 'Enter') {
-      onSearch && onSearch();
+      if (onSearch) {
+        onSearch();
+      }
     }
   };
 

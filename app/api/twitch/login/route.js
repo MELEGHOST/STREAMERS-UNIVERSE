@@ -1,5 +1,4 @@
 import { NextResponse } from 'next/server';
-import crypto from 'crypto';
 
 // Функция для генерации случайной строки
 function generateRandomString(length) {

@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 
-export async function GET(request) {
+export async function GET() {
   try {
     // Получаем токен доступа из cookies
     const cookieStore = cookies();

@@ -1,19 +1,14 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
-import Image from 'next/image';
 import styles from './MenuHeader.module.css';
 
 const CoinDisplay = ({ userId }) => {
   const [streamCoins, setStreamCoins] = useState(100);
   const router = useRouter();
   
-  useEffect(() => {
-    loadStreamCoins();
-  }, [userId]);
-  
-  const loadStreamCoins = () => {
+  const loadStreamCoins = useCallback(() => {
     try {
       if (!userId) {
         console.error('Ошибка при загрузке стример-коинов: userId не определен');
@@ -59,7 +54,11 @@ const CoinDisplay = ({ userId }) => {
       console.error('Ошибка при загрузке стример-коинов:', error);
       setStreamCoins(100);
     }
-  };
+  }, [userId]);
+  
+  useEffect(() => {
+    loadStreamCoins();
+  }, [loadStreamCoins]);
   
   // Функция для перехода на страницу коинов
   const goToCoinsPage = (e) => {

@@ -176,8 +176,6 @@ export async function GET(request) {
       if (channelResponse.ok) {
         const channelData = await channelResponse.json();
         if (channelData.data && channelData.data.length > 0) {
-          const channelInfo = channelData.data[0];
-          
           // Проверяем, есть ли у канала программа подписки
           const hasSubProgram = 
             user.broadcaster_type === 'partner' || 

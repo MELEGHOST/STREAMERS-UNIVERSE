@@ -2,7 +2,6 @@
 
 import React, { useState } from 'react';
 import styles from './ReviewCategories.module.css';
-import ReviewList from './ReviewList';
 
 // Категории отзывов с подкатегориями
 export const categories = [
@@ -180,18 +179,10 @@ export const categories = [
 ];
 
 // Фильтры для отзывов
-const filters = [
-  { id: 'all', name: 'Все отзывы' },
-  { id: 'popular', name: 'Популярные' },
-  { id: 'recent', name: 'Недавние' },
-  { id: 'highest', name: 'Высокий рейтинг' },
-  { id: 'lowest', name: 'Низкий рейтинг' }
-];
 
 const ReviewCategories = ({ onWriteReview }) => {
   const [selectedCategory, setSelectedCategory] = useState(null);
   const [selectedSubcategory, setSelectedSubcategory] = useState(null);
-  const [activeFilter, setActiveFilter] = useState('all');
 
   // Функция для открытия модального окна с отзывами выбранной категории
   const openCategoryModal = (category) => {
@@ -203,18 +194,11 @@ const ReviewCategories = ({ onWriteReview }) => {
   const closeModal = () => {
     setSelectedCategory(null);
     setSelectedSubcategory(null);
-    setActiveFilter('all');
   };
 
   // Функция для выбора подкатегории
-  const selectSubcategory = (subcategory) => {
-    setSelectedSubcategory(subcategory);
-  };
 
   // Изменение активного фильтра
-  const handleFilterChange = (filterId) => {
-    setActiveFilter(filterId);
-  };
 
   // Функция для открытия формы написания отзыва
   const handleWriteReview = (subcategory = null) => {
@@ -230,11 +214,6 @@ const ReviewCategories = ({ onWriteReview }) => {
   };
 
   // Генерация отзывов для демонстрации (в реальном приложении это будут данные с сервера)
-  const getReviewsForCategory = (categoryId, subcategoryId = null) => {
-    // Здесь будет логика получения реальных отзывов с сервера
-    // Пока возвращаем пустой массив для демонстрации
-    return [];
-  };
 
   return (
     <div className={styles.categoriesContainer}>

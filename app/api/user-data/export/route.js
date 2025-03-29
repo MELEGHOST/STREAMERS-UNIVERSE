@@ -32,7 +32,7 @@ export async function GET(request) {
           created_at: row.created_at,
           updated_at: row.updated_at
         };
-      } catch (e) {
+      } catch {
         userData[row.data_type] = {
           value: row.data_value,
           created_at: row.created_at,

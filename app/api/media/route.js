@@ -4,7 +4,6 @@ import { cookies } from 'next/headers';
 // Временное хранилище данных (в реальном приложении будет база данных)
 let mediaItems = [];
 let mediaReviews = [];
-let mediaTierlists = [];
 
 // Функция для получения ID пользователя из куки
 function getUserIdFromCookies() {

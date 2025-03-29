@@ -167,6 +167,10 @@ export function middleware(request) {
 
   // Обработка API запросов (кроме публичных API)
   if (pathname.startsWith('/api/') && !isPublicPath) {
+    // Middleware больше НЕ проверяет аутентификацию для API-маршрутов.
+    // Каждый API-маршрут (например, с использованием Supabase SSR)
+    // должен сам проверять аутентификацию пользователя.
+    /* 
     if (!isAuthenticated) {
         console.log('[Middleware] API: Не авторизован. Отказ.');
         return new NextResponse(JSON.stringify({ error: 'Unauthorized' }), {
@@ -174,8 +178,9 @@ export function middleware(request) {
             headers: { 'Content-Type': 'application/json' },
         });
     }
-    // Если авторизован, добавляем заголовки безопасности и продолжаем
-    return response;
+    */
+    // Просто добавляем заголовки безопасности/CORS и пропускаем запрос дальше.
+    return response; 
   }
 
   // Обработка защищенных страниц

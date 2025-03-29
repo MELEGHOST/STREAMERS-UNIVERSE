@@ -104,7 +104,7 @@ const MenuHeader = () => {
     };
     
     checkUserAuthentication();
-  }, []); // Удаляем router из зависимостей
+  }, [router, safeLocalStorage]);
   
   // Текст приветствия в зависимости от наличия данных пользователя
   const greetingText = userData ? `Привет, ${userData.display_name || userData.name || userData.login}!` : 'Загрузка...';
@@ -113,10 +113,12 @@ const MenuHeader = () => {
     <div className={styles.header}>
       <div className={styles.userInfoContainer}>
         <div className={styles.avatarContainer} onClick={userData ? goToProfile : undefined}>
-          <img 
+          <Image 
             src={userData?.profile_image_url || "https://static-cdn.jtvnw.net/user-default-pictures-uv/cdd517fe-def4-11e9-948e-784f43822e80-profile_image-300x300.png"} 
             alt={userData ? (userData.display_name || userData.name || userData.login) : "Загрузка..."} 
             className={styles.avatarImage}
+            width={60}
+            height={60}
           />
         </div>
         <div className={styles.userTextInfo}>
