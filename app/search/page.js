@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useRouter /*, useSearchParams */ } from 'next/navigation';
 import Cookies from 'js-cookie';
 import Image from 'next/image';
 import styles from './search.module.css';

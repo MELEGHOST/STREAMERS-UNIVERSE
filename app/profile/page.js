@@ -42,9 +42,6 @@ export default function Profile() {
   const [globalError, setGlobalError] = useState(null);
   const [specificErrors, setSpecificErrors] = useState({});
 
-  const [achievements, setAchievements] = useState([]);
-  const [errorMessages, setErrorMessages] = useState({ socials: null, reviews: null, achievements: null, profile: null });
-  const [loadingState, setLoadingState] = useState({ socials: true, reviews: true, achievements: true, profile: true });
   const [showAchievements, setShowAchievements] = useState(false);
   const [showReviews, setShowReviews] = useState(false);
   const [showStats, setShowStats] = useState(false);
