@@ -1,10 +1,13 @@
 'use client';
 
 import React, { useState, useEffect, useCallback } from 'react';
+import supabase from '@/lib/supabaseClient';
+import { FaThumbsUp, FaThumbsDown } from 'react-icons/fa';
+import ReviewCard from './ReviewCard';
+import ReviewForm from './ReviewForm';
+import Pagination from './Pagination';
 import styles from './ReviewSection.module.css';
 import Cookies from 'js-cookie';
-import { FaStar } from 'react-icons/fa';
-import { FaEdit, FaTrash } from 'react-icons/fa';
 
 const ReviewSection = ({ userId, isAuthor = false, onReviewAdded }) => {
   const [reviews, setReviews] = useState([]);
@@ -16,18 +19,6 @@ const ReviewSection = ({ userId, isAuthor = false, onReviewAdded }) => {
   const [error, setError] = useState(null);
   const [currentUser, setCurrentUser] = useState(null);
   const [selectedCategories, setSelectedCategories] = useState([]);
-  const [categories, setCategories] = useState([
-    'Юмор', 'Игровой скилл', 'Общение со зрителями', 'Регулярность стримов', 
-    'Разнообразие контента', 'Атмосфера', 'Технические аспекты', 'Оригинальность'
-  ]);
-  const [successMessage, setSuccessMessage] = useState('');
-  const [stats, setStats] = useState(null);
-  const [pagination, setPagination] = useState({
-    currentPage: 1,
-    totalPages: 1,
-    hasNextPage: false,
-    hasPrevPage: false
-  });
   const [editingReview, setEditingReview] = useState(null);
 
   // Получение данных текущего пользователя
@@ -161,127 +152,6 @@ const ReviewSection = ({ userId, isAuthor = false, onReviewAdded }) => {
       alert('Произошла ошибка при отправке отзыва. Пожалуйста, попробуйте позже.');
     } finally {
       setIsSubmitting(false);
-    }
-  };
-
-  // Обработчик удаления отзыва
-  const handleDeleteReview = async (reviewId) => {
-    if (!confirm('Вы уверены, что хотите удалить этот отзыв?')) {
-      return;
-    }
-    
-    try {
-      setLoading(true);
-      const token = Cookies.get('twitch_token');
-      
-      if (!token) {
-        setError('Необходимо авторизоваться для удаления отзыва');
-        return;
-      }
-      
-      const response = await fetch(`/api/reviews/delete/${reviewId}`, {
-        method: 'DELETE',
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
-      
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || 'Ошибка при удалении отзыва');
-      }
-      
-      const data = await response.json();
-      
-      setSuccessMessage(`Отзыв успешно удален. Списано ${data.coinsSpent} StreamCoins.`);
-      
-      // Обновляем список отзывов
-      fetchReviews();
-      
-      // Скрываем сообщение об успехе через 5 секунд
-      setTimeout(() => {
-        setSuccessMessage('');
-      }, 5000);
-    } catch (err) {
-      console.error('Ошибка при удалении отзыва:', err);
-      setError(err.message || 'Не удалось удалить отзыв. Пожалуйста, попробуйте позже.');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // Обработчик редактирования отзыва
-  const handleEditReview = (review) => {
-    setEditingReview(review);
-    setNewReview(review.content);
-    setNewRating(review.rating);
-    setSelectedCategories(review.categories || []);
-  };
-
-  // Обработчик сохранения отредактированного отзыва
-  const handleUpdateReview = async (e) => {
-    e.preventDefault();
-    
-    if (!editingReview) {
-      return;
-    }
-    
-    if (!newReview.trim()) {
-      setError('Текст отзыва не может быть пустым');
-      return;
-    }
-    
-    if (newRating === 0) {
-      setError('Пожалуйста, выберите рейтинг');
-      return;
-    }
-    
-    try {
-      setLoading(true);
-      const token = Cookies.get('twitch_token');
-      
-      if (!token) {
-        setError('Необходимо авторизоваться для редактирования отзыва');
-        return;
-      }
-      
-      const response = await fetch(`/api/reviews/update/${editingReview.id}`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify({
-          content: newReview,
-          rating: newRating,
-          categories: selectedCategories
-        })
-      });
-      
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || 'Ошибка при обновлении отзыва');
-      }
-      
-      // Очищаем форму
-      setNewReview('');
-      setNewRating(0);
-      setSelectedCategories([]);
-      setEditingReview(null);
-      setSuccessMessage('Отзыв успешно обновлен!');
-      
-      // Обновляем список отзывов
-      fetchReviews();
-      
-      // Скрываем сообщение об успехе через 5 секунд
-      setTimeout(() => {
-        setSuccessMessage('');
-      }, 5000);
-    } catch (err) {
-      console.error('Ошибка при обновлении отзыва:', err);
-      setError(err.message || 'Не удалось обновить отзыв. Пожалуйста, попробуйте позже.');
-    } finally {
-      setLoading(false);
     }
   };
 

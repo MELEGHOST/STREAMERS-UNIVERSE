@@ -2,15 +2,17 @@
 
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import Image from 'next/image';
+import { getUserData } from '@/lib/supabase/functions';
+import { checkSubscription } from '../utils/twitchAPI';
 import styles from './followers.module.css';
-import { getUserFollowers, getUserData, getAccessToken, isStreamer } from '../utils/twitchAPI';
 import { DataStorage } from '../utils/dataStorage';
+import Header from '../components/Header';
 
 export default function Followers() {
   const router = useRouter();
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [userId, setUserId] = useState(null);
-  const [isStreamer, setIsStreamer] = useState(false);
   const [followers, setFollowers] = useState([]);
   const [roles, setRoles] = useState({});
   const [loading, setLoading] = useState(true);
@@ -40,9 +42,6 @@ export default function Followers() {
         }
         
         setUserId(userData.id);
-        
-        // Определяем статус стримера с помощью новой функции
-        setIsStreamer(isStreamer(userData));
         
         // Получаем и устанавливаем роли из хранилища
         const savedRoles = await DataStorage.getData('follower_roles');
@@ -283,10 +282,14 @@ export default function Followers() {
             {followers.map(follower => (
               <div key={follower.id} className={styles.followerCard}>
                 <div className={styles.followerAvatar}>
-                  <img 
+                  <Image 
                     src={follower.profileImageUrl || '/images/default-avatar.png'} 
-                    alt={follower.name} 
+                    alt={follower.name}
+                    width={50}
+                    height={50}
                     onError={(e) => {e.target.src = '/images/default-avatar.png'}}
+                    className={styles.avatarImage}
+                    priority
                   />
                   {follower.isRegisteredOnSU && (
                     <div className={styles.registeredBadge} title="Пользователь зарегистрирован на Streamers Universe">SU</div>

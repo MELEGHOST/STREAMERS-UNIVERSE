@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import styles from './coins.module.css';
 import { DataStorage } from '../utils/dataStorage';
@@ -20,38 +20,8 @@ export default function StreamerCoins() {
   const [purchaseMessage, setPurchaseMessage] = useState('');
   const [showPurchaseMessage, setShowPurchaseMessage] = useState(false);
 
-  useEffect(() => {
-    // Проверяем авторизацию
-    if (!DataStorage.isAuthenticated()) {
-      router.push('/auth');
-      return;
-    }
-
-    // Загружаем данные пользователя
-    const loadUserData = async () => {
-      try {
-        const userData = await DataStorage.getData('user');
-        if (userData && userData.id) {
-          setUserData(userData);
-          
-          // Загружаем данные о коинах
-          loadCoinsData(userData.id);
-        } else {
-          setError('Не удалось загрузить данные пользователя');
-          setLoading(false);
-        }
-      } catch (error) {
-        console.error('Ошибка при загрузке данных пользователя:', error);
-        setError('Произошла ошибка при загрузке данных');
-        setLoading(false);
-      }
-    };
-
-    loadUserData();
-  }, [router, loadCoinsData]);
-
   // Функция для загрузки данных о коинах
-  const loadCoinsData = (userId) => {
+  const loadCoinsData = useCallback((userId) => {
     try {
       // Ключи для всех возможных мест хранения данных о коинах
       const coinsKeys = [
@@ -63,7 +33,8 @@ export default function StreamerCoins() {
       
       // Ищем данные в всех возможных местах
       for (const key of coinsKeys) {
-        const coinsData = DataStorage.getData(key);
+        // Используем clientStorage напрямую, т.к. DataStorage - синглтон
+        const coinsData = DataStorage.getInstance().getItem(key);
         if (coinsData) {
           foundCoins = coinsData;
           console.log('Найдены данные о монетах:', key, coinsData);
@@ -98,7 +69,8 @@ export default function StreamerCoins() {
             referredBy: null
           };
           
-          DataStorage.saveData(`data_streamcoins_${userId}`, standardData);
+          // Используем clientStorage напрямую
+          DataStorage.getInstance().setItem(`data_streamcoins_${userId}`, standardData);
           
           // Проверяем доступность ежедневного бонуса
           checkDailyBonusAvailability(null);
@@ -144,10 +116,12 @@ export default function StreamerCoins() {
         });
         
         // Сохраняем начальные данные
-        DataStorage.saveData(`data_streamcoins_${userId}`, initialData);
+        // Используем clientStorage напрямую
+        DataStorage.getInstance().setItem(`data_streamcoins_${userId}`, initialData);
         
         // Также сохраняем для совместимости со старым форматом
-        DataStorage.saveData(`streamcoins_${userId}`, initialData.balance.toString());
+        // Используем clientStorage напрямую
+        DataStorage.getInstance().setItem(`streamcoins_${userId}`, initialData.balance.toString());
         
         // Бонус доступен для нового пользователя
         setBonusAvailable(true);
@@ -160,7 +134,33 @@ export default function StreamerCoins() {
       setError('Произошла ошибка при загрузке данных о монетах');
       setLoading(false);
     }
-  };
+  }, [setCoinsData, setBonusAvailable, setBonusMessage, setLoading, setError, checkDailyBonusAvailability, generateReferralCode, generateUUID]);
+
+  useEffect(() => {
+    setLoading(true);
+    // Загружаем данные пользователя
+    const loadUserData = async () => {
+      try {
+        // Используем clientStorage напрямую
+        const userData = DataStorage.getInstance().getItem('user');
+        if (userData && userData.id) {
+          setUserData(userData);
+          
+          // Загружаем данные о коинах
+          loadCoinsData(userData.id);
+        } else {
+          setError('Не удалось загрузить данные пользователя');
+          setLoading(false);
+        }
+      } catch (error) {
+        console.error('Ошибка при загрузке данных пользователя:', error);
+        setError('Произошла ошибка при загрузке данных');
+        setLoading(false);
+      }
+    };
+
+    loadUserData();
+  }, [router, loadCoinsData]);
 
   // Функция для проверки доступности ежедневного бонуса
   const checkDailyBonusAvailability = (lastBonusDate) => {
@@ -220,7 +220,7 @@ export default function StreamerCoins() {
       // Получаем текущие данные о коинах
       const coinsDataKey = `data_streamcoins_${userData.id}`;
       
-      DataStorage.getData(coinsDataKey)
+      DataStorage.getInstance().getItem(coinsDataKey)
         .then(storedData => {
           if (storedData) {
             // Создаем обновленные данные
@@ -248,7 +248,7 @@ export default function StreamerCoins() {
             updatedData.lastDailyBonus = new Date().toISOString();
             
             // Сохраняем обновленные данные
-            DataStorage.saveData(coinsDataKey, updatedData);
+            DataStorage.getInstance().setItem(coinsDataKey, updatedData);
             
             // Также обновляем данные в старом формате для совместимости с меню
             if (typeof window !== 'undefined' && window.localStorage) {
@@ -290,7 +290,7 @@ export default function StreamerCoins() {
       // Получаем текущие данные о коинах
       const coinsDataKey = `data_streamcoins_${userData.id}`;
       
-      DataStorage.getData(coinsDataKey)
+      DataStorage.getInstance().getItem(coinsDataKey)
         .then(storedData => {
           if (storedData) {
             // Создаем обновленные данные
@@ -316,7 +316,7 @@ export default function StreamerCoins() {
             updatedData.transactions = [transaction, ...(updatedData.transactions || [])];
             
             // Сохраняем обновленные данные
-            DataStorage.saveData(coinsDataKey, updatedData);
+            DataStorage.getInstance().setItem(coinsDataKey, updatedData);
             
             // Также обновляем данные в старом формате для совместимости с меню
             if (typeof window !== 'undefined' && window.localStorage) {

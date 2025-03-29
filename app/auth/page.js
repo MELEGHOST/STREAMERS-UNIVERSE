@@ -1,7 +1,7 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
-import { useSession } from 'next-auth/react';
+import React, { useState, useEffect, useCallback } from 'react';
+import { useSession, signIn } from 'next-auth/react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Cookies from 'js-cookie';
 import { DataStorage } from '../utils/dataStorage';
@@ -93,43 +93,31 @@ export default function AuthPage() {
     status: errorStatus
   };
 
-  // Обработка перенаправления после успешной авторизации
-  useEffect(() => {
-    if (status === 'authenticated' && session) {
-      handleSuccessfulAuth();
-    }
-    
-    // Если есть ошибка в URL, устанавливаем её
-    if (errorType) {
-      setError(`Ошибка авторизации: ${errorType}`);
-    }
-  }, [session, status, errorType, handleSuccessfulAuth]);
-
   // Функция для обработки успешной авторизации
-  const handleSuccessfulAuth = async () => {
+  const handleSuccessfulAuth = useCallback(async () => {
     try {
       setLoading(true);
       
       // Сохраняем токены в хранилище
-      if (session.accessToken) {
+      if (session?.accessToken) {
         Cookies.set('twitch_access_token', session.accessToken, { expires: 7 });
         localStorage.setItem('cookie_twitch_access_token', session.accessToken);
         await DataStorage.saveData('auth_token', session.accessToken);
       }
       
-      if (session.refreshToken) {
+      if (session?.refreshToken) {
         Cookies.set('twitch_refresh_token', session.refreshToken, { expires: 30 });
         localStorage.setItem('twitch_refresh_token', session.refreshToken);
         await DataStorage.saveData('refresh_token', session.refreshToken);
       }
       
-      if (session.expiresAt) {
+      if (session?.expiresAt) {
         const expiresAt = session.expiresAt * 1000; // Преобразуем в миллисекунды
         localStorage.setItem('twitch_token_expires_at', expiresAt.toString());
       }
       
       // Сохраняем данные пользователя
-      if (session.user) {
+      if (session?.user) {
         localStorage.setItem('twitch_user', JSON.stringify(session.user));
         await DataStorage.saveData('user', session.user);
       }
@@ -148,7 +136,19 @@ export default function AuthPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [router, session, setLoading, setError]);
+
+  // Обработка перенаправления после успешной авторизации
+  useEffect(() => {
+    if (status === 'authenticated' && session) {
+      handleSuccessfulAuth();
+    }
+    
+    // Если есть ошибка в URL, устанавливаем её
+    if (errorType) {
+      setError(`Ошибка авторизации: ${errorType}`);
+    }
+  }, [session, status, errorType, handleSuccessfulAuth]);
 
   // Функция для входа через Twitch
   const handleTwitchLogin = async () => {

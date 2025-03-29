@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useRef, Suspense } from 'react';
+import { useEffect, useState, useRef, useCallback } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '../../../contexts/AuthContext';
 import styles from '../auth.module.css';
@@ -19,12 +19,12 @@ function AuthResultContent() {
   const hasRedirectedRef = useRef(false);
 
   // Функция для перенаправления в меню
-  const redirectToMenu = () => {
+  const redirectToMenu = useCallback(() => {
     if (!hasRedirectedRef.current) {
       hasRedirectedRef.current = true;
       router.push('/menu');
     }
-  };
+  }, [router]);
 
   useEffect(() => {
     // Очищаем потенциальные флаги конфликтов
@@ -227,7 +227,7 @@ function AuthResultContent() {
         clearTimeout(redirectTimeoutRef.current);
       }
     };
-  }, [searchParams, router, login, redirectToMenu]);
+  }, [searchParams, router, login]);
 
   return (
     <div className={styles.oldContainer}>

@@ -38,7 +38,7 @@ export async function POST(request, { params }) {
       if (![1, -1, 0].includes(voteType)) {
           throw new Error('Invalid voteType');
       }
-  } catch (e) {
+  } catch (_e) {
       return NextResponse.json({ error: 'Некорректный тип голоса (voteType должен быть 1, -1 или 0)' }, { status: 400 });
   }
 

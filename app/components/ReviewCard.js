@@ -1,6 +1,7 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
+import { FaThumbsUp, FaThumbsDown, FaUserCircle } from 'react-icons/fa';
 import Image from 'next/image';
 import styles from './ReviewCard.module.css';
 

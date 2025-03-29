@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import styles from './AchievementsSystem.module.css';
 
 // Компонент системы достижений
@@ -11,7 +11,7 @@ const AchievementsSystem = ({ followerCount, isStreamer, streamsCompleted = 0, h
   const [secretClickCount, setSecretClickCount] = useState(0);
 
   // Список всех возможных достижений
-  const allAchievements = [
+  const allAchievements = useMemo(() => [
     {
       id: 'first_login',
       title: 'Первый шаг',
@@ -26,7 +26,7 @@ const AchievementsSystem = ({ followerCount, isStreamer, streamsCompleted = 0, h
       description: 'Наберите 10 подписчиков',
       icon: '🌱',
       xp: 20,
-      unlockCondition: () => followerCount >= 10
+      unlockCondition: (currentFollowerCount) => currentFollowerCount >= 10
     },
     {
       id: 'follower_50',
@@ -34,7 +34,7 @@ const AchievementsSystem = ({ followerCount, isStreamer, streamsCompleted = 0, h
       description: 'Наберите 50 подписчиков',
       icon: '🌿',
       xp: 50,
-      unlockCondition: () => followerCount >= 50
+      unlockCondition: (currentFollowerCount) => currentFollowerCount >= 50
     },
     {
       id: 'follower_100',
@@ -42,7 +42,7 @@ const AchievementsSystem = ({ followerCount, isStreamer, streamsCompleted = 0, h
       description: 'Наберите 100 подписчиков',
       icon: '🌳',
       xp: 100,
-      unlockCondition: () => followerCount >= 100
+      unlockCondition: (currentFollowerCount) => currentFollowerCount >= 100
     },
     {
       id: 'follower_200',
@@ -50,7 +50,7 @@ const AchievementsSystem = ({ followerCount, isStreamer, streamsCompleted = 0, h
       description: 'Наберите 200 подписчиков',
       icon: '🌟',
       xp: 200,
-      unlockCondition: () => followerCount >= 200
+      unlockCondition: (currentFollowerCount) => currentFollowerCount >= 200
     },
     {
       id: 'streamer_status',
@@ -58,7 +58,7 @@ const AchievementsSystem = ({ followerCount, isStreamer, streamsCompleted = 0, h
       description: 'Наберите 265 подписчиков и получите статус стримера',
       icon: '👑',
       xp: 265,
-      unlockCondition: () => followerCount >= 265,
+      unlockCondition: (currentFollowerCount) => currentFollowerCount >= 265,
       reward: 'Доступ к расширенным функциям стримера'
     },
     {
@@ -67,7 +67,7 @@ const AchievementsSystem = ({ followerCount, isStreamer, streamsCompleted = 0, h
       description: 'Проведите 5 стримов по расписанию',
       icon: '📅',
       xp: 50,
-      unlockCondition: () => streamsCompleted >= 5,
+      unlockCondition: (currentStreamsCompleted) => currentStreamsCompleted >= 5,
       requiresStreamer: true
     },
     {
@@ -76,7 +76,7 @@ const AchievementsSystem = ({ followerCount, isStreamer, streamsCompleted = 0, h
       description: 'Проведите 20 стримов по расписанию',
       icon: '⏰',
       xp: 150,
-      unlockCondition: () => streamsCompleted >= 20,
+      unlockCondition: (currentStreamsCompleted) => currentStreamsCompleted >= 20,
       requiresStreamer: true
     },
     {
@@ -85,7 +85,7 @@ const AchievementsSystem = ({ followerCount, isStreamer, streamsCompleted = 0, h
       description: 'Проведите стрим с другим стримером',
       icon: '🤝',
       xp: 100,
-      unlockCondition: () => hasCollaborations,
+      unlockCondition: (currentHasCollaborations) => currentHasCollaborations,
       requiresStreamer: true
     },
     {
@@ -107,9 +107,9 @@ const AchievementsSystem = ({ followerCount, isStreamer, streamsCompleted = 0, h
       icon: '🥚',
       xp: 50,
       isSecret: true,
-      unlockCondition: () => showEasterEgg
+      unlockCondition: (currentShowEasterEgg) => currentShowEasterEgg
     }
-  ];
+  ], []);
 
   // Проверить условия разблокировки достижений
   useEffect(() => {
@@ -121,7 +121,17 @@ const AchievementsSystem = ({ followerCount, isStreamer, streamsCompleted = 0, h
       
       // Проверить условие разблокировки, если оно есть
       if (achievement.unlockCondition) {
-        return achievement.unlockCondition();
+        if (achievement.id.startsWith('follower_')) {
+            return achievement.unlockCondition(followerCount);
+        } else if (achievement.id.startsWith('streams_')) {
+            return achievement.unlockCondition(streamsCompleted);
+        } else if (achievement.id === 'collab_first') {
+            return achievement.unlockCondition(hasCollaborations);
+        } else if (achievement.id === 'easter_egg') {
+            return achievement.unlockCondition(showEasterEgg);
+        } else {
+            return achievement.unlockCondition();
+        }
       }
       
       // Если уже разблокировано или нет условия
@@ -134,7 +144,7 @@ const AchievementsSystem = ({ followerCount, isStreamer, streamsCompleted = 0, h
     if (secretClickCount >= 10) {
       setShowEasterEgg(true);
     }
-  }, [followerCount, isStreamer, streamsCompleted, hasCollaborations, secretClickCount, allAchievements]);
+  }, [followerCount, isStreamer, streamsCompleted, hasCollaborations, secretClickCount, allAchievements, showEasterEgg]);
 
   // Обработчик для скрытой пасхалки
   const handleSecretClick = () => {

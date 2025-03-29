@@ -5,16 +5,17 @@ import { useRouter } from 'next/navigation';
 import styles from '../followers.module.css';
 import { getUserData } from '../../utils/twitchAPI';
 import { DataStorage } from '../../utils/dataStorage';
+import Image from 'next/image';
 
 export default function FollowersSU() {
   const router = useRouter();
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [userId, setUserId] = useState(null);
-  const [followers, setFollowers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [totalFollowers, setTotalFollowers] = useState(0);
-  const [profileData, setProfileData] = useState(null);
+  const [userId, setUserId] = useState(null);
+  const [suFollowers, setSuFollowers] = useState([]);
+  const [totalSuFollowers, setTotalSuFollowers] = useState(0);
+  const [sortOrder, setSortOrder] = useState('desc'); // 'desc' или 'asc'
+  const [searchTerm, setSearchTerm] = useState('');
   const [filterType, setFilterType] = useState('all');
 
   useEffect(() => {
@@ -27,8 +28,6 @@ export default function FollowersSU() {
           return;
         }
         
-        setIsAuthenticated(true);
-        
         // Получаем данные пользователя из нового хранилища
         const userData = await getUserData();
         
@@ -39,7 +38,6 @@ export default function FollowersSU() {
         }
         
         setUserId(userData.id);
-        setProfileData(userData);
         
         // Загружаем данные о последователях на Streamers Universe
         await loadSUFollowers(userData.id);
@@ -77,8 +75,8 @@ export default function FollowersSU() {
         
         // Даже если нет последователей, не выдаем ошибку
         if (!followersData.followers) {
-          setFollowers([]);
-          setTotalFollowers(0);
+          setSuFollowers([]);
+          setTotalSuFollowers(0);
           setLoading(false);
           return;
         }
@@ -110,23 +108,23 @@ export default function FollowersSU() {
               isTwitchFollower: follower.twitchId && twitchFollowerIds.includes(follower.twitchId)
             }));
             
-            setFollowers(updatedFollowers);
-            setTotalFollowers(updatedFollowers.length);
+            setSuFollowers(updatedFollowers);
+            setTotalSuFollowers(updatedFollowers.length);
           } catch (twitchError) {
             console.error('Ошибка при проверке Twitch фолловеров:', twitchError);
             // Если не удалось проверить Twitch, просто отображаем последователей SU
-            setFollowers(followersData.followers);
-            setTotalFollowers(followersData.followers.length);
+            setSuFollowers(followersData.followers);
+            setTotalSuFollowers(followersData.followers.length);
           }
         } else {
-          setFollowers([]);
-          setTotalFollowers(0);
+          setSuFollowers([]);
+          setTotalSuFollowers(0);
         }
       } catch (apiError) {
         console.error('Ошибка при запросе к API:', apiError);
         // В случае ошибки показываем пустой список
-        setFollowers([]);
-        setTotalFollowers(0);
+        setSuFollowers([]);
+        setTotalSuFollowers(0);
         setError('Не удалось загрузить данные о последователях. Пожалуйста, попробуйте позже.');
       }
       
@@ -134,8 +132,8 @@ export default function FollowersSU() {
     } catch (error) {
       console.error('Ошибка при загрузке последователей SU:', error);
       setError('Не удалось загрузить данные о последователях. Пожалуйста, попробуйте позже.');
-      setFollowers([]);
-      setTotalFollowers(0);
+      setSuFollowers([]);
+      setTotalSuFollowers(0);
       setLoading(false);
     }
   };
@@ -161,10 +159,10 @@ export default function FollowersSU() {
   const handleUpdateRole = async (followerId, newRole) => {
     try {
       // Оптимистичное обновление UI
-      const updatedFollowers = followers.map(f => 
+      const updatedFollowers = suFollowers.map(f => 
         f.id === followerId ? {...f, role: newRole} : f
       );
-      setFollowers(updatedFollowers);
+      setSuFollowers(updatedFollowers);
       
       // Отправляем запрос на сервер
       const response = await fetch('/api/su/update-follower-role', {
@@ -192,7 +190,7 @@ export default function FollowersSU() {
   };
 
   // Фильтрация последователей по выбранному критерию
-  const filteredFollowers = followers.filter(follower => {
+  const filteredFollowers = suFollowers.filter(follower => {
     if (filterType === 'all') return true;
     if (filterType === 'twitch') return follower.isTwitchFollower;
     if (filterType === 'onlySu') return !follower.isTwitchFollower;
@@ -202,7 +200,7 @@ export default function FollowersSU() {
   return (
     <div className={styles.followersPage}>
       <h1 className={styles.title}>Последователи Streamers Universe</h1>
-      <p className={styles.subtitle}>Пользователи, которые подписались на вас в Streamers Universe. {totalFollowers > 0 && <span>Всего: <strong>{totalFollowers}</strong></span>}</p>
+      <p className={styles.subtitle}>Пользователи, которые подписались на вас в Streamers Universe. {totalSuFollowers > 0 && <span>Всего: <strong>{totalSuFollowers}</strong></span>}</p>
       
       {loading ? (
         <div className={styles.loading}>
@@ -214,7 +212,7 @@ export default function FollowersSU() {
           <p>{error}</p>
           <button onClick={handleRetry} className={styles.button}>Повторить</button>
         </div>
-      ) : followers.length > 0 ? (
+      ) : suFollowers.length > 0 ? (
         <div className={styles.followersContainer}>
           <div className={styles.infoBar}>
             <div className={styles.statsInfo}>
@@ -237,10 +235,14 @@ export default function FollowersSU() {
             {filteredFollowers.map(follower => (
               <div key={follower.id} className={styles.followerCard}>
                 <div className={styles.followerAvatar}>
-                  <img 
+                  <Image 
                     src={follower.profileImageUrl || '/images/default-avatar.png'} 
-                    alt={follower.name} 
+                    alt={follower.name}
+                    width={50}
+                    height={50}
                     onError={(e) => {e.target.src = '/images/default-avatar.png'}}
+                    className={styles.avatarImage}
+                    priority
                   />
                   {follower.isTwitchFollower && (
                     <div className={styles.registeredBadge} title="Также подписан на вас в Twitch">TW</div>

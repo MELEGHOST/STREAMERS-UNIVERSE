@@ -1,11 +1,13 @@
 'use client';
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, Suspense } from 'react';
 import { useRouter } from 'next/navigation';
 import styles from './edit-profile.module.css';
-import Cookies from 'js-cookie';
 import NeonCheckbox from '../components/NeonCheckbox';
 import { DataStorage } from '../utils/dataStorage';
+import Header from '../components/Header';
+import Footer from '../components/Footer';
+import LoadingIndicator from '../components/LoadingIndicator';
 
 export default function EditProfile() {
   const [editData, setEditData] = useState({
@@ -134,7 +136,7 @@ export default function EditProfile() {
         try {
           const errorData = await response.json();
           errorMessage = errorData.error || errorMessage;
-        } catch (parseError) {
+        } catch (_parseError) {
           errorMessage = `Ошибка сервера: ${response.status}`;
         }
         console.warn('Server save failed:', response.status, errorMessage);

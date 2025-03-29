@@ -1,7 +1,7 @@
 'use client';
 
 import styles from './MenuHeader.module.css';
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import CoinDisplay from './CoinDisplay';
@@ -17,7 +17,7 @@ const MenuHeader = () => {
   }, [router]);
   
   // Функция безопасного доступа к localStorage
-  const safeLocalStorage = {
+  const safeLocalStorage = useMemo(() => ({
     getItem: (key) => {
       if (typeof window !== 'undefined') {
         return localStorage.getItem(key);
@@ -29,7 +29,7 @@ const MenuHeader = () => {
         localStorage.setItem(key, value);
       }
     }
-  };
+  }), []);
   
   useEffect(() => {
     const checkUserAuthentication = async () => {
