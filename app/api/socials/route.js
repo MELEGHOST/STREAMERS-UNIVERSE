@@ -3,52 +3,6 @@ import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { escapeHtml, sanitizeObject, isValidUrl } from '@/utils/securityUtils';
 
-// Функция для экранирования HTML-тегов
-function escapeHtml(text) {
-  if (typeof text !== 'string') return text;
-  return text
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#039;');
-}
-
-// Функция для очистки объекта от потенциально опасных данных
-function sanitizeObject(obj) {
-  if (!obj || typeof obj !== 'object') return obj;
-  
-  const result = Array.isArray(obj) ? [] : {};
-  
-  for (const key in obj) {
-    if (Object.prototype.hasOwnProperty.call(obj, key)) {
-      const value = obj[key];
-      
-      if (typeof value === 'string') {
-        result[key] = escapeHtml(value);
-      } else if (typeof value === 'object' && value !== null) {
-        result[key] = sanitizeObject(value);
-      } else {
-        result[key] = value;
-      }
-    }
-  }
-  
-  return result;
-}
-
-// Функция для валидации URL
-function isValidUrl(url) {
-  if (!url || url === '') return true; // Пустая строка допустима
-  
-  try {
-    const parsedUrl = new URL(url);
-    return ['http:', 'https:'].includes(parsedUrl.protocol);
-  } catch {
-    return false;
-  }
-}
-
 export async function GET() {
   try {
     // Получаем токен доступа из куки
