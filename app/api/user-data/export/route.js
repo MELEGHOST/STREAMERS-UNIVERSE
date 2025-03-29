@@ -2,7 +2,7 @@
 
 import { NextResponse } from 'next/server';
 import { createPool } from '@vercel/postgres';
-import { requireAuth, getCurrentUser } from '../../lib/auth';
+import { requireAuth, getCurrentUser } from '@/app/lib/auth';
 
 // Экспорт всех данных пользователя
 export async function GET(request) {
