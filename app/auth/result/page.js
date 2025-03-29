@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useRef, useCallback } from 'react';
+import { useEffect, useState, useRef, useCallback, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '../../../contexts/AuthContext';
 import styles from '../auth.module.css';
@@ -227,7 +227,7 @@ function AuthResultContent() {
         clearTimeout(redirectTimeoutRef.current);
       }
     };
-  }, [searchParams, router, login]);
+  }, [searchParams, router, login, redirectToMenu]);
 
   return (
     <div className={styles.oldContainer}>
@@ -264,17 +264,10 @@ function AuthResultContent() {
   );
 }
 
-// Компонент-обертка с Suspense boundary
-export default function AuthResult() {
+// Обертка компонента с Suspense
+export default function AuthResultPage() {
   return (
-    <Suspense fallback={
-      <div className={styles.container}>
-        <div className={styles.loadingContainer}>
-          <div className={styles.loadingSpinner}></div>
-          <p>Загрузка...</p>
-        </div>
-      </div>
-    }>
+    <Suspense fallback={<div>Загрузка параметров...</div>}>
       <AuthResultContent />
     </Suspense>
   );

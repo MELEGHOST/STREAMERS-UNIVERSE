@@ -4,6 +4,27 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import styles from './coins.module.css';
 import { DataStorage } from '../utils/dataStorage';
+import Header from '../components/Header';
+import Footer from '../components/Footer';
+
+// Выносим функции, не зависящие от состояния, за пределы компонента
+// Функция для генерации UUID (для транзакций)
+const generateUUID = () => {
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+    const r = Math.random() * 16 | 0;
+    const v = c === 'x' ? r : (r & 0x3 | 0x8);
+    return v.toString(16);
+  });
+};
+
+// Функция для генерации реферального кода
+const generateReferralCode = (userId) => {
+  // Генерируем 8-символьный код на основе ID пользователя и случайных чисел
+  const randomPart = Math.random().toString(36).substring(2, 6).toUpperCase();
+  // Берем первые 4 символа из ID пользователя
+  const userPart = userId ? userId.substring(0, 4).toUpperCase() : 'USER';
+  return `${userPart}${randomPart}`;
+};
 
 export default function StreamerCoins() {
   const router = useRouter();
@@ -19,6 +40,34 @@ export default function StreamerCoins() {
   const [bonusMessage, setBonusMessage] = useState('');
   const [purchaseMessage, setPurchaseMessage] = useState('');
   const [showPurchaseMessage, setShowPurchaseMessage] = useState(false);
+
+  // Функция для проверки доступности ежедневного бонуса
+  // Оборачиваем в useCallback, так как она использует setBonusAvailable и setBonusMessage
+  const checkDailyBonusAvailability = useCallback((lastBonusDate) => {
+    if (!lastBonusDate) {
+      setBonusAvailable(true);
+      setBonusMessage('Вы участвуете в альфа-тестировании, вам доступны 100 стример-коинов в день!');
+      return;
+    }
+    
+    const now = new Date();
+    const lastBonus = new Date(lastBonusDate);
+    
+    const mskOffset = 3 * 60 * 60 * 1000;
+    const nowMsk = new Date(now.getTime() + mskOffset);
+    const lastBonusMsk = new Date(lastBonus.getTime() + mskOffset);
+    
+    nowMsk.setUTCHours(0, 0, 0, 0);
+    lastBonusMsk.setUTCHours(0, 0, 0, 0);
+    
+    if (nowMsk.getTime() > lastBonusMsk.getTime()) {
+      setBonusAvailable(true);
+      setBonusMessage('Вы участвуете в альфа-тестировании, вам доступны 100 стример-коинов в день!');
+    } else {
+      setBonusAvailable(false);
+      setBonusMessage('Вы уже получили сегодняшний бонус. Следующий бонус будет доступен завтра в 00:00 по МСК.');
+    }
+  }, [setBonusAvailable, setBonusMessage]); // Добавляем зависимости
 
   // Функция для загрузки данных о коинах
   const loadCoinsData = useCallback((userId) => {
@@ -73,7 +122,7 @@ export default function StreamerCoins() {
           DataStorage.getInstance().setItem(`data_streamcoins_${userId}`, standardData);
           
           // Проверяем доступность ежедневного бонуса
-          checkDailyBonusAvailability(null);
+          checkDailyBonusAvailability(foundCoins ? foundCoins.lastDailyBonus : null);
         } else {
           // Данные в стандартном формате объекта
           console.log('Баланс из объекта:', foundCoins.balance);
@@ -134,7 +183,7 @@ export default function StreamerCoins() {
       setError('Произошла ошибка при загрузке данных о монетах');
       setLoading(false);
     }
-  }, [setCoinsData, setBonusAvailable, setBonusMessage, setLoading, setError, checkDailyBonusAvailability, generateReferralCode, generateUUID]);
+  }, [setCoinsData, setBonusAvailable, setBonusMessage, setLoading, setError, checkDailyBonusAvailability]);
 
   useEffect(() => {
     setLoading(true);
@@ -161,56 +210,6 @@ export default function StreamerCoins() {
 
     loadUserData();
   }, [router, loadCoinsData]);
-
-  // Функция для проверки доступности ежедневного бонуса
-  const checkDailyBonusAvailability = (lastBonusDate) => {
-    if (!lastBonusDate) {
-      // Если бонус никогда не получали
-      setBonusAvailable(true);
-      setBonusMessage('Вы участвуете в альфа-тестировании, вам доступны 100 стример-коинов в день!');
-      return;
-    }
-    
-    const now = new Date();
-    const lastBonus = new Date(lastBonusDate);
-    
-    // Проверяем, наступила ли новая дата по МСК (UTC+3)
-    const mskOffset = 3 * 60 * 60 * 1000; // 3 часа в миллисекундах
-    
-    const nowMsk = new Date(now.getTime() + mskOffset);
-    const lastBonusMsk = new Date(lastBonus.getTime() + mskOffset);
-    
-    // Сбрасываем время до 00:00
-    nowMsk.setUTCHours(0, 0, 0, 0);
-    lastBonusMsk.setUTCHours(0, 0, 0, 0);
-    
-    // Если даты разные, значит наступил новый день
-    if (nowMsk.getTime() > lastBonusMsk.getTime()) {
-      setBonusAvailable(true);
-      setBonusMessage('Вы участвуете в альфа-тестировании, вам доступны 100 стример-коинов в день!');
-    } else {
-      setBonusAvailable(false);
-      setBonusMessage('Вы уже получили сегодняшний бонус. Следующий бонус будет доступен завтра в 00:00 по МСК.');
-    }
-  };
-
-  // Функция для генерации UUID (для транзакций)
-  const generateUUID = () => {
-    return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
-      const r = Math.random() * 16 | 0;
-      const v = c === 'x' ? r : (r & 0x3 | 0x8);
-      return v.toString(16);
-    });
-  };
-
-  // Функция для генерации реферального кода
-  const generateReferralCode = (userId) => {
-    // Генерируем 8-символьный код на основе ID пользователя и случайных чисел
-    const randomPart = Math.random().toString(36).substring(2, 6).toUpperCase();
-    // Берем первые 4 символа из ID пользователя
-    const userPart = userId ? userId.substring(0, 4).toUpperCase() : 'USER';
-    return `${userPart}${randomPart}`;
-  };
 
   // Функция для получения ежедневного бонуса
   const claimDailyBonus = () => {
