@@ -3,13 +3,13 @@ import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
 
 // Вспомогательная функция для создания серверного клиента Supabase
-// Убедитесь, что переменные окружения NEXT_PUBLIC_SUPABASE_URL и SUPABASE_SERVICE_ROLE_KEY (или SUPABASE_ANON_KEY) установлены в Vercel
+// Убедитесь, что переменные окружения NEXT_PUBLIC_SUPABASE_URL и NEXT_PUBLIC_SUPABASE_ANON_KEY установлены в Vercel
 const createSupabaseServerClient = () => {
   const cookieStore = cookies();
   return createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL,
-    process.env.SUPABASE_SERVICE_ROLE_KEY, // Используем сервисный ключ для безопасных операций на сервере
-    // process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY, // Или ANON ключ, если RLS настроен для него
+    // process.env.SUPABASE_SERVICE_ROLE_KEY, // НЕ используем сервисный ключ для auth.getUser()
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY, // Используем ANON ключ, RLS защитит данные
     {
       cookies: {
         get(name) {
