@@ -5,7 +5,7 @@ import { createPool } from '@vercel/postgres';
 import { requireAuth, getCurrentUser } from '@/app/lib/auth';
 
 // Экспорт всех данных пользователя
-export async function GET(request) {
+export async function GET() {
   try {
     // Проверяем авторизацию
     await requireAuth();

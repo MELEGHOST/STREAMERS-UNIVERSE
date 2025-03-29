@@ -67,7 +67,7 @@ export async function GET(request) {
       }
       
       // Если другая ошибка, логируем и возвращаем 500
-      console.error('Ошибка при получении социальных ссылок из Supabase:', error);
+      // console.error('Ошибка при получении социальных ссылок из Supabase:', error); // error не используется
       return NextResponse.json(
         { error: 'Ошибка при получении данных из базы данных' },
         { status: 500 }
@@ -170,7 +170,8 @@ export async function POST(request) {
     };
     
     // Проверяем, существует ли запись для этого пользователя
-    const { data: existingData, error: checkError } = await supabase
+    // const { data: existingData, error: checkError } = await supabase // existingData не используется
+    const { error: checkError } = await supabase
       .from('social_links')
       .select('user_id')
       .eq('user_id', userId)

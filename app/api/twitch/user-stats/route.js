@@ -188,8 +188,8 @@ export async function GET(request) {
     }
     
     return NextResponse.json(sanitizeObject(response));
-  } catch (error) {
-    console.error('Ошибка при получении статистики пользователя:', error);
+  } catch (e) {
+    console.error('Ошибка при получении статистики пользователя:', e);
     return NextResponse.json(
       { error: 'Внутренняя ошибка сервера' },
       { status: 500 }

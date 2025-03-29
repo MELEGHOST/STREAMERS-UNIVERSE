@@ -5,7 +5,7 @@ import { createPool } from '@vercel/postgres';
 import { requireAuth, getCurrentUser } from '@/app/lib/auth';
 
 // Очистка всех данных пользователя
-export async function POST(request) {
+export async function POST() {
   try {
     // Проверяем авторизацию
     await requireAuth();

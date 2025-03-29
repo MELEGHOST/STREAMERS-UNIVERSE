@@ -35,7 +35,8 @@ export async function GET(request) {
     }
 
     // Ищем запись о подписке в базе данных
-    const { data, error, count } = await supabase
+    // const { data, error, count } = await supabase // Комментируем data
+    const { error, count } = await supabase
       .from('user_follows') // Предполагаемое имя таблицы подписок
       .select('*', { count: 'exact', head: true }) // Просто проверяем наличие записи
       .eq('follower_id', currentUserId) // ID того, кто подписывается
@@ -97,7 +98,8 @@ export async function POST(request) {
       }
 
       // Создаем запись о подписке
-      const { data, error: insertError } = await supabase
+      // const { data, error: insertError } = await supabase // Комментируем data
+      const { error: insertError } = await supabase
         .from('user_follows')
         .insert({ 
           follower_id: currentUserId, 

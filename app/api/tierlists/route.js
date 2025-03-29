@@ -180,7 +180,8 @@ export async function PUT(request) {
 
     // 3. Подготавливаем данные для обновления тирлиста
     // Убираем id и user_id из данных для обновления
-    const { id, user_id, items, created_at, ...updateData } = data; 
+    // const { id, user_id, items, created_at, ...updateData } = data; // Комментируем, т.к. id, user_id, created_at не используются
+    const { items, ...updateData } = data; // Оставляем только items и остальное
     updateData.updated_at = new Date().toISOString(); // Обновляем дату
 
     const { data: updatedTierlistData, error: updateTierlistError } = await supabase
