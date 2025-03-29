@@ -3,7 +3,7 @@
 import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { createPool } from '@vercel/postgres';
-import { authenticateUser } from '../../utils/auth';
+import { authenticateUser } from '../../lib/auth';
 
 // Получение данных пользователя
 export async function GET(request) {

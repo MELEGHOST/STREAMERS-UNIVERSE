@@ -2,7 +2,7 @@
 
 import { NextResponse } from 'next/server';
 import { createPool } from '@vercel/postgres';
-import { authenticateUser } from '../../../utils/auth';
+import { authenticateUser } from '../../../lib/auth';
 
 // Очистка всех данных пользователя
 export async function POST(request) {

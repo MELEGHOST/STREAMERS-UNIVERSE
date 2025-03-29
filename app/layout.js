@@ -1,6 +1,5 @@
 import '../styles/global.css';
 import { Inter } from 'next/font/google';
-import CookieChecker from '../components/CookieChecker';
 import ThemeProvider from '../components/ThemeProvider';
 import { AuthProvider } from '../contexts/AuthContext';
 import { NextAuthProvider } from './providers';
@@ -27,7 +26,6 @@ export default function RootLayout({ children }) {
               <PageTransition>
                 {children}
               </PageTransition>
-              <CookieChecker />
             </ThemeProvider>
           </AuthProvider>
         </NextAuthProvider>
