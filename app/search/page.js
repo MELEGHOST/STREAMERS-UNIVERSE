@@ -10,7 +10,7 @@ import Input from '../components/Input';
 import NeonCheckbox from '../components/NeonCheckbox';
 import MenuHeader from '../components/MenuHeader';
 import Footer from '../components/Footer';
-import { useDebounce } from '../hooks/useDebounce';
+// import { useDebounce } from '../hooks/useDebounce';
 
 export default function Search() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -30,7 +30,7 @@ export default function Search() {
     region: null
   });
 
-  const debouncedQuery = useDebounce(query, 500);
+  // const debouncedQuery = useDebounce(query, 500);
 
   // Проверка авторизации
   useEffect(() => {
