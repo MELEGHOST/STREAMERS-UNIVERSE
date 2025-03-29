@@ -4,7 +4,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import styles from './coins.module.css';
 import { DataStorage } from '../utils/dataStorage';
-import Header from '../components/Header';
+import MenuHeader from '../components/MenuHeader';
 import Footer from '../components/Footer';
 
 // Выносим функции, не зависящие от состояния, за пределы компонента
@@ -375,12 +375,7 @@ export default function StreamerCoins() {
 
   return (
     <div className={styles.coinsContainer}>
-      <div className={styles.header}>
-        <button onClick={handleReturnToMenu} className={styles.returnButton}>
-          <span>←</span> Вернуться в меню
-        </button>
-        <h1 className={styles.title}>Стример-коины</h1>
-      </div>
+      <MenuHeader />
       
       <div className={styles.balanceCard}>
         <div className={styles.balanceHeader}>
@@ -449,6 +444,8 @@ export default function StreamerCoins() {
           Сейчас проходит альфа-тестирование, и вы можете получать 100 коинов каждый день бесплатно!
         </p>
       </div>
+
+      <Footer />
     </div>
   );
 } 
