@@ -1,13 +1,16 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import React, { useState, useEffect, useCallback } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import Cookies from 'js-cookie';
+import Image from 'next/image';
 import styles from './search.module.css';
 import { getAccessTokenFromCookie } from '../utils/twitchAPI';
-import SynthwaveButton from '../components/SynthwaveButton';
 import Input from '../components/Input';
 import NeonCheckbox from '../components/NeonCheckbox';
+import MenuHeader from '../components/MenuHeader';
+import Footer from '../components/Footer';
+import { useDebounce } from '../hooks/useDebounce';
 
 export default function Search() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -16,6 +19,8 @@ export default function Search() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const initialQuery = searchParams.get('q') || '';
   const [showFilters, setShowFilters] = useState(false);
   const [filters, setFilters] = useState({
     category: 'all',
@@ -24,6 +29,8 @@ export default function Search() {
     activity: null,
     region: null
   });
+
+  const debouncedQuery = useDebounce(query, 500);
 
   // Проверка авторизации
   useEffect(() => {
@@ -63,9 +70,11 @@ export default function Search() {
     checkAuth();
   }, [router]);
 
-  const handleSearch = async () => {
-    if (!query) return;
-    
+  const handleSearch = useCallback(async (searchTerm) => {
+    if (!searchTerm.trim()) {
+      setResults(null);
+      return;
+    }
     setLoading(true);
     setResults(null);
     
@@ -78,7 +87,7 @@ export default function Search() {
         return;
       }
       
-      const sanitizedQuery = query.trim().toLowerCase();
+      const sanitizedQuery = searchTerm.trim().toLowerCase();
       
       if (!sanitizedQuery) {
         throw new Error('Пожалуйста, введите корректный запрос для поиска');
@@ -148,7 +157,7 @@ export default function Search() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [filters.category, router]);
 
   const toggleFilters = () => {
     setShowFilters(!showFilters);
@@ -271,7 +280,13 @@ export default function Search() {
           <div className={styles.userCard}>
             <div className={styles.userHeader}>
               <div className={styles.userAvatar}>
-                <img src={results.twitchData.profile_image_url} alt={results.twitchData.display_name} />
+                <Image
+                  src={results.twitchData.profile_image_url}
+                  alt={results.twitchData.display_name}
+                  width={80}
+                  height={80}
+                  className={styles.streamerAvatar}
+                />
               </div>
               <h2>{results.twitchData.display_name}</h2>
               {(results.twitchData.broadcaster_type || 
@@ -307,9 +322,12 @@ export default function Search() {
                 <div className={styles.streamersList}>
                   {results.commonFollowers.slice(0, 5).map((streamer, index) => (
                     <div key={index} className={styles.commonStreamer}>
-                      <img 
-                        src={streamer.profile_image_url || '/images/default-avatar.png'} 
-                        alt={streamer.display_name} 
+                      <Image
+                        src={streamer.profile_image_url || '/images/default-avatar.png'}
+                        alt={streamer.display_name}
+                        width={80}
+                        height={80}
+                        className={styles.streamerAvatar}
                       />
                       <span>{streamer.display_name}</span>
                     </div>

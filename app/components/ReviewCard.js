@@ -1,13 +1,11 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import styles from './ReviewCard.module.css';
 import Image from 'next/image';
-import { supabase } from '../../lib/supabaseClient';
-import { DataStorage } from '../utils/dataStorage';
-import { useRouter } from 'next/navigation';
+import { useAuth } from '../../contexts/AuthContext';
 
-const ReviewCard = ({ review }) => {
+const ReviewCard = ({ review, onDelete, onEdit }) => {
   const [isExpanded, setIsExpanded] = useState(false);
   const [likes, setLikes] = useState(review?.likes || 0);
   const [dislikes, setDislikes] = useState(review?.dislikes || 0);

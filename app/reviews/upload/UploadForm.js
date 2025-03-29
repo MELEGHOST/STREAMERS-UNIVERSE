@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import supabase from '../../../lib/supabase';
 import FileUploader from '../../components/reviews/FileUploader';
@@ -18,6 +18,8 @@ export default function UploadForm() {
   const [isUploading, setIsUploading] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState('');
 
   // Обработчик изменения файлов
   const handleFilesSelected = (selectedFiles) => {
@@ -143,6 +145,23 @@ export default function UploadForm() {
       setIsUploading(false);
     }
   };
+
+  // Загрузка данных (если нужно)
+  useEffect(() => {
+    const loadData = async () => {
+      setIsLoading(true);
+      try {
+        // Пример: const uploadData = await fetchUploadData();
+        // setUploadData(uploadData); // Не используется
+      } catch (err) {
+        setError('Не удалось загрузить данные для формы');
+        console.error('Error loading upload form data:', err);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    // loadData(); // Пока не вызываем, т.к. нет логики загрузки
+  }, []);
 
   return (
     <div className={styles.formContainer}>

@@ -22,6 +22,8 @@ export default function StreamerSchedulePage({ params }) {
   });
   const [formErrors, setFormErrors] = useState({});
   const [successMessage, setSuccessMessage] = useState('');
+  const [voteSuccess, setVoteSuccess] = useState(false);
+  const [voteError, setVoteError] = useState(null);
   const router = useRouter();
   const { isAuthenticated, isInitialized } = useAuth();
 
@@ -204,6 +206,8 @@ export default function StreamerSchedulePage({ params }) {
         await loadScheduledStreams(id);
         // Сбрасываем форму
         resetVoteForm();
+        setVoteSuccess(true);
+        setVoteError(null);
       } else {
         setError(response?.error || 'Не удалось отправить голос');
       }
@@ -278,11 +282,6 @@ export default function StreamerSchedulePage({ params }) {
       hour: '2-digit',
       minute: '2-digit'
     });
-  };
-
-  // Проверка, голосовал ли текущий пользователь за трансляцию
-  const hasVoted = (stream) => {
-    return stream.votes && stream.votes.some(vote => vote.voterId === userData?.id);
   };
 
   // Получение голоса текущего пользователя

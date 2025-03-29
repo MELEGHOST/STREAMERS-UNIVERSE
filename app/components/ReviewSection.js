@@ -3,32 +3,36 @@
 import React, { useState, useEffect, useCallback } from 'react';
 // import supabase from '@/lib/supabaseClient'; // Не используется
 // import { FaThumbsUp, FaThumbsDown } from 'react-icons/fa'; // Не используются
-// import ReviewCard from './ReviewCard'; // Не используется
+import ReviewCard from './ReviewCard';
 // import ReviewForm from '../reviews/upload/UploadForm'; // Исправленный импорт
 // import Pagination from './Pagination'; // Комментируем импорт Pagination
 import styles from './ReviewSection.module.css';
 import Cookies from 'js-cookie';
+import { useAuth } from '../../contexts/AuthContext';
 
-const ReviewSection = ({ userId, isAuthor = false, onReviewAdded }) => {
+const ReviewSection = ({ streamerId, streamerLogin, isOwnProfile }) => {
+  const { userId, isAuthenticated } = useAuth();
   const [reviews, setReviews] = useState([]);
-  const [newReview, setNewReview] = useState('');
-  const [newRating, setNewRating] = useState(5);
-  const [reviewTarget, setReviewTarget] = useState('');
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [loading, setLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [currentUser, setCurrentUser] = useState(null);
-  // const [selectedCategories, setSelectedCategories] = useState([]); // Не используется
-  // const [editingReview, setEditingReview] = useState(null); // Не используется
-  const [pagination, setPagination] = useState(null); // Добавляем состояние для пагинации
-  const [stats, setStats] = useState(null); // Добавляем состояние для статистики
+  const [showForm, setShowForm] = useState(false);
+  const [newReviewText, setNewReviewText] = useState('');
+  const [newRating, setNewRating] = useState(0); // 0 - нет оценки, 1-5 - оценка
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState(null);
+  const [userReview, setUserReview] = useState(null); // Отзыв текущего пользователя
+  const [sortOrder, setSortOrder] = useState('newest'); // 'newest', 'oldest', 'rating_high', 'rating_low'
+  const [editingReview, setEditingReview] = useState(null);
+  const [showLoginPrompt, setShowLoginPrompt] = useState(false);
+  // const [pagination, setPagination] = useState({ currentPage: 1, totalPages: 1, pageSize: 10 }); // Не используется
+  // const [stats, setStats] = useState({ totalReviews: 0, averageRating: 0 }); // Не используется
 
   // Получение данных текущего пользователя
   useEffect(() => {
     const userData = Cookies.get('twitch_user');
     if (userData) {
       try {
-        setCurrentUser(JSON.parse(userData));
+        // setCurrentUser(JSON.parse(userData));
       } catch (e) {
         console.error('Ошибка при парсинге данных пользователя:', e);
       }
@@ -36,14 +40,14 @@ const ReviewSection = ({ userId, isAuthor = false, onReviewAdded }) => {
   }, []);
 
   // Загрузка отзывов
-  const fetchReviews = useCallback(async (page = 1) => {
+  const fetchReviews = useCallback(async (order = sortOrder) => {
     try {
-      setLoading(true);
+      setIsLoading(true);
       
       // Определяем URL в зависимости от того, чьи отзывы мы загружаем
-      const url = isAuthor 
-        ? `/api/reviews?authorId=${userId}&page=${page}&limit=5` 
-        : `/api/reviews?targetId=${userId}&page=${page}&limit=5`;
+      const url = isOwnProfile 
+        ? `/api/reviews?authorId=${streamerId}&page=${1}&limit=5&sort=${order}` 
+        : `/api/reviews?targetId=${streamerId}&page=${1}&limit=5&sort=${order}`;
       
       const response = await fetch(url, {
         headers: {
@@ -62,22 +66,24 @@ const ReviewSection = ({ userId, isAuthor = false, onReviewAdded }) => {
       if (data.reviews) {
         // Если API возвращает объект с полем reviews
         setReviews(data.reviews);
+        // Если API возвращает пагинацию
         if (data.pagination) {
-          setPagination(data.pagination);
+          // setPagination(data.pagination);
         }
+        // Если API возвращает статистику
         if (data.stats) {
-          setStats(data.stats);
+          // setStats(data.stats);
         }
       } else if (Array.isArray(data)) {
         // Если API возвращает массив напрямую (для совместимости)
         setReviews(data);
         // Устанавливаем базовую пагинацию
-        setPagination({
-          currentPage: page,
-          totalPages: Math.ceil((data && data.length) ? data.length / 5 : 1), // Безопасный расчет
-          hasNextPage: false,
-          hasPrevPage: page > 1
-        });
+        // setPagination({
+        //   currentPage: 1,
+        //   totalPages: Math.ceil((data && data.length) ? data.length / 5 : 1), // Безопасный расчет
+        //   hasNextPage: false,
+        //   hasPrevPage: false
+        // });
       } else {
         console.warn('Неожиданный формат данных от API:', data);
         setReviews([]);
@@ -86,22 +92,22 @@ const ReviewSection = ({ userId, isAuthor = false, onReviewAdded }) => {
       console.error('Ошибка при загрузке отзывов:', err);
       setError('Не удалось загрузить отзывы. Пожалуйста, попробуйте позже.');
     } finally {
-      setLoading(false);
+      setIsLoading(false);
     }
-  }, [userId, isAuthor]);
+  }, [streamerId, isOwnProfile, sortOrder]);
 
   // Загрузка отзывов при монтировании компонента
   useEffect(() => {
-    if (userId) {
+    if (streamerId) {
       fetchReviews();
     }
-  }, [userId, fetchReviews]);
+  }, [streamerId, fetchReviews]);
 
   // Обработчик отправки нового отзыва
   const handleSubmitReview = async (e) => {
     e.preventDefault();
     
-    if (!newReview || !reviewTarget) {
+    if (!newReviewText) {
       alert('Пожалуйста, заполните все поля');
       return;
     }
@@ -111,10 +117,10 @@ const ReviewSection = ({ userId, isAuthor = false, onReviewAdded }) => {
       
       const reviewData = {
         authorId: userId,
-        content: newReview,
+        content: newReviewText,
         rating: newRating,
-        targetName: reviewTarget,
-        targetType: 'other'
+        targetName: streamerLogin,
+        targetType: 'streamer'
       };
       
       const response = await fetch('/api/reviews', {
@@ -130,20 +136,14 @@ const ReviewSection = ({ userId, isAuthor = false, onReviewAdded }) => {
       }
       
       // Очищаем форму
-      setNewReview('');
-      setNewRating(5);
-      setReviewTarget('');
+      setNewReviewText('');
+      setNewRating(0);
       
       // Получаем данные созданного отзыва
       const createdReview = await response.json();
       
       // Добавляем новый отзыв в начало списка
       setReviews(prevReviews => [createdReview, ...prevReviews]);
-      
-      // Вызываем колбэк, если он передан
-      if (onReviewAdded) {
-        onReviewAdded();
-      }
       
       // Перезагружаем отзывы для актуализации данных
       fetchReviews();
@@ -167,7 +167,12 @@ const ReviewSection = ({ userId, isAuthor = false, onReviewAdded }) => {
     });
   };
 
-  if (loading) {
+  const handleSortChange = (event) => {
+    const newSortOrder = event.target.value;
+    setSortOrder(newSortOrder);
+  };
+
+  if (isLoading) {
     return <div className={styles.loading}>Загрузка отзывов...</div>;
   }
   
@@ -177,17 +182,17 @@ const ReviewSection = ({ userId, isAuthor = false, onReviewAdded }) => {
 
   return (
     <div className={styles.reviewsSection}>
-      {isAuthor && (
+      {isOwnProfile && (
         <div className={styles.addReviewForm}>
           <h3>Оставить новый отзыв</h3>
           <form onSubmit={handleSubmitReview}>
             <div className={styles.formGroup}>
-              <label>О чём или о ком ваш отзыв:</label>
-              <input
-                type="text"
-                value={reviewTarget}
-                onChange={(e) => setReviewTarget(e.target.value)}
-                placeholder="Например: Игра, фильм, сервис, продукт..."
+              <label>Текст отзыва:</label>
+              <textarea
+                value={newReviewText}
+                onChange={(e) => setNewReviewText(e.target.value)}
+                placeholder="Напишите ваш отзыв здесь..."
+                rows={4}
                 required
               />
             </div>
@@ -206,16 +211,6 @@ const ReviewSection = ({ userId, isAuthor = false, onReviewAdded }) => {
                 ))}
               </div>
             </div>
-            <div className={styles.formGroup}>
-              <label>Текст отзыва:</label>
-              <textarea
-                value={newReview}
-                onChange={(e) => setNewReview(e.target.value)}
-                placeholder="Напишите ваш отзыв здесь..."
-                rows={4}
-                required
-              />
-            </div>
             <button 
               type="submit" 
               className={styles.submitButton}
@@ -228,11 +223,11 @@ const ReviewSection = ({ userId, isAuthor = false, onReviewAdded }) => {
       )}
       
       <div className={styles.reviewsList}>
-        <h3>{isAuthor ? 'Ваши отзывы:' : 'Отзывы о пользователе:'}</h3>
+        <h3>{isOwnProfile ? 'Ваши отзывы:' : 'Отзывы о пользователе:'}</h3>
         
         {reviews.length === 0 ? (
           <div className={styles.noReviews}>
-            {isAuthor 
+            {isOwnProfile 
               ? 'Вы еще не оставили ни одного отзыва. Расскажите о своих впечатлениях!' 
               : 'У этого пользователя пока нет отзывов.'}
           </div>

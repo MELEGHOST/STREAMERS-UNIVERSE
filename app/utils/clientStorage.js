@@ -14,7 +14,7 @@ const isLocalStorageAvailable = () => {
     window.localStorage.setItem(testKey, testKey);
     window.localStorage.removeItem(testKey);
     return true;
-  } catch (_) {
+  } catch {
     return false;
   }
 };
@@ -35,7 +35,7 @@ export const getItem = (key, defaultValue = null) => {
     // Пытаемся распарсить JSON, если это не удается, возвращаем исходную строку
     try {
       return JSON.parse(item);
-    } catch (e) {
+    } catch {
       return item;
     }
   } catch (e) {

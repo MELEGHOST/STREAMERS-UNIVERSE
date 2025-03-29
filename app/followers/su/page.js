@@ -1,23 +1,20 @@
 'use client';
 
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import styles from './SUFollowers.module.css';
-import { supabase } from '../../../lib/supabaseClient';
 import MenuHeader from '@/app/components/MenuHeader';
 import Footer from '@/app/components/Footer';
 
-export default function SUFollowers() {
+const SUFollowersPage = () => {
   const router = useRouter();
-  const [followers, setFollowers] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-  const [currentUserId, setCurrentUserId] = useState(null);
+  const [followers] = useState([]);
+  const [loading] = useState(true);
+  const [error] = useState(null);
+  const [/* currentUserId */, /* setCurrentUserId */] = useState(null);
 
-  // ... остальной код ...
-  
-    return (
+  return (
     <div className={styles.container}>
       <MenuHeader />
       <main className={styles.mainContent}>
@@ -52,22 +49,16 @@ export default function SUFollowers() {
         {!loading && !error && followers.length > 0 && (
           <ul className={styles.followerList}>
             {followers.map((follower) => (
-              <li key={follower.follower_id.id} className={styles.followerItem} onClick={() => handleFollowerClick(follower.follower_id.id)}>
+              <li key={follower.id} className={styles.followerItem}>
                 <Image 
-                  src={follower.follower_id.profile_image_url || 'https://static-cdn.jtvnw.net/user-default-pictures-uv/cdd517fe-def4-11e9-948e-784f43822e80-profile_image-70x70.png'}
-                  alt={`Аватар ${follower.follower_id.display_name}`}
-                  width={50}
-                  height={50}
+                  src={follower.avatar || '/images/default-avatar.png'}
+                  alt={`${follower.login || 'Пользователь'} avatar`}
+                  width={40}
+                  height={40}
                   className={styles.avatar}
                 />
-                <div className={styles.followerInfo}>
-                  <span className={styles.followerName}>{follower.follower_id.display_name}</span>
-                  <span className={styles.followDate}>Подписался: {formatDate(follower.created_at)}</span>
-                </div>
-                {/* Добавляем бейдж "Подписан на вас" если он ваш фолловер */} 
-                {follower.is_mutual && (
-                  <span className={styles.mutualBadge}>Подписан на вас</span>
-                )}
+                <span>{follower.login || 'Пользователь'}</span>
+                {/* Можно добавить кнопку для перехода в профиль подписчика */}
               </li>
             ))}
           </ul>
@@ -81,4 +72,6 @@ export default function SUFollowers() {
       <Footer />
     </div>
   );
-} 
+};
+
+export default SUFollowersPage; 

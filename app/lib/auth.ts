@@ -7,6 +7,7 @@ import { cookies } from 'next/headers';
 import * as jwt from 'jsonwebtoken';
 import supabase from '../../lib/supabaseClient';
 import { SignJWT, jwtVerify } from 'jose';
+// import { SignJWT, jwtVerify } from 'jose';
 import { NextRequest, NextResponse } from 'next/server';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
@@ -197,107 +198,90 @@ export const getOrCreateUser = async (twitchData: {
   }
 };
 
-export async function encrypt(payload: any): Promise<string> {
-  // ... код ...
+// Код, относящийся к jose (возможно, для другого механизма сессий)
+const secretKey = process.env.AUTH_SECRET;
+const key = new TextEncoder().encode(secretKey);
+
+export async function encrypt(payload: unknown) {
+  return await new SignJWT(payload as Record<string, unknown>)
+    .setProtectedHeader({ alg: 'HS256' })
+    .setIssuedAt()
+    .setExpirationTime('7d')
+    .sign(key);
 }
 
-export async function decrypt(input: string): Promise<any> {
-  // ... код ...
-}
-
-// Функция для сохранения сессии в куки
-export async function saveSession(user: { id: string; [key: string]: any }) {
-  const expires = new Date(Date.now() + SESSION_DURATION);
-  const session = await encrypt({ user, expires });
-  cookies().set(COOKIE_NAME, session, { expires, httpOnly: true, secure: true, path: '/', sameSite: 'lax' });
-}
-
-// Функция для получения сессии из куки
-export async function getSession(): Promise<{ user: { id: string; [key: string]: any } | null }> {
-  const session = cookies().get(COOKIE_NAME)?.value;
-  if (!session) return { user: null };
+export async function decrypt(_: string | Uint8Array): Promise<Record<string, unknown> | null> {
   try {
-    const decrypted = await decrypt(session);
-    // Проверяем, что сессия не истекла
-    if (new Date(decrypted.expires) < new Date()) {
-      return { user: null };
-    }
-    return { user: decrypted.user };
-  } catch /* (error) */ { // Заменяем error на _
-    console.error('Error decrypting session:', /* error */); // Можно убрать логирование ошибки, если не нужно
-    return { user: null };
+    const { payload } = await jwtVerify(_, key, {
+      algorithms: ['HS256'],
+    });
+    return payload as Record<string, unknown>;
+  } catch (error) {
+    console.error('Failed to verify session:', error);
+    return null;
   }
 }
 
-// Функция для обновления сессии (если нужно продлевать время жизни)
+export async function saveSession(_: unknown) {
+  const expires = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+  const session = await encrypt({ user: _ });
+
+  const cookieStore = await cookies();
+  cookieStore.set('session', session, { expires, httpOnly: true });
+}
+
+export async function getSession(): Promise<Record<string, unknown> | null> {
+  const cookieStore = await cookies();
+  const session = cookieStore.get('session')?.value;
+  if (!session) return null;
+  return await decrypt(session);
+}
+
 export async function updateSession(request: NextRequest) {
-  const session = request.cookies.get(COOKIE_NAME)?.value;
+  const session = request.cookies.get('session')?.value;
   if (!session) return;
 
-  try {
-    const decrypted = await decrypt(session);
-    if (!decrypted || new Date(decrypted.expires) < new Date()) {
-      return; // Сессия невалидна или истекла
-    }
-
-    // Продлеваем сессию
-    decrypted.expires = new Date(Date.now() + SESSION_DURATION);
+  const parsed = await decrypt(session);
+  if (parsed) {
+    parsed.expires = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
     const res = NextResponse.next();
     res.cookies.set({
-      name: COOKIE_NAME,
-      value: await encrypt(decrypted),
+      name: 'session',
+      value: await encrypt(parsed),
       httpOnly: true,
-      expires: decrypted.expires,
-      secure: true,
-      path: '/',
-      sameSite: 'lax'
+      expires: parsed.expires as Date,
     });
     return res;
-  } catch /* (error) */ { // Заменяем error на _
-    console.error('Error updating session:', /* error */);
   }
 }
 
-// Функция для выхода из системы (удаления куки)
 export async function logout() {
-  cookies().set(COOKIE_NAME, '', { expires: new Date(0), path: '/' });
-  // redirect('/login'); // Не нужно, если обработка редиректа на клиенте
+  const cookieStore = await cookies();
+  cookieStore.set('session', '', { expires: new Date(0) });
 }
 
-// Функция для верификации токена доступа Twitch
-async function verifyTwitchToken(token: string): Promise<{ valid: boolean; user?: any }> {
-  if (!token) {
-    return { valid: false };
-  }
+/**
+ * Проверяет Twitch токен на сервере
+ * @param {string} token - Access token от Twitch
+ * @returns {Promise<object | null>} - Данные пользователя или null
+ */
+export async function verifyTwitchToken(token: string): Promise<Record<string, unknown> | null> {
+  if (!token) return null;
   try {
     const response = await fetch('https://id.twitch.tv/oauth2/validate', {
       headers: {
-        'Authorization': `OAuth ${token}`
-      }
+        Authorization: `OAuth ${token}`,
+      },
     });
-    if (response.ok) {
-      const data = await response.json();
-      // Можно добавить проверку client_id и scopes, если нужно
-      // Получаем данные пользователя после валидации
-      const userResponse = await fetch('https://api.twitch.tv/helix/users', {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Client-ID': process.env.TWITCH_CLIENT_ID!
-        }
-      });
-      if (userResponse.ok) {
-        const userData = await userResponse.json();
-        if (userData.data && userData.data.length > 0) {
-          // Добавляем токен к данным пользователя для дальнейшего использования
-          const user = { ...userData.data[0], accessToken: token }; 
-          return { valid: true, user };
-        }
-      }
+    if (!response.ok) {
+      console.error('Twitch token validation failed:', response.status);
+      return null;
     }
-    return { valid: false };
-  } catch /* (error) */ { // Заменяем error на _
-    console.error('Error verifying Twitch token:', /* error */);
-    return { valid: false };
+    const _ = await response.json();
+    return _ as Record<string, unknown>;
+  } catch (error) {
+    console.error('Error verifying Twitch token:', error);
+    return null;
   }
 }
 

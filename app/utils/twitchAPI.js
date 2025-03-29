@@ -175,28 +175,6 @@ export async function getUserFollowers(userId, accessToken) {
   }
 }
 
-// Вспомогательная функция для обновления данных о фолловерах в фоне
-async function refreshFollowersData(userId) {
-  try {
-    // Используем новую функцию fetchWithTokenRefresh
-    const data = await fetchWithTokenRefresh(
-      `/api/twitch/user-followers?userId=${userId}`,
-      {
-        method: 'GET',
-      },
-      true, // Использовать кэш
-      'followers', // Ключ для кэширования
-      3600000 // Время жизни кэша (1 час)
-    );
-    
-    console.log('Данные о фолловерах успешно обновлены в фоне');
-    return data;
-  } catch (error) {
-    console.error('Ошибка при фоновом обновлении данных о фолловерах:', error);
-    throw error;
-  }
-}
-
 /**
  * Получает данные пользователя из хранилища
  * @returns {Promise<Object|null>} - Данные пользователя или null, если данные отсутствуют

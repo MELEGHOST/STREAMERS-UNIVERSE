@@ -1,12 +1,12 @@
 'use client';
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
-import { getUserData } from '../utils/twitchAPI';
 import styles from './followers.module.css';
+import { getUserData, checkSubscription } from '../utils/twitchAPI';
+import clientStorage from '../utils/clientStorage';
 import { DataStorage } from '../utils/dataStorage';
-import Footer from '../components/Footer';
 
 export default function Followers() {
   const router = useRouter();

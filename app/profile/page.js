@@ -10,6 +10,7 @@ import { checkBirthday } from '../utils/birthdayCheck';
 import { DataStorage } from '../utils/dataStorage';
 import Cookies from 'js-cookie';
 import CyberAvatar from '../components/CyberAvatar';
+import Image from 'next/image';
 
 // Вспомогательная функция для склонения слова "день"
 const getDaysText = (days) => {

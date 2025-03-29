@@ -22,13 +22,12 @@ export default function Home() {
             window.localStorage.setItem(testKey, testKey);
             window.localStorage.removeItem(testKey);
             return true;
-          } catch (e) {
+          } catch /* (e) */ {
             return false;
           }
         })();
         
         // Сначала пробуем получить данные из localStorage (если он доступен)
-        let isUserAuthenticated = false;
         if (isLocalStorageAvailable) {
           try {
             const storedUser = localStorage.getItem('twitch_user');

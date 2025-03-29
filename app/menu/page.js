@@ -26,7 +26,7 @@ const safeSetToStorage = (key, value) => {
 
 export default function Menu() {
   const router = useRouter();
-  const { isAuthenticated, userId, userLogin, userAvatar, setUserLogin, setUserAvatar } = useAuth();
+  const { userId, userLogin, userAvatar, setUserLogin, setUserAvatar } = useAuth();
   
   const [streamCoins, setStreamCoins] = useState(100);
   const [isLoading, setIsLoading] = useState(true);

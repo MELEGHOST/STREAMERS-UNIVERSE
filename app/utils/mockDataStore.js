@@ -3,6 +3,8 @@
  * Предоставляет базовые функции для работы с данными в памяти
  */
 
+import { createId } from '@paralleldrive/cuid2';
+
 // Имитационные данные для пользователей
 const users = new Map();
 const follows = new Map();

@@ -1,14 +1,10 @@
 'use client';
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, Suspense } from 'react';
 import { useRouter } from 'next/navigation';
-import Cookies from 'js-cookie';
 import styles from './edit-profile.module.css';
 import Footer from '../components/Footer';
-import { supabase } from '../../lib/supabaseClient';
-import SocialButton from '../components/SocialButton';
 import NeonCheckbox from '../components/NeonCheckbox';
-import AchievementsSystem from '../components/AchievementsSystem';
 import { DataStorage } from '../utils/dataStorage';
 
 function EditProfileContent() {
@@ -138,7 +134,7 @@ function EditProfileContent() {
         try {
           const errorData = await response.json();
           errorMessage = errorData.error || errorMessage;
-        } catch (_) {
+        } catch {
           errorMessage = `Ошибка сервера: ${response.status}`;
         }
         console.warn('Server save failed:', response.status, errorMessage);

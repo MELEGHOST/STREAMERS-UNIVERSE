@@ -1,17 +1,19 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import styles from './reviews.module.css';
 import ReviewCategories from '../components/ReviewCategories';
 import Link from 'next/link';
 import { DataStorage } from '../utils/dataStorage';
+import { useAuth } from '../../contexts/AuthContext';
+import supabase from '../../lib/supabaseClient';
 
 // Импортируем категории из компонента ReviewCategories
 import { categories } from '../components/ReviewCategories';
 
 export default function Reviews() {
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const { userId /*, isAuthenticated */ } = useAuth();
   const [isLoading, setIsLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState(null);
@@ -32,7 +34,6 @@ export default function Reviews() {
         
         // Проверяем авторизацию
         const isAuth = DataStorage.isAuthenticated();
-        setIsAuthenticated(isAuth);
         
         if (!isAuth) {
           // Если не авторизован, перенаправляем на страницу логина

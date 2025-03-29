@@ -7,6 +7,7 @@ import { useAuth } from '../../../contexts/AuthContext';
 import CyberAvatar from '../../components/CyberAvatar';
 import SynthwaveButton from '../../components/SynthwaveButton';
 import Cookies from 'js-cookie';
+import Image from 'next/image';
 
 export default function UserProfile({ params }) {
   const { id } = params;
@@ -249,57 +250,45 @@ export default function UserProfile({ params }) {
             <div className={styles.followersGrid}>
               {followers.map(follower => (
                 <div key={follower.id} className={styles.followerCard}>
-                  <img 
-                    src={follower.profile_image_url || follower.profileImageUrl || '/images/default-avatar.png'} 
-                    alt={follower.display_name || follower.displayName} 
+                  <Image 
+                    src={follower.avatar || '/images/default-avatar.png'} 
+                    alt={follower.login}
+                    width={50}
+                    height={50}
                     className={styles.followerAvatar}
+                    onClick={() => router.push(`/profile/${follower.id}`)}
                   />
-                  <div className={styles.followerName}>
-                    {follower.display_name || follower.displayName}
-                  </div>
-                  {follower.isRegisteredInSU && (
-                    <div className={styles.registeredBadge} title="Зарегистрирован в Streamers Universe">
-                      SU
-                    </div>
-                  )}
+                  <p>{follower.login}</p>
                 </div>
               ))}
             </div>
           ) : (
-            <div className={styles.emptyState}>
-              Нет фолловеров
-            </div>
+            <p>У этого пользователя нет фолловеров.</p>
           )}
         </div>
       )}
 
       {showFollowings && (
-        <div className={styles.followersSection}>
+        <div className={styles.followingsSection}>
           <h2>Подписки ({followings.length})</h2>
           {followings.length > 0 ? (
-            <div className={styles.followersGrid}>
+            <div className={styles.followingsGrid}>
               {followings.map(following => (
-                <div key={following.id} className={styles.followerCard}>
-                  <img 
-                    src={following.profile_image_url || following.profileImageUrl || '/images/default-avatar.png'} 
-                    alt={following.display_name || following.displayName} 
-                    className={styles.followerAvatar}
+                <div key={following.id} className={styles.followingCard}>
+                  <Image 
+                    src={following.avatar || '/images/default-avatar.png'}
+                    alt={following.login}
+                    width={50}
+                    height={50}
+                    className={styles.followingAvatar}
+                    onClick={() => router.push(`/profile/${following.id}`)}
                   />
-                  <div className={styles.followerName}>
-                    {following.display_name || following.displayName}
-                  </div>
-                  {following.isRegisteredInSU && (
-                    <div className={styles.registeredBadge} title="Зарегистрирован в Streamers Universe">
-                      SU
-                    </div>
-                  )}
+                  <p>{following.login}</p>
                 </div>
               ))}
             </div>
           ) : (
-            <div className={styles.emptyState}>
-              Нет подписок
-            </div>
+            <p>Этот пользователь ни на кого не подписан.</p>
           )}
         </div>
       )}
