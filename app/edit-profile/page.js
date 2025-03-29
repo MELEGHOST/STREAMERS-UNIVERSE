@@ -5,11 +5,11 @@ import { useRouter } from 'next/navigation';
 import styles from './edit-profile.module.css';
 import NeonCheckbox from '../components/NeonCheckbox';
 import { DataStorage } from '../utils/dataStorage';
-import Header from '../components/Header';
-import Footer from '../components/Footer';
-import LoadingIndicator from '../components/LoadingIndicator';
+import Header from '../components/MenuHeader';
+// import Footer from '../components/Footer'; // Комментируем импорт Footer
+// import LoadingIndicator from '../components/LoadingIndicator'; // Комментируем импорт LoadingIndicator
 
-export default function EditProfile() {
+function EditProfileContent() {
   const [editData, setEditData] = useState({
     description: '',
     birthday: '',
@@ -326,5 +326,14 @@ export default function EditProfile() {
         </form>
       )}
     </div>
+    {/* <Footer /> */}
+  );
+}
+
+export default function EditProfile() {
+  return (
+    <Suspense fallback={<div>Загрузка...</div>}>
+      <EditProfileContent />
+    </Suspense>
   );
 } 

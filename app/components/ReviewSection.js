@@ -4,8 +4,8 @@ import React, { useState, useEffect, useCallback } from 'react';
 import supabase from '@/lib/supabaseClient';
 import { FaThumbsUp, FaThumbsDown } from 'react-icons/fa';
 import ReviewCard from './ReviewCard';
-import ReviewForm from './ReviewForm';
-import Pagination from './Pagination';
+// import ReviewForm from '../reviews/upload/UploadForm'; // Исправленный импорт
+// import Pagination from './Pagination'; // Комментируем импорт Pagination
 import styles from './ReviewSection.module.css';
 import Cookies from 'js-cookie';
 
@@ -284,6 +284,17 @@ const ReviewSection = ({ userId, isAuthor = false, onReviewAdded }) => {
           ))
         )}
       </div>
+      
+      {/* Комментируем использование Pagination */}
+      {/* 
+      {reviews.length > 0 && pagination && (
+        <Pagination 
+          currentPage={pagination.currentPage}
+          totalPages={pagination.totalPages}
+          onPageChange={handlePageChange} 
+        />
+      )}
+      */}
     </div>
   );
 };
