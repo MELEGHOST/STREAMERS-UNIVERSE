@@ -41,9 +41,9 @@ export default function Profile() {
 
   const [globalError, setGlobalError] = useState(null);
   const [specificErrors, setSpecificErrors] = useState({});
-  const [loadingState, setLoadingState] = useState({ followers: false });
-  const [errorMessages, setErrorMessages] = useState({ followers: null });
-  const [totalFollowers, setTotalFollowers] = useState(0);
+  const [loadingState] = useState({ followers: false });
+  const [errorMessages] = useState({ followers: null });
+  const [totalFollowers] = useState(0);
 
   const [showAchievements, setShowAchievements] = useState(false);
   const [showReviews, setShowReviews] = useState(false);
