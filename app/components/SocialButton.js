@@ -145,7 +145,7 @@ const SocialButton = ({ type, url, username, subscribers }) => {
     try {
       new URL(url);
       return true;
-    } catch (_e) {
+    } catch /* (_e) */ {
       return false;
     }
   };

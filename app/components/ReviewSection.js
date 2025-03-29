@@ -1,9 +1,9 @@
 'use client';
 
 import React, { useState, useEffect, useCallback } from 'react';
-import supabase from '@/lib/supabaseClient';
-import { FaThumbsUp, FaThumbsDown } from 'react-icons/fa';
-import ReviewCard from './ReviewCard';
+// import supabase from '@/lib/supabaseClient'; // Не используется
+// import { FaThumbsUp, FaThumbsDown } from 'react-icons/fa'; // Не используются
+// import ReviewCard from './ReviewCard'; // Не используется
 // import ReviewForm from '../reviews/upload/UploadForm'; // Исправленный импорт
 // import Pagination from './Pagination'; // Комментируем импорт Pagination
 import styles from './ReviewSection.module.css';
@@ -18,8 +18,10 @@ const ReviewSection = ({ userId, isAuthor = false, onReviewAdded }) => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [currentUser, setCurrentUser] = useState(null);
-  const [selectedCategories, setSelectedCategories] = useState([]);
-  const [editingReview, setEditingReview] = useState(null);
+  // const [selectedCategories, setSelectedCategories] = useState([]); // Не используется
+  // const [editingReview, setEditingReview] = useState(null); // Не используется
+  const [pagination, setPagination] = useState(null); // Добавляем состояние для пагинации
+  const [stats, setStats] = useState(null); // Добавляем состояние для статистики
 
   // Получение данных текущего пользователя
   useEffect(() => {
@@ -72,7 +74,7 @@ const ReviewSection = ({ userId, isAuthor = false, onReviewAdded }) => {
         // Устанавливаем базовую пагинацию
         setPagination({
           currentPage: page,
-          totalPages: Math.ceil(data.length / 5),
+          totalPages: Math.ceil((data && data.length) ? data.length / 5 : 1), // Безопасный расчет
           hasNextPage: false,
           hasPrevPage: page > 1
         });
@@ -155,33 +157,6 @@ const ReviewSection = ({ userId, isAuthor = false, onReviewAdded }) => {
     }
   };
 
-  // Обработчик отмены редактирования
-  const handleCancelEdit = () => {
-    setEditingReview(null);
-    setNewReview('');
-    setNewRating(0);
-    setSelectedCategories([]);
-  };
-
-  // Обработчик выбора категории
-  const handleCategoryToggle = (category) => {
-    setSelectedCategories(prev => 
-      prev.includes(category)
-        ? prev.filter(c => c !== category)
-        : [...prev, category]
-    );
-  };
-
-  // Обработчик изменения страницы
-  const handlePageChange = (page) => {
-    fetchReviews(page);
-  };
-
-  // Проверка, оставил ли текущий пользователь отзыв
-  const hasUserReviewed = reviews.some(review => 
-    currentUser && review.authorId === currentUser.id
-  );
-
   // Форматирование даты
   const formatDate = (dateString) => {
     const date = new Date(dateString);
@@ -262,39 +237,22 @@ const ReviewSection = ({ userId, isAuthor = false, onReviewAdded }) => {
               : 'У этого пользователя пока нет отзывов.'}
           </div>
         ) : (
-          reviews.map((review) => (
-            <div key={review.id} className={styles.reviewCard}>
-              <div className={styles.reviewHeader}>
-                <div className={styles.reviewTarget}>
-                  <span className={styles.targetName}>{review.targetName}</span>
-                  <div className={styles.reviewRating}>
-                    {Array.from({ length: review.rating }).map((_, i) => (
-                      <span key={i} className={styles.star}>⭐</span>
-                    ))}
-                  </div>
-                </div>
-                <div className={styles.reviewDate}>
-                  {formatDate(review.createdAt)}
-                </div>
+          <div className={styles.reviewList}>
+            {reviews.map((review) => (
+              <div key={review.id} className={styles.reviewCardPlaceholder}> 
+                <h4>{review.targetName || 'Отзыв'} - {review.rating}⭐</h4>
+                <p>{review.content}</p>
+                <small>От: {review.author?.username || 'Аноним'} | {formatDate(review.createdAt)}</small>
               </div>
-              <div className={styles.reviewContent}>
-                {review.content}
-              </div>
-            </div>
-          ))
+            ))}
+          </div>
         )}
       </div>
       
-      {/* Комментируем использование Pagination */}
-      {/* 
-      {reviews.length > 0 && pagination && (
-        <Pagination 
-          currentPage={pagination.currentPage}
-          totalPages={pagination.totalPages}
-          onPageChange={handlePageChange} 
-        />
-      )}
-      */}
+      {/* Пагинация (если будет использоваться) */}
+      {/* {pagination && reviews && reviews.length > 0 && ( */}
+      {/*   <Pagination pagination={pagination} onPageChange={handlePageChange} /> */}
+      {/* )} */}
     </div>
   );
 };

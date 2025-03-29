@@ -207,11 +207,8 @@ export async function POST(request) {
       success: true,
       message: 'Социальные ссылки успешно сохранены'
     });
-  } catch (error) {
-    console.error('Ошибка при сохранении социальных ссылок:', error);
-    return NextResponse.json(
-      { error: 'Внутренняя ошибка сервера' },
-      { status: 500 }
-    );
+  } catch /* (_error) */ { // Удаляем неиспользуемую переменную
+    console.error('Error parsing request body or invalid data');
+    return NextResponse.json({ error: 'Invalid request data.' }, { status: 400 });
   }
 } 

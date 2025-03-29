@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
-import Link from 'next/link';
+// import Link from 'next/link'; // Удаляем неиспользуемый импорт
 import Image from 'next/image';
 import styles from '../../styles/menu.module.css';
 import { useAuth } from '../../contexts/AuthContext';
@@ -26,14 +26,12 @@ const safeSetToStorage = (key, value) => {
 
 export default function Menu() {
   const router = useRouter();
-  const { isAuthenticated, userId, userLogin, userAvatar, isInitialized, setUserLogin, setUserAvatar } = useAuth();
+  const { isAuthenticated, userId, userLogin, userAvatar, setUserLogin, setUserAvatar } = useAuth();
   
   const [streamCoins, setStreamCoins] = useState(100);
-  const [referralCode, setReferralCode] = useState('');
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
   const hasRedirectedRef = useRef(false);
-  const [balance, setBalance] = useState(0);
   
   // Выносим функции за пределы useEffect для оптимизации
   const loadStreamCoins = useCallback((userId) => {
@@ -234,7 +232,7 @@ export default function Menu() {
           loadStreamCoins(userIdToUse);
           
           // Генерируем реферальный код
-          setReferralCode(generateReferralCode(userIdToUse));
+          // setReferralCode(generateReferralCode(userIdToUse)); // Удаляем установку неиспользуемого состояния
         } else {
           console.error('Не удалось получить userId');
           setError('Не удалось получить данные пользователя. Пожалуйста, попробуйте войти снова.');
@@ -266,7 +264,6 @@ export default function Menu() {
         }
         
         console.log('Баланс монет в меню:', coinsBalance);
-        setBalance(coinsBalance);
       } catch (error) {
         console.error('Ошибка при инициализации пользователя:', error);
         setError('Произошла ошибка при загрузке данных. Пожалуйста, обновите страницу.');
@@ -279,7 +276,7 @@ export default function Menu() {
     // Начинаем инициализацию сразу
     initUser();
     
-  }, [isAuthenticated, userId, router, userLogin, userAvatar, setUserLogin, setUserAvatar, loadStreamCoins, generateReferralCode]);
+  }, [userId, userLogin, userAvatar, loadStreamCoins, generateReferralCode, router, setUserLogin, setUserAvatar]);
   
   // Функция для перехода на страницу профиля
   const goToProfile = (e) => {
@@ -339,7 +336,14 @@ export default function Menu() {
           <div className={styles.userInfo}>
             {userAvatar ? (
               <div className={styles.userAvatar} onClick={goToProfile} title="Перейти в профиль">
-                <img src={userAvatar} alt={userLogin || 'Пользователь'} />
+                <Image 
+                  src={userAvatar}
+                  alt="User Avatar"
+                  className={styles.avatar}
+                  width={80}
+                  height={80}
+                  priority
+                />
               </div>
             ) : (
               <div className={styles.userAvatarPlaceholder} onClick={goToProfile} title="Перейти в профиль">

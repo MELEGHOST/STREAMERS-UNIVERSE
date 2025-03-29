@@ -1,13 +1,15 @@
 'use client';
 
-import React, { useState, useEffect, useCallback, Suspense } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
-import styles from './edit-profile.module.css';
+import Cookies from 'js-cookie';
+import styles from './EditProfile.module.css';
+import Footer from '../components/Footer';
+import { supabase } from '../../lib/supabaseClient';
+import SocialButton from '../components/SocialButton';
 import NeonCheckbox from '../components/NeonCheckbox';
+import AchievementsSystem from '../components/AchievementsSystem';
 import { DataStorage } from '../utils/dataStorage';
-import Header from '../components/MenuHeader';
-// import Footer from '../components/Footer'; // Комментируем импорт Footer
-// import LoadingIndicator from '../components/LoadingIndicator'; // Комментируем импорт LoadingIndicator
 
 function EditProfileContent() {
   const [editData, setEditData] = useState({
@@ -136,7 +138,7 @@ function EditProfileContent() {
         try {
           const errorData = await response.json();
           errorMessage = errorData.error || errorMessage;
-        } catch (_parseError) {
+        } catch (_) {
           errorMessage = `Ошибка сервера: ${response.status}`;
         }
         console.warn('Server save failed:', response.status, errorMessage);
@@ -325,8 +327,7 @@ function EditProfileContent() {
           </div>
         </form>
       )}
-      {/* Переносим комментарий внутрь div */}
-      {/* <Footer /> */}
+      <Footer />
     </div>
   );
 }

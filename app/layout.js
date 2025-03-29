@@ -3,8 +3,10 @@ import { Inter } from 'next/font/google';
 import ThemeProvider from '../components/ThemeProvider';
 import { AuthProvider } from '../contexts/AuthContext';
 import { NextAuthProvider } from './providers';
-import { Suspense } from 'react';
-import PageTransition from '../components/PageTransition';
+import { SessionProvider } from 'next-auth/react';
+import { Analytics } from "@vercel/analytics/react";
+import { SpeedInsights } from "@vercel/speed-insights/next";
+import Script from 'next/script';
 
 const inter = Inter({ subsets: ['latin', 'cyrillic'] });
 
@@ -23,9 +25,7 @@ export default function RootLayout({ children }) {
         <NextAuthProvider>
           <AuthProvider>
             <ThemeProvider>
-              <PageTransition>
-                {children}
-              </PageTransition>
+              {children}
             </ThemeProvider>
           </AuthProvider>
         </NextAuthProvider>

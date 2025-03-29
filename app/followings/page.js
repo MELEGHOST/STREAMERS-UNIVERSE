@@ -3,17 +3,15 @@
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import Image from 'next/image';
 import styles from './followings.module.css';
-import { getUserData, getUserFollowings, getUserStats } from '../utils/twitchAPI';
-import { DataStorage } from '../utils/dataStorage';
+import { getUserStats, getUserFollowings } from '../utils/twitchAPI';
 import Cookies from 'js-cookie';
+import Image from 'next/image';
 
 export default function Followings() {
   const router = useRouter();
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [userId, setUserId] = useState(null);
-  const [userLogin, setUserLogin] = useState(null);
   const [followings, setFollowings] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -72,7 +70,6 @@ export default function Followings() {
         }
         
         setUserId(userData.id);
-        setUserLogin(userData.login || userData.display_name);
         
         // Сначала пробуем загрузить статистику пользователя, которая включает followings
         try {
@@ -194,10 +191,13 @@ export default function Followings() {
             <div key={following.id} className={styles.followingCard}>
               <div className={styles.followingAvatar}>
                 {following.profileImageUrl ? (
-                  <img 
+                  <Image 
                     src={following.profileImageUrl} 
                     alt={following.name} 
+                    width={60}
+                    height={60}
                     className={styles.avatarImage}
+                    onError={(e) => { e.target.src = 'https://static-cdn.jtvnw.net/user-default-pictures-uv/cdd517fe-def4-11e9-948e-784f43822e80-profile_image-70x70.png'; }}
                   />
                 ) : (
                   <div className={styles.defaultAvatar}>

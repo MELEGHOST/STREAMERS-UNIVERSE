@@ -1,9 +1,11 @@
 'use client';
 
-import React, { useState } from 'react';
-import { FaThumbsUp, FaThumbsDown, FaUserCircle } from 'react-icons/fa';
-import Image from 'next/image';
+import React, { useState, useEffect } from 'react';
 import styles from './ReviewCard.module.css';
+import Image from 'next/image';
+import { supabase } from '../../lib/supabaseClient';
+import { DataStorage } from '../utils/dataStorage';
+import { useRouter } from 'next/navigation';
 
 const ReviewCard = ({ review }) => {
   const [isExpanded, setIsExpanded] = useState(false);
