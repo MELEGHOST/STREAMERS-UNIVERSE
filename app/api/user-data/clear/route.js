@@ -2,16 +2,19 @@
 
 import { NextResponse } from 'next/server';
 import { createPool } from '@vercel/postgres';
-import { authenticateUser } from '../../../lib/auth';
+import { requireAuth, getCurrentUser } from '../../lib/auth';
 
 // Очистка всех данных пользователя
 export async function POST(request) {
   try {
-    // Получаем текущего пользователя
-    const user = await authenticateUser(request);
+    // Проверяем авторизацию
+    await requireAuth();
     
-    if (!user || !user.userId) {
-      return NextResponse.json({ error: 'Не авторизован' }, { status: 401 });
+    // Получаем ID пользователя из JWT токена (предполагается, что requireAuth его проверяет)
+    const user = await getCurrentUser(); // Необходимо импортировать getCurrentUser
+    
+    if (!user || !user.userId) { // Убедитесь, что getCurrentUser возвращает объект с userId
+      return NextResponse.json({ error: 'Не удалось получить ID пользователя' }, { status: 500 });
     }
     
     // Устанавливаем соединение с базой данных

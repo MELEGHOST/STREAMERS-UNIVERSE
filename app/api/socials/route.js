@@ -1,7 +1,7 @@
 import { createPool } from '@vercel/postgres';
 import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
-import { escapeHtml, sanitizeObject, isValidUrl } from '@/utils/securityUtils';
+import { sanitizeObject, isValidUrl } from '@/utils/securityUtils';
 
 export async function GET() {
   try {

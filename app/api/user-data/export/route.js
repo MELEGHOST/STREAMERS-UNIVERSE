@@ -2,16 +2,19 @@
 
 import { NextResponse } from 'next/server';
 import { createPool } from '@vercel/postgres';
-import { authenticateUser } from '../../../lib/auth';
+import { requireAuth, getCurrentUser } from '../../lib/auth';
 
 // Экспорт всех данных пользователя
 export async function GET(request) {
   try {
-    // Получаем текущего пользователя
-    const user = await authenticateUser(request);
+    // Проверяем авторизацию
+    await requireAuth();
+    
+    // Получаем ID пользователя
+    const user = await getCurrentUser();
     
     if (!user || !user.userId) {
-      return NextResponse.json({ error: 'Не авторизован' }, { status: 401 });
+      return NextResponse.json({ error: 'Не удалось получить ID пользователя' }, { status: 500 });
     }
     
     // Устанавливаем соединение с базой данных

@@ -4,7 +4,7 @@ import { cookies } from 'next/headers';
 // import { connectToDatabase } from '../../../utils/mongodb';
 // import { ObjectId } from 'mongodb';
 // Добавляем импорт клиента Supabase
-import { supabase } from '../../../utils/supabaseClient'; // Убедитесь, что путь правильный
+import supabase from '../../../utils/supabaseClient'; // Исправляем на импорт по умолчанию
 
 // Получение запланированных трансляций
 export async function GET(request) {

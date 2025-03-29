@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { createPool } from '@vercel/postgres';
-import { escapeHtml, sanitizeObject, isValidUrl } from '@/utils/securityUtils';
+import { sanitizeObject, isValidUrl } from '@/utils/securityUtils';
 
 // API-эндпоинт с путем /api/user-socials
 export async function GET(request) {

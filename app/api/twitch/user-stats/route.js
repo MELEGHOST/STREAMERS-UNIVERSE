@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { DataStorage } from '../../../utils/dataStorage';
-import { escapeHtml, sanitizeObject } from '@/utils/securityUtils';
+import { sanitizeObject } from '@/utils/securityUtils';
 
 // Получаем токен доступа из cookie
 function getAccessTokenFromCookie() {

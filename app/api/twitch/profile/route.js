@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import axios from 'axios';
-import { escapeHtml, sanitizeObject } from '@/utils/securityUtils';
+import { sanitizeObject } from '@/utils/securityUtils';
 
 export async function GET(request) {
   // Добавляем таймаут для ответа

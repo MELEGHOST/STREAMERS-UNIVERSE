@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
-import { escapeHtml, sanitizeObject } from '@/utils/securityUtils';
+import { sanitizeObject } from '@/utils/securityUtils';
 
 /**
  * Проверяет, зарегистрирован ли пользователь в Streamers Universe
