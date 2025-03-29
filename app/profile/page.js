@@ -10,7 +10,6 @@ import { checkBirthday } from '../utils/birthdayCheck';
 import { DataStorage } from '../utils/dataStorage';
 import Cookies from 'js-cookie';
 import CyberAvatar from '../components/CyberAvatar';
-import Image from 'next/image';
 
 // Вспомогательная функция для склонения слова "день"
 const getDaysText = (days) => {
@@ -38,27 +37,17 @@ export default function Profile() {
 
   const [loadingTwitchUser, setLoadingTwitchUser] = useState(true);
   const [loadingProfileDb, setLoadingProfileDb] = useState(true);
-  const [loadingFollowers, setLoadingFollowers] = useState(false);
-  const [loadingFollowings, setLoadingFollowings] = useState(false);
-  const [loadingStats, setLoadingStats] = useState(false);
-  const [loadingTierlists, setLoadingTierlists] = useState(false);
   const [loadingReviews, setLoadingReviews] = useState(false);
 
   const [globalError, setGlobalError] = useState(null);
   const [specificErrors, setSpecificErrors] = useState({});
 
-  const [followers, setFollowers] = useState([]);
   const [totalFollowers, setTotalFollowers] = useState(0);
-  const [followings, setFollowings] = useState([]);
-  const [totalFollowings, setTotalFollowings] = useState(0);
-  const [userStats, setUserStats] = useState(null);
-  const [tierlists, setTierlists] = useState([]);
   const [showAchievements, setShowAchievements] = useState(false);
   const [showReviews, setShowReviews] = useState(false);
   const [showStats, setShowStats] = useState(false);
   
   const [userId, setUserId] = useState('');
-  const [userLogin, setUserLogin] = useState('');
 
   const fetchTwitchUserData = useCallback(async (forceRefresh = false) => {
     setLoadingTwitchUser(true);
@@ -73,7 +62,6 @@ export default function Profile() {
           console.log('Profile: Данные Twitch пользователя получены из DataStorage:', cachedUserData.id);
           setTwitchUserData(cachedUserData);
           setUserId(cachedUserData.id);
-          setUserLogin(cachedUserData.login);
           setLoadingTwitchUser(false);
           return cachedUserData;
         }
@@ -113,7 +101,6 @@ export default function Profile() {
           await DataStorage.saveData('user', apiUserData);
           setTwitchUserData(apiUserData);
           setUserId(apiUserData.id);
-          setUserLogin(apiUserData.login);
           setLoadingTwitchUser(false);
           return apiUserData;
       } else {
@@ -168,79 +155,8 @@ export default function Profile() {
     }
   }, []);
 
-  const loadFollowers = useCallback(async (currentUserId) => {
-      if (!currentUserId) return;
-      setSpecificErrors(prev => ({ ...prev, followers: null }));
-      setLoadingFollowers(true);
-      try {
-          console.log('Profile: Загрузка подписчиков Twitch для ID:', currentUserId);
-          const response = await fetch(`/api/twitch/user-followers?userId=${currentUserId}&_=${Date.now()}`, {
-              method: 'GET',
-              headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-cache' },
-              credentials: 'include',
-          });
-
-          if (!response.ok) {
-              throw new Error(`API Error Followers: ${response.status}`);
-          }
-          const data = await response.json();
-          if (data && data.followers) {
-              setFollowers(data.followers || []);
-              setTotalFollowers(data.total || data.followers.length || 0);
-              console.log('Profile: Подписчики Twitch успешно загружены:', data.followers?.length || 0, 'Всего:', data.total || 0);
-          } else {
-              console.warn('Profile: Данные подписчиков Twitch некорректные или отсутствуют:', data);
-              setFollowers([]);
-              setTotalFollowers(0);
-          }
-      } catch (error) {
-          console.error('Profile: Ошибка при загрузке подписчиков Twitch:', error);
-          setSpecificErrors(prev => ({ ...prev, followers: 'Не удалось загрузить подписчиков Twitch' }));
-          setFollowers([]);
-          setTotalFollowers(0);
-      } finally {
-          setLoadingFollowers(false);
-      }
-  }, []);
-
-  const loadFollowings = useCallback(async (currentUserId) => {
-    if (!currentUserId) return;
-    setSpecificErrors(prev => ({ ...prev, followings: null }));
-    setLoadingFollowings(true);
-    try {
-        console.log('Profile: Загрузка подписок Twitch для ID:', currentUserId);
-        const response = await fetch(`/api/twitch/user-followings?userId=${currentUserId}&_=${Date.now()}`, {
-            method: 'GET',
-            headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-cache' },
-            credentials: 'include',
-        });
-
-        if (!response.ok) {
-            throw new Error(`API Error Followings: ${response.status}`);
-        }
-        const data = await response.json();
-        if (data && data.followings) {
-            setFollowings(data.followings || []);
-            setTotalFollowings(data.total || data.followings.length || 0);
-            console.log('Profile: Подписки Twitch успешно загружены:', data.followings?.length || 0, 'Всего:', data.total || 0);
-        } else {
-            console.warn('Profile: Данные подписок Twitch некорректные или отсутствуют:', data);
-            setFollowings([]);
-            setTotalFollowings(0);
-        }
-    } catch (error) {
-        console.error('Profile: Ошибка при загрузке подписок Twitch:', error);
-        setSpecificErrors(prev => ({ ...prev, followings: 'Не удалось загрузить подписки Twitch' }));
-        setFollowings([]);
-        setTotalFollowings(0);
-    } finally {
-        setLoadingFollowings(false);
-    }
-  }, []);
-
   const loadTierlists = useCallback(async (currentUserId) => {
     if (!currentUserId) return;
-    setLoadingTierlists(true);
     try {
         console.log('Profile: Загрузка тирлистов для:', currentUserId);
         const response = await fetch(`/api/tierlists?userId=${currentUserId}&_=${Date.now()}`, {
@@ -248,16 +164,11 @@ export default function Profile() {
         if (response.ok) {
             const data = await response.json();
             console.log('Profile: Тирлисты успешно загружены:', data?.length || 0);
-            setTierlists(Array.isArray(data) ? data : []);
         } else {
             console.error('Profile: Ошибка при загрузке тирлистов:', response.status);
-            setTierlists([]);
         }
     } catch (error) {
         console.error('Profile: Ошибка при загрузке тирлистов:', error);
-        setTierlists([]);
-    } finally {
-        setLoadingTierlists(false);
     }
   }, []);
 
@@ -304,8 +215,6 @@ export default function Profile() {
 
       await Promise.allSettled([
           loadUserProfileDbData(),
-          loadFollowers(currentUserId),
-          loadFollowings(currentUserId),
           loadTierlists(currentUserId),
       ]);
 
@@ -327,7 +236,7 @@ export default function Profile() {
       console.log("Profile: Компонент размонтирован, isMounted = false.");
       isMounted = false;
     };
-  }, [fetchTwitchUserData, loadUserProfileDbData, loadFollowers, loadFollowings, loadTierlists, searchParams]); 
+  }, [fetchTwitchUserData, loadUserProfileDbData, loadTierlists, searchParams]); 
 
   const { isBirthday, daysToBirthday } = useMemo(() => {
       if (!userProfileDbData?.birthday) {
@@ -500,12 +409,6 @@ export default function Profile() {
           loadReviews(userId);
       }
   };
-  
-  const toggleStats = () => {
-    setShowStats(!showStats);
-    setShowAchievements(false);
-    setShowReviews(false);
-  };
 
   if (isLoadingPage) {
     return (
@@ -591,8 +494,6 @@ export default function Profile() {
       }
       switch (section) {
           case 'profileDb': loadUserProfileDbData(); break;
-          case 'followers': loadFollowers(userId); break;
-          case 'followings': loadFollowings(userId); break;
           case 'tierlists': loadTierlists(userId); break;
           case 'reviews': loadReviews(userId); break;
           default: console.warn(`Неизвестная секция для повторной загрузки: ${section}`);
@@ -620,12 +521,12 @@ export default function Profile() {
                   <div className={styles.userStats}>
                     <div className={styles.statItem}>
                       <span className={styles.statLabel}>Подписчики Twitch</span>
-                      {loadingFollowers ? (
+                      {loadingStats ? (
                         <div className={styles.smallLoader}></div>
-                      ) : specificErrors.followers ? (
+                      ) : specificErrors.reviews ? (
                         <div className={styles.statError}>
                           <span className={styles.errorText}>Ошибка</span>
-                          <button onClick={() => retryLoading('followers')} className={styles.retryButtonSmall} title="Повторить">↺</button>
+                          <button onClick={() => retryLoading('reviews')} className={styles.retryButtonSmall} title="Повторить">↺</button>
                         </div>
                       ) : (
                         <span className={styles.statValue}>{totalFollowers.toLocaleString('ru-RU') ?? '0'}</span>
@@ -655,7 +556,7 @@ export default function Profile() {
             {renderBirthday()} 
           </div>
           <div className={styles.profileActions}>
-            <button className={styles.achievementsButton} onClick={toggleAchievements} title="Посмотреть достижения">�� Достижения</button>
+            <button className={styles.achievementsButton} onClick={toggleAchievements} title="Посмотреть достижения">Достижения</button>
             <button className={styles.reviewsButton} onClick={toggleReviews} title="Отзывы о вас">⭐ Отзывы</button>
             <button className={styles.button} onClick={() => router.push('/edit-profile')}>Редактировать профиль</button>
             <button className={styles.button} onClick={() => router.push('/menu')}>Вернуться в меню</button>
@@ -751,7 +652,7 @@ export default function Profile() {
         )}
         <div className={styles.loadingErrors}>
           {Object.entries(specificErrors).map(([key, errorMsg]) => {
-            if (!errorMsg || ['profileDb', 'followers', 'followings', 'reviews'].includes(key)) return null; 
+            if (!errorMsg || ['profileDb', 'reviews'].includes(key)) return null; 
             return (
               <div key={key} className={styles.errorItem}>
                 <span className={styles.errorIcon}>⚠️</span> 

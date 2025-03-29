@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 // import supabase from '@/lib/supabaseClient'; // Не используется
 // import { FaThumbsUp, FaThumbsDown } from 'react-icons/fa'; // Не используются
-import ReviewCard from './ReviewCard';
+// import ReviewCard from './ReviewCard'; // Удаляем неиспользуемый импорт
 // import ReviewForm from '../reviews/upload/UploadForm'; // Исправленный импорт
 // import Pagination from './Pagination'; // Комментируем импорт Pagination
 import styles from './ReviewSection.module.css';
@@ -11,19 +11,19 @@ import Cookies from 'js-cookie';
 import { useAuth } from '../../contexts/AuthContext';
 
 const ReviewSection = ({ streamerId, streamerLogin, isOwnProfile }) => {
-  const { userId, isAuthenticated } = useAuth();
+  const { userId /* Удаляем , isAuthenticated */ } = useAuth();
   const [reviews, setReviews] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [showForm, setShowForm] = useState(false);
+  // Удаляем неиспользуемые состояния showForm, setShowForm
   const [newReviewText, setNewReviewText] = useState('');
   const [newRating, setNewRating] = useState(0); // 0 - нет оценки, 1-5 - оценка
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [submitError, setSubmitError] = useState(null);
-  const [userReview, setUserReview] = useState(null); // Отзыв текущего пользователя
+  // Удаляем неиспользуемые состояния submitError, setSubmitError
+  // Удаляем неиспользуемые состояния userReview, setUserReview
   const [sortOrder, setSortOrder] = useState('newest'); // 'newest', 'oldest', 'rating_high', 'rating_low'
-  const [editingReview, setEditingReview] = useState(null);
-  const [showLoginPrompt, setShowLoginPrompt] = useState(false);
+  // Удаляем неиспользуемые состояния editingReview, setEditingReview
+  // Удаляем неиспользуемые состояния showLoginPrompt, setShowLoginPrompt
   // const [pagination, setPagination] = useState({ currentPage: 1, totalPages: 1, pageSize: 10 }); // Не используется
   // const [stats, setStats] = useState({ totalReviews: 0, averageRating: 0 }); // Не используется
 
@@ -165,11 +165,6 @@ const ReviewSection = ({ streamerId, streamerLogin, isOwnProfile }) => {
       month: 'long',
       year: 'numeric'
     });
-  };
-
-  const handleSortChange = (event) => {
-    const newSortOrder = event.target.value;
-    setSortOrder(newSortOrder);
   };
 
   if (isLoading) {

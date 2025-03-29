@@ -3,8 +3,6 @@
  * Предоставляет базовые функции для работы с данными в памяти
  */
 
-import { createId } from '@paralleldrive/cuid2';
-
 // Имитационные данные для пользователей
 const users = new Map();
 const follows = new Map();
@@ -161,9 +159,9 @@ function addUserRole(role) {
   return role;
 }
 
-function getUserRole(userId, assignerId) {
-  const key = `${userId}_${assignerId}`;
-  return userRoles.get(key) || null;
+function getUserRolesByAssigner(assignerId) {
+  return Array.from(userRoles.values())
+    .filter(role => role.assignerId === assignerId);
 }
 
 function updateUserRole(userId, assignerId, roleName) {
@@ -184,11 +182,6 @@ function updateUserRole(userId, assignerId, roleName) {
   return role;
 }
 
-function getUserRolesByAssigner(assignerId) {
-  return Array.from(userRoles.values())
-    .filter(role => role.assignerId === assignerId);
-}
-
 // Инициализация данных при первой загрузке
 initMockData();
 
@@ -199,7 +192,7 @@ export const mockDb = {
       if (where.twitchId) return getUserByTwitchId(where.twitchId);
       return null;
     },
-    findMany: async ({ where, select }) => {
+    findMany: async ({ where }) => {
       if (where.twitchId?.in) {
         return findUsersByTwitchIds(where.twitchId.in);
       }
@@ -207,7 +200,7 @@ export const mockDb = {
     }
   },
   follow: {
-    findMany: async ({ where, include, orderBy }) => {
+    findMany: async ({ where }) => {
       const followers = getFollowers(where.followedId);
       return followers;
     }
@@ -219,7 +212,7 @@ export const mockDb = {
       }
       return [];
     },
-    upsert: async ({ where, create, update }) => {
+    upsert: async ({ create }) => {
       return updateUserRole(create.userId, create.assignerId, create.roleName);
     },
     deleteMany: async ({ where }) => {

@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import Head from 'next/head';
-import Link from 'next/link';
 import Image from 'next/image';
 import styles from '../../styles/userProfile.module.css';
 import { useAuth } from '../../contexts/AuthContext';
@@ -94,11 +93,6 @@ export default function UserProfile() {
   const [error, setError] = useState(null);
   const [activeTab, setActiveTab] = useState('media');
   const [isFollowing, setIsFollowing] = useState(false);
-  
-  // Добавляем состояние для модального окна сообщений
-  const [showMessageModal, setShowMessageModal] = useState(false);
-  const [messageText, setMessageText] = useState('');
-  const [isSendingMessage, setIsSendingMessage] = useState(false);
   
   // Состояние для модального окна вопросов
   const [isQuestionModalOpen, setIsQuestionModalOpen] = useState(false);
@@ -426,7 +420,7 @@ export default function UserProfile() {
     );
   }
   
-  const { twitchData, socialLinks: userSocialLinks, isRegisteredInSU } = userData;
+  const { twitchData } = userData;
   
   // Определяем статус пользователя
   const isStreamer = twitchData.follower_count >= 265;

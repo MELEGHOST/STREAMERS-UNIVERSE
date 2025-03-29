@@ -2,13 +2,11 @@
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { useSession, signIn, signOut } from 'next-auth/react';
-import { useRouter } from 'next/router';
 
 const AuthContext = createContext();
 
 export function AuthProvider({ children }) {
   const { data: session, status } = useSession();
-  const router = useRouter();
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [currentUser, setCurrentUser] = useState(null);
   const [loading, setLoading] = useState(true);

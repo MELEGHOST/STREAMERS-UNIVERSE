@@ -4,7 +4,6 @@ import React, { useState, useEffect } from 'react';
 import Cookies from 'js-cookie';
 import { useRouter } from 'next/navigation';
 import styles from './settings.module.css';
-import NeonCheckbox from '../components/NeonCheckbox';
 import { saveSettingsToServer, getUserSettingsFromServer } from './actions';
 
 // Массив часовых поясов

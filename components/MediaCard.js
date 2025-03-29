@@ -1,6 +1,7 @@
 import React from 'react';
 import styles from './MediaCard.module.css';
 import { useRouter } from 'next/router';
+import Image from 'next/image';
 
 const MediaCard = ({ media, showRating = true, onClick }) => {
   const router = useRouter();
@@ -37,10 +38,12 @@ const MediaCard = ({ media, showRating = true, onClick }) => {
     <div className={styles.mediaCard} onClick={handleClick}>
       <div className={styles.imageContainer}>
         {media.imageUrl ? (
-          <img 
+          <Image
             src={media.imageUrl} 
             alt={media.title} 
             className={styles.image}
+            layout="fill"
+            objectFit="cover"
             onError={(e) => {
               e.currentTarget.src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="200" height="300" viewBox="0 0 200 300"%3E%3Crect width="200" height="300" fill="%237B41C9"%3E%3C/rect%3E%3Ctext x="100" y="150" font-family="Arial" font-size="24" text-anchor="middle" fill="white"%3EНет изображения%3C/text%3E%3C/svg%3E';
             }}

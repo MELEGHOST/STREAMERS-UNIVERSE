@@ -4,8 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import styles from './followers.module.css';
-import { getUserData, checkSubscription } from '../utils/twitchAPI';
-import clientStorage from '../utils/clientStorage';
+import { getUserData } from '../utils/twitchAPI';
 import { DataStorage } from '../utils/dataStorage';
 
 export default function Followers() {
@@ -286,7 +285,7 @@ export default function Followers() {
                     alt={follower.name}
                     width={50}
                     height={50}
-                    onError={(e) => {e.target.src = '/images/default-avatar.png'}}
+                    onError={(/* Удаляем e */) => {e.target.src = '/images/default-avatar.png'}}
                     className={styles.avatarImage}
                     priority
                   />

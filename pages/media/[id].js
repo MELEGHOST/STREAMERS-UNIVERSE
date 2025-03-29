@@ -3,6 +3,7 @@ import { useRouter } from 'next/router';
 import styles from './media.module.css';
 import MediaReview from '../../components/MediaReview';
 import Cookies from 'js-cookie';
+import Image from 'next/image';
 
 export default function MediaPage() {
   const router = useRouter();
@@ -14,7 +15,6 @@ export default function MediaPage() {
   const [userReview, setUserReview] = useState(null);
   const [streamerReview, setStreamerReview] = useState(null);
   const [viewerReviews, setViewerReviews] = useState([]);
-  const [userId, setUserId] = useState(null);
   const [isStreamer, setIsStreamer] = useState(false);
   
   // Загрузка данных о медиа
@@ -37,7 +37,6 @@ export default function MediaPage() {
         
         // Получаем ID пользователя из localStorage
         const userData = JSON.parse(localStorage.getItem('twitch_user') || '{}');
-        setUserId(userData.id);
         setIsStreamer(userData.isStreamer || false);
         
         // Разделяем отзывы на отзыв стримера, отзыв текущего пользователя и отзывы зрителей
@@ -214,10 +213,13 @@ export default function MediaPage() {
       <div className={styles.mediaContent}>
         <div className={styles.mediaImageContainer}>
           {media.imageUrl ? (
-            <img 
+            <Image
               src={media.imageUrl} 
               alt={media.title} 
               className={styles.mediaImage}
+              layout="responsive"
+              width={300}
+              height={450}
               onError={(e) => {
                 e.currentTarget.src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="300" height="450" viewBox="0 0 300 450"%3E%3Crect width="300" height="450" fill="%237B41C9"%3E%3C/rect%3E%3Ctext x="150" y="225" font-family="Arial" font-size="24" text-anchor="middle" fill="white"%3EНет изображения%3C/text%3E%3C/svg%3E';
               }}

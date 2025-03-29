@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import styles from '../profile.module.css';
 import { useAuth } from '../../../contexts/AuthContext';
@@ -21,6 +21,34 @@ export default function UserProfile({ params }) {
   const [showFollowers, setShowFollowers] = useState(false);
   const [followings, setFollowings] = useState([]);
   const [showFollowings, setShowFollowings] = useState(false);
+
+  const fetchFollowers = useCallback(async () => {
+    try {
+      const response = await fetch(`/api/twitch/user-followers?userId=${id}`);
+      if (response.ok) {
+        const data = await response.json();
+        setFollowers(data.followers || []);
+      } else {
+        console.error('Ошибка при загрузке фолловеров:', response.status);
+      }
+    } catch (error) {
+      console.error('Ошибка при загрузке фолловеров:', error);
+    }
+  }, [id]);
+
+  const fetchFollowings = useCallback(async () => {
+    try {
+      const response = await fetch(`/api/twitch/user-followings?userId=${id}`);
+      if (response.ok) {
+        const data = await response.json();
+        setFollowings(data.followings || []);
+      } else {
+        console.error('Ошибка при загрузке фолловингов:', response.status);
+      }
+    } catch (error) {
+      console.error('Ошибка при загрузке фолловингов:', error);
+    }
+  }, [id]);
 
   useEffect(() => {
     if (!isAuthenticated) {
@@ -68,35 +96,7 @@ export default function UserProfile({ params }) {
     };
 
     fetchUserData();
-  }, [id, userId, isAuthenticated, router]);
-
-  const fetchFollowers = async () => {
-    try {
-      const response = await fetch(`/api/twitch/user-followers?userId=${id}`);
-      if (response.ok) {
-        const data = await response.json();
-        setFollowers(data.followers || []);
-      } else {
-        console.error('Ошибка при загрузке фолловеров:', response.status);
-      }
-    } catch (error) {
-      console.error('Ошибка при загрузке фолловеров:', error);
-    }
-  };
-
-  const fetchFollowings = async () => {
-    try {
-      const response = await fetch(`/api/twitch/user-followings?userId=${id}`);
-      if (response.ok) {
-        const data = await response.json();
-        setFollowings(data.followings || []);
-      } else {
-        console.error('Ошибка при загрузке фолловингов:', response.status);
-      }
-    } catch (error) {
-      console.error('Ошибка при загрузке фолловингов:', error);
-    }
-  };
+  }, [id, userId, isAuthenticated, router, fetchFollowers, fetchFollowings]);
 
   const handleFollow = async () => {
     try {

@@ -22,8 +22,6 @@ export default function StreamerSchedulePage({ params }) {
   });
   const [formErrors, setFormErrors] = useState({});
   const [successMessage, setSuccessMessage] = useState('');
-  const [voteSuccess, setVoteSuccess] = useState(false);
-  const [voteError, setVoteError] = useState(null);
   const router = useRouter();
   const { isAuthenticated, isInitialized } = useAuth();
 
@@ -206,8 +204,6 @@ export default function StreamerSchedulePage({ params }) {
         await loadScheduledStreams(id);
         // Сбрасываем форму
         resetVoteForm();
-        setVoteSuccess(true);
-        setVoteError(null);
       } else {
         setError(response?.error || 'Не удалось отправить голос');
       }
@@ -258,7 +254,7 @@ export default function StreamerSchedulePage({ params }) {
       );
       
       if (response && response.success) {
-        setSuccessMessage('Ваш голос успешно удален!');
+        setSuccessMessage('Голос успешно удален');
         // Обновляем список трансляций
         await loadScheduledStreams(id);
       } else {

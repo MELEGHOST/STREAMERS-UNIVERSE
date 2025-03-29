@@ -3,9 +3,8 @@
 import React, { useState } from 'react';
 import styles from './ReviewCard.module.css';
 import Image from 'next/image';
-import { useAuth } from '../../contexts/AuthContext';
 
-const ReviewCard = ({ review, onDelete, onEdit }) => {
+const ReviewCard = ({ review }) => {
   const [isExpanded, setIsExpanded] = useState(false);
   const [likes, setLikes] = useState(review?.likes || 0);
   const [dislikes, setDislikes] = useState(review?.dislikes || 0);

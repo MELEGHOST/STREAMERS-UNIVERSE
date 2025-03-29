@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import styles from './media.module.css';
 import Cookies from 'js-cookie';
+import Image from 'next/image';
 
 export default function AddMediaPage() {
   const router = useRouter();
@@ -193,9 +194,11 @@ export default function AddMediaPage() {
           
           {imageUrl && (
             <div className={styles.imagePreview}>
-              <img 
+              <Image
                 src={imageUrl} 
                 alt="Предпросмотр" 
+                width={200}
+                height={200}
                 onError={(e) => {
                   e.currentTarget.src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="200" height="200" viewBox="0 0 200 200"%3E%3Crect width="200" height="200" fill="%237B41C9"%3E%3C/rect%3E%3Ctext x="100" y="100" font-family="Arial" font-size="24" text-anchor="middle" fill="white"%3EНеверный URL%3C/text%3E%3C/svg%3E';
                 }}

@@ -8,8 +8,6 @@ import styles from './search.module.css';
 import { getAccessTokenFromCookie } from '../utils/twitchAPI';
 import Input from '../components/Input';
 import NeonCheckbox from '../components/NeonCheckbox';
-import MenuHeader from '../components/MenuHeader';
-import Footer from '../components/Footer';
 // import { useDebounce } from '../hooks/useDebounce';
 
 export default function Search() {
@@ -17,10 +15,8 @@ export default function Search() {
   const [query, setQuery] = useState('');
   const [results, setResults] = useState(null);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(null);
   const router = useRouter();
   const searchParams = useSearchParams();
-  const initialQuery = searchParams.get('q') || '';
   const [showFilters, setShowFilters] = useState(false);
   const [filters, setFilters] = useState({
     category: 'all',
@@ -118,8 +114,8 @@ export default function Search() {
           try {
             const errorData = await response.json();
             errorMessage = errorData.error || errorMessage;
-          } catch (jsonError) {
-            console.error('Ошибка при обработке ответа сервера:', jsonError);
+          } catch {
+            console.error('Ошибка при обработке ответа сервера:');
           }
           throw new Error(errorMessage);
         }

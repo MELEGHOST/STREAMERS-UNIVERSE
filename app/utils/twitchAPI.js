@@ -132,10 +132,9 @@ export function isTokenExpired() {
 /**
  * Получает фолловеров пользователя
  * @param {string} userId - ID пользователя в Twitch
- * @param {string} accessToken - Токен доступа к Twitch API
  * @returns {Promise<Object>} - Данные о фолловерах
  */
-export async function getUserFollowers(userId, accessToken) {
+export async function getUserFollowers(userId) {
   if (!userId) {
     console.warn('getUserFollowers: Попытка вызова без userId');
     return { total: 0, followers: [] }; // Возвращаем пустой объект вместо ошибки
@@ -232,7 +231,7 @@ export async function getUserData() {
     // В случае общей ошибки, пытаемся вернуть хоть какие-то данные
     try {
       return getUserFromLocalStorage() || null;
-    } catch (e) {
+    } catch {
       return null;
     }
   }
@@ -685,7 +684,7 @@ export async function fetchWithTokenRefresh(url, options = {}, useCache = false,
     try {
       const errorText = await response.text();
       throw new Error(`API вернул ошибку: ${response.status} - ${errorText}`);
-    } catch (textError) {
+    } catch {
       throw new Error(`API вернул ошибку: ${response.status}`);
     }
   } catch (error) {

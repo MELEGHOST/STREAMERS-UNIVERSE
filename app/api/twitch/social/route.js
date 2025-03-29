@@ -9,7 +9,7 @@ function isValidUrl(url) {
   try {
     const urlObj = new URL(url);
     return ['http:', 'https:'].includes(urlObj.protocol);
-  } catch (_) {
+  } catch {
     return false;
   }
 }
@@ -208,8 +208,6 @@ export async function POST(request) {
       message: 'Социальные ссылки успешно сохранены'
     });
   } catch {
-    // Удаляем неиспользуемую переменную _
-    // console.error('Ошибка при обработке запроса социальных сетей:', _);
     return NextResponse.json(
       { error: 'Внутренняя ошибка сервера при обработке запроса социальных сетей.' },
       { status: 500 }
