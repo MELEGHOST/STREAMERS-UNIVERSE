@@ -1,7 +1,10 @@
 import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
-import { connectToDatabase } from '../../../utils/mongodb';
-import { ObjectId } from 'mongodb';
+// Убираем импорты MongoDB
+// import { connectToDatabase } from '../../../utils/mongodb';
+// import { ObjectId } from 'mongodb';
+// Добавляем импорт клиента Supabase
+import { supabase } from '../../../utils/supabaseClient'; // Убедитесь, что путь правильный
 
 // Получение запланированных трансляций
 export async function GET(request) {
@@ -16,39 +19,32 @@ export async function GET(request) {
       );
     }
     
-    // Подключаемся к базе данных
-    const { db } = await connectToDatabase();
-    
-    // Проверяем существование коллекции
-    const collections = await db.listCollections({ name: 'scheduled_streams' }).toArray();
-    if (collections.length === 0) {
-      // Если коллекция не существует, создаем её
-      await db.createCollection('scheduled_streams');
-      console.log('Создана коллекция scheduled_streams');
-      
-      // Возвращаем пустой массив, так как коллекция только что создана
-      return NextResponse.json({
-        success: true,
-        scheduledStreams: []
-      });
+    // Запрос к Supabase
+    const { data: scheduledStreams, error } = await supabase
+      .from('scheduled_streams')
+      .select('*') // Выбираем все поля стрима
+      // Если нужно получать голоса: .select('*, stream_votes(*)')
+      .eq('user_id', userId) // Фильтр по user_id
+      .order('scheduled_date', { ascending: true }); // Сортировка
+
+    if (error) {
+      console.error('Supabase GET scheduled_streams error:', error);
+      throw error; // Передаем ошибку дальше
     }
-    
-    // Получаем запланированные трансляции пользователя
-    const scheduledStreams = await db
-      .collection('scheduled_streams')
-      .find({ userId })
-      .sort({ scheduledDate: 1 }) // Сортировка по дате (ближайшие сначала)
-      .toArray();
-    
+
+    // Проверка на существование коллекции больше не нужна
+
     return NextResponse.json({
       success: true,
-      scheduledStreams
+      scheduledStreams: scheduledStreams || [], // Возвращаем данные или пустой массив
     });
   } catch (error) {
-    console.error('Ошибка при получении запланированных трансляций:', error);
+    console.error('Ошибка при получении запланированных трансляций (Supabase):', error);
+    // Используем message из ошибки Supabase, если есть
+    const errorMessage = error.message || 'Произошла неизвестная ошибка. Пожалуйста, попробуйте позже.';
     return NextResponse.json({ 
       error: 'Ошибка сервера', 
-      message: error.message || 'Произошла неизвестная ошибка. Пожалуйста, попробуйте позже.',
+      message: errorMessage,
       success: false
     }, { status: 500 });
   }
@@ -88,46 +84,45 @@ export async function POST(request) {
       );
     }
     
-    // Подключаемся к базе данных
-    const { db } = await connectToDatabase();
-    
-    // Проверяем существование коллекции
-    const collections = await db.listCollections({ name: 'scheduled_streams' }).toArray();
-    if (collections.length === 0) {
-      // Если коллекция не существует, создаем её
-      await db.createCollection('scheduled_streams');
-      console.log('Создана коллекция scheduled_streams');
+    // Данные для вставки в Supabase
+    const newStreamData = {
+      user_id: userId,
+      title,
+      description: description || null, // Используем null для пустых необязательных полей
+      scheduled_date: new Date(scheduledDate).toISOString(), // Преобразуем в ISO строку для Supabase
+      duration: duration || 120,
+      category: category || null,
+      tags: tags || [],
+      // Поле votes больше не нужно
+      // created_at и updated_at обычно устанавливаются Supabase по умолчанию/триггерами
+    };
+
+    // Запрос на вставку в Supabase
+    const { data: insertedStream, error } = await supabase
+      .from('scheduled_streams')
+      .insert(newStreamData)
+      .select() // Возвращаем вставленные данные
+      .single(); // Ожидаем один результат
+
+    if (error) {
+      console.error('Supabase POST scheduled_streams error:', error);
+      throw error; 
     }
     
-    // Создаем новую запланированную трансляцию
-    const newStream = {
-      userId,
-      title,
-      description: description || '',
-      scheduledDate: new Date(scheduledDate),
-      duration: duration || 120, // По умолчанию 2 часа
-      category: category || '',
-      tags: tags || [],
-      votes: [], // Голоса пользователей
-      createdAt: new Date(),
-      updatedAt: new Date()
-    };
-    
-    const result = await db.collection('scheduled_streams').insertOne(newStream);
-    
+    // Проверка на существование коллекции больше не нужна
+
     return NextResponse.json({
       success: true,
-      streamId: result.insertedId,
-      scheduledStream: {
-        ...newStream,
-        _id: result.insertedId
-      }
+      // Возвращаем ID из вставленных данных Supabase
+      streamId: insertedStream.id, 
+      scheduledStream: insertedStream // Возвращаем весь объект
     });
   } catch (error) {
-    console.error('Ошибка при создании запланированной трансляции:', error);
+    console.error('Ошибка при создании запланированной трансляции (Supabase):', error);
+    const errorMessage = error.message || 'Произошла неизвестная ошибка.';
     return NextResponse.json({ 
       error: 'Ошибка сервера', 
-      message: error.message || 'Произошла неизвестная ошибка. Пожалуйста, попробуйте позже.',
+      message: errorMessage,
       success: false
     }, { status: 500 });
   }
@@ -167,46 +162,61 @@ export async function PUT(request) {
       );
     }
     
-    // Подключаемся к базе данных
-    const { db } = await connectToDatabase();
-    
-    // Проверяем существование трансляции
-    const existingStream = await db.collection('scheduled_streams').findOne({ 
-      _id: new ObjectId(streamId)
-    });
-    
-    if (!existingStream) {
-      return NextResponse.json(
-        { error: 'Трансляция не найдена', success: false },
-        { status: 404 }
-      );
+    // Данные для обновления в Supabase
+    const updateData = {};
+    if (title !== undefined) updateData.title = title;
+    if (description !== undefined) updateData.description = description; // Позволяем установить null
+    if (scheduledDate) updateData.scheduled_date = new Date(scheduledDate).toISOString();
+    if (duration !== undefined) updateData.duration = duration;
+    if (category !== undefined) updateData.category = category;
+    if (tags !== undefined) updateData.tags = tags;
+    // updated_at будет обновлен триггером в Supabase
+
+    // Проверяем, есть ли что обновлять
+    if (Object.keys(updateData).length === 0) {
+         return NextResponse.json(
+            { success: true, message: 'Нет данных для обновления' },
+            { status: 200 }
+         );
     }
-    
-    // Обновляем данные трансляции
-    const updateData = {
-      ...(title && { title }),
-      ...(description !== undefined && { description }),
-      ...(scheduledDate && { scheduledDate: new Date(scheduledDate) }),
-      ...(duration && { duration }),
-      ...(category !== undefined && { category }),
-      ...(tags && { tags }),
-      updatedAt: new Date()
-    };
-    
-    await db.collection('scheduled_streams').updateOne(
-      { _id: new ObjectId(streamId) },
-      { $set: updateData }
-    );
-    
+
+    // Запрос на обновление в Supabase
+    const { data: updatedStream, error } = await supabase
+      .from('scheduled_streams')
+      .update(updateData)
+      .eq('id', streamId) // Фильтр по ID Supabase
+      .select() // Опционально: вернуть обновленные данные
+      .single();
+
+    if (error) {
+      console.error('Supabase PUT scheduled_streams error:', error);
+      // Проверяем на ошибку "не найдено" (например, PGRST116 в PostgREST)
+      if (error.code === 'PGRST116') { 
+           return NextResponse.json({ error: 'Трансляция не найдена', success: false }, { status: 404 });
+      }
+      throw error;
+    }
+
+    // Если запись не найдена (несмотря на отсутствие ошибки PGRST116)
+     if (!updatedStream) {
+       return NextResponse.json(
+         { error: 'Трансляция не найдена', success: false },
+         { status: 404 }
+       );
+     }
+
     return NextResponse.json({
       success: true,
-      message: 'Запланированная трансляция успешно обновлена'
+      message: 'Запланированная трансляция успешно обновлена',
+      // scheduledStream: updatedStream // Можно вернуть обновленные данные
     });
+
   } catch (error) {
-    console.error('Ошибка при обновлении запланированной трансляции:', error);
+    console.error('Ошибка при обновлении запланированной трансляции (Supabase):', error);
+    const errorMessage = error.message || 'Произошла неизвестная ошибка.';
     return NextResponse.json({ 
       error: 'Ошибка сервера', 
-      message: error.message || 'Произошла неизвестная ошибка. Пожалуйста, попробуйте позже.',
+      message: errorMessage,
       success: false
     }, { status: 500 });
   }
@@ -246,33 +256,35 @@ export async function DELETE(request) {
       );
     }
     
-    // Подключаемся к базе данных
-    const { db } = await connectToDatabase();
-    
-    // Проверяем существование трансляции
-    const existingStream = await db.collection('scheduled_streams').findOne({ 
-      _id: new ObjectId(streamId)
-    });
-    
-    if (!existingStream) {
-      return NextResponse.json(
-        { error: 'Трансляция не найдена', success: false },
-        { status: 404 }
-      );
+    // Запрос на удаление из Supabase
+    const { error, count } = await supabase
+      .from('scheduled_streams')
+      .delete()
+      .eq('id', streamId); // Фильтр по ID Supabase
+
+    if (error) {
+      console.error('Supabase DELETE scheduled_streams error:', error);
+      throw error;
     }
     
-    // Удаляем трансляцию
-    await db.collection('scheduled_streams').deleteOne({ _id: new ObjectId(streamId) });
-    
+    // Проверяем, была ли запись удалена
+    if (count === 0) {
+         return NextResponse.json(
+           { error: 'Трансляция не найдена', success: false },
+           { status: 404 }
+         );
+    }
+
     return NextResponse.json({
       success: true,
       message: 'Запланированная трансляция успешно удалена'
     });
   } catch (error) {
-    console.error('Ошибка при удалении запланированной трансляции:', error);
+    console.error('Ошибка при удалении запланированной трансляции (Supabase):', error);
+    const errorMessage = error.message || 'Произошла неизвестная ошибка.';
     return NextResponse.json({ 
       error: 'Ошибка сервера', 
-      message: error.message || 'Произошла неизвестная ошибка. Пожалуйста, попробуйте позже.',
+      message: errorMessage,
       success: false
     }, { status: 500 });
   }

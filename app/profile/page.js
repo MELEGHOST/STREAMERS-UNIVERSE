@@ -7,7 +7,7 @@ import SocialButton from '../components/SocialButton';
 import AchievementsSystem from '../components/AchievementsSystem';
 import ReviewSection from '../components/ReviewSection';
 import { checkBirthday, getDaysToBirthday } from '../utils/birthdayCheck';
-import { getUserData, getUserFollowers, getUserStats, fetchWithTokenRefresh, getUserFollowings } from '../utils/twitchAPI';
+import { getUserData, getUserStats, fetchWithTokenRefresh } from '../utils/twitchAPI';
 import { DataStorage } from '../utils/dataStorage';
 import Cookies from 'js-cookie';
 import CyberAvatar from '../components/CyberAvatar';
@@ -16,11 +16,11 @@ export default function Profile() {
   const [profileData, setProfileData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [specificErrors, setSpecificErrors] = useState({});
   const router = useRouter();
   const [userId, setUserId] = useState('');
   const [userLogin, setUserLogin] = useState('');
   const [socialLinks, setSocialLinks] = useState({
-    description: '',
     twitch: '',
     youtube: '',
     discord: '',
@@ -54,103 +54,86 @@ export default function Profile() {
   const [totalFollowers, setTotalFollowers] = useState(0);
   const [totalFollowings, setTotalFollowings] = useState(0);
 
-  // Упрощенная функция для получения данных пользователя
   const fetchUserData = async (forceRefresh = false) => {
-    try {
-      console.log('Начало загрузки данных пользователя...');
-      
-      // Проверяем наличие параметра refresh в URL
-      const urlParams = new URLSearchParams(window.location.search);
-      const refreshParam = urlParams.get('refresh');
-      
-      // Если параметр refresh есть или передан forceRefresh, не используем кэш
-      const shouldRefresh = forceRefresh || refreshParam;
-      
-      // Сначала пробуем получить из DataStorage, если не требуется обновление
-      if (!shouldRefresh) {
-        try {
-          const userData = await DataStorage.getData('user');
-          if (userData && userData.id) {
-            console.log('Данные получены из DataStorage:', userData.id);
-            return userData;
-          }
-        } catch (e) {
-          console.error('Ошибка при получении данных из DataStorage:', e);
-        }
-      } else {
-        console.log('Запрошено принудительное обновление данных, пропускаем кэш');
-      }
-      
-      // Если из DataStorage не удалось или требуется обновление, делаем запрос к API
+    console.log('Начало загрузки данных пользователя...');
+    const urlParams = new URLSearchParams(window.location.search);
+    const refreshParam = urlParams.get('refresh');
+    const shouldRefresh = forceRefresh || refreshParam;
+
+    if (!shouldRefresh) {
       try {
-        const response = await fetch('/api/twitch/user', {
-          method: 'GET',
-          headers: {
-            'Content-Type': 'application/json',
-            'Cache-Control': 'no-cache, no-store',
-            'Pragma': 'no-cache'
-          },
-          credentials: 'include',
-        });
-        
-        if (response.ok) {
-          const userData = await response.json();
-          if (userData && userData.id) {
-            console.log('Данные пользователя получены успешно:', userData.id);
-            try {
-              // Сохраняем данные в DataStorage и localStorage для обратной совместимости
-              await DataStorage.saveData('user', userData);
-              localStorage.setItem('twitch_user', JSON.stringify(userData));
-              localStorage.setItem('is_authenticated', 'true');
-            } catch (e) {
-              console.error('Ошибка при сохранении данных пользователя:', e);
-            }
-            return userData;
-          }
-        } else {
-          console.error('Ошибка при запросе к API:', response.status);
-        }
-      } catch (apiError) {
-        console.error('Ошибка при запросе к API:', apiError);
-      }
-      
-      // Если всё ещё нет данных, пробуем из cookie
-      try {
-        const cookieData = Cookies.get('twitch_user');
-        if (cookieData) {
-          const parsedCookie = typeof cookieData === 'string' 
-            ? JSON.parse(cookieData) 
-            : cookieData;
-          
-          if (parsedCookie && parsedCookie.id) {
-            console.log('Данные получены из cookie:', parsedCookie.id);
-            // Сохраняем в DataStorage для будущего использования
-            await DataStorage.saveData('user', parsedCookie);
-            return parsedCookie;
-          }
+        const cachedUserData = await DataStorage.getData('user');
+        if (cachedUserData && cachedUserData.id) {
+          console.log('Данные пользователя получены из DataStorage:', cachedUserData.id);
+          return cachedUserData;
         }
       } catch (e) {
-        console.error('Ошибка при чтении из cookie:', e);
+        console.error('Ошибка при получении данных из DataStorage:', e);
       }
+    } else {
+      console.log('Запрошено принудительное обновление данных, пропускаем кэш DataStorage');
+    }
+
+    try {
+      const response = await fetch('/api/twitch/user', {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          'Cache-Control': 'no-cache, no-store',
+          'Pragma': 'no-cache'
+        },
+        credentials: 'include',
+      });
       
-      return null;
-    } catch (error) {
-      console.error('Глобальная ошибка в fetchUserData:', error);
+      if (response.ok) {
+        const apiUserData = await response.json();
+        if (apiUserData && apiUserData.id) {
+          console.log('Данные пользователя получены с API:', apiUserData.id);
+          await DataStorage.saveData('user', apiUserData);
+          return apiUserData;
+        }
+      } else {
+         console.error('Ошибка при запросе пользователя к API:', response.status);
+         const cookieData = Cookies.get('twitch_user');
+         if (cookieData) {
+            try {
+                const parsedCookie = JSON.parse(cookieData);
+                if (parsedCookie && parsedCookie.id) {
+                    console.log('Данные получены из cookie (резерв):', parsedCookie.id);
+                    await DataStorage.saveData('user', parsedCookie);
+                    return parsedCookie;
+                }
+            } catch (e) { console.error('Ошибка парсинга cookie:', e); }
+         }
+        throw new Error(`API Error: ${response.status}`);
+      }
+    } catch (apiError) {
+      console.error('Ошибка при запросе к API или обработке:', apiError);
+       const cookieData = Cookies.get('twitch_user');
+       if (cookieData) {
+          try {
+              const parsedCookie = JSON.parse(cookieData);
+              if (parsedCookie && parsedCookie.id) {
+                  console.log('Данные получены из cookie (резерв):', parsedCookie.id);
+                  await DataStorage.saveData('user', parsedCookie);
+                  return parsedCookie;
+              }
+          } catch (e) { console.error('Ошибка парсинга cookie:', e); }
+       }
+      setError('Не удалось загрузить основные данные профиля.');
       return null;
     }
+    return null;
   };
 
-  // Функции загрузки данных с обработкой сетевых ошибок
   const loadFollowers = async (userId) => {
+    setSpecificErrors(prev => ({ ...prev, followers: null }));
     try {
       console.log('Загрузка фолловеров для ID:', userId);
-      // Защитная проверка
       if (!userId) {
         console.error('ID пользователя не определен для загрузки фолловеров');
-        return;
+        throw new Error('ID пользователя не определен');
       }
-      
-      // Добавляем параметр для предотвращения кэширования
       const response = await fetch(`/api/twitch/user-followers?userId=${userId}&_=${Date.now()}`, {
         method: 'GET',
         headers: {
@@ -158,57 +141,40 @@ export default function Profile() {
           'Cache-Control': 'no-cache'
         },
         credentials: 'include',
-      }).catch(error => {
-        console.error('Ошибка сети при загрузке фолловеров:', error);
-        return null;
       });
-      
-      if (response && response.ok) {
+
+      if (response.ok) {
         const data = await response.json();
         if (data && data.followers) {
           setFollowers(data.followers || []);
           setTotalFollowers(data.total || data.followers.length || 0);
           console.log('Подписчики успешно загружены:', data.followers?.length || 0, 'Всего:', data.total || 0);
         } else {
-          console.log('Данные фолловеров некорректные:', data);
+          console.warn('Данные фолловеров некорректные или отсутствуют:', data);
           setFollowers([]);
           setTotalFollowers(0);
+           throw new Error('Некорректные данные подписчиков');
         }
       } else {
-        console.error('Ошибка при получении подписчиков:', response?.status || 'Нет ответа');
-        // Пробуем запасной метод
-        fallbackLoadFollowers(userId);
+        console.error('Ошибка при получении подписчиков:', response.status);
+        throw new Error(`API Error Followers: ${response.status}`);
       }
     } catch (error) {
       console.error('Ошибка при загрузке подписчиков:', error);
-      // Пробуем запасной метод
-      fallbackLoadFollowers(userId);
-    }
-  };
-
-  // Запасной метод загрузки фолловеров
-  const fallbackLoadFollowers = async (userId) => {
-    try {
-      if (!userId) return;
-      console.log('Использую запасной метод загрузки фолловеров');
-      const data = await getUserFollowers(userId).catch(() => ({ followers: [], total: 0 }));
-      if (data && data.followers) {
-        setFollowers(data.followers);
-        setTotalFollowers(data.total || data.followers.length);
-        console.log('Фолловеры загружены запасным методом:', data.followers.length);
-      }
-    } catch (fallbackError) {
-      console.error('Запасной метод загрузки фолловеров тоже не сработал:', fallbackError);
-      // Устанавливаем пустые данные, чтобы не блокировать загрузку других компонентов
+      setSpecificErrors(prev => ({ ...prev, followers: 'Не удалось загрузить подписчиков' }));
       setFollowers([]);
       setTotalFollowers(0);
     }
   };
 
   const loadFollowings = async (userId) => {
+    setSpecificErrors(prev => ({ ...prev, followings: null }));
     try {
       console.log('Загрузка подписок для ID:', userId);
-      // Добавляем параметр для предотвращения кэширования
+       if (!userId) {
+        console.error('ID пользователя не определен для загрузки подписок');
+        throw new Error('ID пользователя не определен');
+      }
       const response = await fetch(`/api/twitch/user-followings?userId=${userId}&_=${Date.now()}`, {
         method: 'GET',
         headers: {
@@ -216,10 +182,10 @@ export default function Profile() {
           'Cache-Control': 'no-cache'
         },
         credentials: 'include',
-        mode: 'cors', // Добавляем режим CORS
-        next: { revalidate: 0 } // Отключаем кэширование Next.js
+        mode: 'cors',
+        next: { revalidate: 0 }
       });
-      
+
       if (response.ok) {
         const data = await response.json();
         if (data && data.followings) {
@@ -227,41 +193,28 @@ export default function Profile() {
           setTotalFollowings(data.total || data.followings.length || 0);
           console.log('Подписки успешно загружены:', data.followings?.length || 0, 'Всего:', data.total || 0);
         } else {
-          console.log('Данные подписок некорректные:', data);
+           console.warn('Данные подписок некорректные или отсутствуют:', data);
           setFollowings([]);
           setTotalFollowings(0);
+          throw new Error('Некорректные данные подписок');
         }
       } else {
         console.error('Ошибка при получении подписок:', response.status);
-        // Пробуем запасной метод
-        fallbackLoadFollowings(userId);
+        throw new Error(`API Error Followings: ${response.status}`);
       }
     } catch (error) {
       console.error('Ошибка при загрузке подписок:', error);
-      // Пробуем запасной метод
-      fallbackLoadFollowings(userId);
-    }
-  };
-
-  // Запасной метод загрузки подписок
-  const fallbackLoadFollowings = async (userId) => {
-    try {
-      console.log('Использую запасной метод загрузки подписок');
-      const data = await getUserFollowings(userId);
-      if (data && data.followings) {
-        setFollowings(data.followings);
-        setTotalFollowings(data.total || data.followings.length);
-        console.log('Подписки загружены запасным методом:', data.followings.length);
-      }
-    } catch (fallbackError) {
-      console.error('Запасной метод загрузки подписок тоже не сработал:', fallbackError);
+      setSpecificErrors(prev => ({ ...prev, followings: 'Не удалось загрузить подписки' }));
+      setFollowings([]);
+      setTotalFollowings(0);
     }
   };
 
   const loadStats = async (userId) => {
+     setSpecificErrors(prev => ({ ...prev, stats: null }));
     try {
       console.log('Загрузка статистики пользователя для:', userId);
-      // Добавляем параметр для предотвращения кэширования
+       if (!userId) throw new Error('ID пользователя не определен');
       const response = await fetch(`/api/twitch/user-stats?userId=${userId}&_=${Date.now()}`, {
         method: 'GET',
         headers: {
@@ -269,133 +222,113 @@ export default function Profile() {
           'Cache-Control': 'no-cache'
         },
         credentials: 'include',
-        mode: 'cors', // Добавляем режим CORS 
-        next: { revalidate: 0 } // Отключаем кэширование Next.js
+        mode: 'cors',
+        next: { revalidate: 0 }
       });
-      
+
       if (response.ok) {
         const stats = await response.json();
         console.log('Статистика пользователя успешно загружена:', stats);
-        
-        // Проверяем, что данные имеют правильную структуру
-        if (stats && (stats.user || stats.followers)) {
-          setUserStats(stats);
-          
-          // Обновляем количество завершенных стримов, если есть данные
-          if (stats.stream && typeof stats.stream.completedStreams === 'number') {
-            setStreamsCompleted(stats.stream.completedStreams);
-          }
+        if (stats) {
+            setUserStats(stats);
+            if (stats.stream && typeof stats.stream.completedStreams === 'number') {
+                setStreamsCompleted(stats.stream.completedStreams);
+            }
         } else {
-          console.warn('Данные статистики получены, но имеют неожиданную структуру:', stats);
-          
-          // Создаем базовый объект статистики, если данные неполные
-          const fallbackStats = {
-            user: stats.user || { viewCount: profileData.view_count || 0 },
-            followers: stats.followers || { total: totalFollowers || followers.length || 0 },
-            stream: stats.stream || {}
-          };
-          
-          setUserStats(fallbackStats);
+             console.warn('Данные статистики получены, но пусты:', stats);
+             setUserStats({});
+             throw new Error('Пустые данные статистики');
         }
       } else {
         console.error('Ошибка при загрузке статистики пользователя:', response.status);
+        throw new Error(`API Error Stats: ${response.status}`);
       }
     } catch (error) {
       console.error('Ошибка при получении статистики пользователя:', error);
-      
-      // Создаем базовый объект статистики из имеющихся данных профиля
-      if (profileData) {
-        const fallbackStats = {
-          user: { 
-            viewCount: profileData.view_count || 0,
-            broadcasterType: profileData.broadcaster_type || 'standard',
-            createdAt: profileData.created_at
-          },
-          followers: { 
-            total: totalFollowers || followers.length || 0 
-          },
-          stream: {}
-        };
-        
-        setUserStats(fallbackStats);
-      }
+      setSpecificErrors(prev => ({ ...prev, stats: 'Не удалось загрузить статистику' }));
+      setUserStats({});
     }
   };
 
   const loadSocialLinks = async (userId) => {
+     setSpecificErrors(prev => ({ ...prev, socialLinks: null }));
     try {
       console.log('Загрузка социальных ссылок для:', userId);
-      // Добавляем параметр для предотвращения кэширования
-      const response = await fetch(`/api/twitch/social?userId=${userId}&_=${Date.now()}`, {
+       if (!userId) throw new Error('ID пользователя не определен');
+      const response = await fetch(`/api/user-socials?userId=${userId}&_=${Date.now()}`, {
         method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-          'Cache-Control': 'no-cache'
-        },
+        headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-cache' },
         credentials: 'include',
-        mode: 'cors', // Добавляем режим CORS
-        next: { revalidate: 0 } // Отключаем кэширование Next.js
       });
-      
+
       if (response.ok) {
         const data = await response.json();
         console.log('Социальные ссылки успешно загружены:', data);
-        
-        // Проверяем структуру данных
-        if (data) {
-          if (Array.isArray(data)) {
-            // Преобразуем данные в формат, который ожидает наш интерфейс
-            const links = {};
-            data.forEach(link => {
-              if (link.name && link.url) {
-                links[link.name] = link.url;
-              }
-            });
-            
-            setSocialLinks(links);
-          } else if (typeof data === 'object') {
-            // Данные уже в нужном формате
-            setSocialLinks(data);
-          } else {
-            console.warn('Неожиданный формат данных социальных ссылок:', data);
-          }
-        }
+        const filteredLinks = {
+            twitch: data?.twitch || '',
+            youtube: data?.youtube || '',
+            discord: data?.discord || '',
+            telegram: data?.telegram || '',
+            vk: data?.vk || '',
+            yandexMusic: data?.yandexMusic || '',
+            isMusician: data?.isMusician || false
+        };
+        setSocialLinks(filteredLinks);
       } else {
         console.error('Ошибка при загрузке социальных ссылок:', response.status);
-        
-        // Пробуем получить данные из localStorage
-        try {
-          const storedLinks = localStorage.getItem('social_links');
-          if (storedLinks) {
-            const links = JSON.parse(storedLinks);
-            setSocialLinks(links);
-            console.log('Социальные ссылки загружены из localStorage');
-          }
-        } catch (storageError) {
-          console.error('Ошибка при получении социальных ссылок из localStorage:', storageError);
-        }
+         throw new Error(`API Error Social Links: ${response.status}`);
       }
     } catch (error) {
       console.error('Ошибка при загрузке социальных ссылок:', error);
-      
-      // Пробуем получить данные из localStorage
-      try {
-        const storedLinks = localStorage.getItem('social_links');
-        if (storedLinks) {
-          const links = JSON.parse(storedLinks);
-          setSocialLinks(links);
-          console.log('Социальные ссылки загружены из localStorage');
-        }
-      } catch (storageError) {
-        console.error('Ошибка при получении социальных ссылок из localStorage:', storageError);
-      }
+      setSpecificErrors(prev => ({ ...prev, socialLinks: 'Не удалось загрузить соц. ссылки' }));
     }
+  };
+
+  const loadBirthdayData = async (userId) => {
+       setSpecificErrors(prev => ({ ...prev, birthday: null }));
+      try {
+          console.log('Загрузка данных о дне рождения для:', userId);
+          if (!userId) throw new Error('ID пользователя не определен');
+
+          const response = await fetch(`/api/user-birthday?userId=${userId}&_=${Date.now()}`, {
+            method: 'GET',
+            headers: {
+              'Content-Type': 'application/json',
+              'Cache-Control': 'no-cache'
+            },
+            credentials: 'include',
+          });
+
+          if (response.ok) {
+              const data = await response.json();
+              if (data) {
+                  const userBirthday = data.birthday;
+                  if (userBirthday) {
+                      const birthdayResult = checkBirthday(userBirthday);
+                      setIsBirthday(birthdayResult.isBirthday);
+                      setDaysToBirthday(getDaysToBirthday(userBirthday));
+                      setProfileData(prev => ({ ...prev, birthday: userBirthday, showBirthday: data.showBirthday }));
+                  } else {
+                       setIsBirthday(false);
+                       setDaysToBirthday(null);
+                       setProfileData(prev => ({ ...prev, birthday: null, showBirthday: true }));
+                  }
+              }
+          } else {
+              console.error('Ошибка при загрузке данных о дне рождения:', response.status);
+              throw new Error(`API Error Birthday: ${response.status}`);
+          }
+      } catch (error) {
+          console.error('Ошибка при загрузке данных о дне рождения:', error);
+          setSpecificErrors(prev => ({ ...prev, birthday: 'Не удалось загрузить инфо о дне рождения' }));
+          setIsBirthday(false);
+          setDaysToBirthday(null);
+      }
   };
 
   const loadTierlists = async (userId) => {
     try {
       console.log('Загрузка тирлистов для:', userId);
-      // Добавляем параметр для предотвращения кэширования
       const response = await fetch(`/api/tierlists?userId=${userId}&_=${Date.now()}`, {
         method: 'GET',
         headers: {
@@ -403,8 +336,8 @@ export default function Profile() {
           'Cache-Control': 'no-cache'
         },
         credentials: 'include',
-        mode: 'cors', // Добавляем режим CORS
-        next: { revalidate: 0 } // Отключаем кэширование Next.js
+        mode: 'cors',
+        next: { revalidate: 0 }
       });
       
       if (response.ok) {
@@ -427,12 +360,10 @@ export default function Profile() {
     }
   };
 
-  // Добавляем функцию для загрузки отзывов
   const loadReviews = async (userId) => {
     try {
       console.log('Загрузка отзывов для пользователя:', userId);
       
-      // Добавляем параметр для предотвращения кэширования
       const response = await fetch(`/api/reviews?authorId=${userId}&_=${Date.now()}`, {
         method: 'GET',
         headers: {
@@ -456,241 +387,95 @@ export default function Profile() {
     }
   };
 
-  // Добавим функцию для загрузки дополнительных данных
-  const loadAdditionalData = async (userId) => {
-    try {
-      if (!userId) return;
-      
-      // Загружаем социальные ссылки пользователя
-      const savedLinks = localStorage.getItem(`social_links_${userId}`);
-      if (savedLinks) {
-        try {
-          setSocialLinks(JSON.parse(savedLinks));
-        } catch (e) {
-          console.error('Ошибка при парсинге социальных ссылок:', e);
-        }
-      }
-      
-      // Загружаем данные постепенно, не блокируя рендеринг
-      loadSocialLinks(userId).catch(e => console.error('Ошибка загрузки соц. ссылок:', e));
-      loadStats(userId).catch(e => console.error('Ошибка загрузки статистики:', e));
-      
-      // Также загружаем отзывы
-      loadReviews(userId).catch(e => console.error('Ошибка загрузки отзывов:', e));
-      
-      // Проверяем день рождения, если есть в профиле
-      const userBirthday = localStorage.getItem(`birthday_${userId}`);
-      if (userBirthday) {
-        const birthdayResult = checkBirthday(userBirthday);
-        setIsBirthday(birthdayResult.isBirthday);
-        const daysTo = getDaysToBirthday(userBirthday);
-        setDaysToBirthday(daysTo);
-      }
-    } catch (error) {
-      console.error('Ошибка при загрузке дополнительных данных:', error);
-    }
-  };
-
-  // Модифицируем useEffect для загрузки дополнительных данных после базовой загрузки
   useEffect(() => {
     let isMounted = true;
-    
+
     const loadData = async () => {
       try {
         setLoading(true);
-        // Проверяем параметры URL для возможного принудительного обновления
+        setError(null);
+        setSpecificErrors({});
+
         const urlParams = new URLSearchParams(window.location.search);
         const refreshParam = urlParams.get('refresh');
-        
-        // При наличии параметра refresh, очищаем кэш
-        if (refreshParam) {
-          console.log('Обнаружен параметр refresh, выполняем принудительное обновление данных');
-        }
-        
-        // Получаем данные пользователя
-        const userData = await fetchUserData(refreshParam ? true : false);
-        
+
+        const userData = await fetchUserData(!!refreshParam);
+
+        if (!isMounted) return;
+
         if (!userData || !userData.id) {
-          console.log('Профиль: Данные пользователя не найдены или нет ID, перенаправление на страницу входа');
+          console.log('Профиль: Данные пользователя не найдены, перенаправление на /login');
           router.push('/login');
           return;
         }
-        
-        console.log('Данные профиля загружены:', userData.id);
-        if (isMounted) {
-          setProfileData(userData);
-          setUserId(userData.id);
-          setUserLogin(userData.login);
-          
-          // Загружаем базовые данные
-          await loadFollowers(userData.id).catch(() => {});
-          
-          // Загружаем отзывы при инициализации
-          await loadReviews(userData.id).catch(() => {});
-          
-          // После загрузки профиля и базовых данных, загружаем дополнительные
-          loadAdditionalData(userData.id);
-        }
+
+        console.log('Основные данные профиля загружены:', userData.id);
+        setProfileData(userData);
+        setUserId(userData.id);
+        setUserLogin(userData.login);
+
+        await Promise.allSettled([
+          loadFollowers(userData.id),
+          loadFollowings(userData.id),
+          loadStats(userData.id),
+          loadSocialLinks(userData.id),
+          loadBirthdayData(userData.id),
+          loadTierlists(userData.id),
+          loadReviews(userData.id)
+        ]);
+
+        if (!isMounted) return;
+
+        console.log('Все дополнительные данные загружены (или попытка загрузки завершена).');
+
       } catch (error) {
-        console.error('Глобальная ошибка при загрузке данных:', error);
+        console.error('Глобальная ошибка при начальной загрузке данных:', error);
         if (isMounted) {
-          setError('Произошла ошибка при загрузке профиля');
-          setLoading(false);
+           if (!profileData) {
+               setError(error.message || 'Произошла критическая ошибка при загрузке профиля.');
+           }
         }
       } finally {
         if (isMounted) {
           setLoading(false);
+          if (window.history.replaceState) {
+              const cleanUrl = window.location.pathname;
+              window.history.replaceState({ path: cleanUrl }, '', cleanUrl);
+          }
         }
       }
     };
-    
+
     loadData();
-    
+
     return () => {
       isMounted = false;
     };
-  }, [router]);
+  }, []);
 
-  // Функция для сохранения настроек видимости статистики
-  const saveStatsVisibility = async (newVisibility) => {
-    setStatsVisibility(newVisibility);
-    await DataStorage.saveData('stats_visibility', newVisibility);
-  };
-  
-  // Функция для сохранения социальных ссылок
-  const saveSocialLinks = async (newLinks) => {
-    try {
-      setSocialLinks(newLinks);
-      
-      // Сохраняем в localStorage
-      localStorage.setItem('social_links', JSON.stringify(newLinks));
-      
-      // Отправляем на сервер, если пользователь авторизован
-      if (isAuth && userId) {
-        const accessToken = Cookies.get('twitch_access_token');
-        if (!accessToken) {
-          console.warn('Отсутствует токен доступа для сохранения социальных ссылок');
-        return;
-      }
-      
-        const response = await fetch('/api/twitch/social', {
-          method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${accessToken}`
-        },
-          body: JSON.stringify({
-            userId,
-            links: newLinks
-      })
-        });
-        
-        if (!response.ok) {
-          throw new Error(`Ошибка при сохранении социальных ссылок: ${response.status}`);
-        }
-        
-        console.log('Социальные ссылки успешно сохранены на сервере');
-      }
-    } catch (error) {
-      console.error('Ошибка при сохранении социальных ссылок:', error);
-      alert('Не удалось сохранить социальные ссылки. Пожалуйста, попробуйте позже.');
-    }
-  };
-
-  // Если данные загружаются, не показываем экран загрузки, а рендерим контейнер с плавной анимацией
-  if (loading && !profileData) {
-    return (
-      <div className={styles.profileContainer}>
-        <div className={styles.profileHeader}>
-          <h1>Загрузка профиля...</h1>
-        </div>
-      </div>
-    );
-  }
-
-  // Функция для перезагрузки страницы
-  const retryLoading = () => {
-    window.location.reload();
-  };
-
-  // Если произошла ошибка, показываем сообщение об ошибке
-  if (error) {
-    return (
-      <div className={styles.profileContainer}>
-        <div className={styles.error}>
-          <h2>Произошла ошибка</h2>
-          <p>{error}</p>
-          <button onClick={retryLoading} className={styles.button}>
-            Попробовать снова
-          </button>
-        </div>
-      </div>
-    );
-  }
-
-  // Если данные профиля отсутствуют, показываем сообщение
-  if (!profileData) {
-    return (
-      <div className={styles.profileContainer}>
-        <div className={styles.profileHeader}>
-          <h2>Не удалось загрузить профиль</h2>
-          <button onClick={retryLoading} className={styles.button}>
-            Попробовать снова
-          </button>
-        </div>
-      </div>
-    );
-  }
-
-  // Функция для выхода из аккаунта
-  const handleLogout = () => {
-    try {
-      console.log('Выполняем выход из аккаунта (клиентская версия)...');
-      
-      // 1. Очищаем все cookies, используя document.cookie напрямую
-      if (typeof document !== 'undefined') {
-        document.cookie = 'twitch_access_token=; Path=/; Expires=Thu, 01 Jan 1970 00:00:01 GMT;';
-        document.cookie = 'twitch_refresh_token=; Path=/; Expires=Thu, 01 Jan 1970 00:00:01 GMT;';
-        document.cookie = 'twitch_token=; Path=/; Expires=Thu, 01 Jan 1970 00:00:01 GMT;';
-        document.cookie = 'twitch_user=; Path=/; Expires=Thu, 01 Jan 1970 00:00:01 GMT;';
-        document.cookie = 'twitch_auth_state=; Path=/; Expires=Thu, 01 Jan 1970 00:00:01 GMT;';
-      }
-      
-      // 2. Очищаем все переменные в localStorage
-      localStorage.removeItem('twitch_user');
-      localStorage.removeItem('twitch_token');
-      localStorage.removeItem('is_authenticated');
-      
-      // 3. Устанавливаем признак выхода в localStorage
-      localStorage.setItem('logged_out', 'true');
-      
-      // 4. Перенаправляем на страницу авторизации с параметром, указывающим на выход
-      window.location.href = '/auth?logged_out=true';
-    } catch (error) {
-      console.error('Ошибка при выходе из аккаунта:', error);
-      
-      // В случае ошибки всё равно пытаемся перенаправить на страницу авторизации
-      alert('Произошла ошибка при выходе из аккаунта. Вы будете перенаправлены на страницу авторизации.');
-      window.location.href = '/auth';
-    }
-  };
-
-  // Функция для форматирования даты
   const formatDate = (dateString) => {
     if (!dateString) return '';
-    
-    const date = new Date(dateString);
-    return date.toLocaleDateString('ru-RU', { 
-      day: 'numeric', 
-      month: 'long',
-      year: 'numeric'
-    });
+
+    try {
+        const date = new Date(dateString);
+        if (isNaN(date.getTime())) {
+            console.warn('Невалидная дата для форматирования:', dateString);
+            return 'Неверная дата';
+        }
+        return date.toLocaleDateString('ru-RU', {
+          day: 'numeric',
+          month: 'long',
+          year: 'numeric'
+        });
+    } catch (e) {
+        console.error('Ошибка форматирования даты:', dateString, e);
+        return 'Ошибка даты';
+    }
   };
 
-  // Функция для отображения день рождения
   const renderBirthday = () => {
-    if (!profileData?.birthday) return null;
-    
+    if (!profileData?.birthday || !profileData?.showBirthday) return null;
+
     if (isBirthday) {
       return (
         <div className={styles.birthdayContainer}>
@@ -714,21 +499,18 @@ export default function Profile() {
     return (
       <div className={styles.birthdayContainer}>
         <span className={styles.birthdayIcon}>🎂</span>
-        <span className={styles.birthdayText}>День рождения: {formatDate(profileData.birthday)}</span>
+        <span className={styles.birthdayText}>Скоро день рождения!</span>
       </div>
     );
   };
   
-  // Функция для склонения слова "день"
   const getDayWord = (days) => {
     if (days === 1) return 'день';
     if (days >= 2 && days <= 4) return 'дня';
     return 'дней';
   };
 
-  // Функция для отображения социальных ссылок
   const renderSocialLinks = () => {
-    // Проверяем, существуют ли социальные ссылки
     if (!socialLinks) {
       return (
         <div className={styles.emptySocialLinks}>
@@ -740,7 +522,6 @@ export default function Profile() {
       );
     }
     
-    // Проверяем, есть ли хотя бы одна социальная ссылка
     const hasSocialLinks = 
       socialLinks.twitch || 
       socialLinks.youtube || 
@@ -813,34 +594,96 @@ export default function Profile() {
     );
   };
   
-  // Функция для переключения отображения достижений
   const toggleAchievements = () => {
     setShowAchievements(!showAchievements);
     setShowReviews(false);
     setShowStats(false);
   };
   
-  // Функция для переключения отображения отзывов
   const toggleReviews = () => {
     setShowReviews(!showReviews);
     setShowAchievements(false);
     setShowStats(false);
     
-    // Если включаем отображение отзывов, обновляем их
     if (!showReviews && profileData && profileData.id) {
-      // Загружаем отзывы пользователя
       loadReviews(profileData.id).catch(e => console.error('Ошибка загрузки отзывов:', e));
     }
   };
   
-  // Функция для переключения отображения статистики
   const toggleStats = () => {
     setShowStats(!showStats);
     setShowAchievements(false);
     setShowReviews(false);
   };
 
-  // Отображение информации о профиле
+  if (loading) {
+    return (
+      <div className={styles.profileContainer}>
+        <div className={styles.profileHeader}>
+          <h1>Загрузка профиля...</h1>
+        </div>
+      </div>
+    );
+  }
+
+  const retryLoading = () => {
+    window.location.reload();
+  };
+
+  if (error) {
+    return (
+      <div className={styles.profileContainer}>
+        <div className={styles.error}>
+          <h2>Произошла ошибка</h2>
+          <p>{error}</p>
+          <button onClick={retryLoading} className={styles.button}>
+            Попробовать снова
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  if (!profileData && !loading) {
+    return (
+      <div className={styles.profileContainer}>
+        <div className={styles.profileHeader}>
+          <h2>Не удалось загрузить профиль</h2>
+          <button onClick={retryLoading} className={styles.button}>
+            Попробовать снова
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  const handleLogout = () => {
+    try {
+      console.log('Выполняем выход из аккаунта (клиентская версия)...');
+      
+      if (typeof document !== 'undefined') {
+        document.cookie = 'twitch_access_token=; Path=/; Expires=Thu, 01 Jan 1970 00:00:01 GMT;';
+        document.cookie = 'twitch_refresh_token=; Path=/; Expires=Thu, 01 Jan 1970 00:00:01 GMT;';
+        document.cookie = 'twitch_token=; Path=/; Expires=Thu, 01 Jan 1970 00:00:01 GMT;';
+        document.cookie = 'twitch_user=; Path=/; Expires=Thu, 01 Jan 1970 00:00:01 GMT;';
+        document.cookie = 'twitch_auth_state=; Path=/; Expires=Thu, 01 Jan 1970 00:00:01 GMT;';
+      }
+      
+      localStorage.removeItem('twitch_user');
+      localStorage.removeItem('twitch_token');
+      localStorage.removeItem('is_authenticated');
+      
+      localStorage.setItem('logged_out', 'true');
+      
+      window.location.href = '/auth?logged_out=true';
+    } catch (error) {
+      console.error('Ошибка при выходе из аккаунта:', error);
+      
+      alert('Произошла ошибка при выходе из аккаунта. Вы будете перенаправлены на страницу авторизации.');
+      window.location.href = '/auth';
+    }
+  };
+
   return (
     <div className={styles.container}>
       <div className={styles.profileContainer}>
@@ -917,7 +760,6 @@ export default function Profile() {
           </div>
         </div>
         
-        {/* Отображаем разные секции в зависимости от выбранной вкладки */}
         {showAchievements ? (
           <div className={styles.achievementsSection}>
             <div className={styles.sectionHeader}>
@@ -938,8 +780,7 @@ export default function Profile() {
               userId={profileData.id} 
               isAuthor={true}
               onReviewAdded={() => {
-                // После добавления отзыва обновляем данные
-                loadAdditionalData(profileData.id);
+                loadBirthdayData(profileData.id);
               }}
             />
           </div>
@@ -990,13 +831,11 @@ export default function Profile() {
           </div>
         ) : (
           <>
-            {/* Отображаем описание и социальные сети по умолчанию */}
             <div className={styles.profileInfoSection}>
-              {/* Отображаем описание профиля */}
-              {(socialLinks && socialLinks.description) || profileData.description ? (
+              {profileData?.description ? (
                 <div className={styles.profileDescription}>
                   <h3 className={styles.sectionTitle}>Описание</h3>
-                  <p>{socialLinks?.description || profileData.description}</p>
+                  <p>{profileData.description}</p>
                 </div>
               ) : (
                 userId === profileData?.id && (
@@ -1007,13 +846,15 @@ export default function Profile() {
                 )
               )}
               
-              {/* Отображаем социальные сети */}
               <div className={styles.socialLinksSection}>
                 <h3 className={styles.sectionTitle}>Социальные сети</h3>
                 {renderSocialLinks()}
               </div>
             </div>
           </>
+        )}
+        {Object.values(specificErrors).map((errMsg, index) =>
+            errMsg ? <p key={index} className={styles.specificError}>{errMsg}</p> : null
         )}
       </div>
     </div>

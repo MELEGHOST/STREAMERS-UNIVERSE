@@ -8,8 +8,7 @@ import NeonCheckbox from '../components/NeonCheckbox';
 import { DataStorage } from '../utils/dataStorage';
 
 export default function EditProfile() {
-  const [userData, setUserData] = useState(null);
-  const [socialLinks, setSocialLinks] = useState({
+  const [editData, setEditData] = useState({
     description: '',
     twitch: '',
     youtube: '',
@@ -17,188 +16,165 @@ export default function EditProfile() {
     telegram: '',
     vk: '',
     yandexMusic: '',
-    isMusician: false
+    isMusician: false,
+    birthday: '',
+    showBirthday: true,
+    statsVisibility: {
+      followers: true,
+      followings: true,
+      streams: true,
+      channel: true,
+      accountInfo: true
+    }
   });
-  const [birthday, setBirthday] = useState('');
-  const [showBirthday, setShowBirthday] = useState(true);
-  const [statsVisibility, setStatsVisibility] = useState({
-    followers: true,
-    followings: true,
-    streams: true,
-    channel: true,
-    accountInfo: true
-  });
+
+  const [userId, setUserId] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const router = useRouter();
   const [submitting, setSubmitting] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
-  const [saveError, setSaveError] = useState(false);
+  const [saveError, setSaveError] = useState(null);
 
   useEffect(() => {
-    const loadUserData = async () => {
+    const loadInitialData = async () => {
+      setLoading(true);
+      setError(null);
       try {
-        // Получаем данные пользователя из DataStorage
         const userData = await DataStorage.getData('user');
-        
         if (!userData || !userData.id) {
+          console.log('EditProfile: User not found, redirecting to login.');
           router.push('/login');
           return;
         }
-        
-        setUserData(userData);
-        
-        // Загружаем день рождения пользователя из localStorage, если он есть
-        const userBirthday = localStorage.getItem(`birthday_${userData.id}`);
-        if (userBirthday) {
-          setBirthday(userBirthday);
+        setUserId(userData.id);
+
+        console.log('EditProfile: Fetching editable data for user:', userData.id);
+        const response = await fetch(`/api/user-profile-data?userId=${userData.id}&_=${Date.now()}`, {
+            method: 'GET',
+            headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-cache' },
+            credentials: 'include',
+        });
+
+        if (!response.ok) {
+            throw new Error(`Failed to fetch profile data: ${response.status}`);
         }
-        
-        // Загружаем настройку видимости дня рождения
-        const birthdayVisibility = localStorage.getItem(`birthday_visibility_${userData.id}`);
-        if (birthdayVisibility !== null) {
-          setShowBirthday(birthdayVisibility === 'true');
-        }
-        
-        // Загружаем настройки видимости статистики
-        const savedStatsVisibility = localStorage.getItem(`stats_visibility_${userData.id}`);
-        if (savedStatsVisibility) {
-          setStatsVisibility(JSON.parse(savedStatsVisibility));
-        }
-        
-        await fetchSocialLinks(userData.id);
-      } catch (error) {
-        console.error('Ошибка при загрузке данных пользователя:', error);
-        setError('Не удалось загрузить данные пользователя. Пожалуйста, попробуйте позже.');
+
+        const data = await response.json();
+        console.log('EditProfile: Received data:', data);
+
+        setEditData({
+            description: data.description || '',
+            twitch: data.socialLinks?.twitch || '',
+            youtube: data.socialLinks?.youtube || '',
+            discord: data.socialLinks?.discord || '',
+            telegram: data.socialLinks?.telegram || '',
+            vk: data.socialLinks?.vk || '',
+            yandexMusic: data.socialLinks?.yandexMusic || '',
+            isMusician: data.socialLinks?.isMusician || false,
+            birthday: data.birthday || '',
+            showBirthday: data.showBirthday !== undefined ? data.showBirthday : true,
+            statsVisibility: data.statsVisibility || {
+                followers: true,
+                followings: true,
+                streams: true,
+                channel: true,
+                accountInfo: true
+            }
+        });
+
+      } catch (err) {
+        console.error('Error loading initial data for edit profile:', err);
+        setError(err.message || 'Не удалось загрузить данные для редактирования. Попробуйте обновить страницу.');
       } finally {
         setLoading(false);
       }
     };
-    
-    loadUserData();
-  }, []);
 
-  const fetchSocialLinks = async (userId) => {
-    try {
-      // Сначала пробуем получить данные из localStorage
-      const savedLinks = localStorage.getItem(`social_links_${userId}`);
-      
-      if (savedLinks) {
-        setSocialLinks(JSON.parse(savedLinks));
-        return;
-      }
-      
-      // Если в localStorage нет данных, пробуем получить с сервера
-      const response = await fetch('/api/user-socials');
-      
-      if (response.ok) {
-        const data = await response.json();
-        setSocialLinks(data);
-      }
-    } catch (error) {
-      console.error('Ошибка при загрузке социальных ссылок:', error);
-    }
-  };
+    loadInitialData();
+  }, [router]);
 
-  const handleSocialLinksChange = (e) => {
+  const handleInputChange = (e) => {
     const { name, value, type, checked } = e.target;
-    setSocialLinks(prev => ({
-      ...prev,
-      [name]: type === 'checkbox' ? checked : value
-    }));
-  };
+    const keys = name.split('.');
 
-  const handleBirthdayChange = (e) => {
-    setBirthday(e.target.value);
-  };
-
-  const handleShowBirthdayChange = (e) => {
-    setShowBirthday(e.target.checked);
-  };
-
-  const handleStatsVisibilityChange = (e) => {
-    const { name, checked } = e.target;
-    setStatsVisibility(prev => ({
-      ...prev,
-      [name]: checked
-    }));
+    setEditData(prev => {
+        if (keys.length === 1) {
+            return { ...prev, [name]: type === 'checkbox' ? checked : value };
+        } else if (keys.length === 2 && keys[0] === 'statsVisibility') {
+            return {
+                ...prev,
+                statsVisibility: {
+                    ...prev.statsVisibility,
+                    [keys[1]]: checked
+                }
+            };
+        } else {
+             return {
+                 ...prev,
+                 [name]: value
+             };
+        }
+    });
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setSubmitting(true);
     setSaveSuccess(false);
-    setSaveError(false);
-    
+    setSaveError(null);
+
+    if (!userId) {
+        setSaveError('Ошибка: ID пользователя не найден.');
+        setSubmitting(false);
+        return;
+    }
+
     try {
-      if (userData && userData.id) {
-        // Сохраняем социальные ссылки в localStorage
-        localStorage.setItem(`social_links_${userData.id}`, JSON.stringify(socialLinks));
-        
-        // Сохраняем день рождения в localStorage
-        if (birthday) {
-          localStorage.setItem(`birthday_${userData.id}`, birthday);
-        } else {
-          localStorage.removeItem(`birthday_${userData.id}`);
-        }
-        
-        // Сохраняем настройку видимости дня рождения
-        localStorage.setItem(`birthday_visibility_${userData.id}`, showBirthday.toString());
-        
-        // Сохраняем настройки видимости статистики
-        localStorage.setItem(`stats_visibility_${userData.id}`, JSON.stringify(statsVisibility));
-        
-        // Пробуем сохранить данные на сервере
+      console.log('EditProfile: Submitting data for user:', userId, editData);
+      const response = await fetch('/api/user-profile-data', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+        body: JSON.stringify({
+          userId: userId,
+          ...editData
+        })
+      });
+
+      if (!response.ok) {
+        let errorMessage = 'Не удалось сохранить данные на сервере.';
         try {
-          const response = await fetch('/api/user-socials', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-              userId: userData.id,
-              socialLinks,
-              birthday: birthday || null,
-              showBirthday,
-              statsVisibility
-            })
-          });
-          
-          if (!response.ok) {
             const errorData = await response.json();
-            console.warn('Не удалось сохранить данные на сервере:', errorData.error);
-            throw new Error(errorData.error || 'Не удалось сохранить данные на сервере');
-          }
-        } catch (serverError) {
-          console.warn('Ошибка при сохранении на сервере:', serverError);
-          // Продолжаем выполнение, так как данные уже сохранены локально
+            errorMessage = errorData.error || errorMessage;
+        } catch (parseError) {
         }
-        
-        setSaveSuccess(true);
-        
-        // Обновляем данные пользователя в DataStorage для синхронизации
-        const updatedUserData = { ...userData };
-        
-        // Добавляем социальные ссылки в данные пользователя
-        updatedUserData.socialLinks = socialLinks;
-        updatedUserData.birthday = birthday;
-        updatedUserData.showBirthday = showBirthday;
-        updatedUserData.statsVisibility = statsVisibility;
-        
-        // Сохраняем обновленные данные
-        DataStorage.saveData('user', updatedUserData);
-        
-        // Ожидаем немного для отображения сообщения об успехе и перенаправляем на профиль
-        setTimeout(() => {
-          // Перенаправляем на профиль с параметром обновления для обхода кэша
-          router.push('/profile?refresh=' + Date.now());
-        }, 1500);
-      } else {
-        throw new Error('Не удалось получить данные пользователя для сохранения');
+        console.warn('Server save failed:', response.status, errorMessage);
+        throw new Error(errorMessage);
       }
+
+      console.log('EditProfile: Data saved successfully on server.');
+      try {
+          const currentUserData = await DataStorage.getData('user');
+          if (currentUserData) {
+              await DataStorage.saveData('user', { ...currentUserData, /* обновленные поля */ });
+              console.log('DataStorage updated.');
+          }
+      } catch (storageError) {
+          console.warn('Failed to update DataStorage after save:', storageError);
+      }
+
+      setSaveSuccess(true);
+
+      setTimeout(() => {
+        router.push('/profile');
+      }, 1500);
+
     } catch (error) {
-      console.error('Ошибка при сохранении данных:', error);
-      setSaveError(error.message || 'Произошла ошибка при сохранении данных. Пожалуйста, попробуйте снова.');
+      console.error('Error submitting profile data:', error);
+      setSaveError(error.message || 'Произошла неизвестная ошибка при сохранении.');
     } finally {
       setSubmitting(false);
     }
@@ -216,13 +192,15 @@ export default function EditProfile() {
       ) : error ? (
         <div className={styles.error}>
           <p>{error}</p>
+          <button className={styles.button} onClick={() => window.location.reload()}>
+            Обновить страницу
+          </button>
           <button className={styles.button} onClick={() => router.push('/menu')}>
             Вернуться в меню
           </button>
         </div>
       ) : (
         <form className={styles.editForm} onSubmit={handleSubmit}>
-          {/* Секция описания */}
           <div className={styles.formSection}>
             <h2>Описание профиля</h2>
             <div className={styles.inputGroup}>
@@ -231,18 +209,17 @@ export default function EditProfile() {
                 id="description"
                 name="description"
                 className={styles.textarea}
-                value={socialLinks.description}
-                onChange={handleSocialLinksChange}
+                value={editData.description}
+                onChange={handleInputChange}
                 placeholder="Расскажите о себе..."
                 maxLength={500}
               />
               <div className={styles.charCount}>
-                {socialLinks.description.length}/500
+                {editData.description.length}/500
               </div>
             </div>
           </div>
           
-          {/* Секция дня рождения */}
           <div className={styles.formSection}>
             <h2>День рождения</h2>
             <div className={styles.inputGroup}>
@@ -252,8 +229,8 @@ export default function EditProfile() {
                 id="birthday"
                 name="birthday"
                 className={styles.input}
-                value={birthday}
-                onChange={handleBirthdayChange}
+                value={editData.birthday}
+                onChange={handleInputChange}
               />
               <p className={styles.birthdayNote}>
                 В день рождения вы получите 100 стример-коинов в подарок! 🎁
@@ -262,14 +239,13 @@ export default function EditProfile() {
             <div className={styles.checkboxGroup}>
               <NeonCheckbox
                 label="Показывать день рождения другим пользователям"
-                checked={showBirthday}
-                onChange={handleShowBirthdayChange}
+                checked={editData.showBirthday}
+                onChange={handleInputChange}
                 name="showBirthday"
               />
             </div>
           </div>
           
-          {/* Секция настроек видимости статистики */}
           <div className={styles.formSection}>
             <h2>Настройки видимости статистики</h2>
             <p className={styles.sectionDescription}>
@@ -280,51 +256,50 @@ export default function EditProfile() {
               <div className={styles.checkboxGroup}>
                 <NeonCheckbox
                   label="Подписчики"
-                  checked={statsVisibility.followers}
-                  onChange={handleStatsVisibilityChange}
-                  name="followers"
+                  checked={editData.statsVisibility.followers}
+                  onChange={handleInputChange}
+                  name="statsVisibility.followers"
                 />
               </div>
               
               <div className={styles.checkboxGroup}>
                 <NeonCheckbox
                   label="Подписки"
-                  checked={statsVisibility.followings}
-                  onChange={handleStatsVisibilityChange}
-                  name="followings"
+                  checked={editData.statsVisibility.followings}
+                  onChange={handleInputChange}
+                  name="statsVisibility.followings"
                 />
               </div>
               
               <div className={styles.checkboxGroup}>
                 <NeonCheckbox
                   label="Стримы"
-                  checked={statsVisibility.streams}
-                  onChange={handleStatsVisibilityChange}
-                  name="streams"
+                  checked={editData.statsVisibility.streams}
+                  onChange={handleInputChange}
+                  name="statsVisibility.streams"
                 />
               </div>
               
               <div className={styles.checkboxGroup}>
                 <NeonCheckbox
                   label="Информация о канале"
-                  checked={statsVisibility.channel}
-                  onChange={handleStatsVisibilityChange}
-                  name="channel"
+                  checked={editData.statsVisibility.channel}
+                  onChange={handleInputChange}
+                  name="statsVisibility.channel"
                 />
               </div>
               
               <div className={styles.checkboxGroup}>
                 <NeonCheckbox
                   label="Информация об аккаунте"
-                  checked={statsVisibility.accountInfo}
-                  onChange={handleStatsVisibilityChange}
-                  name="accountInfo"
+                  checked={editData.statsVisibility.accountInfo}
+                  onChange={handleInputChange}
+                  name="statsVisibility.accountInfo"
                 />
               </div>
             </div>
           </div>
           
-          {/* Секция социальных сетей */}
           <div className={styles.formSection}>
             <h2>Социальные сети</h2>
             
@@ -337,8 +312,8 @@ export default function EditProfile() {
                   id="twitch"
                   name="twitch"
                   className={styles.input}
-                  value={socialLinks.twitch}
-                  onChange={handleSocialLinksChange}
+                  value={editData.twitch}
+                  onChange={handleInputChange}
                   placeholder="https://twitch.tv/username"
                 />
               </div>
@@ -353,8 +328,8 @@ export default function EditProfile() {
                   id="youtube"
                   name="youtube"
                   className={styles.input}
-                  value={socialLinks.youtube}
-                  onChange={handleSocialLinksChange}
+                  value={editData.youtube}
+                  onChange={handleInputChange}
                   placeholder="https://youtube.com/c/username"
                 />
               </div>
@@ -369,8 +344,8 @@ export default function EditProfile() {
                   id="discord"
                   name="discord"
                   className={styles.input}
-                  value={socialLinks.discord}
-                  onChange={handleSocialLinksChange}
+                  value={editData.discord}
+                  onChange={handleInputChange}
                   placeholder="https://discord.gg/invite"
                 />
               </div>
@@ -385,8 +360,8 @@ export default function EditProfile() {
                   id="telegram"
                   name="telegram"
                   className={styles.input}
-                  value={socialLinks.telegram}
-                  onChange={handleSocialLinksChange}
+                  value={editData.telegram}
+                  onChange={handleInputChange}
                   placeholder="https://t.me/username"
                 />
               </div>
@@ -401,8 +376,8 @@ export default function EditProfile() {
                   id="vk"
                   name="vk"
                   className={styles.input}
-                  value={socialLinks.vk}
-                  onChange={handleSocialLinksChange}
+                  value={editData.vk}
+                  onChange={handleInputChange}
                   placeholder="https://vk.com/username"
                 />
               </div>
@@ -411,13 +386,13 @@ export default function EditProfile() {
             <div className={styles.checkboxGroup}>
               <NeonCheckbox
                 label="Я музыкант"
-                checked={socialLinks.isMusician}
-                onChange={(e) => handleSocialLinksChange({ target: { name: 'isMusician', checked: e.target.checked } })}
+                checked={editData.isMusician}
+                onChange={handleInputChange}
                 name="isMusician"
               />
             </div>
             
-            {socialLinks.isMusician && (
+            {editData.isMusician && (
               <div className={styles.inputGroup}>
                 <label htmlFor="yandexMusic">Яндекс Музыка:</label>
                 <div className={styles.inputWithIcon}>
@@ -427,8 +402,8 @@ export default function EditProfile() {
                     id="yandexMusic"
                     name="yandexMusic"
                     className={styles.input}
-                    value={socialLinks.yandexMusic}
-                    onChange={handleSocialLinksChange}
+                    value={editData.yandexMusic}
+                    onChange={handleInputChange}
                     placeholder="https://music.yandex.ru/artist/..."
                   />
                 </div>

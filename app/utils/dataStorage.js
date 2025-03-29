@@ -2,48 +2,6 @@
 
 import Cookies from 'js-cookie';
 
-// Вспомогательная функция для создания таймаута
-const createTimeout = (ms) => {
-  return new Promise((_, reject) => {
-    setTimeout(() => reject(new Error(`Timeout after ${ms}ms`)), ms);
-  });
-};
-
-// Вспомогательная функция для выполнения запроса с таймаутом
-const fetchWithTimeout = async (url, options, timeout = 5000) => {
-  // Проверяем, работаем ли в браузере
-  if (typeof window === 'undefined') {
-    throw new Error('Fetch not available on server');
-  }
-  
-  // Создаем контроллер для отмены запроса
-  const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), timeout);
-  
-  try {
-    // Добавляем signal к опциям запроса
-    const response = await fetch(url, {
-      ...options,
-      signal: controller.signal
-    });
-    return response;
-  } catch (error) {
-    // Проверяем, была ли ошибка вызвана таймаутом
-    if (error.name === 'AbortError') {
-      throw new Error(`Запрос к ${url} превысил таймаут ${timeout}мс`);
-    }
-    throw error;
-  } finally {
-    // Очищаем таймаут
-    clearTimeout(timeoutId);
-  }
-};
-
-/**
- * Утилиты для работы с хранилищем данных
- * Поддерживает localStorage, sessionStorage и IndexedDB
- */
-
 // Префикс для ключей в хранилище
 const STORAGE_PREFIX = 'su_';
 
@@ -384,27 +342,6 @@ export class DataStorage {
       keysToRemove.forEach(key => storage.removeItem(key));
     } catch (error) {
       console.warn('Ошибка при очистке хранилища:', error);
-    }
-  }
-  
-  // Проверка авторизации
-  static isAuthenticated() {
-    try {
-      // Проверяем наличие токена в localStorage
-      if (typeof window === 'undefined') {
-        return false; // На сервере считаем, что не авторизован
-      }
-      
-      try {
-        return !!localStorage.getItem('twitch_user') || !!Cookies.get('twitch_user');
-      } catch (error) {
-        console.warn('Ошибка при проверке localStorage:', error);
-        // Проверяем только куки, если localStorage недоступен
-        return !!Cookies.get('twitch_user');
-      }
-    } catch (error) {
-      console.error('Ошибка при проверке авторизации:', error);
-      return false;
     }
   }
   

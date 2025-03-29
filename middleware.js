@@ -1,298 +1,6 @@
 import { NextResponse } from 'next/server';
 
-export function middleware(request) {
-  // Получаем текущий URL
-  const url = request.nextUrl.clone();
-  const { pathname } = url;
-  
-  // Уменьшим количество логов в production среде
-  if (process.env.NODE_ENV !== 'production') {
-    console.log('Middleware обрабатывает запрос:', pathname);
-  }
-  
-  // Логируем для отладки, если запрос связан с Twitch callback 
-  // только в режиме разработки или при ошибках
-  if (pathname.startsWith('/api/twitch/callback')) {
-    console.log('[Middleware] Обработка Twitch callback', pathname);
-    // Логируем только если переменные окружения действительно установлены
-    if (process.env.TWITCH_REDIRECT_URI) {
-      console.log('[Middleware] TWITCH_REDIRECT_URI:', process.env.TWITCH_REDIRECT_URI);
-    } else {
-      console.error('[Middleware] TWITCH_REDIRECT_URI не установлен!');
-    }
-    
-    if (process.env.NEXT_PUBLIC_APP_URL) {
-      console.log('[Middleware] NEXT_PUBLIC_APP_URL:', process.env.NEXT_PUBLIC_APP_URL);
-    } else {
-      console.error('[Middleware] NEXT_PUBLIC_APP_URL не установлен!');
-    }
-  }
-  
-  // Пропускаем запросы к API авторизации без изменений
-  if (pathname.startsWith('/api/auth') || 
-      pathname.startsWith('/api/twitch/login') || 
-      pathname.startsWith('/api/twitch/callback') || 
-      pathname.startsWith('/api/twitch/token')) {
-    // Для запросов авторизации не применяем дополнительных преобразований
-    // Это позволяет избежать проблем с CORS и авторизацией
-    return;
-  }
-  
-  // Пропускаем запросы к меню без проверки авторизации
-  if (pathname === '/menu') {
-    if (process.env.NODE_ENV !== 'production') {
-      console.log('Middleware: пропускаем запрос к меню без проверки авторизации');
-    }
-    return NextResponse.next();
-  }
-  
-  // Клонируем текущий ответ
-  const response = NextResponse.next();
-  
-  // Безопасное получение значения куки
-  const getCookieSafely = (name) => {
-    try {
-      return request.cookies.get(name)?.value;
-    } catch (e) {
-      console.error(`Ошибка при получении куки ${name}:`, e);
-      return undefined;
-    }
-  };
-  
-  // Безопасная установка куки
-  const setCookieSafely = (name, value, options = {}) => {
-    try {
-      response.cookies.set(name, value, {
-        httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',
-        sameSite: 'lax',
-        path: '/',
-        maxAge: 60 * 60 * 24, // 1 день
-        ...options
-      });
-      return true;
-    } catch (e) {
-      console.error(`Ошибка при установке куки ${name}:`, e);
-      return false;
-    }
-  };
-  
-  // Генерируем CSRF-токен, если его нет в куках
-  const csrfToken = getCookieSafely('csrf_token');
-  if (!csrfToken) {
-    // Генерируем случайный токен с использованием Web Crypto API вместо Node.js crypto
-    const newCsrfToken = generateRandomString(32);
-    if (setCookieSafely('csrf_token', newCsrfToken, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'strict',
-      path: '/',
-      maxAge: 60 * 60 * 24 // 1 день
-    })) {
-      if (process.env.NODE_ENV !== 'production') {
-        console.log('Middleware: сгенерирован новый CSRF-токен');
-      }
-    }
-  }
-  
-  // Добавляем заголовки безопасности
-  try {
-    response.headers.set('X-Content-Type-Options', 'nosniff');
-    response.headers.set('X-Frame-Options', 'DENY');
-    response.headers.set('X-XSS-Protection', '1; mode=block');
-    response.headers.set('Referrer-Policy', 'strict-origin-when-cross-origin');
-    
-    // Устанавливаем CSP только если заголовки можно изменять (совместимость с Edge)
-    const cspValue = "default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https://*.twitch.tv https://*.jtvnw.net; connect-src 'self' https://api.twitch.tv https://id.twitch.tv; frame-ancestors 'none'; form-action 'self'; base-uri 'self'; object-src 'none';";
-    response.headers.set('Content-Security-Policy', cspValue);
-  } catch (e) {
-    console.error('Ошибка при установке заголовков безопасности:', e);
-  }
-  
-  // Получаем origin запроса
-  const origin = request.headers.get('origin');
-  
-  // Список разрешенных доменов
-  const allowedOrigins = [
-    'https://streamers-universe.vercel.app',
-    'https://streamers-universe.com',
-    'https://streamers-universe-meleghost-meleghosts-projects.vercel.app',
-    // Локальные домены для разработки
-    'http://localhost:3000',
-    'http://127.0.0.1:3000',
-    // Добавьте другие разрешенные домены
-  ];
-  
-  // Проверяем, является ли origin разрешенным
-  const isAllowedOrigin = origin && allowedOrigins.includes(origin);
-  
-  // Устанавливаем заголовки CORS только для разрешенных доменов
-  try {
-    if (isAllowedOrigin) {
-      response.headers.set('Access-Control-Allow-Credentials', 'true');
-      response.headers.set('Access-Control-Allow-Origin', origin);
-      response.headers.set('Access-Control-Allow-Methods', 'GET,OPTIONS,PATCH,DELETE,POST,PUT');
-      response.headers.set('Access-Control-Allow-Headers', 'X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version, Authorization');
-    } else if (origin && process.env.NODE_ENV !== 'production') {
-      // Если origin не в списке разрешенных, логируем только в dev режиме
-      console.log(`Middleware: Origin ${origin} не разрешен`);
-    }
-  } catch (e) {
-    console.error('Ошибка при установке CORS заголовков:', e);
-  }
-  
-  // Для OPTIONS запросов сразу возвращаем ответ с заголовками CORS
-  if (request.method === 'OPTIONS') {
-    return new NextResponse(null, {
-      status: 200,
-      headers: response.headers,
-    });
-  }
-  
-  // Если это запрос к API, проверяем наличие куков
-  if (pathname.startsWith('/api/') && !pathname.startsWith('/api/twitch/login') && !pathname.startsWith('/api/twitch/callback')) {
-    if (process.env.NODE_ENV !== 'production') {
-      console.log('Обработка API запроса в middleware:', pathname);
-    }
-    
-    // Проверяем наличие куков для отладки
-    const hasTwitchAccessToken = request.cookies.has('twitch_access_token');
-    const hasTwitchUser = request.cookies.has('twitch_user') || request.cookies.has('twitch_user_data');
-    
-    // Проверяем наличие заголовка Authorization
-    const hasAuthHeader = request.headers.has('Authorization');
-    const authHeader = request.headers.get('Authorization');
-    
-    // Проверяем наличие токена в localStorage через куки
-    const hasLocalStorageToken = request.cookies.has('has_local_storage_token');
-    
-    if (process.env.NODE_ENV !== 'production') {
-      console.log('Middleware: проверка авторизации:', {
-        twitch_access_token: hasTwitchAccessToken ? 'присутствует' : 'отсутствует',
-        twitch_user: hasTwitchUser ? 'присутствует' : 'отсутствует',
-        authorization_header: hasAuthHeader ? 'присутствует' : 'отсутствует',
-        auth_header_value: authHeader ? authHeader.substring(0, 15) + '...' : 'отсутствует',
-        has_local_storage_token: hasLocalStorageToken ? 'присутствует' : 'отсутствует',
-        domain: request.headers.get('host'),
-        protocol: request.headers.get('x-forwarded-proto') || 'http'
-      });
-    }
-    
-    // Если это запрос к API профиля
-    if (pathname === '/api/twitch/profile') {
-      if (process.env.NODE_ENV !== 'production') {
-        console.log('Middleware: обработка запроса к API профиля');
-      }
-      
-      // Если нет ни куки, ни заголовка, перенаправляем на страницу авторизации
-      if (!hasTwitchAccessToken && !hasAuthHeader && !hasLocalStorageToken) {
-        console.log('Middleware: отсутствует токен доступа и заголовок Authorization, перенаправление на /auth');
-        return NextResponse.redirect(new URL('/auth?clear_auth=true', request.url));
-      }
-      
-      // Если есть заголовок Authorization, пропускаем запрос и добавляем заголовок для безопасной передачи токена
-      if (hasAuthHeader) {
-        if (process.env.NODE_ENV !== 'production') {
-          console.log('Middleware: обнаружен заголовок Authorization, пропускаем запрос');
-        }
-        
-        // Извлекаем токен из заголовка
-        if (authHeader && authHeader.startsWith('Bearer ')) {
-          try {
-            const token = authHeader.substring(7);
-            
-            // Добавляем токен в заголовок ответа для безопасной обработки на клиенте
-            response.headers.set('X-Auth-Token', token);
-            
-            // Устанавливаем куку для отслеживания наличия токена
-            setCookieSafely('has_auth_header', 'true', {
-              maxAge: 60 * 60 * 24 // 1 день
-            });
-          } catch (e) {
-            console.error('Ошибка при обработке заголовка Authorization:', e);
-          }
-        }
-      }
-      
-      // Добавляем заголовок для указания типа запроса (AJAX или обычный)
-      try {
-        const isAjaxRequest = request.headers.get('X-Requested-With') === 'XMLHttpRequest' || 
-                             request.headers.get('Accept')?.includes('application/json');
-        
-        if (isAjaxRequest) {
-          response.headers.set('X-Request-Type', 'ajax');
-        } else {
-          response.headers.set('X-Request-Type', 'regular');
-        }
-      } catch (e) {
-        console.error('Ошибка при установке заголовка X-Request-Type:', e);
-      }
-    }
-  }
-  
-  // Проверяем доступ к защищенным страницам (кроме меню)
-  if (pathname === '/profile' || 
-      pathname === '/search' || 
-      pathname === '/followings' || 
-      pathname === '/followers' || 
-      pathname === '/questions' || 
-      pathname === '/settings') {
-    
-    if (process.env.NODE_ENV !== 'production') {
-      console.log('Middleware: проверка доступа к защищенной странице:', pathname);
-    }
-    
-    // Получаем токен доступа и данные пользователя из куков
-    const hasTwitchAccessToken = request.cookies.has('twitch_access_token');
-    const hasTwitchUser = request.cookies.has('twitch_user');
-    const hasTwitchUserData = request.cookies.has('twitch_user_data');
-    const hasAuthHeader = request.headers.has('Authorization');
-    
-    // Проверяем наличие токенов в localStorage через куки
-    const hasLocalStorageToken = request.cookies.has('has_local_storage_token');
-    
-    // Если у нас есть любой токен авторизации, устанавливаем куку has_local_storage_token
-    if (hasTwitchAccessToken || hasTwitchUser || hasTwitchUserData) {
-      const response = NextResponse.next();
-      
-      // Установим куку для будущих запросов, чтобы указать наличие авторизации
-      response.cookies.set('has_local_storage_token', 'true', {
-        maxAge: 60 * 60 * 24, // 1 день
-        path: '/',
-        secure: process.env.NODE_ENV === 'production',
-        sameSite: 'lax'
-      });
-      
-      if (process.env.NODE_ENV !== 'production') {
-        console.log('Middleware: установлена кука has_local_storage_token на основе других кук авторизации');
-      }
-      
-      return response;
-    }
-    
-    // Установим куку, указывающую на присутствие данных в localStorage
-    // Это поможет при следующих запросах без перезагрузки страницы
-    if (hasLocalStorageToken) {
-      if (process.env.NODE_ENV !== 'production') {
-        console.log('Middleware: обнаружен токен в localStorage, пропускаем проверку авторизации');
-      }
-      return NextResponse.next();
-    }
-    
-    // Если нет ни куки, ни заголовка, перенаправляем на страницу авторизации
-    if (!hasTwitchAccessToken && !hasAuthHeader && !hasTwitchUser && !hasTwitchUserData && !hasLocalStorageToken) {
-      console.log('Middleware: пользователь не авторизован, перенаправление на /auth');
-      return NextResponse.redirect(new URL('/auth?redirect=' + encodeURIComponent(pathname), request.url));
-    }
-    
-    // Если пользователь авторизован, пропускаем запрос
-    return NextResponse.next();
-  }
-  
-  return response;
-}
-
-// Функция для генерации случайной строки с использованием более безопасного метода
+// Вспомогательная функция для генерации случайной строки
 function generateRandomString(length) {
   let result = '';
   const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
@@ -333,7 +41,162 @@ function generateRandomString(length) {
   return result;
 }
 
-// Указываем, для каких путей применять middleware
+export function middleware(request) {
+  const url = request.nextUrl.clone();
+  const { pathname } = url;
+  const isProduction = process.env.NODE_ENV === 'production';
+
+  if (!isProduction) {
+    console.log('[Middleware] Обработка:', pathname);
+  }
+
+  const response = NextResponse.next();
+
+  // --- Безопасность и CORS --- (Оставляем без изменений, но можно рефакторить)
+  // Получаем origin и проверяем разрешенные домены
+  const origin = request.headers.get('origin');
+  const allowedOrigins = [
+    'https://streamers-universe.vercel.app',
+    'https://streamers-universe.com',
+    'https://streamers-universe-meleghost-meleghosts-projects.vercel.app',
+    'http://localhost:3000',
+    'http://127.0.0.1:3000',
+  ];
+  const isAllowedOrigin = origin && allowedOrigins.includes(origin);
+
+  // Установка заголовков безопасности
+  try {
+    response.headers.set('X-Content-Type-Options', 'nosniff');
+    response.headers.set('X-Frame-Options', 'DENY');
+    response.headers.set('X-XSS-Protection', '1; mode=block');
+    response.headers.set('Referrer-Policy', 'strict-origin-when-cross-origin');
+    // Уточненный CSP, разрешающий Vercel Analytics, если используется
+    const cspValue = "default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://va.vercel-scripts.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https://*.twitch.tv https://*.jtvnw.net; connect-src 'self' https://api.twitch.tv https://id.twitch.tv https://*.supabase.co https://va.vercel-scripts.com; frame-ancestors 'none'; form-action 'self'; base-uri 'self'; object-src 'none';";
+    response.headers.set('Content-Security-Policy', cspValue.replace(/\s{2,}/g, ' ').trim());
+
+     // Установка CORS заголовков
+     if (isAllowedOrigin) {
+      response.headers.set('Access-Control-Allow-Credentials', 'true');
+      response.headers.set('Access-Control-Allow-Origin', origin);
+      response.headers.set('Access-Control-Allow-Methods', 'GET,OPTIONS,PATCH,DELETE,POST,PUT');
+      response.headers.set('Access-Control-Allow-Headers', 'X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version, Authorization');
+    } else if (origin && !isProduction) {
+      console.log(`[Middleware] Origin ${origin} не разрешен`);
+    }
+
+  } catch (e) {
+    console.error('[Middleware] Ошибка установки заголовков безопасности/CORS:', e);
+  }
+
+  // --- Обработка OPTIONS --- 
+  if (request.method === 'OPTIONS') {
+    // Для OPTIONS запросов важны только CORS заголовки
+    const optionsResponse = new NextResponse(null, {
+      status: 200,
+    });
+     // Копируем нужные заголовки CORS из response
+     if (isAllowedOrigin) {
+        optionsResponse.headers.set('Access-Control-Allow-Credentials', response.headers.get('Access-Control-Allow-Credentials'));
+        optionsResponse.headers.set('Access-Control-Allow-Origin', response.headers.get('Access-Control-Allow-Origin'));
+        optionsResponse.headers.set('Access-Control-Allow-Methods', response.headers.get('Access-Control-Allow-Methods'));
+        optionsResponse.headers.set('Access-Control-Allow-Headers', response.headers.get('Access-Control-Allow-Headers'));
+     }
+    return optionsResponse;
+  }
+
+  // --- CSRF Token --- 
+  const csrfToken = request.cookies.get('csrf_token')?.value;
+  if (!csrfToken) {
+    const newCsrfToken = generateRandomString(32);
+    response.cookies.set('csrf_token', newCsrfToken, {
+      httpOnly: true,
+      secure: isProduction,
+      sameSite: 'strict',
+      path: '/',
+      maxAge: 60 * 60 * 24 // 1 день
+    });
+    if (!isProduction) {
+      console.log('[Middleware] Установлен новый CSRF-токен');
+    }
+  }
+
+  // --- Логика Авторизации --- 
+
+  // Пути, не требующие авторизации
+  const publicPaths = [
+    '/auth', 
+    '/login', 
+    '/menu', 
+    '/', // Главная страница?
+    // API для авторизации
+    '/api/auth/callback', 
+    '/api/twitch/login', 
+    '/api/twitch/callback',
+    '/api/twitch/token',
+    '/api/db-check' // Пример публичного API
+  ];
+
+  // Проверяем, является ли путь публичным
+  const isPublicPath = publicPaths.some(path => pathname === path || (path.endsWith('/*') && pathname.startsWith(path.slice(0, -2))));
+  
+  // Пропускаем статические файлы и внутренние ресурсы Next.js
+  if (pathname.startsWith('/_next/') || 
+      pathname.startsWith('/static/') || 
+      pathname.includes('.') // Пропускаем файлы с расширениями (favicon.ico, images, etc.)
+     ) {
+    return response; // Используем response, чтобы сохранить заголовки
+  }
+
+  // Проверяем наличие токенов/данных пользователя
+  const hasAccessToken = request.cookies.has('twitch_access_token');
+  const hasUserCookie = request.cookies.has('twitch_user') || request.cookies.has('twitch_user_data');
+  const hasAuthHeader = request.headers.has('Authorization') && request.headers.get('Authorization').startsWith('Bearer ');
+  
+  const isAuthenticated = hasAccessToken || hasUserCookie || hasAuthHeader;
+
+  if (!isProduction) {
+      console.log('[Middleware] Статус авторизации:', {
+          pathname,
+          isPublicPath,
+          hasAccessToken,
+          hasUserCookie,
+          hasAuthHeader,
+          isAuthenticated
+      });
+  }
+
+  // Обработка API запросов (кроме публичных API)
+  if (pathname.startsWith('/api/') && !isPublicPath) {
+    if (!isAuthenticated) {
+        console.log('[Middleware] API: Не авторизован. Отказ.');
+        return new NextResponse(JSON.stringify({ error: 'Unauthorized' }), {
+            status: 401,
+            headers: { 'Content-Type': 'application/json' },
+        });
+    }
+    // Если авторизован, добавляем заголовки безопасности и продолжаем
+    return response;
+  }
+
+  // Обработка защищенных страниц
+  if (!isPublicPath && !isAuthenticated) {
+    console.log(`[Middleware] Страница: Не авторизован (${pathname}). Редирект на /auth`);
+    const loginUrl = new URL('/auth', request.url);
+    loginUrl.searchParams.set('redirect', pathname); // Добавляем путь для редиректа после логина
+    return NextResponse.redirect(loginUrl);
+  }
+  
+   // Если пользователь авторизован и пытается зайти на /auth или /login, редирект на /menu
+   if ((pathname === '/auth' || pathname === '/login') && isAuthenticated) {
+      console.log(`[Middleware] Авторизован (${pathname}). Редирект на /menu`);
+      return NextResponse.redirect(new URL('/menu', request.url));
+   }
+
+  // Для всех остальных случаев (публичные страницы или авторизованные пользователи на защищенных страницах)
+  return response; // Возвращаем response с установленными заголовками
+}
+
+// Конфигурация matcher остается прежней
 export const config = {
   matcher: [
     '/((?!_next/static|_next/image|favicon.ico).*)',

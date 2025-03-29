@@ -1,7 +1,10 @@
 import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
-import { connectToDatabase } from '../../../utils/mongodb';
-import { ObjectId } from 'mongodb';
+// Убираем импорты MongoDB
+// import { connectToDatabase } from '../../../utils/mongodb';
+// import { ObjectId } from 'mongodb';
+// Добавляем импорт клиента Supabase
+import { supabase } from '../../../utils/supabaseClient'; // Убедитесь, что путь правильный
 
 // Голосование за запланированную трансляцию
 export async function POST(request) {
@@ -28,103 +31,64 @@ export async function POST(request) {
     
     // Получаем данные из запроса
     const data = await request.json();
-    const { streamId, userId, voterId, voterName, preferredDate, comment } = data;
+    const { streamId, userId, userName, preferredDate, comment } = data;
     
-    if (!streamId || !userId || !voterId) {
+    if (!streamId || !userId || !userName || !preferredDate) {
       return NextResponse.json(
-        { error: 'Отсутствуют обязательные поля', success: false },
+        { error: 'Отсутствуют обязательные поля (streamId, userId, userName, preferredDate)', success: false },
         { status: 400 }
       );
     }
     
-    // Подключаемся к базе данных
-    const { db } = await connectToDatabase();
-    
-    // Проверяем, существует ли трансляция
-    const existingStream = await db.collection('scheduled_streams').findOne({ 
-      _id: new ObjectId(streamId)
-    });
-    
-    if (!existingStream) {
-      return NextResponse.json(
-        { error: 'Трансляция не найдена', success: false },
-        { status: 404 }
-      );
-    }
-    
-    // Проверяем, существует ли массив votes
-    if (!existingStream.votes) {
-      // Если массива votes нет, инициализируем его
-      await db.collection('scheduled_streams').updateOne(
-        { _id: new ObjectId(streamId) },
-        { $set: { votes: [] } }
-      );
-      
-      // Получаем обновленную трансляцию
-      const updatedStream = await db.collection('scheduled_streams').findOne({ 
-        _id: new ObjectId(streamId)
-      });
-      
-      if (!updatedStream) {
-        return NextResponse.json(
-          { error: 'Ошибка при обновлении трансляции', success: false },
-          { status: 500 }
-        );
+    // Данные для вставки/обновления в Supabase
+    const voteData = {
+      stream_id: streamId, // Используем streamId из запроса
+      user_id: userId,
+      user_name: userName,
+      preferred_date: new Date(preferredDate).toISOString(), // Преобразуем в ISO строку
+      comment: comment || null, // Используем null, если комментарий пуст
+      // created_at и updated_at будут управляться Supabase
+    };
+
+    // Используем upsert: вставляет новую строку или обновляет существующую
+    // на основе уникального ключа (предполагается, что у вас есть UNIQUE constraint 
+    // на (stream_id, user_id) в таблице stream_votes)
+    const { data: upsertedVote, error } = await supabase
+      .from('stream_votes')
+      .upsert(voteData, { 
+        // Указываем колонки для проверки конфликта (уникальный ключ)
+        onConflict: 'stream_id, user_id', 
+        // Если вы хотите возвращать старые данные при конфликте
+        // ignoreDuplicates: false, 
+      })
+      .select() // Возвращаем вставленные/обновленные данные
+      .single(); // Ожидаем один результат
+
+    if (error) {
+      console.error('Supabase POST/upsert stream_votes error:', error);
+      // Проверяем, связана ли ошибка с внешним ключом (stream_id не существует)
+      if (error.code === '23503') { // Код ошибки PostgreSQL для foreign key violation
+           return NextResponse.json({ 
+               error: 'Запланированная трансляция не найдена', 
+               message: `Трансляция с ID ${streamId} не существует.`, 
+               success: false 
+           }, { status: 404 });
       }
-      
-      // Используем обновленную трансляцию
-      existingStream.votes = updatedStream.votes;
+      throw error; 
     }
-    
-    // Проверяем, не голосовал ли пользователь уже
-    const existingVote = existingStream.votes.find(vote => vote.voterId === voterId);
-    
-    if (existingVote) {
-      // Обновляем существующий голос
-      await db.collection('scheduled_streams').updateOne(
-        { 
-          _id: new ObjectId(streamId),
-          'votes.voterId': voterId
-        },
-        { 
-          $set: { 
-            'votes.$.preferredDate': preferredDate ? new Date(preferredDate) : null,
-            'votes.$.comment': comment || '',
-            'votes.$.updatedAt': new Date()
-          } 
-        }
-      );
-      
-      return NextResponse.json({
-        success: true,
-        message: 'Ваш голос успешно обновлен'
-      });
-    } else {
-      // Добавляем новый голос
-      const newVote = {
-        voterId,
-        voterName: voterName || 'Аноним',
-        preferredDate: preferredDate ? new Date(preferredDate) : null,
-        comment: comment || '',
-        createdAt: new Date(),
-        updatedAt: new Date()
-      };
-      
-      await db.collection('scheduled_streams').updateOne(
-        { _id: new ObjectId(streamId) },
-        { $push: { votes: newVote } }
-      );
-      
-      return NextResponse.json({
-        success: true,
-        message: 'Ваш голос успешно добавлен'
-      });
-    }
+
+    return NextResponse.json({
+      success: true,
+      message: 'Голос успешно добавлен или обновлен',
+      vote: upsertedVote,
+    });
+
   } catch (error) {
-    console.error('Ошибка при голосовании за трансляцию:', error);
+    console.error('Ошибка при добавлении/обновлении голоса (Supabase):', error);
+    const errorMessage = error.message || 'Произошла неизвестная ошибка.';
     return NextResponse.json({ 
       error: 'Ошибка сервера', 
-      message: error.message || 'Произошла неизвестная ошибка. Пожалуйста, попробуйте позже.',
+      message: errorMessage,
       success: false
     }, { status: 500 });
   }
@@ -156,63 +120,45 @@ export async function DELETE(request) {
     // Получаем параметры запроса
     const { searchParams } = new URL(request.url);
     const streamId = searchParams.get('streamId');
-    const voterId = searchParams.get('voterId');
+    const userId = searchParams.get('userId');
     
-    if (!streamId || !voterId) {
+    if (!streamId || !userId) {
       return NextResponse.json(
-        { error: 'Отсутствуют обязательные параметры', success: false },
+        { error: 'Отсутствуют обязательные параметры (streamId, userId)', success: false },
         { status: 400 }
       );
     }
     
-    // Подключаемся к базе данных
-    const { db } = await connectToDatabase();
-    
-    // Проверяем, существует ли трансляция
-    const existingStream = await db.collection('scheduled_streams').findOne({ 
-      _id: new ObjectId(streamId)
-    });
-    
-    if (!existingStream) {
-      return NextResponse.json(
-        { error: 'Трансляция не найдена', success: false },
-        { status: 404 }
-      );
+    // Запрос на удаление голоса из Supabase
+    const { error, count } = await supabase
+      .from('stream_votes')
+      .delete()
+      .match({ stream_id: streamId, user_id: userId }); // Условие для удаления конкретного голоса
+
+    if (error) {
+      console.error('Supabase DELETE stream_votes error:', error);
+      throw error;
     }
-    
-    // Проверяем, существует ли массив votes
-    if (!existingStream.votes || existingStream.votes.length === 0) {
-      return NextResponse.json({
-        success: true,
-        message: 'Голос не найден'
-      });
+
+    // Проверяем, была ли запись удалена
+    if (count === 0) {
+         return NextResponse.json(
+           { error: 'Голос не найден', message: 'Голос этого пользователя для данной трансляции не найден.', success: false },
+           { status: 404 }
+         );
     }
-    
-    // Проверяем, есть ли голос пользователя
-    const existingVote = existingStream.votes.find(vote => vote.voterId === voterId);
-    
-    if (!existingVote) {
-      return NextResponse.json({
-        success: true,
-        message: 'Голос не найден'
-      });
-    }
-    
-    // Удаляем голос пользователя
-    await db.collection('scheduled_streams').updateOne(
-      { _id: new ObjectId(streamId) },
-      { $pull: { votes: { voterId } } }
-    );
-    
+
     return NextResponse.json({
       success: true,
       message: 'Голос успешно удален'
     });
+
   } catch (error) {
-    console.error('Ошибка при удалении голоса:', error);
+    console.error('Ошибка при удалении голоса (Supabase):', error);
+    const errorMessage = error.message || 'Произошла неизвестная ошибка.';
     return NextResponse.json({ 
       error: 'Ошибка сервера', 
-      message: error.message || 'Произошла неизвестная ошибка. Пожалуйста, попробуйте позже.',
+      message: errorMessage,
       success: false
     }, { status: 500 });
   }
