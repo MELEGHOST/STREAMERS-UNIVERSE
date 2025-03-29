@@ -1,37 +1,7 @@
 import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { DataStorage } from '../../../utils/dataStorage';
-
-// Функция для экранирования HTML-тегов
-function escapeHtml(text) {
-  if (!text) return '';
-  return text
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&#039;");
-}
-
-// Функция для санитизации объекта (рекурсивно)
-function sanitizeObject(obj) {
-  if (typeof obj !== 'object' || obj === null) {
-    return typeof obj === 'string' ? escapeHtml(obj) : obj;
-  }
-  
-  if (Array.isArray(obj)) {
-    return obj.map(item => sanitizeObject(item));
-  }
-  
-  const sanitized = {};
-  for (const key in obj) {
-    if (Object.prototype.hasOwnProperty.call(obj, key)) {
-      sanitized[key] = sanitizeObject(obj[key]);
-    }
-  }
-  
-  return sanitized;
-}
+import { escapeHtml, sanitizeObject } from '@/utils/securityUtils';
 
 // Получаем токен доступа из cookie
 function getAccessTokenFromCookie() {
