@@ -325,8 +325,9 @@ function EditProfileContent() {
           </div>
         </form>
       )}
+      {/* Переносим комментарий внутрь div */}
+      {/* <Footer /> */}
     </div>
-    {/* <Footer /> */}
   );
 }
 

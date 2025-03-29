@@ -7,7 +7,7 @@ import { getUserData } from '@/lib/supabase/functions';
 import { checkSubscription } from '../utils/twitchAPI';
 import styles from './followers.module.css';
 import { DataStorage } from '../utils/dataStorage';
-import Header from '../components/Header';
+import Header from '../components/MenuHeader';
 
 export default function Followers() {
   const router = useRouter();
