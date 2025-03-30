@@ -1,10 +1,10 @@
 'use client';
 
-// Указываем, что страница должна быть динамической
-export const dynamic = 'force-dynamic';
-export const fetchCache = 'force-no-store';
-export const revalidate = 0;
-export const dynamicParams = true;
+// Удаляем конфигурационные экспорты, так как это клиентский компонент
+// export const dynamic = 'force-dynamic';
+// export const fetchCache = 'force-no-store';
+// export const revalidate = 0;
+// export const dynamicParams = true;
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { useSession } from 'next-auth/react';
