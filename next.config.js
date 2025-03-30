@@ -5,6 +5,17 @@ const nextConfig = {
   compiler: {
     styledComponents: true, // Включаем поддержку styled-components
   },
+  // Добавляем настройки экспериментальных функций
+  experimental: {
+    // Исключаем определенные страницы из статической генерации
+    appDir: true,
+    // Отключаем статическую генерацию для аутентификации
+    ppr: true,
+  },
+  // Добавляем настройки для статически генерируемых страниц
+  staticPageGenerationTimeout: 180, // 3 минуты
+  // Исключаем страницы из статической генерации
+  excludeDefaultMomentLocales: true,
   env: {
     // Явно указываем переменные окружения, которые должны быть доступны на клиенте и сервере
     NEXT_PUBLIC_TWITCH_CLIENT_ID: process.env.NEXT_PUBLIC_TWITCH_CLIENT_ID,
