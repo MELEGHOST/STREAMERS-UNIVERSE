@@ -105,6 +105,8 @@ function Profile() {
         credentials: 'include',
       });
 
+      console.log(`Profile: Получен статус ответа от /api/twitch/user: ${response.status}`);
+
       if (response.status === 401) {
           console.log('Profile: Не аутентифицирован (Twitch), перенаправление на /auth');
           router.push('/auth?reason=unauthenticated');
@@ -131,6 +133,7 @@ function Profile() {
       }
 
     } catch (apiError) {
+      console.error('Profile: Ошибка в блоке catch fetchTwitchUserData:', apiError);
       console.error('Profile: Ошибка при запросе Twitch к API или обработке:', apiError);
       setGlobalError('Не удалось загрузить основные данные профиля Twitch. Попробуйте обновить страницу.');
       setTwitchUserData(null);
