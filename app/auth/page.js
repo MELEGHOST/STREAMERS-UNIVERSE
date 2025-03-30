@@ -6,7 +6,7 @@
 // export const revalidate = 0;
 // export const dynamicParams = true;
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, Suspense } from 'react';
 import { useSession } from 'next-auth/react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Cookies from 'js-cookie';
@@ -77,7 +77,31 @@ function TwitchErrorInfo({ errorType, errorDetails }) {
   );
 }
 
-export default function AuthPage() {
+// Компонент-заглушка для Suspense
+function AuthLoadingFallback() {
+  return (
+    <div className={styles.container}>
+      <div className={styles.authBox}>
+        <h1>Загрузка...</h1>
+        <div className={styles.loader}>
+          <div className={styles.spinner}></div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+export default function AuthPageWrapper() {
+  // Оборачиваем основной компонент в Suspense
+  return (
+    <Suspense fallback={<AuthLoadingFallback />}>
+      <AuthPage />
+    </Suspense>
+  );
+}
+
+// Переименовываем основной компонент, чтобы использовать обертку
+function AuthPage() {
   const session = useSession();
   // Добавляем безопасную деструктуризацию
   const { data, status } = session || { data: null, status: 'loading' };
