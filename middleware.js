@@ -127,12 +127,14 @@ export function middleware(request) {
     '/auth', 
     '/login', 
     '/menu', 
-    '/', // Главная страница?
-    // API для авторизации
-    '/api/auth/callback', 
-    '/api/twitch/login', 
-    '/api/twitch/callback',
-    '/api/twitch/token',
+    '/', // Главная страница
+    // Добавляем новый callback Supabase
+    '/auth/callback', 
+    // Удаляем старые API Twitch
+    // '/api/auth/callback', 
+    // '/api/twitch/login', 
+    // '/api/twitch/callback',
+    // '/api/twitch/token',
     '/api/db-check' // Пример публичного API
   ];
 

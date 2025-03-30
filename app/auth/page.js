@@ -7,10 +7,8 @@
 // export const dynamicParams = true;
 
 import React, { useState, useEffect, useCallback, Suspense } from 'react';
-import { useSession } from 'next-auth/react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import Cookies from 'js-cookie';
-import { DataStorage } from '../utils/dataStorage';
+import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
 import styles from './auth.module.css';
 
 // Компонент для отображения диагностической информации Twitch
@@ -102,13 +100,11 @@ export default function AuthPageWrapper() {
 
 // Переименовываем основной компонент, чтобы использовать обертку
 function AuthPage() {
-  const session = useSession();
-  // Добавляем безопасную деструктуризацию
-  const { data, status } = session || { data: null, status: 'loading' };
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const router = useRouter();
   const searchParams = useSearchParams();
+  const supabase = createClientComponentClient();
   
   // Получаем параметры из URL для отображения информации об ошибке
   const errorType = searchParams.get('error');
@@ -125,101 +121,66 @@ function AuthPage() {
     status: errorStatus
   };
 
-  // Функция для обработки успешной авторизации
-  const handleSuccessfulAuth = useCallback(async () => {
-    try {
-      setLoading(true);
-      
-      // Сохраняем токены в хранилище
-      if (data?.accessToken) {
-        Cookies.set('twitch_access_token', data.accessToken, { expires: 7 });
-        localStorage.setItem('cookie_twitch_access_token', data.accessToken);
-        await DataStorage.saveData('auth_token', data.accessToken);
-      }
-      
-      if (data?.refreshToken) {
-        Cookies.set('twitch_refresh_token', data.refreshToken, { expires: 30 });
-        localStorage.setItem('twitch_refresh_token', data.refreshToken);
-        await DataStorage.saveData('refresh_token', data.refreshToken);
-      }
-      
-      if (data?.expiresAt) {
-        const expiresAt = data.expiresAt * 1000; // Преобразуем в миллисекунды
-        localStorage.setItem('twitch_token_expires_at', expiresAt.toString());
-      }
-      
-      // Сохраняем данные пользователя
-      if (data?.user) {
-        localStorage.setItem('twitch_user', JSON.stringify(data.user));
-        await DataStorage.saveData('user', data.user);
-      }
-      
-      // Проверяем, есть ли сохраненный URL для перенаправления
-      const redirectUrl = localStorage.getItem('auth_redirect');
-      if (redirectUrl) {
-        localStorage.removeItem('auth_redirect');
-        router.push(redirectUrl);
-      } else {
-        router.push('/profile');
-      }
-    } catch (error) {
-      console.error('Ошибка при обработке авторизации:', error);
-      setError('Произошла ошибка при обработке авторизации. Пожалуйста, попробуйте снова.');
-    } finally {
-      setLoading(false);
-    }
-  }, [router, data, setLoading, setError]);
-
-  // Обработка перенаправления после успешной авторизации
+  // Обработка отображения ошибок из URL
   useEffect(() => {
-    if (status === 'authenticated' && data) {
-      handleSuccessfulAuth();
+    // Если есть ошибка в URL, устанавливаем её
+    if (errorType && errorType !== 'auth_code_exchange_failed') {
+      // Отображаем старые ошибки, если они переданы
+      setError(`Ошибка авторизации: ${errorType}`); 
+    } else if (errorType === 'auth_code_exchange_failed') {
+        setError('Не удалось обменять код авторизации на сессию. Попробуйте снова.');
     }
     
-    // Если есть ошибка в URL, устанавливаем её
-    if (errorType) {
-      setError(`Ошибка авторизации: ${errorType}`);
-    }
-  }, [data, status, errorType, handleSuccessfulAuth]);
+    // Проверяем, не пришли ли мы сюда после успешной аутентификации Supabase
+    // Обычно Supabase редиректит на /menu (или что указано в redirectTo),
+    // поэтому эта страница /auth не должна отображаться для авторизованного пользователя.
+    // Но можно добавить проверку на сессию Supabase для надежности.
+    const checkSession = async () => {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session) {
+            // Если сессия есть, а мы на /auth, перенаправляем
+            console.log('AuthPage: Обнаружена активная сессия Supabase, редирект на /menu');
+            router.push('/menu');
+        }
+    };
+    checkSession();
 
-  // Функция для входа через Twitch
+  }, [errorType, searchParams, router, supabase]);
+
+  // Функция для входа через Twitch с использованием Supabase
   const handleTwitchLogin = async () => {
     try {
       setLoading(true);
       setError(null);
       
-      // Сохраняем текущий URL для возврата после авторизации
-      const currentPath = window.location.pathname;
-      if (currentPath !== '/auth') {
-        localStorage.setItem('auth_redirect', currentPath);
+      // Инициируем вход через Twitch с помощью Supabase
+      const { error: signInError } = await supabase.auth.signInWithOAuth({
+        provider: 'twitch',
+        options: {
+          // Указываем URL, куда Supabase должен вернуть пользователя ПОСЛЕ
+          // своей внутренней обработки callback'а Twitch.
+          // Этот URL должен вести на наш новый обработчик /auth/callback
+          redirectTo: `${window.location.origin}/auth/callback`,
+          // Можно передать дополнительные параметры, если нужно
+          // queryParams: { access_type: 'offline', prompt: 'consent' }
+        }
+      });
+
+      if (signInError) {
+        console.error('Ошибка при инициации входа через Supabase OAuth:', signInError);
+        setError(signInError.message || 'Не удалось начать процесс входа через Twitch.');
+        setLoading(false);
       }
-      
-      // Прямое перенаправление на API endpoint вместо fetch запроса
-      // Это позволяет избежать проблем с CORS
-      window.location.href = '/api/twitch/login';
-    } catch (error) {
-      console.error('Ошибка при входе через Twitch:', error);
-      setError('Произошла ошибка при входе через Twitch. Пожалуйста, попробуйте снова.');
+      // Если ошибки нет, Supabase автоматически перенаправит пользователя на страницу авторизации Twitch.
+      // После подтверждения Twitch перенаправит на callback URL Supabase,
+      // а Supabase перенаправит на наш redirectTo (/auth/callback).
+
+    } catch (catchError) {
+      console.error('Критическая ошибка при входе через Twitch:', catchError);
+      setError('Произошла непредвиденная ошибка. Пожалуйста, попробуйте снова.');
       setLoading(false);
     }
   };
-
-  // Если пользователь уже авторизован, показываем сообщение о перенаправлении
-  if (status === 'authenticated') {
-    return (
-      <div className={styles.container}>
-        <div className={styles.authBox}>
-          <h1>Вы уже авторизованы</h1>
-          <p>Перенаправляем вас...</p>
-          {loading && (
-            <div className={styles.loader}>
-              <div className={styles.spinner}></div>
-            </div>
-          )}
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div className={styles.container}>
@@ -235,9 +196,9 @@ function AuthPage() {
         <button 
           className={styles.twitchButton}
           onClick={handleTwitchLogin}
-          disabled={loading || status === 'loading'}
+          disabled={loading}
         >
-          {loading || status === 'loading' ? (
+          {loading ? (
             <div className={styles.buttonLoader}>
               <div className={styles.spinner}></div>
               <span>Загрузка...</span>
