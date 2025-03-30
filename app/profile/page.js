@@ -548,6 +548,7 @@ function Profile() {
                  <div className={styles.profileStat}>
                   <span className={styles.statIcon}>👥</span>
                   <div className={styles.userStats}>
+                    {/* Комментируем отображение подписчиков, пока нет загрузки данных
                     <div className={styles.statItem}>
                       <span className={styles.statLabel}>Подписчики Twitch</span>
                       {loadingState.followers ? (
@@ -561,6 +562,7 @@ function Profile() {
                         <span className={styles.statValue}>{totalFollowers.toLocaleString('ru-RU') ?? '0'}</span>
                       )}
                     </div>
+                    */}
                   </div>
                  </div>
                )}
