@@ -64,9 +64,6 @@ function Profile() {
 
   const [globalError, setGlobalError] = useState(null);
   const [specificErrors, setSpecificErrors] = useState({});
-  const [loadingState] = useState({ followers: false });
-  const [errorMessages] = useState({ followers: null });
-  const [totalFollowers] = useState(0);
 
   const [showAchievements, setShowAchievements] = useState(false);
   const [showReviews, setShowReviews] = useState(false);
@@ -109,8 +106,8 @@ function Profile() {
       });
 
       if (response.status === 401) {
-          console.log('Profile: Не аутентифицирован (Twitch), перенаправление на /login');
-          router.push('/login?reason=unauthenticated');
+          console.log('Profile: Не аутентифицирован (Twitch), перенаправление на /auth');
+          router.push('/auth?reason=unauthenticated');
           return null;
       }
       
