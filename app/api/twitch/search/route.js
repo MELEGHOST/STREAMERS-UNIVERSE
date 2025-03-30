@@ -1,8 +1,7 @@
 import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { createServerClient } from '@supabase/ssr'; // Используем SSR клиент
-import { sanitizeObject, sanitizeString } from '@/utils/securityUtils';
-import supabase from '@/lib/supabaseClient'; // TODO: Проверить и заменить, если нужно
+import { sanitizeObject, escapeHtml } from '@/utils/securityUtils';
 
 /**
  * Проверяет, зарегистрирован ли пользователь в Streamers Universe
@@ -43,34 +42,6 @@ async function getUserSocialLinks(supabaseClient, userId) {
   } catch (error) {
     console.error('API search: Критическая ошибка при получении social_links:', error);
     return null;
-  }
-}
-
-// Функция для проверки, подписан ли текущий пользователь на найденного пользователя
-async function checkIfUserIsFollowed(currentUserId, targetUserId, accessToken) {
-  try {
-    if (!currentUserId || !targetUserId) return false;
-    
-    const followResponse = await fetch(
-      `https://api.twitch.tv/helix/users/follows?from_id=${currentUserId}&to_id=${targetUserId}`, 
-      {
-        headers: {
-          'Client-ID': process.env.TWITCH_CLIENT_ID,
-          'Authorization': `Bearer ${accessToken}`,
-        },
-      }
-    );
-    
-    if (!followResponse.ok) {
-      console.error('Error checking follow status:', followResponse.status);
-      return false;
-    }
-    
-    const followData = await followResponse.json();
-    return followData.data && followData.data.length > 0;
-  } catch (error) {
-    console.error('Error checking if user is followed:', error);
-    return false;
   }
 }
 
@@ -154,7 +125,8 @@ export async function GET(request) {
 
     // 2. Получаем поисковый запрос и Client ID
     const { searchParams } = new URL(request.url);
-    const query = sanitizeString(searchParams.get('query'));
+    const rawQuery = searchParams.get('query');
+    const query = escapeHtml(rawQuery);
     if (!query) {
       return NextResponse.json({ error: 'Требуется поисковый запрос (query)' }, { status: 400 });
     }
@@ -164,7 +136,7 @@ export async function GET(request) {
       return NextResponse.json({ error: 'Ошибка конфигурации сервера' }, { status: 500 });
     }
 
-    console.log(`API search: Поиск по запросу "${query}"`);
+    console.log(`API search: Поиск по запросу \"${query}\" (raw: \"${rawQuery}\")`);
 
     // 3. Ищем пользователя на Twitch
     const searchResponse = await fetch(`https://api.twitch.tv/helix/search/channels?query=${encodeURIComponent(query)}&first=1`, {

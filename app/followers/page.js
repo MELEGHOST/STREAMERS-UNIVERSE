@@ -15,7 +15,6 @@ export default function Followers() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [totalFollowers, setTotalFollowers] = useState(0);
-  const [profileData, setProfileData] = useState(null);
   const [nextCursor, setNextCursor] = useState(null);
   const [loadingMore, setLoadingMore] = useState(false);
 
@@ -26,43 +25,6 @@ export default function Followers() {
     ), 
   []);
 
-  useEffect(() => {
-    const loadInitialData = async () => {
-      setLoading(true);
-      setError(null);
-      try {
-        const { data: { session }, error: sessionError } = await supabase.auth.getSession();
-
-        if (sessionError || !session) {
-          console.error('FollowersPage: Пользователь не авторизован, редирект на /auth');
-          router.push('/auth?reason=unauthenticated');
-          return;
-        }
-        console.log('FollowersPage: Сессия Supabase найдена.');
-        
-        const twitchUserId = session.user?.user_metadata?.provider_id;
-        if (!twitchUserId) {
-            console.error('FollowersPage: Не удалось получить provider_id из сессии Supabase');
-            setError('Не удалось получить ваш Twitch ID из сессии. Попробуйте перезайти.');
-            setLoading(false);
-            return;
-        }
-        setSessionUserId(twitchUserId);
-        console.log('FollowersPage: Twitch ID пользователя:', twitchUserId);
-
-        await loadFollowers(twitchUserId, null);
-
-      } catch (error) {
-        console.error('FollowersPage: Ошибка при загрузке начальных данных:', error);
-        setError('Не удалось загрузить данные. Пожалуйста, попробуйте позже.');
-      } finally {
-         setLoading(false);
-      }
-    };
-    
-    loadInitialData();
-  }, [router, supabase]);
-  
   const loadFollowers = useCallback(async (userId, cursor) => {
     if (!userId) return;
     console.log(`FollowersPage: Загрузка фолловеров для ${userId}, курсор: ${cursor}`);
@@ -138,7 +100,44 @@ export default function Followers() {
     } finally {
         if (cursor) { setLoadingMore(false); } else { setLoading(false); }
     }
-  }, [supabase]);
+  }, []);
+
+  useEffect(() => {
+    const loadInitialData = async () => {
+      setLoading(true);
+      setError(null);
+      try {
+        const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+
+        if (sessionError || !session) {
+          console.error('FollowersPage: Пользователь не авторизован, редирект на /auth');
+          router.push('/auth?reason=unauthenticated');
+          return;
+        }
+        console.log('FollowersPage: Сессия Supabase найдена.');
+        
+        const twitchUserId = session.user?.user_metadata?.provider_id;
+        if (!twitchUserId) {
+            console.error('FollowersPage: Не удалось получить provider_id из сессии Supabase');
+            setError('Не удалось получить ваш Twitch ID из сессии. Попробуйте перезайти.');
+            setLoading(false);
+            return;
+        }
+        setSessionUserId(twitchUserId);
+        console.log('FollowersPage: Twitch ID пользователя:', twitchUserId);
+
+        await loadFollowers(twitchUserId, null);
+
+      } catch (error) {
+        console.error('FollowersPage: Ошибка при загрузке начальных данных:', error);
+        setError('Не удалось загрузить данные. Пожалуйста, попробуйте позже.');
+      } finally {
+         setLoading(false);
+      }
+    };
+    
+    loadInitialData();
+  }, [router, supabase, loadFollowers]);
   
   const saveRoles = async (newRoles) => {
     try {
@@ -205,7 +204,7 @@ export default function Followers() {
         <div className={styles.followersContainer}>
           <div className={styles.infoBar}>
             <div className={styles.statsInfo}>
-              <p>Отображаются фолловеры Twitch с канала: <strong>{profileData?.displayName || profileData?.login || sessionUserId}</strong></p>
+              <p>Отображаются фолловеры Twitch с канала: <strong>{sessionUserId}</strong></p>
             </div>
             <div className={styles.filterOptions}>
               <select 

@@ -2,8 +2,7 @@ import { NextResponse } from 'next/server';
 // import { cookies } from 'next/headers'; // Больше не используем напрямую
 import { createServerClient } from '@supabase/ssr'; // Используем SSR клиент
 import { cookies } from 'next/headers'; // Нужен для createServerClient
-import supabase from '@/lib/supabaseClient'; // Этот импорт все еще здесь? Нужно проверить, откуда он и нужен ли.
-                                        // Если getRegisteredUsers использует его, нужно передавать SSR-клиент.
+// import supabase from '@/lib/supabaseClient'; // Удаляем неиспользуемый импорт
 
 // Вспомогательная функция для получения деталей пользователей (оставляем как есть, но будем передавать токен)
 async function fetchUsersDetails(userIds, accessToken, clientId) {

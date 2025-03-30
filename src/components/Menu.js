@@ -1,6 +1,5 @@
 import React from 'react';
 import { useRouter } from 'next/router';
-import { useAuth } from '../context/AuthContext';
 
 const Menu = () => {
   const router = useRouter();

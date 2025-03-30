@@ -3,7 +3,7 @@ import { cookies } from 'next/headers';
 import axios from 'axios';
 import { createServerClient } from '@supabase/ssr';
 
-export async function GET(request) {
+export async function GET(/* request */) {
   const cookieStore = cookies();
   const supabaseAuth = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL,
