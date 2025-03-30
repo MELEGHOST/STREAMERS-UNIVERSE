@@ -1,198 +1,133 @@
 import { NextResponse } from 'next/server';
-import { cookies } from 'next/headers';
+// import { cookies } from 'next/headers'; // Не используется напрямую
+import { createServerClient } from '@supabase/ssr'; // Используем SSR клиент
+import { cookies } from 'next/headers'; // Нужен для createServerClient
 import { DataStorage } from '../../../utils/dataStorage';
 import { sanitizeObject } from '@/utils/securityUtils';
 
-// Получаем токен доступа из cookie
-function getAccessTokenFromCookie() {
+// Утилита для безопасного запроса к Twitch API
+async function safeTwitchRequest(url, accessToken, clientId) {
   try {
-    const cookieStore = cookies();
-    const token = cookieStore.get('twitch_access_token')?.value;
-    return token || null;
+    const response = await fetch(url, {
+      headers: {
+        'Client-ID': clientId,
+        'Authorization': `Bearer ${accessToken}`,
+      },
+    });
+    if (!response.ok) {
+      console.warn(`API user-stats: Ошибка Twitch API (${url}): ${response.status}`);
+      return { ok: false, status: response.status, data: null };
+    }
+    const data = await response.json();
+    return { ok: true, status: response.status, data };
   } catch (error) {
-    console.error('Ошибка при получении токена доступа из cookie:', error);
-    return null;
+    console.error(`API user-stats: Ошибка сети при запросе (${url}):`, error);
+    return { ok: false, status: 500, data: null }; // Возвращаем 500 при ошибке сети
   }
 }
 
 export async function GET(request) {
-  try {
-    const searchParams = request.nextUrl.searchParams;
-    const userId = searchParams.get('userId');
-    
-    if (!userId) {
-      return NextResponse.json(
-        { error: 'Не указан ID пользователя' },
-        { status: 400 }
-      );
-    }
-    
-    // Получаем токен доступа из cookie
-    let accessToken = getAccessTokenFromCookie();
-    
-    // Если токен не найден, возвращаем ошибку
-    if (!accessToken) {
-      return NextResponse.json(
-        { error: 'Не авторизован', message: 'Токен доступа не найден. Пожалуйста, войдите снова.' },
-        { status: 401 }
-      );
-    }
-    
-    // Заголовки для запросов к Twitch API
-    const headers = {
-      'Authorization': `Bearer ${accessToken}`,
-      'Client-Id': process.env.NEXT_PUBLIC_TWITCH_CLIENT_ID
-    };
-    
-    // Получаем данные пользователя
-    const userResponse = await fetch(
-      `https://api.twitch.tv/helix/users?id=${userId}`,
-      { headers }
-    );
-    
-    if (!userResponse.ok) {
-      // Если получили ошибку 401, возможно, токен устарел
-      if (userResponse.status === 401) {
-        return NextResponse.json(
-          { error: 'Срок действия токена истек', message: 'Пожалуйста, войдите снова.' },
-          { status: 401 }
-        );
-      }
-      
-      return NextResponse.json(
-        { error: 'Не удалось получить данные пользователя' },
-        { status: userResponse.status }
-      );
-    }
-    
-    const userData = await userResponse.json();
-    
-    if (!userData.data || userData.data.length === 0) {
-      return NextResponse.json(
-        { error: 'Пользователь не найден' },
-        { status: 404 }
-      );
-    }
-    
-    const user = userData.data[0];
-    
-    // Получаем фолловеров
-    let followers = { total: 0, recentFollowers: [] };
-    try {
-      const followersResponse = await fetch(
-        `https://api.twitch.tv/helix/channels/followers?broadcaster_id=${userId}&first=5`,
-        { headers }
-      );
-      
-      if (followersResponse.ok) {
-        const followersData = await followersResponse.json();
-        followers = {
-          total: followersData.total || 0,
-          recentFollowers: followersData.data || []
-        };
-      }
-    } catch (error) {
-      console.error('Ошибка при получении фолловеров:', error);
-    }
-    
-    // Получаем подписки пользователя
-    let followings = { total: 0, recentFollowings: [] };
-    try {
-      const followingsResponse = await fetch(
-        `https://api.twitch.tv/helix/channels/followed?user_id=${userId}&first=5`,
-        { headers }
-      );
-      
-      if (followingsResponse.ok) {
-        const followingsData = await followingsResponse.json();
-        followings = {
-          total: followingsData.total || 0,
-          recentFollowings: followingsData.data || []
-        };
-      }
-    } catch (error) {
-      console.error('Ошибка при получении фолловингов:', error);
-    }
-    
-    // Проверяем, находится ли канал в эфире
-    let stream = { isLive: false, currentStream: null };
-    try {
-      const streamResponse = await fetch(
-        `https://api.twitch.tv/helix/streams?user_id=${userId}`,
-        { headers }
-      );
-      
-      if (streamResponse.ok) {
-        const streamData = await streamResponse.json();
-        if (streamData.data && streamData.data.length > 0) {
-          stream = {
-            isLive: true,
-            currentStream: streamData.data[0]
-          };
-        }
-      }
-    } catch (error) {
-      console.error('Ошибка при проверке состояния стрима:', error);
-    }
-    
-    // Получаем информацию о канале
-    let channel = { hasSubscriptionProgram: false, subscribers: 0 };
-    try {
-      const channelResponse = await fetch(
-        `https://api.twitch.tv/helix/channels?broadcaster_id=${userId}`,
-        { headers }
-      );
-      
-      if (channelResponse.ok) {
-        const channelData = await channelResponse.json();
-        if (channelData.data && channelData.data.length > 0) {
-          // Проверяем, есть ли у канала программа подписки
-          const hasSubProgram = 
-            user.broadcaster_type === 'partner' || 
-            user.broadcaster_type === 'affiliate';
-          
-          channel = {
-            hasSubscriptionProgram: hasSubProgram,
-            subscribers: hasSubProgram ? 15 : 0 // Для демонстрации
-          };
-        }
-      }
-    } catch (error) {
-      console.error('Ошибка при получении информации о канале:', error);
-    }
-    
-    // Составляем полный ответ
-    const response = {
-      user: {
-        id: user.id,
-        login: user.login,
-        displayName: user.display_name,
-        viewCount: user.view_count,
-        createdAt: user.created_at,
-        broadcasterType: user.broadcaster_type
+  const cookieStore = cookies();
+  const supabaseAuth = createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
+    {
+      cookies: {
+        get(name) { return cookieStore.get(name)?.value },
+        set(name, value, options) { cookieStore.set({ name, value, ...options }) },
+        remove(name, options) { cookieStore.set({ name, value: '', ...options }) },
       },
+    }
+  );
+
+  try {
+    // 1. Получаем сессию и токен
+    const { data: { session }, error: sessionError } = await supabaseAuth.auth.getSession();
+    if (sessionError || !session) {
+      return NextResponse.json({ error: 'Необходима аутентификация' }, { status: 401 });
+    }
+    const accessToken = session.provider_token;
+    if (!accessToken) {
+        return NextResponse.json({ error: 'Не удалось получить токен доступа Twitch из сессии' }, { status: 401 });
+    }
+
+    // 2. Получаем ID пользователя из URL и проверяем Client ID
+    const url = new URL(request.url);
+    const userId = url.searchParams.get('userId');
+    if (!userId) {
+      return NextResponse.json({ error: 'Требуется ID пользователя (userId)' }, { status: 400 });
+    }
+    const TWITCH_CLIENT_ID = process.env.NEXT_PUBLIC_TWITCH_CLIENT_ID;
+    if (!TWITCH_CLIENT_ID) {
+      console.error('API user-stats: TWITCH_CLIENT_ID отсутствует');
+      return NextResponse.json({ error: 'Ошибка конфигурации сервера' }, { status: 500 });
+    }
+
+    console.log(`API user-stats: Запрос статистики для ${userId}`);
+
+    // 3. Выполняем запросы к Twitch API параллельно
+    const [userResult, followersResult, followingsResult, streamResult] = await Promise.all([
+      safeTwitchRequest(`https://api.twitch.tv/helix/users?id=${userId}`, accessToken, TWITCH_CLIENT_ID),
+      safeTwitchRequest(`https://api.twitch.tv/helix/channels/followers?broadcaster_id=${userId}&first=5`, accessToken, TWITCH_CLIENT_ID), // Используем /channels/followers
+      safeTwitchRequest(`https://api.twitch.tv/helix/channels/followed?user_id=${userId}&first=5`, accessToken, TWITCH_CLIENT_ID), // /channels/followed для подписок пользователя
+      safeTwitchRequest(`https://api.twitch.tv/helix/streams?user_id=${userId}`, accessToken, TWITCH_CLIENT_ID)
+    ]);
+
+    // 4. Обрабатываем результаты
+    // Пользователь
+    if (!userResult.ok || !userResult.data?.data || userResult.data.data.length === 0) {
+        // Если пользователя не нашли, возвращаем 404
+        return NextResponse.json({ error: 'Пользователь Twitch не найден' }, { status: 404 });
+    }
+    const user = userResult.data.data[0];
+
+    // Фолловеры
+    const followers = {
+        total: followersResult.ok ? (followersResult.data?.total || 0) : 0,
+        recentFollowers: followersResult.ok ? (followersResult.data?.data || []) : []
+    };
+
+    // Фолловинги (подписки пользователя)
+    const followings = {
+        total: followingsResult.ok ? (followingsResult.data?.total || 0) : 0,
+        recentFollowings: followingsResult.ok ? (followingsResult.data?.data || []) : []
+    };
+
+    // Стрим
+    const stream = {
+        isLive: streamResult.ok && streamResult.data?.data?.length > 0,
+        currentStream: streamResult.ok && streamResult.data?.data?.length > 0 ? streamResult.data.data[0] : null
+    };
+
+    // 5. Формируем ответ
+    const responseData = {
+      id: user.id,
+      login: user.login,
+      display_name: user.display_name,
+      profile_image_url: user.profile_image_url,
+      description: user.description,
+      view_count: user.view_count,
+      created_at: user.created_at,
+      broadcaster_type: user.broadcaster_type,
       followers,
       followings,
       stream,
-      channel
     };
-    
+
     // Сохраняем в кэш для быстрого доступа в будущем
     try {
       await DataStorage.saveData('user_stats', {
-        ...response,
+        ...responseData,
         timestamp: Date.now()
       });
     } catch (e) {
       console.warn('Не удалось сохранить статистику в кэш:', e);
     }
-    
-    return NextResponse.json(sanitizeObject(response));
-  } catch (e) {
-    console.error('Ошибка при получении статистики пользователя:', e);
-    return NextResponse.json(
-      { error: 'Внутренняя ошибка сервера' },
-      { status: 500 }
-    );
+
+    return NextResponse.json(sanitizeObject(responseData));
+
+  } catch (error) {
+    console.error('API user-stats: Внутренняя ошибка сервера:', error);
+    return NextResponse.json({ error: 'Внутренняя ошибка сервера' }, { status: 500 });
   }
 } 

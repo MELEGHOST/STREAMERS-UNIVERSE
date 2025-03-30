@@ -79,36 +79,6 @@ export function AuthProvider({ children }) {
     }
   }, [createAndSetJwtToken]);
   
-  // Функция для выхода пользователя
-  const logout = useCallback(() => {
-    try {
-      // Удаляем куки
-      Cookies.remove('auth_token', { path: '/' });
-      Cookies.remove('twitch_access_token', { path: '/' });
-      Cookies.remove('twitch_refresh_token', { path: '/' });
-      Cookies.remove('twitch_user', { path: '/' });
-      Cookies.remove('twitch_user_data', { path: '/' });
-      Cookies.remove('twitch_state', { path: '/' });
-      
-      // Удаляем данные из localStorage
-      localStorage.removeItem('cookie_twitch_access_token');
-      localStorage.removeItem('cookie_twitch_refresh_token');
-      localStorage.removeItem('cookie_twitch_user');
-      localStorage.removeItem('is_authenticated');
-      
-      // Обновляем состояние
-      setIsAuthenticated(false);
-      setUserId(null);
-      setUserLogin(null);
-      setUserAvatar(null);
-      
-      return true;
-    } catch (error) {
-      console.error('Ошибка при выходе:', error);
-      return false;
-    }
-  }, []);
-  
   // Проверяем авторизацию при загрузке
   useEffect(() => {
     const initializeAuth = async () => {
@@ -279,10 +249,9 @@ export function AuthProvider({ children }) {
     userAvatar,
     isInitialized,
     login,
-    logout,
     setUserLogin,
     setUserAvatar
-  }), [isAuthenticated, userId, userLogin, userAvatar, isInitialized, login, logout, setUserLogin, setUserAvatar]);
+  }), [isAuthenticated, userId, userLogin, userAvatar, isInitialized, login, setUserLogin, setUserAvatar]);
   
   return (
     <AuthContext.Provider value={contextValue}>

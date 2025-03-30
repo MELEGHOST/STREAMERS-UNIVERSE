@@ -1,87 +1,119 @@
 import { NextResponse } from 'next/server';
-import { cookies } from 'next/headers';
+// import { cookies } from 'next/headers'; // Не используется напрямую
+import { createServerClient } from '@supabase/ssr'; // Используем SSR клиент
+import { cookies } from 'next/headers'; // Нужен для createServerClient
 
 export async function GET() {
+  const cookieStore = cookies();
+  const supabaseAuth = createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
+    {
+      cookies: {
+        get(name) { return cookieStore.get(name)?.value },
+        set(name, value, options) { cookieStore.set({ name, value, ...options }) },
+        remove(name, options) { cookieStore.set({ name, value: '', ...options }) },
+      },
+    }
+  );
+
   try {
-    // Получаем токен доступа из cookies
-    const cookieStore = cookies();
-    const accessTokenCookie = cookieStore.get('twitch_token');
-    
-    if (!accessTokenCookie) {
-      // Если токена нет, пользователь не аутентифицирован
-      // Можно вернуть ошибку или пустой объект, в зависимости от логики приложения
-      // В данном случае, страница профиля требует аутентификации
+    // 1. Проверяем сессию и получаем токен Twitch
+    const { data: { session }, error: sessionError } = await supabaseAuth.auth.getSession();
+
+    if (sessionError || !session) {
+      console.error('API user: Ошибка сессии или сессия отсутствует', sessionError);
       return NextResponse.json({ error: 'Необходима аутентификация' }, { status: 401 });
     }
-    
-    const accessToken = accessTokenCookie.value;
-    
-    // Получаем данные пользователя из Twitch API по токену (без ID)
-    const twitchResponse = await fetch(`https://api.twitch.tv/helix/users`, { // Изменили URL
+
+    const accessToken = session.provider_token;
+    if (!accessToken) {
+      console.error('API user: Отсутствует provider_token в сессии Supabase');
+      // Статус 401, т.к. токена нет, хотя сессия есть - возможно, проблема с OAuth flow
+      return NextResponse.json({ error: 'Не удалось получить токен доступа Twitch из сессии' }, { status: 401 }); 
+    }
+
+    const TWITCH_CLIENT_ID = process.env.NEXT_PUBLIC_TWITCH_CLIENT_ID;
+    if (!TWITCH_CLIENT_ID) {
+        console.error('API user: TWITCH_CLIENT_ID отсутствует');
+        return NextResponse.json({ error: 'Ошибка конфигурации сервера' }, { status: 500 });
+    }
+
+    // 2. Получаем данные пользователя из Twitch API (/helix/users)
+    const twitchResponse = await fetch('https://api.twitch.tv/helix/users', {
       headers: {
-        'Client-ID': process.env.TWITCH_CLIENT_ID,
+        'Client-ID': TWITCH_CLIENT_ID,
         'Authorization': `Bearer ${accessToken}`
       }
     });
     
     if (!twitchResponse.ok) {
-      // Обработка ошибок Twitch API (например, невалидный токен)
-      if (twitchResponse.status === 401) {
-         // Попытка обновить токен может быть реализована здесь или на клиенте
-        return NextResponse.json({ error: 'Токен доступа недействителен или истек' }, { status: 401 });
-      }
-      console.error('Ошибка Twitch API при получении пользователя:', twitchResponse.status, await twitchResponse.text());
-      return NextResponse.json({ error: 'Ошибка при получении данных пользователя от Twitch' }, { status: twitchResponse.status });
+      const errorText = await twitchResponse.text();
+      console.error(`API user: Ошибка Twitch API /users ${twitchResponse.status}`, errorText);
+      // Возвращаем статус ошибки от Twitch
+      return NextResponse.json({ error: 'Ошибка при получении данных пользователя от Twitch', details: errorText }, { status: twitchResponse.status });
     }
     
     const twitchData = await twitchResponse.json();
     
     if (!twitchData.data || twitchData.data.length === 0) {
-       // Это не должно произойти при валидном токене, но на всякий случай проверяем
-      console.error('Не удалось получить данные пользователя от Twitch, хотя ответ был 200 OK');
+      console.error('API user: Не удалось получить данные пользователя от Twitch (пустой массив data)');
       return NextResponse.json({ error: 'Не удалось найти данные пользователя по токену' }, { status: 404 });
     }
     
     const userData = twitchData.data[0];
-    const userId = userData.id; // Получаем ID пользователя из ответа
+    const userId = userData.id;
     
-    // Получаем количество фолловеров пользователя
-    const followersResponse = await fetch(`https://api.twitch.tv/helix/users/follows?to_id=${userId}`, {
-      headers: {
-        'Client-ID': process.env.TWITCH_CLIENT_ID,
-        'Authorization': `Bearer ${accessToken}`
-      }
-    });
-    
-    // Инициализируем счетчики на случай ошибки
-    userData.follower_count = 0;
-    userData.following_count = 0;
+    // 3. Получаем количество фолловеров пользователя (/helix/channels/followers)
+    userData.follower_count = 0; // Инициализируем
+    try {
+        const followersResponse = await fetch(`https://api.twitch.tv/helix/channels/followers?broadcaster_id=${userId}`, { // Используем /channels/followers
+          headers: {
+            'Client-ID': TWITCH_CLIENT_ID,
+            'Authorization': `Bearer ${accessToken}`
+          }
+        });
 
-    if (followersResponse.ok) {
-      const followersData = await followersResponse.json();
-      userData.follower_count = followersData.total || 0;
-    } else {
-       console.warn(`Не удалось получить количество подписчиков для ${userId}: ${followersResponse.status}`);
+        if (followersResponse.ok) {
+          const followersData = await followersResponse.json();
+          userData.follower_count = followersData.total || 0;
+        } else {
+          console.warn(`API user: Не удалось получить количество подписчиков для ${userId}: ${followersResponse.status}`);
+          // Не прерываем выполнение, просто оставляем 0
+        }
+    } catch (followError) {
+         console.error(`API user: Ошибка при запросе количества подписчиков для ${userId}:`, followError);
+         // Не прерываем выполнение, просто оставляем 0
     }
-    
-    // Получаем количество фолловингов пользователя
-    const followingResponse = await fetch(`https://api.twitch.tv/helix/users/follows?from_id=${userId}`, {
-      headers: {
-        'Client-ID': process.env.TWITCH_CLIENT_ID,
-        'Authorization': `Bearer ${accessToken}`
-      }
-    });
-    
-    if (followingResponse.ok) {
-      const followingData = await followingResponse.json();
-      userData.following_count = followingData.total || 0;
-    } else {
-       console.warn(`Не удалось получить количество подписок для ${userId}: ${followingResponse.status}`);
+
+    // 4. Получаем количество фолловингов (/helix/users/follows)
+    userData.following_count = 0; // Инициализируем
+    try {
+        const followingResponse = await fetch(`https://api.twitch.tv/helix/users/follows?from_id=${userId}`, { // Здесь /users/follows все еще актуален
+          headers: {
+            'Client-ID': TWITCH_CLIENT_ID,
+            'Authorization': `Bearer ${accessToken}`
+          }
+        });
+        
+        if (followingResponse.ok) {
+          const followingData = await followingResponse.json();
+          userData.following_count = followingData.total || 0;
+        } else {
+          console.warn(`API user: Не удалось получить количество подписок для ${userId}: ${followingResponse.status}`);
+          // Не прерываем выполнение, просто оставляем 0
+        }
+    } catch (followingError) {
+         console.error(`API user: Ошибка при запросе количества подписок для ${userId}:`, followingError);
+         // Не прерываем выполнение, просто оставляем 0
     }
-    
+
+    // 5. Возвращаем данные пользователя
+    console.log(`API user: Успешно получены данные для ${userData.login}`);
     return NextResponse.json(userData);
+
   } catch (error) {
-    console.error('Внутренняя ошибка сервера при получении данных пользователя:', error);
+    console.error('API user: Внутренняя ошибка сервера:', error);
     return NextResponse.json({ error: 'Внутренняя ошибка сервера' }, { status: 500 });
   }
 } 

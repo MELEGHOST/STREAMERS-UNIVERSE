@@ -1,189 +1,145 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import styles from './followers.module.css';
-import { getUserData } from '../utils/twitchAPI';
 import { DataStorage } from '../utils/dataStorage';
+import { createBrowserClient } from '@supabase/ssr';
 
 export default function Followers() {
   const router = useRouter();
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [userId, setUserId] = useState(null);
+  const [sessionUserId, setSessionUserId] = useState(null);
   const [followers, setFollowers] = useState([]);
   const [roles, setRoles] = useState({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [totalFollowers, setTotalFollowers] = useState(0);
   const [profileData, setProfileData] = useState(null);
+  const [nextCursor, setNextCursor] = useState(null);
+  const [loadingMore, setLoadingMore] = useState(false);
+
+  const supabase = useMemo(() => 
+    createBrowserClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+    ), 
+  []);
 
   useEffect(() => {
-    const loadData = async () => {
+    const loadInitialData = async () => {
+      setLoading(true);
+      setError(null);
       try {
-        // Проверяем авторизацию
-        if (!DataStorage.isAuthenticated()) {
-          console.error('Пользователь не авторизован, перенаправление на страницу логина');
-          router.push('/login');
-          return;
-        }
-        
-        setIsAuthenticated(true);
-        
-        // Получаем данные пользователя из нового хранилища
-        const userData = await getUserData();
-        
-        if (!userData || !userData.id) {
-          console.error('Данные пользователя отсутствуют, перенаправление на страницу логина');
-          router.push('/login');
-          return;
-        }
-        
-        setUserId(userData.id);
-        
-        // Получаем и устанавливаем роли из хранилища
-        const savedRoles = await DataStorage.getData('follower_roles');
-        if (savedRoles) {
-          setRoles(savedRoles);
-        }
-        
-        // Загружаем данные о фолловерах
-        await loadFollowers(userData.id);
+        const { data: { session }, error: sessionError } = await supabase.auth.getSession();
 
-        // Получаем данные профиля пользователя
-        const profileData = await getUserData();
-        setProfileData(profileData);
+        if (sessionError || !session) {
+          console.error('FollowersPage: Пользователь не авторизован, редирект на /auth');
+          router.push('/auth?reason=unauthenticated');
+          return;
+        }
+        console.log('FollowersPage: Сессия Supabase найдена.');
+        
+        const twitchUserId = session.user?.user_metadata?.provider_id;
+        if (!twitchUserId) {
+            console.error('FollowersPage: Не удалось получить provider_id из сессии Supabase');
+            setError('Не удалось получить ваш Twitch ID из сессии. Попробуйте перезайти.');
+            setLoading(false);
+            return;
+        }
+        setSessionUserId(twitchUserId);
+        console.log('FollowersPage: Twitch ID пользователя:', twitchUserId);
+
+        await loadFollowers(twitchUserId, null);
+
       } catch (error) {
-        console.error('Ошибка при загрузке данных:', error);
+        console.error('FollowersPage: Ошибка при загрузке начальных данных:', error);
         setError('Не удалось загрузить данные. Пожалуйста, попробуйте позже.');
-        setLoading(false);
+      } finally {
+         setLoading(false);
       }
     };
     
-    loadData();
-  }, [router]);
+    loadInitialData();
+  }, [router, supabase]);
   
-  // Загрузка фолловеров с использованием нового метода
-  const loadFollowers = async (userId) => {
+  const loadFollowers = useCallback(async (userId, cursor) => {
+    if (!userId) return;
+    console.log(`FollowersPage: Загрузка фолловеров для ${userId}, курсор: ${cursor}`);
+    
+    if (cursor) { 
+      setLoadingMore(true); 
+    } else {
+      setLoading(true); 
+      setFollowers([]);
+      setNextCursor(null);
+    }
+    setError(null);
+    
     try {
-      setLoading(true);
-      
-      // Проверяем наличие токена доступа
-      const accessToken = await getAccessToken();
-      if (!accessToken) {
-        setError('Отсутствует токен доступа. Пожалуйста, перезайдите в аккаунт.');
-        setLoading(false);
-        return;
+      const apiUrl = new URL(`/api/twitch/user-followers`, window.location.origin);
+      apiUrl.searchParams.append('userId', userId);
+      apiUrl.searchParams.append('limit', '100');
+      if (cursor) {
+        apiUrl.searchParams.append('after', cursor);
       }
-      
-      // Делаем прямой запрос к API для получения актуальных данных
-      console.log('Запрашиваем актуальные данные о фолловерах для пользователя:', userId);
-      
-      const response = await fetch(`/api/twitch/user-followers?userId=${userId}`, {
+
+      const response = await fetch(apiUrl.toString(), {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json'
-        }
+        },
       });
       
       if (!response.ok) {
-        console.error('Ошибка при получении фолловеров:', response.status);
-        setError('Не удалось получить данные о фолловерах. Пожалуйста, попробуйте позже.');
-        setLoading(false);
-        return;
+          const errorData = await response.json().catch(() => ({}));
+          console.error('FollowersPage: Ошибка API при получении фолловеров:', response.status, errorData);
+          throw new Error(errorData.error || `Ошибка ${response.status} при загрузке фолловеров`);
       }
       
       const followersData = await response.json();
       
-      // Проверяем наличие ошибки в ответе
       if (followersData.error) {
-        console.error('Ошибка при получении фолловеров:', followersData.error);
-        setError(`Ошибка: ${followersData.error}`);
-        setLoading(false);
-        return;
+          console.error('FollowersPage: Ошибка в ответе API:', followersData.error);
+          throw new Error(followersData.error);
       }
       
-      console.log('Получены данные о фолловерах:', {
+      console.log('FollowersPage: Получены данные о фолловерах:', {
         total: followersData.total || 0,
-        count: followersData.followers?.length || 0
+        count: followersData.followers?.length || 0,
+        cursor: followersData.pagination?.cursor
       });
       
-      // Обновляем данные в состоянии
       if (followersData && followersData.followers) {
-        // Обработка аватаров - убедимся, что у каждого фолловера есть URL аватара
-        const followersWithAvatars = followersData.followers.map(follower => ({
-          ...follower,
-          profileImageUrl: follower.profileImageUrl || '/images/default-avatar.png'
+        const newFollowers = followersData.followers.map(f => ({ 
+            ...f, 
+            profileImageUrl: f.profileImageUrl || '/images/default-avatar.png' 
         }));
         
-        // Проверяем регистрацию на Streamers Universe для каждого фолловера
-        try {
-          const response = await fetch('/api/su/registered-users', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-              twitchIds: followersWithAvatars.map(f => f.id)
-            })
-          });
-          
-          if (response.ok) {
-            const registeredData = await response.json();
-            
-            // Обрабатываем случай, когда нет данных в ответе
-            if (!registeredData.registeredIds) {
-              console.error('Ответ API не содержит данных о регистрации');
-              setFollowers(followersWithAvatars);
-              setTotalFollowers(followersData.total || followersWithAvatars.length);
-              return;
-            }
-            
-            // Обновляем информацию о регистрации для каждого фолловера
-            const followersWithRegistrationInfo = followersWithAvatars.map(follower => ({
-              ...follower,
-              isRegisteredOnSU: registeredData.registeredIds.includes(follower.id),
-              suUserType: registeredData.userTypes[follower.id] || 'viewer'
-            }));
-            
-            setFollowers(followersWithRegistrationInfo);
-            setTotalFollowers(followersData.total || followersWithRegistrationInfo.length);
-            
-            // Сохраняем в кэш для будущего использования
-            await DataStorage.saveData('followers', {
-              ...followersData,
-              followers: followersWithRegistrationInfo,
-              timestamp: Date.now()
-            });
-          } else {
-            console.error('Не удалось получить данные о регистрации на SU:', response.status);
-            // Продолжаем без данных о регистрации
-            setFollowers(followersWithAvatars);
-            setTotalFollowers(followersData.total || followersWithAvatars.length);
-          }
-        } catch (error) {
-          console.error('Ошибка при проверке регистрации на SU:', error);
-          // Продолжаем без данных о регистрации
-          setFollowers(followersWithAvatars);
-          setTotalFollowers(followersData.total || followersWithAvatars.length);
-        }
+        setFollowers(prev => cursor ? [...prev, ...newFollowers] : newFollowers);
+        setTotalFollowers(followersData.total || 0);
+        setNextCursor(followersData.pagination?.cursor);
+
       } else {
-        // Если данные не получены, показываем пустой список
-        setFollowers([]);
-        setTotalFollowers(0);
+        if (!cursor) {
+          setFollowers([]);
+          setTotalFollowers(0);
+        }
+        setNextCursor(null);
       }
       
-      setLoading(false);
     } catch (error) {
-      console.error('Ошибка при загрузке фолловеров:', error);
-      setError('Не удалось загрузить данные о фолловерах. Пожалуйста, попробуйте позже.');
-      setFollowers([]);
-      setTotalFollowers(0);
-      setLoading(false);
+      console.error('FollowersPage: Ошибка при загрузке фолловеров:', error);
+      setError(error.message || 'Не удалось загрузить данные о фолловерах.');
+      if (!cursor) {
+          setFollowers([]);
+          setTotalFollowers(0);
+      }
+    } finally {
+        if (cursor) { setLoadingMore(false); } else { setLoading(false); }
     }
-  };
+  }, [supabase]);
   
-  // Функция для сохранения ролей фолловеров
   const saveRoles = async (newRoles) => {
     try {
       setRoles(newRoles);
@@ -200,24 +156,19 @@ export default function Followers() {
     console.log(`Назначена роль ${role} для фолловера ${followerId}`);
   };
 
-  const handleRetry = async () => {
-    setLoading(true);
-    setError(null);
-    if (userId) {
-      const accessToken = getAccessToken();
-      if (!accessToken) {
-        setError('Отсутствует токен доступа. Пожалуйста, перезайдите в аккаунт.');
-        setLoading(false);
-        return;
-      }
-      await loadFollowers(userId);
-    } else {
-      setError('ID пользователя не найден. Пожалуйста, перезайдите в аккаунт.');
-      setLoading(false);
+  const handleRetry = () => {
+    if (sessionUserId) {
+      loadFollowers(sessionUserId, null);
     }
   };
 
-  if (!isAuthenticated || loading) {
+  const handleLoadMore = () => {
+    if (sessionUserId && nextCursor && !loadingMore) {
+      loadFollowers(sessionUserId, nextCursor);
+    }
+  };
+
+  if (loading && followers.length === 0) {
     return (
       <div className={styles.loading}>
         <div className={styles.spinner}></div>
@@ -226,7 +177,7 @@ export default function Followers() {
     );
   }
 
-  if (error) {
+  if (error && followers.length === 0) {
     return (
       <div className={styles.errorContainer}>
         <h1>Ошибка при загрузке фолловеров</h1>
@@ -244,23 +195,17 @@ export default function Followers() {
   return (
     <div className={styles.followersPage}>
       <h1 className={styles.title}>Фолловеры Twitch</h1>
-      <p className={styles.subtitle}>Список пользователей, подписанных на ваш канал Twitch. {totalFollowers > 0 && <span>Всего: <strong>{totalFollowers}</strong></span>}</p>
+      <p className={styles.subtitle}>Список пользователей, подписанных на ваш канал Twitch. {totalFollowers > 0 && <span>Всего: <strong>{totalFollowers.toLocaleString('ru-RU')}</strong></span>}</p>
       
-      {loading ? (
-        <div className={styles.loading}>
-          <div className={styles.spinner}></div>
-          <p>Загрузка фолловеров...</p>
-        </div>
-      ) : error ? (
-        <div className={styles.error}>
-          <p>{error}</p>
-          <button onClick={handleRetry} className={styles.button}>Повторить</button>
-        </div>
-      ) : followers.length > 0 ? (
+      {error && followers.length > 0 && (
+          <div className={styles.errorInline}>Ошибка при загрузке дополнительных данных: {error}</div>
+      )}
+      
+      {followers.length > 0 ? (
         <div className={styles.followersContainer}>
           <div className={styles.infoBar}>
             <div className={styles.statsInfo}>
-              <p>Отображаются фолловеры Twitch с канала: <strong>{profileData?.displayName || profileData?.login || userId}</strong></p>
+              <p>Отображаются фолловеры Twitch с канала: <strong>{profileData?.displayName || profileData?.login || sessionUserId}</strong></p>
             </div>
             <div className={styles.filterOptions}>
               <select 
@@ -333,12 +278,24 @@ export default function Followers() {
               </div>
             ))}
           </div>
+          
+          {nextCursor && (
+            <div className={styles.loadMoreContainer}>
+              {!loadingMore ? (
+                <button onClick={handleLoadMore} className={styles.loadMoreButton}>
+                  Загрузить еще
+                </button>
+              ) : (
+                <div className={styles.smallLoader}>Загрузка...</div>
+              )}
+            </div>
+          )}
+          {!nextCursor && followers.length > 0 && (
+              <p className={styles.noMoreFollowers}>Больше фолловеров нет</p>
+          )}
         </div>
-      ) : (
-        <div className={styles.emptyState}>
-          <p>У вас пока нет фолловеров на Twitch.</p>
-          <button onClick={handleRetry} className={styles.button}>Обновить данные</button>
-        </div>
+      ) : !loading && (
+          <div className={styles.noFollowers}>У вас пока нет фолловеров.</div>
       )}
       
       <div className={styles.navigationLinks}>
@@ -349,6 +306,10 @@ export default function Followers() {
           Показать последователей Streamers Universe
         </button>
       </div>
+      
+      <button className={styles.backButton} onClick={() => router.back()}>
+          Назад
+       </button>
     </div>
   );
 } 

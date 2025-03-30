@@ -8,7 +8,7 @@ import Layout from './Layout';
 
 const Profile = () => {
   // Получаем данные пользователя, профили и функции авторизации
-  const { currentUser, isStreamer, profiles, logout, switchProfile } = useAuth();
+  const { currentUser, isStreamer, profiles, switchProfile } = useAuth();
   const router = useRouter();
   const [showProfileSwitch, setShowProfileSwitch] = useState(false); // Состояние для показа выбора профилей
 
@@ -46,7 +46,6 @@ const Profile = () => {
           <h2 id="profileTitle">{isStreamer ? `Профиль стримера: ${currentUser.name}` : `Профиль подписчика: ${currentUser.name}`}</h2>
           <p id="profileInfo">{isStreamer ? `У вас ${currentUser.followers || 0} подписчиков.` : 'Вы подписчик и не имеете подписчиков.'}</p>
           <button id="switchProfileBtn" onClick={handleSwitchProfile}>Сменить профиль</button>
-          <button id="logoutBtn" onClick={logout}>Выйти</button>
         </div>
         {isStreamer ? (
           <div id="streamerSection" className="profile-content active">

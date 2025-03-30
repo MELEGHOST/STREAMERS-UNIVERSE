@@ -1,59 +1,119 @@
 import { NextResponse } from 'next/server';
-import { cookies } from 'next/headers';
-import supabase from '@/lib/supabaseClient';
+// import { cookies } from 'next/headers'; // Больше не используем напрямую
+import { createServerClient } from '@supabase/ssr'; // Используем SSR клиент
+import { cookies } from 'next/headers'; // Нужен для createServerClient
+import supabase from '@/lib/supabaseClient'; // Этот импорт все еще здесь? Нужно проверить, откуда он и нужен ли.
+                                        // Если getRegisteredUsers использует его, нужно передавать SSR-клиент.
+
+// Вспомогательная функция для получения деталей пользователей (оставляем как есть, но будем передавать токен)
+async function fetchUsersDetails(userIds, accessToken, clientId) {
+    if (!userIds || userIds.length === 0) return [];
+    try {
+        const response = await fetch(`https://api.twitch.tv/helix/users?id=${userIds.join('&id=')}`, {
+            headers: {
+                'Client-ID': clientId,
+                'Authorization': `Bearer ${accessToken}`
+            }
+        });
+        if (!response.ok) {
+            console.error('Ошибка при получении деталей пользователей Twitch:', response.status);
+            return [];
+        }
+        const data = await response.json();
+        return data.data || [];
+    } catch (error) {
+        console.error('Ошибка сети при получении деталей пользователей Twitch:', error);
+        return [];
+    }
+}
+
+// Вспомогательная функция для получения зарегистрированных пользователей SU
+// Изменяем: добавляем supabaseClient как аргумент
+async function getRegisteredUsers(supabaseClient, twitchIds) { 
+    if (!twitchIds || twitchIds.length === 0) return [];
+    try {
+        // Используем переданный supabaseClient
+        const { data, error } = await supabaseClient 
+            .from('users')
+            .select('twitchId, userType') // Выбираем только нужные поля
+            .in('twitchId', twitchIds);
+        
+        if (error) {
+            console.error('Ошибка при получении зарегистрированных пользователей SU:', error);
+            return [];
+        }
+        return data || [];
+    } catch (error) {
+        console.error('Критическая ошибка при получении зарегистрированных пользователей SU:', error);
+        return [];
+    }
+}
+
 
 export async function GET(request) {
+  const cookieStore = cookies(); // Получаем cookie store
+  // Создаем SSR-клиент Supabase
+  const supabaseAuth = createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
+    {
+      cookies: {
+        get(name) { return cookieStore.get(name)?.value },
+        set(name, value, options) { cookieStore.set({ name, value, ...options }) },
+        remove(name, options) { cookieStore.set({ name, value: '', ...options }) },
+      },
+    }
+  );
+
   try {
-    // Получаем URL-параметры
-    const url = new URL(request.url);
-    const userId = url.searchParams.get('userId');
-    
-    if (!userId) {
-      console.error('Отсутствует параметр userId');
-      return NextResponse.json({ 
-        error: 'Требуется ID пользователя',
-        total: 0,
-        followers: []
-      }, { status: 400 });
+    // 1. Проверяем сессию Supabase и получаем токен Twitch
+    const { data: { session }, error: sessionError } = await supabaseAuth.auth.getSession();
+
+    if (sessionError || !session) {
+        console.error('API user-followers: Ошибка сессии или сессия отсутствует', sessionError);
+        return NextResponse.json({ error: 'Необходима аутентификация' }, { status: 401 });
     }
-    
-    // Получаем токен доступа из cookies
-    const cookieStore = cookies();
-    const accessToken = cookieStore.get('twitch_access_token')?.value;
-    
+
+    const accessToken = session.provider_token; // Токен доступа Twitch из сессии Supabase
     if (!accessToken) {
-      console.error('Отсутствует токен доступа');
-      return NextResponse.json({ 
-        error: 'Не авторизован',
-        total: 0,
-        followers: []
-      }, { status: 401 });
+        console.error('API user-followers: Отсутствует provider_token в сессии Supabase');
+        return NextResponse.json({ error: 'Не удалось получить токен доступа Twitch из сессии' }, { status: 401 });
+    }
+
+    // 2. Получаем параметры запроса
+    const url = new URL(request.url);
+    const userId = url.searchParams.get('userId'); // ID пользователя, чьих фолловеров смотрим
+    const limit = parseInt(url.searchParams.get('limit') || '100', 10); // Лимит ( Twitch max 100)
+    const cursor = url.searchParams.get('after'); // Курсор для пагинации
+
+    if (!userId) {
+      return NextResponse.json({ error: 'Требуется ID пользователя (userId)' }, { status: 400 });
     }
     
-    // Получаем TWITCH_CLIENT_ID из переменных окружения
     const TWITCH_CLIENT_ID = process.env.NEXT_PUBLIC_TWITCH_CLIENT_ID;
-    
     if (!TWITCH_CLIENT_ID) {
-      console.error('TWITCH_CLIENT_ID отсутствует в переменных окружения');
-      return NextResponse.json({ 
-        error: 'Ошибка конфигурации сервера',
-        total: 0, 
-        followers: []
-      }, { status: 500 });
+      console.error('API user-followers: TWITCH_CLIENT_ID отсутствует в переменных окружения');
+      return NextResponse.json({ error: 'Ошибка конфигурации сервера' }, { status: 500 });
     }
     
-    console.log('Выполняем запрос к Twitch API для получения фолловеров пользователя:', userId);
+    console.log(`API user-followers: Запрос фолловеров для ${userId}, лимит ${limit}, курсор ${cursor}`);
     
-    // Создаем таймаут для запроса
+    // 3. Запрос к Twitch API с использованием /channels/followers
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 8000); // 8-секундный таймаут
-    
+    const timeoutId = setTimeout(() => controller.abort(), 8000);
+
+    const twitchApiUrl = new URL('https://api.twitch.tv/helix/channels/followers');
+    twitchApiUrl.searchParams.append('broadcaster_id', userId);
+    twitchApiUrl.searchParams.append('first', Math.min(limit, 100).toString()); // Убедимся, что не больше 100
+    if (cursor) {
+        twitchApiUrl.searchParams.append('after', cursor);
+    }
+
     try {
-      // Используем новый эндпоинт API Twitch 
-      const response = await fetch(`https://api.twitch.tv/helix/channels/followers?broadcaster_id=${userId}&first=100`, {
+      const response = await fetch(twitchApiUrl.toString(), {
         headers: {
           'Client-ID': TWITCH_CLIENT_ID,
-          'Authorization': `Bearer ${accessToken}`
+          'Authorization': `Bearer ${accessToken}` // Используем токен из сессии Supabase
         },
         signal: controller.signal
       });
@@ -62,42 +122,32 @@ export async function GET(request) {
       
       if (!response.ok) {
         const errorText = await response.text();
-        console.error(`Ошибка при получении фолловеров: ${response.status}`, errorText);
-        
-        // Возвращаем пустой результат с кодом ошибки, вместо ошибки 500
+        console.error(`API user-followers: Ошибка Twitch API ${response.status}`, errorText);
+        // Возвращаем статус ошибки от Twitch
         return NextResponse.json({ 
-          error: 'Ошибка при получении фолловеров',
-          status: response.status,
-          details: errorText,
-          total: 0,
-          followers: []
-        }, { status: 200 }); // Отправляем 200 вместо ошибки для предотвращения краша клиента
+          error: 'Ошибка при получении фолловеров от Twitch',
+          details: errorText 
+        }, { status: response.status }); 
       }
       
       const data = await response.json();
-      console.log('Получены данные о фолловерах:', {
-        total: data.total,
-        count: data.data?.length || 0
-      });
+      const nextCursor = data.pagination?.cursor; // Получаем курсор для следующей страницы
+
+      console.log(`API user-followers: Получено ${data.data?.length || 0} фолловеров из ${data.total}`);
       
-      // Если данных нет, возвращаем пустой массив
       if (!data.data || !Array.isArray(data.data)) {
-        return NextResponse.json({
-          total: data.total || 0,
-          followers: []
-        });
+        return NextResponse.json({ total: data.total || 0, followers: [], pagination: {} });
       }
       
-      // Собираем ID пользователей для получения детальной информации
-      const userIds = data.data.map(follower => follower.user_id);
+      // 4. Получаем доп. информацию (детали пользователей Twitch и регистрацию в SU)
+      const followerIds = data.data.map(follower => follower.user_id);
+      const [usersInfo, registeredUsers] = await Promise.all([
+          fetchUsersDetails(followerIds, accessToken, TWITCH_CLIENT_ID),
+          // Передаем supabaseAuth в getRegisteredUsers
+          getRegisteredUsers(supabaseAuth, followerIds) 
+      ]);
       
-      // Получаем детальную информацию о пользователях с Twitch
-      const usersInfo = await fetchUsersDetails(userIds, accessToken, TWITCH_CLIENT_ID);
-      
-      // Получаем список пользователей Streamers Universe с Twitch ID
-      const registeredUsers = await getRegisteredUsers(userIds);
-      
-      // Объединяем информацию о подписчиках с их деталями
+      // 5. Форматируем ответ
       const followers = data.data.map(follower => {
         const userInfo = usersInfo.find(user => user.id === follower.user_id) || {};
         const isRegistered = registeredUsers.some(ru => ru.twitchId === follower.user_id);
@@ -105,10 +155,10 @@ export async function GET(request) {
         
         return {
           id: follower.user_id,
-          name: follower.user_name || follower.user_login,
+          name: follower.user_name || follower.user_login, // Используем user_name из /channels/followers
           login: follower.user_login,
-          followedAt: follower.followed_at,
-          profileImageUrl: userInfo.profile_image_url || '',
+          followedAt: follower.followed_at, // Поле из /channels/followers
+          profileImageUrl: userInfo.profile_image_url || '', // Детали берем из /users
           broadcasterType: userInfo.broadcaster_type || '',
           isRegisteredOnSU: isRegistered,
           suUserType: userType
@@ -117,86 +167,25 @@ export async function GET(request) {
       
       return NextResponse.json({
         total: data.total,
-        followers: followers
+        followers: followers,
+        pagination: {
+            cursor: nextCursor
+        }
       });
+
     } catch (fetchError) {
       clearTimeout(timeoutId);
-      
       if (fetchError.name === 'AbortError') {
-        console.error('Запрос к Twitch API превысил время ожидания');
-        return NextResponse.json({ 
-          error: 'Таймаут запроса к Twitch API',
-          total: 0,
-          followers: []
-        }, { status: 200 }); // Отправляем 200 вместо ошибки
+        console.error('API user-followers: Запрос к Twitch API превысил время ожидания');
+        // Возвращаем ошибку 504 Gateway Timeout
+        return NextResponse.json({ error: 'Таймаут запроса к Twitch API' }, { status: 504 });
       }
-      
-      throw fetchError; // Передаем ошибку дальше для обработки на верхнем уровне
+      // Передаем другие ошибки fetch дальше
+      throw fetchError; 
     }
   } catch (error) {
-    console.error('Ошибка при обработке запроса:', error);
-    return NextResponse.json({ 
-      error: 'Внутренняя ошибка сервера',
-      total: 0,
-      followers: []
-    }, { status: 200 }); // Отправляем 200 вместо ошибки 500
-  }
-}
-
-// Функция для получения подробной информации о пользователях
-async function fetchUsersDetails(userIds, accessToken, clientId) {
-  if (!userIds || userIds.length === 0) {
-    return [];
-  }
-  
-  try {
-    // Ограничиваем количество запрашиваемых пользователей до 100
-    const limitedIds = userIds.slice(0, 100);
-    
-    // Формируем запрос с параметрами id для каждого пользователя
-    const queryParams = limitedIds.map(id => `id=${id}`).join('&');
-    const response = await fetch(`https://api.twitch.tv/helix/users?${queryParams}`, {
-      headers: {
-        'Client-ID': clientId,
-        'Authorization': `Bearer ${accessToken}`
-      }
-    });
-    
-    if (!response.ok) {
-      console.error('Ошибка при получении данных пользователей:', response.status);
-      return [];
-    }
-    
-    const data = await response.json();
-    return data.data || [];
-  } catch (error) {
-    console.error('Ошибка при получении данных пользователей:', error);
-    return [];
-  }
-}
-
-// Функция для проверки, зарегистрированы ли пользователи на Streamers Universe
-async function getRegisteredUsers(twitchIds) {
-  if (!twitchIds || twitchIds.length === 0) {
-    return [];
-  }
-  
-  try {
-    // Используем Supabase вместо Prisma
-    const { data: users, error } = await supabase
-      .from('users')
-      .select('id, twitchId, username, userType')
-      .in('twitchId', twitchIds);
-    
-    if (error) {
-      console.error('Ошибка при проверке регистрации пользователей:', error);
-      return [];
-    }
-    
-    return users || [];
-  } catch (error) {
-    console.error('Ошибка при проверке регистрации пользователей:', error);
-    // В случае ошибки возвращаем пустой массив
-    return [];
+    // Общая обработка ошибок (включая ошибки Supabase Auth, fetch)
+    console.error('API user-followers: Внутренняя ошибка сервера:', error);
+    return NextResponse.json({ error: 'Внутренняя ошибка сервера' }, { status: 500 });
   }
 } 

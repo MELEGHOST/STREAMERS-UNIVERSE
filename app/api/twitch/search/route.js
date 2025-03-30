@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
-import { sanitizeObject } from '@/utils/securityUtils';
+import { createServerClient } from '@supabase/ssr'; // Используем SSR клиент
+import { sanitizeObject, sanitizeString } from '@/utils/securityUtils';
+import supabase from '@/lib/supabaseClient'; // TODO: Проверить и заменить, если нужно
 
 /**
  * Проверяет, зарегистрирован ли пользователь в Streamers Universe
@@ -18,25 +20,28 @@ function checkUserRegistrationInSU() {
 }
 
 // Функция для получения социальных ссылок пользователя
-async function getUserSocialLinks(userId) {
+async function getUserSocialLinks(supabaseClient, userId) {
+  if (!userId) return null;
   try {
-    // В реальном приложении здесь будет запрос к базе данных
-    // Например: const socialLinks = await db.socialLinks.findOne({ userId });
+    // Используем переданный supabaseClient
+    const { data, error } = await supabaseClient 
+      .from('user_profiles')
+      .select('social_links')
+      .eq('user_id', userId)
+      .single();
     
-    // Для демонстрации возвращаем пустой объект или имитацию данных
-    if (Math.random() > 0.7) {
-      return {
-        twitch: `https://twitch.tv/${userId}`,
-        youtube: Math.random() > 0.5 ? `https://youtube.com/c/user${userId}` : null,
-        discord: Math.random() > 0.5 ? `https://discord.gg/invite${userId}` : null,
-        telegram: Math.random() > 0.5 ? `https://t.me/user${userId}` : null,
-        vk: Math.random() > 0.5 ? `https://vk.com/id${userId}` : null,
-      };
+    if (error) {
+      // Не фатальная ошибка, просто ссылок нет или RLS запретил
+      // Не логируем как ошибку, если это PGRST116 (Not Found)
+      if (error.code !== 'PGRST116') { 
+          console.warn('API search: Не удалось получить social_links:', error.message);
+      }
+      return null;
     }
     
-    return null;
+    return data ? data.social_links : null;
   } catch (error) {
-    console.error('Error fetching user social links:', error);
+    console.error('API search: Критическая ошибка при получении social_links:', error);
     return null;
   }
 }
@@ -69,180 +74,194 @@ async function checkIfUserIsFollowed(currentUserId, targetUserId, accessToken) {
   }
 }
 
-export async function GET(request) {
+// Функция для получения статуса подписки (isFollowed)
+async function checkFollowStatus(fromId, toId, accessToken, clientId) {
+  if (!fromId || !toId || !accessToken || !clientId) return false;
   try {
-    // Получаем параметры запроса
-    const url = new URL(request.url);
-    const login = url.searchParams.get('login');
-    
-    if (!login) {
-      return NextResponse.json({ error: 'Missing login parameter' }, { status: 400 });
+    const response = await fetch(`https://api.twitch.tv/helix/users/follows?from_id=${fromId}&to_id=${toId}`, {
+      headers: {
+        'Client-ID': clientId,
+        'Authorization': `Bearer ${accessToken}`,
+      },
+    });
+    if (!response.ok) return false;
+    const data = await response.json();
+    return data.total > 0;
+  } catch (error) {
+    console.error('Error checking follow status:', error);
+    return false;
+  }
+}
+
+// Функция для получения общих подписок
+async function getCommonFollowings(user1Id, user2Id, accessToken, clientId) {
+    if (!user1Id || !user2Id || !accessToken || !clientId) return [];
+    try {
+        const [user1FollowsResponse, user2FollowsResponse] = await Promise.all([
+            fetch(`https://api.twitch.tv/helix/users/follows?from_id=${user1Id}&first=100`, { headers: { 'Client-ID': clientId, 'Authorization': `Bearer ${accessToken}` } }),
+            fetch(`https://api.twitch.tv/helix/users/follows?from_id=${user2Id}&first=100`, { headers: { 'Client-ID': clientId, 'Authorization': `Bearer ${accessToken}` } })
+        ]);
+
+        if (!user1FollowsResponse.ok || !user2FollowsResponse.ok) {
+            console.warn('Could not fetch followings for one or both users');
+            return [];
+        }
+
+        const user1FollowsData = await user1FollowsResponse.json();
+        const user2FollowsData = await user2FollowsResponse.json();
+
+        const user1FollowingSet = new Set(user1FollowsData?.data?.map(f => f.to_id) || []);
+        const user2Followings = user2FollowsData?.data?.map(f => ({ id: f.to_id, name: f.to_name })) || [];
+
+        const common = user2Followings.filter(f => user1FollowingSet.has(f.id));
+        return common;
+
+    } catch (error) {
+        console.error('Error fetching common followings:', error);
+        return [];
     }
-    
-    // Валидация параметра login
-    if (!/^[a-zA-Z0-9_]{1,25}$/.test(login)) {
-      return NextResponse.json({ error: 'Invalid login parameter format' }, { status: 400 });
+}
+
+export async function GET(request) {
+  const cookieStore = cookies();
+  const supabaseAuth = createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
+    {
+      cookies: {
+        get(name) { return cookieStore.get(name)?.value },
+        set(name, value, options) { cookieStore.set({ name, value, ...options }) },
+        remove(name, options) { cookieStore.set({ name, value: '', ...options }) },
+      },
     }
-    
-    // Получаем токен доступа из cookies
-    const cookieStore = cookies();
-    const accessToken = cookieStore.get('twitch_access_token')?.value;
-    
+  );
+
+  try {
+    // 1. Получаем сессию и токен
+    const { data: { session }, error: sessionError } = await supabaseAuth.auth.getSession();
+    if (sessionError || !session) {
+      return NextResponse.json({ error: 'Необходима аутентификация' }, { status: 401 });
+    }
+    const accessToken = session.provider_token;
+    const currentUserId = session.user?.user_metadata?.provider_id; // ID текущего пользователя Twitch из сессии
     if (!accessToken) {
-      return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
+        return NextResponse.json({ error: 'Не удалось получить токен доступа Twitch из сессии' }, { status: 401 });
+    }
+    if (!currentUserId) {
+        console.warn('API search: Не удалось получить provider_id текущего пользователя из сессии');
+        // Продолжаем выполнение, но не сможем проверить подписку и общие подписки
     }
 
-    // Проверяем наличие TWITCH_CLIENT_ID в переменных окружения
-    if (!process.env.TWITCH_CLIENT_ID) {
-      console.error('TWITCH_CLIENT_ID не найден в переменных окружения');
-      return NextResponse.json({ error: 'Server configuration error' }, { status: 500 });
+    // 2. Получаем поисковый запрос и Client ID
+    const { searchParams } = new URL(request.url);
+    const query = sanitizeString(searchParams.get('query'));
+    if (!query) {
+      return NextResponse.json({ error: 'Требуется поисковый запрос (query)' }, { status: 400 });
+    }
+    const TWITCH_CLIENT_ID = process.env.NEXT_PUBLIC_TWITCH_CLIENT_ID;
+    if (!TWITCH_CLIENT_ID) {
+      console.error('API search: TWITCH_CLIENT_ID отсутствует');
+      return NextResponse.json({ error: 'Ошибка конфигурации сервера' }, { status: 500 });
     }
 
-    // Получаем данные пользователя из Twitch API
-    const twitchUserResponse = await fetch(`https://api.twitch.tv/helix/users?login=${login}`, {
+    console.log(`API search: Поиск по запросу "${query}"`);
+
+    // 3. Ищем пользователя на Twitch
+    const searchResponse = await fetch(`https://api.twitch.tv/helix/search/channels?query=${encodeURIComponent(query)}&first=1`, {
       headers: {
-        'Client-ID': process.env.TWITCH_CLIENT_ID,
-        'Authorization': `Bearer ${accessToken}`
-      }
+        'Client-ID': TWITCH_CLIENT_ID,
+        'Authorization': `Bearer ${accessToken}`,
+      },
     });
 
-    if (!twitchUserResponse.ok) {
-      return NextResponse.json({ error: 'Failed to fetch user data from Twitch API' }, { status: twitchUserResponse.status });
+    if (!searchResponse.ok) {
+      const errorText = await searchResponse.text();
+      console.error(`API search: Ошибка Twitch API /search/channels ${searchResponse.status}`, errorText);
+      return NextResponse.json({ error: 'Ошибка при поиске пользователя на Twitch', details: errorText }, { status: searchResponse.status });
     }
 
-    const twitchUserData = await twitchUserResponse.json();
-
-    if (!twitchUserData.data || twitchUserData.data.length === 0) {
-      return NextResponse.json({ error: 'User not found' }, { status: 404 });
+    const searchData = await searchResponse.json();
+    if (!searchData.data || searchData.data.length === 0) {
+      return NextResponse.json({ error: 'Пользователь не найден' }, { status: 404 });
     }
 
-    const twitchUser = twitchUserData.data[0];
+    const twitchUser = searchData.data[0];
+    const foundUserId = twitchUser.id; // ID найденного пользователя
 
-    // Получаем количество фолловеров пользователя
-    const followersResponse = await fetch(`https://api.twitch.tv/helix/users/follows?to_id=${twitchUser.id}`, {
-      headers: {
-        'Client-ID': process.env.TWITCH_CLIENT_ID,
-        'Authorization': `Bearer ${accessToken}`
-      }
-    });
-
+    // 4. Получаем доп. данные: фолловеры, фолловинги, статус подписки, общие подписки
     let follower_count = 0;
-    if (followersResponse.ok) {
-      const followersData = await followersResponse.json();
-      follower_count = followersData.total || 0;
-    }
-
-    // Получаем количество фолловингов пользователя
-    const followingResponse = await fetch(`https://api.twitch.tv/helix/users/follows?from_id=${twitchUser.id}`, {
-      headers: {
-        'Client-ID': process.env.TWITCH_CLIENT_ID,
-        'Authorization': `Bearer ${accessToken}`
-      }
-    });
-
     let following_count = 0;
-    if (followingResponse.ok) {
-      const followingData = await followingResponse.json();
-      following_count = followingData.total || 0;
-    }
+    let isFollowed = false;
+    let commonStreamers = [];
 
-    // Добавляем данные о фолловерах и фолловингах к объекту пользователя
-    twitchUser.follower_count = follower_count;
-    twitchUser.following_count = following_count;
-
-    // Определяем, является ли пользователь стримером (более 265 фолловеров)
-    const isStreamer = follower_count >= 265;
-    
-    // Проверяем, зарегистрирован ли пользователь в Streamers Universe
-    const isRegisteredInSU = checkUserRegistrationInSU();
-    
-    // Получаем социальные ссылки пользователя, если он зарегистрирован в SU
-    const socialLinks = isRegisteredInSU ? await getUserSocialLinks(twitchUser.id) : null;
-    
-    // Получаем список стримеров, на которых подписан искомый пользователь
-    let userFollowings = [];
+    // Запрос количества фолловеров (/channels/followers)
     try {
-      const followingsResponse = await fetch(
-        `https://api.twitch.tv/helix/users/follows?from_id=${twitchUser.id}&first=100`, 
-        {
-          headers: {
-            'Client-ID': process.env.TWITCH_CLIENT_ID,
-            'Authorization': `Bearer ${accessToken}`,
-          },
+        const followersResponse = await fetch(`https://api.twitch.tv/helix/channels/followers?broadcaster_id=${foundUserId}`, {
+            headers: { 'Client-ID': TWITCH_CLIENT_ID, 'Authorization': `Bearer ${accessToken}` }
+        });
+        if (followersResponse.ok) {
+            const followersData = await followersResponse.json();
+            follower_count = followersData.total || 0;
+        } else {
+            console.warn(`API search: Не удалось получить кол-во фолловеров для ${foundUserId}: ${followersResponse.status}`);
         }
-      );
-      
-      if (followingsResponse.ok) {
-        const followingsData = await followingsResponse.json();
-        userFollowings = followingsData.data.map(follow => follow.to_name);
-        console.log('Получены подписки пользователя:', userFollowings.length);
-      } else {
-        console.error('Ошибка при получении подписок пользователя:', followingsResponse.status);
-      }
-    } catch (error) {
-      console.error('Error fetching user followings:', error);
-    }
-    
-    // Получаем общих стримеров
-    // Получаем список стримеров, на которых подписан текущий пользователь
-    let currentUserFollowings = [];
-    
-    // Получаем ID текущего пользователя из куки
-    let currentUserId = null;
+    } catch(e) { console.error('API search: Ошибка запроса кол-ва фолловеров:', e); }
+
+    // Запрос количества фолловингов (/users/follows)
     try {
-      const currentUserCookie = cookieStore.get('twitch_user')?.value;
-      if (currentUserCookie) {
+        const followingResponse = await fetch(`https://api.twitch.tv/helix/users/follows?from_id=${foundUserId}`, {
+            headers: { 'Client-ID': TWITCH_CLIENT_ID, 'Authorization': `Bearer ${accessToken}` }
+        });
+        if (followingResponse.ok) {
+            const followingData = await followingResponse.json();
+            following_count = followingData.total || 0;
+        } else {
+            console.warn(`API search: Не удалось получить кол-во фолловингов для ${foundUserId}: ${followingResponse.status}`);
+        }
+    } catch(e) { console.error('API search: Ошибка запроса кол-ва фолловингов:', e); }
+
+    // Проверка подписки и общих подписок (только если есть ID текущего пользователя)
+    if (currentUserId && currentUserId !== foundUserId) { // Не проверяем для самого себя
         try {
-          const currentUser = JSON.parse(currentUserCookie);
-          if (currentUser && currentUser.id) {
-            currentUserId = currentUser.id;
-            
-            // Получаем подписки текущего пользователя
-            const currentUserFollowingsResponse = await fetch(
-              `https://api.twitch.tv/helix/users/follows?from_id=${currentUser.id}&first=100`, 
-              {
-                headers: {
-                  'Client-ID': process.env.TWITCH_CLIENT_ID,
-                  'Authorization': `Bearer ${accessToken}`,
-                },
-              }
-            );
-            
-            if (currentUserFollowingsResponse.ok) {
-              const currentUserFollowingsData = await currentUserFollowingsResponse.json();
-              currentUserFollowings = currentUserFollowingsData.data.map(follow => follow.to_name);
-            }
-          }
-        } catch (jsonError) {
-          console.error('Ошибка при парсинге данных пользователя из cookie:', jsonError);
-        }
-      }
-    } catch (error) {
-      console.error('Ошибка при получении ID текущего пользователя:', error);
+            [isFollowed, commonStreamers] = await Promise.all([
+                checkFollowStatus(currentUserId, foundUserId, accessToken, TWITCH_CLIENT_ID),
+                getCommonFollowings(currentUserId, foundUserId, accessToken, TWITCH_CLIENT_ID)
+            ]);
+        } catch(e) { console.error('API search: Ошибка запроса статуса/общих подписок:', e); }
     }
-    
-    // Находим общих стримеров
-    const commonStreamers = userFollowings.filter(streamer => 
-      currentUserFollowings.includes(streamer)
-    );
-    
-    // Проверяем, подписан ли текущий пользователь на найденного пользователя
-    const isFollowed = await checkIfUserIsFollowed(currentUserId, twitchUser.id, accessToken);
-    
-    // Санитизация данных перед отправкой
-    const sanitizedTwitchUser = sanitizeObject(twitchUser);
-    
+
+    // 5. Получаем данные из нашей БД (регистрация, соц. ссылки)
+    const isRegisteredInSU = checkUserRegistrationInSU(); // Заглушка
+    const socialLinks = isRegisteredInSU ? await getUserSocialLinks(supabaseAuth, foundUserId) : null;
+
+    // 6. Формируем ответ
+    const sanitizedTwitchUser = {
+        id: twitchUser.id,
+        login: twitchUser.broadcaster_login,
+        display_name: twitchUser.display_name,
+        profile_image_url: twitchUser.thumbnail_url,
+        broadcaster_language: twitchUser.broadcaster_language,
+        title: twitchUser.title,
+        game_id: twitchUser.game_id,
+        game_name: twitchUser.game_name,
+        is_live: twitchUser.is_live,
+        tags: twitchUser.tags,
+        // Добавляем полученные данные
+        follower_count: follower_count,
+        following_count: following_count,
+    };
+
     return NextResponse.json({
-      twitchData: sanitizedTwitchUser,
-      isStreamer: isStreamer,
+      twitchData: sanitizeObject(sanitizedTwitchUser),
+      isStreamer: follower_count >= 265, // Примерная логика определения стримера
       isRegisteredInSU: isRegisteredInSU,
       isFollowed: isFollowed,
-      followers: follower_count,
-      commonStreamers: commonStreamers,
-      socialLinks: sanitizeObject(socialLinks),
+      commonStreamers: commonStreamers, // Уже должны быть массивом объектов { id, name }
+      socialLinks: sanitizeObject(socialLinks), // Санитизируем на всякий случай
     });
+
   } catch (error) {
-    console.error('Search API error:', error);
-    return NextResponse.json({ error: 'Server error', message: error.message }, { status: 500 });
+    console.error('API search: Внутренняя ошибка сервера:', error);
+    return NextResponse.json({ error: 'Внутренняя ошибка сервера', message: error.message }, { status: 500 });
   }
 } 

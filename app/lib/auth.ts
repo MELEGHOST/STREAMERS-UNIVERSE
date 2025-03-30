@@ -255,11 +255,6 @@ export async function updateSession(request: NextRequest) {
   }
 }
 
-export async function logout() {
-  const cookieStore = await cookies();
-  cookieStore.set('session', '', { expires: new Date(0) });
-}
-
 /**
  * Проверяет Twitch токен на сервере
  * @param {string} token - Access token от Twitch
@@ -299,7 +294,6 @@ const authFunctions = {
   saveSession,
   getSession,
   updateSession,
-  logout,
   verifyTwitchToken
 };
 

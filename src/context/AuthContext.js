@@ -84,14 +84,6 @@ export function AuthProvider({ children }) {
     }
   };
 
-  const logout = async () => {
-    await signOut({ redirect: true, callbackUrl: '/auth' });
-    localStorage.removeItem('twitchToken');
-    localStorage.removeItem('twitchUser');
-    setCurrentUser(null);
-    setIsAuthenticated(false);
-  };
-
   const switchProfile = (profileId) => {
     const selectedProfile = profiles.find(profile => profile.id === profileId);
     if (selectedProfile) {
@@ -109,7 +101,6 @@ export function AuthProvider({ children }) {
     currentUser,
     loading,
     loginWithTwitch,
-    logout,
     isStreamer,
     profiles,
     switchProfile

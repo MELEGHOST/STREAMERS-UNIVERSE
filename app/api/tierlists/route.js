@@ -1,35 +1,36 @@
 import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
-import supabase from '@/lib/supabaseClient';
+import { createServerClient } from '@supabase/ssr'; // Используем SSR клиент
+// import supabase from '@/lib/supabaseClient'; // TODO: Заменить использование этого клиента ниже
 
 // Убираем временное хранилище
 // let tierlists = [];
 // let tierlistItems = [];
 
-// Функция для получения ID пользователя из куки
-function getUserIdFromCookies() {
-  try {
+// Вспомогательная функция для создания SSR клиента (чтобы не дублировать код)
+const createSupabaseClient = () => {
     const cookieStore = cookies();
-    const userCookie = cookieStore.get('twitch_user')?.value;
-    if (userCookie) {
-      const userData = JSON.parse(userCookie);
-      // Предполагаем, что ID пользователя хранится как строка (например, из Twitch API)
-      // Если в вашей таблице user_id другого типа, нужно привести его здесь
-      return String(userData.id); 
-    }
-    return null;
-  } catch (error) {
-    console.error('Error getting user ID from cookies:', error);
-    return null;
-  }
-}
+    return createServerClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
+      {
+        cookies: {
+          get(name) { return cookieStore.get(name)?.value },
+          set(name, value, options) { cookieStore.set({ name, value, ...options }) },
+          remove(name, options) { cookieStore.set({ name, value: '', ...options }) },
+        },
+      }
+    );
+};
 
 // GET - получение тирлистов
 export async function GET() {
+  const supabase = createSupabaseClient(); // Используем SSR-клиент
   try {
+    // Аутентификация для GET не требуется, любой может смотреть тирлисты
     const { data: tierlistsData, error } = await supabase
       .from('tierlists')
-      .select('*'); // Возможно, стоит добавить .order() для сортировки
+      .select('*');
 
     if (error) {
       console.error('Error fetching tierlists:', error);
@@ -68,11 +69,14 @@ export async function GET() {
 
 // POST - создание нового тирлиста
 export async function POST(request) {
+  const supabase = createSupabaseClient(); // Используем SSR-клиент
   try {
-    const userId = getUserIdFromCookies();
-    if (!userId) {
+    // Проверяем сессию Supabase
+    const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+    if (sessionError || !session) {
       return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
     }
+    const userId = session.user.id; // Получаем ID пользователя из сессии Supabase
 
     const body = await request.json();
 
@@ -147,16 +151,18 @@ export async function POST(request) {
 
 // PUT - обновление тирлиста
 export async function PUT(request) {
+  const supabase = createSupabaseClient(); // Используем SSR-клиент
   try {
-    const userId = getUserIdFromCookies();
-    if (!userId) {
+    // Проверяем сессию Supabase
+    const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+    if (sessionError || !session) {
       return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
     }
+    const currentAuthUserId = session.user.id; // ID текущего аутентифицированного пользователя
 
     const data = await request.json();
     const tierlistId = data.id;
 
-    // Валидация ID
     if (!tierlistId) {
       return NextResponse.json({ error: 'Tierlist ID is required for update' }, { status: 400 });
     }
@@ -164,9 +170,9 @@ export async function PUT(request) {
     // 1. Получаем текущий тирлист для проверки владельца
     const { data: currentTierlist, error: fetchError } = await supabase
         .from('tierlists')
-        .select('user_id') // Достаточно получить только user_id
+        .select('user_id') // ID пользователя, создавшего тирлист
         .eq('id', tierlistId)
-        .single(); // Ожидаем одну запись или null
+        .single();
 
     if (fetchError || !currentTierlist) {
       console.error('Error fetching tierlist for update or not found:', fetchError);
@@ -174,7 +180,7 @@ export async function PUT(request) {
     }
 
     // 2. Проверяем владельца
-    if (String(currentTierlist.user_id) !== userId) { // Приводим к строке для сравнения
+    if (currentTierlist.user_id !== currentAuthUserId) { // Сравниваем ID из тирлиста с ID из сессии
       return NextResponse.json({ error: 'Forbidden: You can only update your own tierlists' }, { status: 403 });
     }
 
@@ -258,65 +264,62 @@ export async function PUT(request) {
 
 // DELETE - удаление тирлиста
 export async function DELETE(request) {
+  const supabase = createSupabaseClient(); // Используем SSR-клиент
   try {
-    const userId = getUserIdFromCookies();
-    if (!userId) {
+    // Проверяем сессию Supabase
+    const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+    if (sessionError || !session) {
       return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
     }
+    const currentAuthUserId = session.user.id;
 
     const url = new URL(request.url);
     const tierlistId = url.searchParams.get('id');
 
     if (!tierlistId) {
-      return NextResponse.json({ error: 'Tierlist ID is required in query parameters' }, { status: 400 });
+      return NextResponse.json({ error: 'Tierlist ID is required' }, { status: 400 });
     }
 
     // 1. Получаем тирлист для проверки владельца
-    const { data: currentTierlist, error: fetchError } = await supabase
-        .from('tierlists')
-        .select('user_id')
-        .eq('id', tierlistId)
-        .single();
+    const { data: tierlistToDelete, error: fetchError } = await supabase
+      .from('tierlists')
+      .select('user_id')
+      .eq('id', tierlistId)
+      .single();
 
-    if (fetchError || !currentTierlist) {
-      // Если fetchError это 'PGRST116', значит запись не найдена
-       if (fetchError && fetchError.code === 'PGRST116') {
-           return NextResponse.json({ error: 'Tierlist not found' }, { status: 404 });
-       }
-      console.error('Error fetching tierlist for delete:', fetchError);
-      return NextResponse.json({ error: 'Tierlist not found or error fetching it' }, { status: 404 });
+    if (fetchError || !tierlistToDelete) {
+       return NextResponse.json({ error: 'Tierlist not found' }, { status: 404 });
     }
 
     // 2. Проверяем владельца
-    if (String(currentTierlist.user_id) !== userId) {
+    if (tierlistToDelete.user_id !== currentAuthUserId) {
       return NextResponse.json({ error: 'Forbidden: You can only delete your own tierlists' }, { status: 403 });
     }
 
-    // 3. Сначала удаляем связанные элементы (если нет каскадного удаления)
-    const { error: deleteItemsError } = await supabase
+    // 3. Удаляем элементы тирлиста (каскадное удаление может быть настроено в БД, но лучше сделать явно)
+     const { error: deleteItemsError } = await supabase
         .from('tierlist_items')
         .delete()
         .eq('tierlist_id', tierlistId);
-    
-    if (deleteItemsError) {
+
+      if (deleteItemsError) {
         console.error('Error deleting tierlist items before deleting tierlist:', deleteItemsError);
-        // Можно решить, прерывать ли операцию или продолжить удаление тирлиста
-        return NextResponse.json({ error: 'Failed to delete associated items', details: deleteItemsError.message }, { status: 500 });
-    }
+        // Можно решить, останавливать ли удаление тирлиста
+        // return NextResponse.json({ error: 'Failed to delete tierlist items' }, { status: 500 });
+      }
 
     // 4. Удаляем сам тирлист
     const { error: deleteTierlistError } = await supabase
-        .from('tierlists')
-        .delete()
-        .eq('id', tierlistId);
+      .from('tierlists')
+      .delete()
+      .eq('id', tierlistId);
 
     if (deleteTierlistError) {
-        console.error('Error deleting tierlist:', deleteTierlistError);
-        return NextResponse.json({ error: 'Failed to delete tierlist', details: deleteTierlistError.message }, { status: 500 });
+      console.error('Error deleting tierlist:', deleteTierlistError);
+      return NextResponse.json({ error: 'Failed to delete tierlist' }, { status: 500 });
     }
 
-    return NextResponse.json({ success: true, message: `Tierlist ${tierlistId} deleted successfully.` });
-
+    return NextResponse.json({ message: 'Tierlist deleted successfully' });
   } catch (error) {
     console.error('Error in tierlists DELETE route:', error);
     return NextResponse.json({ error: 'Internal server error', details: error.message }, { status: 500 });

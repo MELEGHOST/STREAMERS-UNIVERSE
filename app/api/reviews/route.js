@@ -1,27 +1,37 @@
 import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
-import { createClient } from '@supabase/supabase-js';
+// import { createClient } from '@supabase/supabase-js'; // Заменяем на SSR клиент
+import { createServerClient } from '@supabase/ssr';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+// const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY; // Стараемся не использовать сервисный ключ для операций пользователя
 
-// Функция для получения данных пользователя из куки
-function getUserDataFromCookies() {
-  try {
+// Вспомогательная функция для создания SSR клиента
+const createSupabaseClient = () => {
     const cookieStore = cookies();
-    const userCookie = cookieStore.get('twitch_user')?.value;
-    if (userCookie) {
-      return JSON.parse(userCookie);
-    }
-    return null;
-  } catch (error) {
-    console.error('Ошибка при получении данных пользователя из куки:', error);
-    return null;
-  }
-}
+    return createServerClient(
+      supabaseUrl,
+      supabaseAnonKey, // Используем ANON ключ, RLS должны защищать данные
+      {
+        cookies: {
+          get(name) { return cookieStore.get(name)?.value },
+          set(name, value, options) { cookieStore.set({ name, value, ...options }) },
+          remove(name, options) { cookieStore.set({ name, value: '', ...options }) },
+        },
+      }
+    );
+};
+
+// УДАЛЕНО: getUserDataFromCookies
+/*
+function getUserDataFromCookies() { ... }
+*/
 
 // Обработчик GET-запросов для получения отзывов
 export async function GET(request) {
+  const supabase = createSupabaseClient(); // Используем SSR клиент (с ANON ключом)
+                                          // Предполагаем, что RLS разрешает чтение отзывов всем
   try {
     const { searchParams } = new URL(request.url);
     
@@ -32,35 +42,28 @@ export async function GET(request) {
     const limit = parseInt(searchParams.get('limit') || '10');
     const offset = (page - 1) * limit;
     
-    // Создаем supabase клиент
-    const supabase = createClient(supabaseUrl, supabaseServiceKey);
-    
-    // Формируем запрос в зависимости от переданных параметров
-    let query = supabase
+    // Формируем запрос
+    let queryBase = supabase
       .from('reviews')
-      .select('*')
+      // Явно выбираем нужные поля, чтобы не запрашивать лишнего
+      .select('id, content, rating, author_id, target_id, target_name, target_type, created_at, updated_at', { count: 'exact' })
       .order('created_at', { ascending: false })
       .limit(limit)
       .range(offset, offset + limit - 1);
     
     // Применяем фильтры в зависимости от переданных параметров
     if (authorId) {
-      // Если передан ID автора, получаем отзывы, сделанные пользователем
-      query = query.eq('author_id', authorId);
+      queryBase = queryBase.eq('author_id', authorId);
     } else if (targetId) {
-      // Если передан ID цели, получаем отзывы о стримере/объекте
-      query = query.eq('target_id', targetId);
+      queryBase = queryBase.eq('target_id', targetId);
     }
     
-    // Выполняем запрос к базе данных
-    const { data: reviews, error, count } = await query;
+    // Выполняем запрос
+    const { data: reviews, error, count } = await queryBase;
     
     if (error) {
       console.error('Ошибка при получении отзывов:', error);
-      return NextResponse.json(
-        { error: 'Не удалось получить отзывы' },
-        { status: 500 }
-      );
+      return NextResponse.json({ error: 'Не удалось получить отзывы' }, { status: 500 });
     }
     
     // Преобразуем данные для клиента
@@ -80,11 +83,13 @@ export async function GET(request) {
     return NextResponse.json({
       reviews: formattedReviews,
       pagination: {
-        totalReviews: count || formattedReviews.length,
+        totalReviews: count || 0, // Используем count из ответа
         currentPage: page,
-        totalPages: Math.ceil((count || formattedReviews.length) / limit),
+        totalPages: Math.ceil((count || 0) / limit),
         limit,
-        hasNextPage: (count || formattedReviews.length) > offset + limit,
+        // Логика пагинации может потребовать корректировки в зависимости от того, как count работает с range
+        // Возможно, count возвращает общее число БЕЗ учета range?
+        hasNextPage: (offset + reviews.length) < (count || 0),
         hasPrevPage: page > 1
       }
     });
@@ -100,43 +105,28 @@ export async function GET(request) {
 
 // Обработчик POST-запросов для создания новых отзывов
 export async function POST(request) {
+  const supabase = createSupabaseClient(); // Используем SSR клиент
   try {
-    // Получаем данные текущего пользователя для проверки авторизации
-    const userData = getUserDataFromCookies();
-    
-    if (!userData || !userData.id) {
-      return NextResponse.json(
-        { error: 'Необходима авторизация для создания отзыва' },
-        { status: 401 }
-      );
+    // 1. Проверяем сессию Supabase
+    const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+    if (sessionError || !session) {
+      return NextResponse.json({ error: 'Необходима авторизация для создания отзыва' }, { status: 401 });
     }
+    const currentUserId = session.user.id; // ID текущего пользователя из сессии
     
-    // Парсим данные из тела запроса
+    // 2. Парсим данные из тела запроса
     const requestData = await request.json();
-    const { authorId, content, rating, targetName, targetId, targetType = 'other' } = requestData;
+    // Убираем authorId из деструктуризации, т.к. берем его из сессии
+    const { content, rating, targetName, targetId, targetType = 'other' } = requestData; 
     
-    // Проверяем, что ID автора соответствует текущему пользователю
-    if (authorId !== userData.id) {
-      return NextResponse.json(
-        { error: 'Нельзя создавать отзывы от имени другого пользователя' },
-        { status: 403 }
-      );
+    // 3. Валидация данных
+    if (!content || !rating || !targetName) {
+      return NextResponse.json({ error: 'Отсутствуют обязательные поля (content, rating, targetName)' }, { status: 400 });
     }
     
-    // Валидация данных
-    if (!authorId || !content || !rating || !targetName) {
-      return NextResponse.json(
-        { error: 'Отсутствуют обязательные поля' },
-        { status: 400 }
-      );
-    }
-    
-    // Создаем supabase клиент
-    const supabase = createClient(supabaseUrl, supabaseServiceKey);
-    
-    // Подготавливаем данные для вставки
+    // 4. Подготавливаем данные для вставки
     const reviewData = {
-      author_id: authorId,
+      author_id: currentUserId, // Используем ID из сессии
       content,
       rating,
       target_name: targetName,
@@ -144,25 +134,24 @@ export async function POST(request) {
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString()
     };
-    
-    // Если указан ID цели (например, ID стримера)
     if (targetId) {
       reviewData.target_id = targetId;
     }
     
-    // Вставляем отзыв в базу данных
+    // 5. Вставляем отзыв в базу данных (клиент уже аутентифицирован сессией)
     const { data: review, error } = await supabase
       .from('reviews')
       .insert(reviewData)
-      .select()
+      .select() // Выбираем все поля созданной записи
       .single();
     
     if (error) {
       console.error('Ошибка при создании отзыва:', error);
-      return NextResponse.json(
-        { error: 'Не удалось создать отзыв' },
-        { status: 500 }
-      );
+      // Проверяем специфичные ошибки Supabase, если нужно (например, нарушение RLS)
+      if (error.code === '42501') { // policy_violation
+           return NextResponse.json({ error: 'Ошибка прав доступа при создании отзыва' }, { status: 403 });
+      }
+      return NextResponse.json({ error: 'Не удалось создать отзыв', details: error.message }, { status: 500 });
     }
     
     // Преобразуем данные для ответа
@@ -191,81 +180,57 @@ export async function POST(request) {
 
 // Обработчик PATCH-запросов для обновления отзывов
 export async function PATCH(request) {
+  const supabase = createSupabaseClient(); // Используем SSR клиент
   try {
-    // Получаем данные текущего пользователя для проверки авторизации
-    const userData = getUserDataFromCookies();
-    
-    if (!userData || !userData.id) {
-      return NextResponse.json(
-        { error: 'Необходима авторизация для редактирования отзыва' },
-        { status: 401 }
-      );
+    // 1. Проверяем сессию Supabase
+    const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+    if (sessionError || !session) {
+      return NextResponse.json({ error: 'Необходима авторизация для редактирования отзыва' }, { status: 401 });
     }
+    const currentUserId = session.user.id;
     
-    // Парсим данные из тела запроса
-    const { id, content, rating, authorId } = await request.json();
+    // 2. Парсим данные из тела запроса
+    // Убираем authorId
+    const { id, content, rating } = await request.json(); 
     
-    // Проверяем, что ID автора соответствует текущему пользователю
-    if (authorId !== userData.id) {
-      return NextResponse.json(
-        { error: 'Нельзя редактировать отзывы другого пользователя' },
-        { status: 403 }
-      );
-    }
-    
-    // Валидация данных
+    // 3. Валидация данных
     if (!id || !content || !rating) {
-      return NextResponse.json(
-        { error: 'Отсутствуют обязательные поля' },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: 'Отсутствуют обязательные поля (id, content, rating)' }, { status: 400 });
     }
     
-    // Создаем supabase клиент
-    const supabase = createClient(supabaseUrl, supabaseServiceKey);
-    
-    // Проверяем, принадлежит ли отзыв пользователю
-    const { data: existingReview, error: fetchError } = await supabase
-      .from('reviews')
-      .select('*')
-      .eq('id', id)
-      .single();
-    
-    if (fetchError) {
-      console.error('Ошибка при получении отзыва:', fetchError);
-      return NextResponse.json(
-        { error: 'Не удалось найти отзыв' },
-        { status: 404 }
-      );
-    }
-    
-    if (existingReview.author_id !== userData.id) {
-      return NextResponse.json(
-        { error: 'У вас нет прав на редактирование этого отзыва' },
-        { status: 403 }
-      );
-    }
-    
-    // Обновляем отзыв
+    // 4. Пытаемся обновить отзыв, полагаясь на RLS для проверки прав
+    // RLS должен быть настроен так, чтобы разрешать UPDATE только если auth.uid() == author_id
     const { data: updatedReview, error } = await supabase
       .from('reviews')
-      .update({
-        content,
-        rating,
-        updated_at: new Date().toISOString()
+      .update({ 
+          content, 
+          rating, 
+          updated_at: new Date().toISOString() 
       })
       .eq('id', id)
-      .select()
+      // Добавляем проверку на author_id здесь, как доп. гарантия или если RLS нет
+      .eq('author_id', currentUserId) 
+      .select() // Возвращаем обновленную запись
       .single();
-    
+
     if (error) {
       console.error('Ошибка при обновлении отзыва:', error);
-      return NextResponse.json(
-        { error: 'Не удалось обновить отзыв' },
-        { status: 500 }
-      );
+      // Если ошибка 'PGRST116' (Not Found), значит либо ID не тот, либо автор не тот
+      if (error.code === 'PGRST116') {
+          return NextResponse.json({ error: 'Отзыв не найден или у вас нет прав на его редактирование' }, { status: 404 }); 
+      }
+      // Другие возможные ошибки (например, нарушение политики)
+       if (error.code === '42501') { 
+           return NextResponse.json({ error: 'Ошибка прав доступа при обновлении отзыва' }, { status: 403 });
+      }
+      return NextResponse.json({ error: 'Не удалось обновить отзыв', details: error.message }, { status: 500 });
     }
-    
+
+    // Если updatedReview пустой после .single() без ошибки, это тоже означает, что запись не найдена/не обновлена
+    if (!updatedReview) {
+         return NextResponse.json({ error: 'Отзыв не найден или у вас нет прав на его редактирование' }, { status: 404 }); 
+    }
+
     // Преобразуем данные
     const formattedReview = {
       id: updatedReview.id,
@@ -280,7 +245,7 @@ export async function PATCH(request) {
     };
     
     return NextResponse.json(formattedReview);
-    
+
   } catch (error) {
     console.error('Внутренняя ошибка сервера:', error);
     return NextResponse.json(
@@ -292,71 +257,46 @@ export async function PATCH(request) {
 
 // Обработчик DELETE-запросов для удаления отзывов
 export async function DELETE(request) {
+  const supabase = createSupabaseClient(); // Используем SSR клиент
   try {
-    // Получаем данные текущего пользователя для проверки авторизации
-    const userData = getUserDataFromCookies();
-    
-    if (!userData || !userData.id) {
-      return NextResponse.json(
-        { error: 'Необходима авторизация для удаления отзыва' },
-        { status: 401 }
-      );
+    // 1. Проверяем сессию Supabase
+    const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+    if (sessionError || !session) {
+      return NextResponse.json({ error: 'Необходима авторизация для удаления отзыва' }, { status: 401 });
     }
-    
+    const currentUserId = session.user.id;
+
+    // 2. Получаем ID отзыва из URL
     const { searchParams } = new URL(request.url);
     const id = searchParams.get('id');
-    
+
     if (!id) {
-      return NextResponse.json(
-        { error: 'Отсутствует ID отзыва' },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: 'Отсутствует ID отзыва' }, { status: 400 });
     }
-    
-    // Создаем supabase клиент
-    const supabase = createClient(supabaseUrl, supabaseServiceKey);
-    
-    // Проверяем, принадлежит ли отзыв пользователю
-    const { data: existingReview, error: fetchError } = await supabase
+
+    // 3. Пытаемся удалить отзыв, полагаясь на RLS
+    // RLS должен разрешать DELETE только если auth.uid() == author_id
+    const { error, count } = await supabase
       .from('reviews')
-      .select('*')
+      .delete({ count: 'exact' }) // Запрашиваем количество удаленных строк
       .eq('id', id)
-      .single();
-    
-    if (fetchError) {
-      console.error('Ошибка при получении отзыва:', fetchError);
-      return NextResponse.json(
-        { error: 'Не удалось найти отзыв' },
-        { status: 404 }
-      );
-    }
-    
-    if (existingReview.author_id !== userData.id) {
-      return NextResponse.json(
-        { error: 'У вас нет прав на удаление этого отзыва' },
-        { status: 403 }
-      );
-    }
-    
-    // Удаляем отзыв
-    const { error } = await supabase
-      .from('reviews')
-      .delete()
-      .eq('id', id);
-    
+      .eq('author_id', currentUserId); // Доп. проверка
+
     if (error) {
       console.error('Ошибка при удалении отзыва:', error);
-      return NextResponse.json(
-        { error: 'Не удалось удалить отзыв' },
-        { status: 500 }
-      );
+       if (error.code === '42501') { 
+           return NextResponse.json({ error: 'Ошибка прав доступа при удалении отзыва' }, { status: 403 });
+      }
+      return NextResponse.json({ error: 'Не удалось удалить отзыв', details: error.message }, { status: 500 });
     }
-    
-    return NextResponse.json({ 
-      success: true,
-      message: 'Отзыв успешно удален'
-    });
-    
+
+    // Проверяем, была ли строка удалена
+    if (count === 0) {
+        return NextResponse.json({ error: 'Отзыв не найден или у вас нет прав на его удаление' }, { status: 404 });
+    }
+
+    return NextResponse.json({ message: 'Отзыв успешно удален' });
+
   } catch (error) {
     console.error('Внутренняя ошибка сервера:', error);
     return NextResponse.json(

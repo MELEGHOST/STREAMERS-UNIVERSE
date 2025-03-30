@@ -8,7 +8,7 @@ import AchievementsSystem from '../components/AchievementsSystem';
 import ReviewSection from '../components/ReviewSection';
 import { checkBirthday } from '../utils/birthdayCheck';
 import { DataStorage } from '../utils/dataStorage';
-import Cookies from 'js-cookie';
+import { createBrowserClient } from '@supabase/ssr';
 import CyberAvatar from '../components/CyberAvatar';
 
 // Вспомогательная функция для склонения слова "день"
@@ -70,6 +70,13 @@ function Profile() {
   const [showStats, setShowStats] = useState(false);
   
   const [userId, setUserId] = useState('');
+
+  const supabase = useMemo(() => 
+    createBrowserClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+    ), 
+  []);
 
   const fetchTwitchUserData = useCallback(async (forceRefresh = false) => {
     setLoadingTwitchUser(true);
@@ -232,15 +239,19 @@ function Profile() {
       
       if (!isMounted || !twitchData || !twitchData.id) {
           console.log("Profile: Основные данные Twitch не загружены или компонент размонтирован, прерываем загрузку остального.");
+          if (isMounted) {
+              setLoadingTwitchUser(false);
+              setLoadingProfileDb(false);
+          }
           return;
       }
 
-      const currentUserId = twitchData.id;
-      console.log(`Profile: Основные данные Twitch загружены (ID: ${currentUserId}). Запускаем параллельную загрузку остальных данных.`);
+      const currentTwitchUserId = twitchData.id;
+      console.log(`Profile: Основные данные Twitch загружены (ID: ${currentTwitchUserId}). Запускаем параллельную загрузку остальных данных.`);
 
       await Promise.allSettled([
           loadUserProfileDbData(),
-          loadTierlists(currentUserId),
+          loadTierlists(currentTwitchUserId),
       ]);
 
       if (isMounted) {
@@ -261,7 +272,7 @@ function Profile() {
       console.log("Profile: Компонент размонтирован, isMounted = false.");
       isMounted = false;
     };
-  }, [fetchTwitchUserData, loadUserProfileDbData, loadTierlists, searchParams]); 
+  }, [fetchTwitchUserData, loadUserProfileDbData, loadTierlists, searchParams]);
 
   const { isBirthday, daysToBirthday } = useMemo(() => {
       if (!userProfileDbData?.birthday) {
@@ -435,6 +446,46 @@ function Profile() {
       }
   };
 
+  const handleLogout = async () => {
+    try {
+      console.log('Выполняем выход из аккаунта через Supabase...');
+      setLoading(true);
+      
+      const { error } = await supabase.auth.signOut();
+      
+      DataStorage.clearAll();
+      
+      if (error) {
+          console.error('Ошибка при выходе из Supabase:', error);
+          alert(`Ошибка при выходе: ${error.message}`);
+      } else {
+          console.log('Выход из Supabase успешен. Перенаправление на /auth');
+          router.push('/auth?action=logout');
+      }
+
+    } catch (error) {
+      console.error('Критическая ошибка при выходе из аккаунта:', error);
+      alert('Произошла критическая ошибка при выходе из аккаунта.');
+      router.push('/');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const retryLoading = (section) => {
+      console.log(`Повторная попытка загрузки секции: ${section}`);
+      if (!userId) {
+          console.error('Невозможно повторить загрузку: userId отсутствует');
+          return;
+      }
+      switch (section) {
+          case 'profileDb': loadUserProfileDbData(); break;
+          case 'tierlists': loadTierlists(userId); break;
+          case 'reviews': loadReviews(userId); break;
+          default: console.warn(`Неизвестная секция для повторной загрузки: ${section}`);
+      }
+  };
+
   if (isLoadingPage) {
     return (
       <div className={styles.profileContainer}>
@@ -483,47 +534,6 @@ function Profile() {
   const { profile_image_url, display_name, login, view_count, broadcaster_type, created_at } = twitchUserData;
   const currentDescription = userProfileDbData?.description || twitchUserData.description;
   const visibilitySettings = userProfileDbData?.stats_visibility || {};
-
-  const handleLogout = () => {
-    try {
-      console.log('Выполняем выход из аккаунта (клиентская версия)...');
-      
-      const cookieOptions = { path: '/', domain: window.location.hostname };
-      Cookies.remove('twitch_access_token', cookieOptions);
-      Cookies.remove('twitch_refresh_token', cookieOptions);
-      Cookies.remove('twitch_token', cookieOptions);
-      Cookies.remove('twitch_user', cookieOptions);
-      Cookies.remove('twitch_auth_state', cookieOptions);
-      Cookies.remove('sb-access-token', cookieOptions);
-      Cookies.remove('sb-refresh-token', cookieOptions);
-      Cookies.remove('has_local_storage_token', cookieOptions);
-      
-      DataStorage.clearAll();
-      localStorage.removeItem('logged_out');
-      
-      console.log('Cookies и Local Storage очищены.');
-      
-      window.location.href = '/auth?action=logout'; 
-    } catch (error) {
-      console.error('Ошибка при выходе из аккаунта:', error);
-      alert('Произошла ошибка при выходе из аккаунта. Вы будете перенаправлены на страницу авторизации.');
-      window.location.href = '/auth';
-    }
-  };
-
-  const retryLoading = (section) => {
-      console.log(`Повторная попытка загрузки секции: ${section}`);
-      if (!userId) {
-          console.error('Невозможно повторить загрузку: userId отсутствует');
-          return;
-      }
-      switch (section) {
-          case 'profileDb': loadUserProfileDbData(); break;
-          case 'tierlists': loadTierlists(userId); break;
-          case 'reviews': loadReviews(userId); break;
-          default: console.warn(`Неизвестная секция для повторной загрузки: ${section}`);
-      }
-  };
 
   return (
     <div className={styles.container}>
