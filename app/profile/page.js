@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState, useCallback, useMemo } from 'react';
+import React, { useEffect, useState, useCallback, useMemo, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import styles from './profile.module.css';
 import SocialButton from '../components/SocialButton';
@@ -28,7 +28,30 @@ const getDaysText = (days) => {
   return 'дней';
 };
 
-export default function Profile() {
+// Компонент-заглушка для Suspense
+function ProfileLoadingFallback() {
+  return (
+    <div className={styles.container}>
+      <div className={styles.profileContainer}>
+        <div className={styles.profileHeader}>
+          <h1>Загрузка профиля...</h1>
+          <div className={styles.spinner}></div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// Оборачиваем основной компонент в Suspense
+export default function ProfilePageWrapper() {
+  return (
+    <Suspense fallback={<ProfileLoadingFallback />}>
+      <Profile />
+    </Suspense>
+  );
+}
+
+function Profile() {
   const router = useRouter();
   const searchParams = useSearchParams();
 
