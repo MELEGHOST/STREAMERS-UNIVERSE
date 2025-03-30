@@ -6,7 +6,7 @@
 // export const revalidate = 0;
 // export const dynamicParams = true;
 
-import React, { useState, useEffect, useCallback, Suspense } from 'react';
+import React, { useState, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { createBrowserClient } from '@supabase/ssr';
 import styles from './auth.module.css';
