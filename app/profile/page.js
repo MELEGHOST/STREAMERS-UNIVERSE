@@ -72,6 +72,11 @@ function Profile() {
   const [userId, setUserId] = useState('');
   const [isLoggingOut, setIsLoggingOut] = useState(false);
 
+  const [userProfile, setUserProfile] = useState(null);
+  const [loadingProfile, setLoadingProfile] = useState(false);
+  const [profileError, setProfileError] = useState(null);
+  const [birthdayMessage, setBirthdayMessage] = useState('');
+
   const supabase = useMemo(() => 
     createBrowserClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -175,42 +180,69 @@ function Profile() {
   }, [router, searchParams, supabase]);
 
   const loadUserProfileDbData = useCallback(async () => {
-    setLoadingProfileDb(true);
-    setSpecificErrors(prev => ({ ...prev, profileDb: null }));
-    console.log('Profile: Начало загрузки данных профиля из БД...');
+    setLoadingProfile(true);
+    setProfileError(null);
+    console.log('Profile: Загрузка данных профиля из БД...');
     try {
-        const response = await fetch(`/api/user-profile-data?_=${Date.now()}`, {
-            method: 'GET',
-            headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-cache' },
-            credentials: 'include',
-        });
-
-        if (response.status === 401) {
-            console.warn('Profile: Получен 401 при запросе данных из БД, хотя пользователь Twitch аутентифицирован.');
-             setSpecificErrors(prev => ({ ...prev, profileDb: 'Ошибка аутентификации при доступе к данным профиля.' }));
-             setUserProfileDbData(null);
-             setLoadingProfileDb(false);
-             return;
+        const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+        if (sessionError || !session) {
+            throw new Error('Сессия не найдена для загрузки профиля БД');
         }
+        const userId = session.user.id;
 
-        if (!response.ok) {
-            const errorData = await response.json().catch(() => ({}));
-            console.error('Profile: Ошибка при загрузке данных профиля из БД:', response.status, errorData.error);
-            throw new Error(errorData.error || `Ошибка ${response.status} при загрузке данных профиля`);
+        const { data: profileData, error: profileDbError } = await supabase
+            .from('profiles')
+            .select('username, avatar_url, description, birthday, social_links')
+            .eq('id', userId)
+            .single();
+
+        if (profileDbError) {
+            console.error('Profile: Ошибка загрузки профиля из БД:', profileDbError);
+            setProfileError('Не удалось загрузить данные профиля.');
+            setUserProfile(null);
+        } else if (profileData) {
+            console.log('Profile: Данные профиля из БД загружены:', profileData);
+            setUserProfile(profileData);
+            if (profileData.birthday) {
+                try {
+                    const today = new Date();
+                    const birthDate = new Date(profileData.birthday);
+                    
+                    birthDate.setFullYear(today.getFullYear());
+                    
+                    const diffTime = birthDate.getTime() - today.getTime();
+                    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+                    
+                    const birthDateFormatted = birthDate.toLocaleDateString('ru-RU', { day: '2-digit', month: '2-digit' });
+
+                    if (diffDays === 0) {
+                        setBirthdayMessage(`🎂 С днем рождения!`);
+                    } else if (diffDays > 0 && diffDays <= 15) {
+                        setBirthdayMessage(`🎉 Скоро день рождения! (${birthDateFormatted})`);
+                    } else {
+                        setBirthdayMessage('');
+                    }
+                } catch(birthdayError) {
+                    console.error("Ошибка обработки даты рождения:", birthdayError);
+                    setBirthdayMessage('');
+                }
+            } else {
+                setBirthdayMessage('');
+            }
+        } else {
+             console.log('Profile: Профиль в БД не найден для пользователя:', userId);
+             setUserProfile(null);
+             setBirthdayMessage('');
         }
-
-        const data = await response.json();
-        console.log('Profile: Данные профиля из БД успешно загружены:', data);
-        setUserProfileDbData(data);
-
     } catch (error) {
-        console.error('Profile: Крит. ошибка при загрузке данных профиля из БД:', error);
-        setSpecificErrors(prev => ({ ...prev, profileDb: error.message || 'Не удалось загрузить доп. данные профиля.' }));
-        setUserProfileDbData(null);
+        console.error('Profile: Общая ошибка загрузки профиля из БД:', error);
+        setProfileError('Произошла ошибка при загрузке профиля.');
+        setUserProfile(null);
+        setBirthdayMessage('');
     } finally {
-        setLoadingProfileDb(false);
+        setLoadingProfile(false);
     }
-  }, []);
+  }, [supabase]);
 
   const loadTierlists = useCallback(async (currentUserId) => {
     if (!currentUserId) return;
@@ -266,7 +298,7 @@ function Profile() {
           console.log("Profile: Основные данные Twitch не загружены или компонент размонтирован, прерываем загрузку остального.");
           if (isMounted) {
               setLoadingTwitchUser(false);
-              setLoadingProfileDb(false);
+              setLoadingProfile(false);
           }
           return;
       }
@@ -317,7 +349,7 @@ function Profile() {
       }
   }, [userProfileDbData?.birthday]);
 
-  const isLoadingPage = loadingTwitchUser || loadingProfileDb;
+  const isLoadingPage = loadingTwitchUser || loadingProfile;
 
   const formatDate = (dateString) => {
     if (!dateString) return '';
@@ -362,9 +394,9 @@ function Profile() {
   };
   
   const renderSocialLinks = () => {
-    const links = userProfileDbData?.social_links;
+    const links = userProfile?.social_links;
     
-    if (loadingTwitchUser || loadingProfileDb) {
+    if (loadingTwitchUser || loadingProfile) {
       return <div className={styles.smallLoader}></div>;
     }
 
@@ -524,12 +556,12 @@ function Profile() {
     );
   }
 
-  if (globalError) {
+  if (globalError || profileError) {
     return (
       <div className={styles.profileContainer}>
         <div className={styles.error}>
           <h2>Произошла ошибка</h2>
-          <p>{globalError}</p>
+          <p>{globalError || profileError}</p>
           <button onClick={() => fetchTwitchUserData(true)} className={styles.button}>
             Попробовать снова
           </button>
@@ -559,8 +591,8 @@ function Profile() {
   }
   
   const { profile_image_url, display_name, login, view_count, broadcaster_type, created_at } = twitchUserData;
-  const currentDescription = userProfileDbData?.description || twitchUserData.description;
-  const visibilitySettings = userProfileDbData?.stats_visibility || {};
+  const currentDescription = userProfile?.description || twitchUserData.description;
+  const visibilitySettings = userProfile?.stats_visibility || {};
 
   return (
     <div className={styles.container}>
@@ -585,21 +617,12 @@ function Profile() {
                  <div className={styles.profileStat}>
                   <span className={styles.statIcon}>👥</span>
                   <div className={styles.userStats}>
-                    {/* Комментируем отображение подписчиков, пока нет загрузки данных
-                    <div className={styles.statItem}>
-                      <span className={styles.statLabel}>Подписчики Twitch</span>
-                      {loadingState.followers ? (
-                        <div className={styles.smallLoader}></div>
-                      ) : errorMessages.followers ? (
-                        <div className={styles.statError}>
-                          <span className={styles.errorText}>Ошибка</span>
-                          <button onClick={() => retryLoading('followers')} className={styles.retryButtonSmall} title="Повторить">↺</button>
+                    {twitchUserData?.followers_count !== null && typeof twitchUserData?.followers_count !== 'undefined' && (
+                        <div className={styles.statItem}>
+                          <span className={styles.statLabel}>Подписчики Twitch</span>
+                          <span className={styles.statValue}>{twitchUserData.followers_count.toLocaleString('ru-RU')}</span>
                         </div>
-                      ) : (
-                        <span className={styles.statValue}>{totalFollowers.toLocaleString('ru-RU') ?? '0'}</span>
-                      )}
-                    </div>
-                    */}
+                    )}
                   </div>
                  </div>
                )}
@@ -695,7 +718,7 @@ function Profile() {
             <div className={styles.profileInfoSection}>
               <div className={styles.profileDescription}>
                 <h3 className={styles.sectionTitle}>Описание</h3>
-                {loadingProfileDb ? (
+                {loadingProfile ? (
                   <div className={styles.smallLoader}></div>
                 ) : specificErrors.profileDb ? (
                   <div className={styles.sectionError}>

@@ -3,127 +3,174 @@ import { NextResponse } from 'next/server';
 import { createServerClient } from '@supabase/ssr'; // Используем SSR клиент
 import { cookies } from 'next/headers'; // Нужен для createServerClient
 
-export async function GET() {
-  const cookieStore = cookies();
-
-  // ДОБАВЛЕНО ЛОГИРОВАНИЕ ПРИШЕДШИХ COOKIE
-  try {
-    const allCookies = cookieStore.getAll();
-    console.log('API user: Получены cookies:', JSON.stringify(allCookies, null, 2));
-  } catch (e) {
-    console.error('API user: Не удалось прочитать cookies:', e);
-  }
-  // --- КОНЕЦ ЛОГИРОВАНИЯ ---
-
-  const supabaseAuth = createServerClient(
+export async function GET(request) {
+  const response = new NextResponse();
+  const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
     {
       cookies: {
-        get(name) { return cookieStore.get(name)?.value },
-        set(name, value, options) { cookieStore.set({ name, value, ...options, sameSite: options.sameSite || 'Lax' }) },
-        remove(name, options) { cookieStore.set({ name, value: '', ...options, sameSite: options.sameSite || 'Lax' }) },
+        get: (name) => request.cookies.get(name)?.value,
+        set: (name, value, options) => response.cookies.set({ name, value, ...options }),
+        remove: (name, options) => response.cookies.set({ name, value: '', ...options }),
       },
     }
   );
 
   try {
-    // 1. Проверяем сессию и получаем токен Twitch
-    const { data: { session }, error: sessionError } = await supabaseAuth.auth.getSession();
+    const { data: { session }, error: sessionError } = await supabase.auth.getSession();
 
-    if (sessionError || !session) {
-      console.error('API user: Ошибка сессии или сессия отсутствует', sessionError);
-      return NextResponse.json({ error: 'Необходима аутентификация' }, { status: 401 });
+    if (sessionError) {
+      console.error('/api/twitch/user: Ошибка получения сессии Supabase:', sessionError);
+      return NextResponse.json({ error: 'Ошибка сервера при проверке сессии' }, { status: 500 });
     }
 
-    const accessToken = session.provider_token;
-    if (!accessToken) {
-      console.error('API user: Отсутствует provider_token в сессии Supabase');
-      // Статус 401, т.к. токена нет, хотя сессия есть - возможно, проблема с OAuth flow
-      return NextResponse.json({ error: 'Не удалось получить токен доступа Twitch из сессии' }, { status: 401 }); 
+    if (!session) {
+      console.log('/api/twitch/user: Сессия не найдена');
+      return NextResponse.json({ error: 'Пользователь не аутентифицирован' }, { status: 401 });
     }
 
-    const TWITCH_CLIENT_ID = process.env.NEXT_PUBLIC_TWITCH_CLIENT_ID;
-    if (!TWITCH_CLIENT_ID) {
-        console.error('API user: TWITCH_CLIENT_ID отсутствует');
-        return NextResponse.json({ error: 'Ошибка конфигурации сервера' }, { status: 500 });
+    const providerToken = session.provider_token;
+    const providerRefreshToken = session.provider_refresh_token;
+    const twitchUserId = session.user?.user_metadata?.provider_id;
+
+    if (!providerToken || !twitchUserId) {
+      console.error('/api/twitch/user: Отсутствует provider_token или twitchUserId в сессии');
+      return NextResponse.json({ error: 'Неполные данные аутентификации Twitch в сессии' }, { status: 401 });
     }
 
-    // 2. Получаем данные пользователя из Twitch API (/helix/users)
-    const twitchResponse = await fetch('https://api.twitch.tv/helix/users', {
-      headers: {
-        'Client-ID': TWITCH_CLIENT_ID,
-        'Authorization': `Bearer ${accessToken}`
+    console.log('/api/twitch/user: Сессия найдена, ID пользователя Twitch:', twitchUserId);
+
+    let userData = {};
+    let followersCount = null;
+    let twitchResponseStatus = null;
+
+    try {
+      // 1. Получаем основную информацию о пользователе Twitch
+      console.log('/api/twitch/user: Запрос основной информации пользователя...');
+      const userResponse = await fetch(`https://api.twitch.tv/helix/users?id=${twitchUserId}`, {
+        headers: {
+          'Client-ID': process.env.TWITCH_CLIENT_ID,
+          'Authorization': `Bearer ${providerToken}`,
+        },
+      });
+
+      twitchResponseStatus = userResponse.status;
+      console.log('/api/twitch/user: Статус ответа от /users:', twitchResponseStatus);
+
+      if (!userResponse.ok) {
+        // ... (обработка ошибок /users, включая обновление токена, остается как есть) ...
+        // Если ошибка 401/403, пытаемся обновить токен
+        if (twitchResponseStatus === 401 || twitchResponseStatus === 403) {
+          console.log('/api/twitch/user: Токен недействителен (401/403), попытка обновления...');
+          if (!providerRefreshToken) {
+            console.error('/api/twitch/user: Refresh токен отсутствует, не могу обновить.');
+            await supabase.auth.signOut(); // Выходим из сессии Supabase
+            return NextResponse.json({ error: 'Требуется повторная аутентификация Twitch (нет refresh токена)' }, { status: 401 });
+          }
+
+          try {
+            const { data: refreshedSession, error: refreshError } = await supabase.auth.refreshSession({ refresh_token: providerRefreshToken });
+            if (refreshError) {
+              console.error('/api/twitch/user: Ошибка обновления сессии Supabase:', refreshError);
+              await supabase.auth.signOut();
+              return NextResponse.json({ error: 'Ошибка обновления сессии, требуется повторная аутентификация' }, { status: 401 });
+            }
+            if (!refreshedSession || !refreshedSession.provider_token) {
+               console.error('/api/twitch/user: Обновленная сессия не содержит provider_token');
+               await supabase.auth.signOut();
+               return NextResponse.json({ error: 'Ошибка структуры обновленной сессии' }, { status: 401 });
+            }
+
+            console.log('/api/twitch/user: Сессия успешно обновлена, повторный запрос к /users...');
+            const retryResponse = await fetch(`https://api.twitch.tv/helix/users?id=${twitchUserId}`, {
+              headers: {
+                'Client-ID': process.env.TWITCH_CLIENT_ID,
+                'Authorization': `Bearer ${refreshedSession.provider_token}`,
+              },
+            });
+
+             console.log('/api/twitch/user: Статус ответа от /users после обновления:', retryResponse.status);
+
+            if (!retryResponse.ok) {
+              const errorBody = await retryResponse.text();
+              console.error(`/api/twitch/user: Повторный запрос к /users не удался (${retryResponse.status}):`, errorBody);
+              await supabase.auth.signOut(); // Если и после обновления ошибка, выходим
+              return NextResponse.json({ error: `Ошибка Twitch API (${retryResponse.status}) после обновления токена` }, { status: retryResponse.status });
+            }
+            const retryData = await retryResponse.json();
+            userData = retryData.data[0]; // Используем данные из повторного запроса
+
+          } catch (refreshHandlingError) {
+            console.error('/api/twitch/user: Ошибка при обработке обновления токена:', refreshHandlingError);
+            await supabase.auth.signOut();
+            return NextResponse.json({ error: 'Внутренняя ошибка сервера при обновлении токена' }, { status: 500 });
+          }
+        } else {
+          // Другие ошибки Twitch API
+          const errorBody = await userResponse.text();
+          console.error(`/api/twitch/user: Ошибка Twitch API (${twitchResponseStatus}) при запросе /users:`, errorBody);
+          return NextResponse.json({ error: `Ошибка Twitch API (${twitchResponseStatus})` }, { status: twitchResponseStatus });
+        }
+      } else {
+         const data = await userResponse.json();
+         if (!data.data || data.data.length === 0) {
+            console.error('/api/twitch/user: Пользователь Twitch не найден по ID:', twitchUserId);
+            return NextResponse.json({ error: 'Пользователь Twitch не найден' }, { status: 404 });
+         }
+         userData = data.data[0];
+         console.log('/api/twitch/user: Основная информация пользователя получена успешно.');
       }
-    });
-    
-    if (!twitchResponse.ok) {
-      const errorText = await twitchResponse.text();
-      console.error(`API user: Ошибка Twitch API /users ${twitchResponse.status}`, errorText);
-      // Возвращаем статус ошибки от Twitch
-      return NextResponse.json({ error: 'Ошибка при получении данных пользователя от Twitch', details: errorText }, { status: twitchResponse.status });
-    }
-    
-    const twitchData = await twitchResponse.json();
-    
-    if (!twitchData.data || twitchData.data.length === 0) {
-      console.error('API user: Не удалось получить данные пользователя от Twitch (пустой массив data)');
-      return NextResponse.json({ error: 'Не удалось найти данные пользователя по токену' }, { status: 404 });
-    }
-    
-    const userData = twitchData.data[0];
-    const userId = userData.id;
-    
-    // 3. Получаем количество фолловеров пользователя (/helix/channels/followers)
-    userData.follower_count = 0; // Инициализируем
-    try {
-        const followersResponse = await fetch(`https://api.twitch.tv/helix/channels/followers?broadcaster_id=${userId}`, { // Используем /channels/followers
-          headers: {
-            'Client-ID': TWITCH_CLIENT_ID,
-            'Authorization': `Bearer ${accessToken}`
+
+      // 2. Получаем количество подписчиков (только если userData успешно получены)
+      if (userData && userData.id) {
+          console.log('/api/twitch/user: Запрос количества подписчиков...');
+          const followersResponse = await fetch(`https://api.twitch.tv/helix/channels/followers?broadcaster_id=${userData.id}`, {
+              headers: {
+                  'Client-ID': process.env.TWITCH_CLIENT_ID,
+                  // Используем тот же токен, что сработал для /users (или обновленный)
+                  'Authorization': `Bearer ${supabase.auth.session()?.provider_token || providerToken}`
+              },
+          });
+
+          console.log('/api/twitch/user: Статус ответа от /channels/followers:', followersResponse.status);
+
+          if (followersResponse.ok) {
+              const followersData = await followersResponse.json();
+              followersCount = followersData.total;
+              console.log('/api/twitch/user: Количество подписчиков получено:', followersCount);
+          } else {
+              // Не считаем критической ошибкой, если не удалось получить подписчиков
+              const errorBody = await followersResponse.text();
+              console.warn(`/api/twitch/user: Не удалось получить количество подписчиков (${followersResponse.status}):`, errorBody);
           }
-        });
+      }
 
-        if (followersResponse.ok) {
-          const followersData = await followersResponse.json();
-          userData.follower_count = followersData.total || 0;
-        } else {
-          console.warn(`API user: Не удалось получить количество подписчиков для ${userId}: ${followersResponse.status}`);
-          // Не прерываем выполнение, просто оставляем 0
-        }
-    } catch (followError) {
-         console.error(`API user: Ошибка при запросе количества подписчиков для ${userId}:`, followError);
-         // Не прерываем выполнение, просто оставляем 0
+    } catch (fetchError) {
+      // Ошибки сети или при парсинге JSON
+      console.error('/api/twitch/user: Ошибка сети или парсинга при запросе к Twitch API:', fetchError);
+      return NextResponse.json({ error: 'Ошибка сети при обращении к Twitch' }, { status: 502 }); // 502 Bad Gateway
     }
 
-    // 4. Получаем количество фолловингов (/helix/users/follows)
-    userData.following_count = 0; // Инициализируем
-    try {
-        const followingResponse = await fetch(`https://api.twitch.tv/helix/users/follows?from_id=${userId}`, { // Здесь /users/follows все еще актуален
-          headers: {
-            'Client-ID': TWITCH_CLIENT_ID,
-            'Authorization': `Bearer ${accessToken}`
-          }
-        });
-        
-        if (followingResponse.ok) {
-          const followingData = await followingResponse.json();
-          userData.following_count = followingData.total || 0;
-        } else {
-          console.warn(`API user: Не удалось получить количество подписок для ${userId}: ${followingResponse.status}`);
-          // Не прерываем выполнение, просто оставляем 0
-        }
-    } catch (followingError) {
-         console.error(`API user: Ошибка при запросе количества подписок для ${userId}:`, followingError);
-         // Не прерываем выполнение, просто оставляем 0
-    }
+    // 3. Формируем и возвращаем объединенный ответ
+    const resultData = {
+      id: userData.id, // Twitch ID
+      login: userData.login,
+      display_name: userData.display_name,
+      profile_image_url: userData.profile_image_url,
+      description: userData.description,
+      created_at: userData.created_at,
+      // Добавляем тип канала и количество подписчиков
+      broadcaster_type: userData.broadcaster_type,
+      followers_count: followersCount, // Может быть null, если запрос не удался
+    };
 
-    // 5. Возвращаем данные пользователя
-    console.log(`API user: Успешно получены данные для ${userData.login}`);
-    return NextResponse.json(userData);
+    console.log('/api/twitch/user: Успешное получение данных пользователя:', resultData.login);
+    return NextResponse.json(resultData, { status: 200 });
 
   } catch (error) {
-    console.error('API user: Внутренняя ошибка сервера:', error);
+    // Глобальный обработчик ошибок (например, ошибки Supabase client)
+    console.error('/api/twitch/user: Глобальная ошибка:', error);
     return NextResponse.json({ error: 'Внутренняя ошибка сервера' }, { status: 500 });
   }
 } 
