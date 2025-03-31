@@ -1,4 +1,6 @@
 import { NextResponse } from 'next/server';
+// ДОБАВЛЕНО: Импорт Supabase SSR
+import { createServerClient } from '@supabase/ssr';
 
 // Вспомогательная функция для генерации случайной строки
 function generateRandomString(length) {
@@ -41,16 +43,79 @@ function generateRandomString(length) {
   return result;
 }
 
-export function middleware(request) {
+export async function middleware(request) {
   const url = request.nextUrl.clone();
   const { pathname } = url;
   const isProduction = process.env.NODE_ENV === 'production';
+  const response = NextResponse.next();
+
+  // --- Настройка Supabase Client ---
+  // Выносим переменные окружения для читаемости
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+
+  // Проверяем наличие переменных окружения
+  if (!supabaseUrl || !supabaseAnonKey) {
+    console.error('[Middleware] Ошибка: Не установлены переменные окружения Supabase.');
+    // В случае отсутствия ключей, лучше вернуть ошибку или обработать иначе
+    // return new NextResponse('Internal Server Error: Supabase keys missing', { status: 500 });
+    // Пока что просто пропустим дальнейшую логику Supabase
+  }
+
+  let supabase;
+  let session = null;
+  let userId = null;
+  let authError = null;
+
+  if (supabaseUrl && supabaseAnonKey) {
+      supabase = createServerClient(
+        supabaseUrl,
+        supabaseAnonKey,
+        {
+          cookies: {
+            get(name) {
+              return request.cookies.get(name)?.value;
+            },
+            set(name, value, options) {
+              // Важно: Middleware не должен устанавливать куки авторизации,
+              // это делается в /auth/callback. Но если нужно обновить/удалить
+              // другие куки, можно использовать response.cookies.set
+               response.cookies.set({ name, value, ...options });
+            },
+            remove(name, options) {
+              // Аналогично для удаления
+               response.cookies.set({ name, value: '', ...options });
+            },
+          },
+        }
+      );
+
+      // --- Получаем сессию Supabase ---
+      try {
+        const { data, error } = await supabase.auth.getUser();
+        if (error) {
+          authError = error;
+          // Не обязательно прерывать выполнение, просто пользователь будет не аутентифицирован
+          if (!isProduction) console.log('[Middleware] Ошибка получения пользователя Supabase:', error.message);
+        } else if (data?.user) {
+          session = data.user; // Сохраняем данные пользователя, если есть
+          userId = data.user.id;
+           if (!isProduction) console.log('[Middleware] Сессия Supabase найдена, User ID:', userId);
+        } else {
+           if (!isProduction) console.log('[Middleware] Сессия Supabase НЕ найдена.');
+        }
+      } catch (e) {
+         // Обработка непредвиденных ошибок при работе с Supabase
+         console.error('[Middleware] Непредвиденная ошибка при получении сессии Supabase:', e);
+         authError = e; // Сохраняем ошибку
+      }
+  } else {
+       if (!isProduction) console.log('[Middleware] Пропуск проверки Supabase из-за отсутствия ключей.');
+  }
 
   if (!isProduction) {
     console.log('[Middleware] Обработка:', pathname);
   }
-
-  const response = NextResponse.next();
 
   // --- Безопасность и CORS --- (Оставляем без изменений, но можно рефакторить)
   // Получаем origin и проверяем разрешенные домены
@@ -120,92 +185,83 @@ export function middleware(request) {
     }
   }
 
-  // --- Логика Авторизации --- 
+  // --- Логика Авторизации (ОБНОВЛЕННАЯ) ---
 
-  // Пути, не требующие авторизации
   const publicPaths = [
-    '/auth', 
-    '/login', 
-    '/menu', 
+    '/auth',
+    '/login', // Можно оставить на всякий случай или убрать
+    '/menu',
     '/', // Главная страница
-    // Добавляем новый callback Supabase
-    '/auth/callback', 
-    // Удаляем старые API Twitch
-    // '/api/auth/callback', 
-    // '/api/twitch/login', 
-    // '/api/twitch/callback',
-    // '/api/twitch/token',
-    '/api/db-check' // Пример публичного API
+    '/auth/callback',
+    '/api/db-check', // Пример публичного API
+    // Добавляем пути, которые должны быть публичными, например, API для получения общих данных
+    '/api/reviews/public', // Пример
   ];
 
-  // Проверяем, является ли путь публичным
   const isPublicPath = publicPaths.some(path => pathname === path || (path.endsWith('/*') && pathname.startsWith(path.slice(0, -2))));
-  
-  // Пропускаем статические файлы и внутренние ресурсы Next.js
-  if (pathname.startsWith('/_next/') || 
-      pathname.startsWith('/static/') || 
-      pathname.includes('.') // Пропускаем файлы с расширениями (favicon.ico, images, etc.)
-     ) {
-    return response; // Используем response, чтобы сохранить заголовки
+
+  if (pathname.startsWith('/_next/') ||
+      pathname.startsWith('/static/') ||
+      pathname.includes('.')) {
+    return response;
   }
 
-  // Проверяем наличие токенов/данных пользователя
-  const hasAccessToken = request.cookies.has('twitch_access_token');
-  const hasUserCookie = request.cookies.has('twitch_user') || request.cookies.has('twitch_user_data');
-  const hasAuthHeader = request.headers.has('Authorization') && request.headers.get('Authorization').startsWith('Bearer ');
-  
-  const isAuthenticated = hasAccessToken || hasUserCookie || hasAuthHeader;
+  // НОВАЯ проверка аутентификации
+  const isAuthenticated = !!session && !!userId && !authError; // Считаем авторизованным, если есть сессия и нет ошибок
 
   if (!isProduction) {
-      console.log('[Middleware] Статус авторизации:', {
+      console.log('[Middleware] Статус авторизации (Supabase):', {
           pathname,
           isPublicPath,
-          hasAccessToken,
-          hasUserCookie,
-          hasAuthHeader,
-          isAuthenticated
+          isAuthenticated: isAuthenticated,
+          userId: userId,
+          hasAuthError: !!authError,
       });
   }
 
   // Обработка API запросов (кроме публичных API)
   if (pathname.startsWith('/api/') && !isPublicPath) {
-    // Middleware больше НЕ проверяет аутентификацию для API-маршрутов.
-    // Каждый API-маршрут (например, с использованием Supabase SSR)
-    // должен сам проверять аутентификацию пользователя.
-    /* 
-    if (!isAuthenticated) {
-        console.log('[Middleware] API: Не авторизован. Отказ.');
-        return new NextResponse(JSON.stringify({ error: 'Unauthorized' }), {
-            status: 401,
-            headers: { 'Content-Type': 'application/json' },
-        });
-    }
-    */
-    // Просто добавляем заголовки безопасности/CORS и пропускаем запрос дальше.
-    return response; 
+    // Теперь API роуты *должны* сами проверять аутентификацию через createServerClient
+    // Middleware просто передает запрос дальше с установленными заголовками
+    return response;
   }
 
   // Обработка защищенных страниц
   if (!isPublicPath && !isAuthenticated) {
     console.log(`[Middleware] Страница: Не авторизован (${pathname}). Редирект на /auth`);
     const loginUrl = new URL('/auth', request.url);
-    loginUrl.searchParams.set('redirect', pathname); // Добавляем путь для редиректа после логина
+    loginUrl.searchParams.set('redirect', pathname);
+    // Добавляем причину редиректа для отладки на странице /auth
+    loginUrl.searchParams.set('reason', 'middleware_unauthenticated');
     return NextResponse.redirect(loginUrl);
   }
-  
-   // Если пользователь авторизован и пытается зайти на /auth или /login, редирект на /menu
-   if ((pathname === '/auth' || pathname === '/login') && isAuthenticated) {
+
+   // Если пользователь АУТЕНТИФИЦИРОВАН (по новой логике) и пытается зайти на /auth
+   if (pathname === '/auth' && isAuthenticated) {
       console.log(`[Middleware] Авторизован (${pathname}). Редирект на /menu`);
-      return NextResponse.redirect(new URL('/menu', request.url));
+      // Возможно, стоит редиректить на /profile или на запрошенный redirect?
+      // Пока оставляем /menu как основную страницу для авторизованных.
+      const menuUrl = new URL('/menu', request.url);
+      return NextResponse.redirect(menuUrl);
    }
 
-  // Для всех остальных случаев (публичные страницы или авторизованные пользователи на защищенных страницах)
-  return response; // Возвращаем response с установленными заголовками
+  // Если пользователь авторизован и находится на публичной или своей странице,
+  // просто возвращаем response с нужными заголовками
+  return response;
 }
 
-// Конфигурация matcher остается прежней
+// Конфигурация Middleware: Указываем пути, на которых он должен работать
 export const config = {
   matcher: [
-    '/((?!_next/static|_next/image|favicon.ico).*)',
+    /*
+     * Сопоставляем все пути запросов, кроме:
+     * - Начинающихся с /api/auth/ (старый коллбэк, можно удалить если точно не используется)
+     * - Начинающихся с /_next/static (статические файлы)
+     * - Начинающихся с /static (другие статические файлы)
+     * - Содержащих расширение файла (e.g. .png)
+     * - favicon.ico
+     */
+    // '/((?!api/auth/|_next/static|static|.*\..*|favicon.ico).*)', // Старая версия
+     '/((?!_next/static|static|.*\..*|favicon.ico).*)', // Упрощенная версия без api/auth
   ],
 }; 
