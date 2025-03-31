@@ -5,6 +5,16 @@ import { cookies } from 'next/headers'; // Нужен для createServerClient
 
 export async function GET() {
   const cookieStore = cookies();
+
+  // ДОБАВЛЕНО ЛОГИРОВАНИЕ ПРИШЕДШИХ COOKIE
+  try {
+    const allCookies = cookieStore.getAll();
+    console.log('API user: Получены cookies:', JSON.stringify(allCookies, null, 2));
+  } catch (e) {
+    console.error('API user: Не удалось прочитать cookies:', e);
+  }
+  // --- КОНЕЦ ЛОГИРОВАНИЯ ---
+
   const supabaseAuth = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,

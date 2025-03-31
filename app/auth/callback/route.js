@@ -24,6 +24,7 @@ export async function GET(request) {
           },
           set(name, value, options) {
             try {
+              console.log(`Auth Callback: Установка cookie ${name}, secure: ${options.secure}, httpOnly: ${options.httpOnly}, sameSite: ${options.sameSite}`);
               cookieStore.set({ name, value, ...options })
             } catch (error) {
               // Обработка ошибок, если cookie не может быть установлен
@@ -31,6 +32,7 @@ export async function GET(request) {
             }
           },
           remove(name, options) {
+            console.log(`Auth Callback: Удаление cookie ${name}`);
             try {
               cookieStore.set({ name, value: '', ...options })
             } catch (error) {
