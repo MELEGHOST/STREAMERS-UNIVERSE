@@ -101,8 +101,8 @@ export async function GET(request) {
     {
       cookies: {
         get(name) { return cookieStore.get(name)?.value },
-        set(name, value, options) { cookieStore.set({ name, value, ...options }) },
-        remove(name, options) { cookieStore.set({ name, value: '', ...options }) },
+        set(name, value, options) { cookieStore.set({ name, value, ...options, sameSite: options.sameSite || 'Lax' }) },
+        remove(name, options) { cookieStore.set({ name, value: '', ...options, sameSite: options.sameSite || 'Lax' }) },
       },
     }
   );

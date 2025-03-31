@@ -24,8 +24,8 @@ export async function GET(request) {
           },
           set(name, value, options) {
             try {
-              console.log(`Auth Callback: Установка cookie ${name}, secure: ${options.secure}, httpOnly: ${options.httpOnly}, sameSite: ${options.sameSite}`);
-              cookieStore.set({ name, value, ...options })
+              console.log(`Auth Callback: Установка cookie ${name}, secure: ${options.secure}, httpOnly: ${options.httpOnly}, sameSite: ${options.sameSite || 'Lax (default)'}`);
+              cookieStore.set({ name, value, ...options, sameSite: options.sameSite || 'Lax' })
             } catch (error) {
               // Обработка ошибок, если cookie не может быть установлен
               console.error(`Auth Callback: Ошибка установки cookie ${name}:`, error);
@@ -34,7 +34,7 @@ export async function GET(request) {
           remove(name, options) {
             console.log(`Auth Callback: Удаление cookie ${name}`);
             try {
-              cookieStore.set({ name, value: '', ...options })
+              cookieStore.set({ name, value: '', ...options, sameSite: options.sameSite || 'Lax' })
             } catch (error) {
                console.error(`Auth Callback: Ошибка удаления cookie ${name}:`, error);
             }
