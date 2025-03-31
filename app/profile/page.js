@@ -191,9 +191,9 @@ function Profile() {
         const userId = session.user.id;
 
         const { data: profileData, error: profileDbError } = await supabase
-            .from('profiles')
+            .from('user_profiles')
             .select('username, avatar_url, description, birthday, social_links')
-            .eq('id', userId)
+            .eq('user_id', userId)
             .single();
 
         if (profileDbError) {
