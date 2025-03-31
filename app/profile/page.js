@@ -70,6 +70,7 @@ function Profile() {
   const [showStats, setShowStats] = useState(false);
   
   const [userId, setUserId] = useState('');
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
 
   const supabase = useMemo(() => 
     createBrowserClient(
@@ -447,9 +448,11 @@ function Profile() {
   };
 
   const handleLogout = async () => {
+    if (isLoggingOut) return;
+
     try {
       console.log('Выполняем выход из аккаунта через Supabase...');
-      setLoading(true);
+      setIsLoggingOut(true);
       
       const { error } = await supabase.auth.signOut();
       
@@ -468,7 +471,7 @@ function Profile() {
       alert('Произошла критическая ошибка при выходе из аккаунта.');
       router.push('/');
     } finally {
-      setLoading(false);
+      setIsLoggingOut(false);
     }
   };
 
@@ -601,7 +604,9 @@ function Profile() {
             <button className={styles.reviewsButton} onClick={toggleReviews} title="Отзывы о вас">⭐ Отзывы</button>
             <button className={styles.button} onClick={() => router.push('/edit-profile')}>Редактировать профиль</button>
             <button className={styles.button} onClick={() => router.push('/menu')}>Вернуться в меню</button>
-            <button className={styles.logoutButton} onClick={handleLogout}>Выйти</button>
+            <button className={styles.logoutButton} onClick={handleLogout} disabled={isLoggingOut}>
+              {isLoggingOut ? 'Выход...' : 'Выйти'}
+            </button>
           </div>
         </div>
         

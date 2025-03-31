@@ -142,7 +142,7 @@ export default function Reviews() {
       const reviewData = {
         category: selectedCategory.id,
         subcategory: selectedSubcategory.id,
-        productName,
+        targetName: productName,
         rating,
         content: reviewText,
         authorId: userData.id
