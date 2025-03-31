@@ -110,7 +110,7 @@ function Profile() {
           'Cache-Control': 'no-cache, no-store',
           'Pragma': 'no-cache'
         },
-        credentials: 'include',
+        credentials: 'include'
       });
 
       console.log(`Profile: Получен статус ответа от /api/twitch/user: ${response.status}`);

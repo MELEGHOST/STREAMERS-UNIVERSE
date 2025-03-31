@@ -7,7 +7,8 @@ import ReviewCategories from '../components/ReviewCategories';
 // import Link from 'next/link'; // Удаляем неиспользуемый импорт
 import { DataStorage } from '../utils/dataStorage';
 import { useAuth } from '../../contexts/AuthContext';
-// import supabase from '../../lib/supabaseClient'; // Удаляем неиспользуемый импорт
+import { createBrowserClient } from '@supabase/ssr';
+import { useMemo } from 'react';
 
 // Импортируем категории из компонента ReviewCategories
 import { categories } from '../components/ReviewCategories';
@@ -27,28 +28,38 @@ export default function Reviews() {
   const [formErrors, setFormErrors] = useState({});
   const router = useRouter();
 
+  // Создаем клиент Supabase
+  const supabase = useMemo(() => 
+    createBrowserClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+    ), 
+  []);
+
   useEffect(() => {
     const checkAuth = async () => {
       try {
         setIsLoading(true);
+        // Заменяем DataStorage на Supabase
+        const { data: { session } } = await supabase.auth.getSession();
         
-        // Проверяем авторизацию
-        const isAuth = DataStorage.isAuthenticated();
-        
-        if (!isAuth) {
-          // Если не авторизован, перенаправляем на страницу логина
-          router.push('/login');
+        if (!session) {
+          console.log('ReviewsPage: Сессия не найдена, редирект на /auth');
+          router.push('/auth?reason=unauthenticated');
         } else {
+          console.log('ReviewsPage: Сессия найдена');
           setIsLoading(false);
         }
       } catch (error) {
-        console.error('Ошибка при проверке авторизации:', error);
-        setIsLoading(false);
-      }
+        console.error('ReviewsPage: Ошибка при проверке сессии Supabase:', error);
+        // Можно перенаправить на страницу ошибки или показать сообщение
+        router.push('/auth?reason=session_error'); 
+      } 
+      // finally не нужен, setLoading(false) происходит внутри else
     };
     
     checkAuth();
-  }, [router]);
+  }, [router, supabase]); // Добавляем supabase
 
   const handleReturnToMenu = () => {
     router.push('/menu');
@@ -98,10 +109,6 @@ export default function Reviews() {
       errors.category = 'Выберите категорию';
     }
     
-    if (selectedCategory && !selectedSubcategory) {
-      errors.subcategory = 'Выберите подкатегорию';
-    }
-    
     if (!productName.trim()) {
       errors.productName = 'Введите название товара или услуги';
     }
@@ -129,30 +136,34 @@ export default function Reviews() {
     setSubmitting(true);
     
     try {
-      // Получаем данные пользователя
-      const userData = await DataStorage.getData('user');
-      
-      if (!userData || !userData.id) {
-        setSubmitError('Необходимо авторизоваться для публикации отзыва');
+      // 1. Получаем ID пользователя из сессии Supabase
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+      if (sessionError || !session) {
+        setSubmitError('Сессия не найдена. Пожалуйста, перезайдите.');
         setSubmitting(false);
         return;
       }
+      const authorId = session.user.id;
+      if (!authorId) { // Доп. проверка на всякий случай
+         setSubmitError('Не удалось получить ID пользователя из сессии.');
+         setSubmitting(false);
+         return;
+      }
 
-      // Готовим данные для отправки на сервер
+      // 2. Готовим данные для отправки
       const reviewData = {
-        category: selectedCategory.id,
-        subcategory: selectedSubcategory.id,
-        targetName: productName,
+        targetName: productName, 
         rating,
-        content: reviewText,
-        authorId: userData.id
+        content: reviewText, 
+        targetType: selectedCategory?.name || 'Разное', // Определяем тип цели (например, по названию категории)
       };
       
-      // Отправляем данные на сервер
+      // 3. Отправляем данные на сервер
       const response = await fetch('/api/reviews', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          // Cookie передаются автоматически в App Router
         },
         body: JSON.stringify(reviewData),
       });
@@ -160,19 +171,18 @@ export default function Reviews() {
       const data = await response.json();
       
       if (!response.ok) {
-        console.error('Ошибка при публикации отзыва:', data.error);
-        setSubmitError(data.error || 'Произошла ошибка при публикации отзыва. Пожалуйста, попробуйте еще раз.');
+        console.error('Ошибка при публикации отзыва:', response.status, data);
+        setSubmitError(data.error || `Ошибка ${response.status}. Попробуйте еще раз.`);
         setSubmitting(false);
         return;
       }
       
-      // Успешно опубликовано
       alert('Ваш отзыв успешно опубликован!');
       closeModal();
       
     } catch (error) {
-      console.error('Ошибка при публикации отзыва:', error);
-      setSubmitError('Произошла ошибка при публикации отзыва. Пожалуйста, попробуйте еще раз.');
+      console.error('Критическая ошибка при публикации отзыва:', error);
+      setSubmitError('Произошла непредвиденная ошибка. Пожалуйста, попробуйте еще раз.');
     } finally {
       setSubmitting(false);
     }
