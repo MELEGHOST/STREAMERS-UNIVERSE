@@ -56,10 +56,7 @@ function Profile() {
   const searchParams = useSearchParams();
 
   const [twitchUserData, setTwitchUserData] = useState(null);
-  const [userProfileDbData, setUserProfileDbData] = useState(null);
-
   const [loadingTwitchUser, setLoadingTwitchUser] = useState(true);
-  const [loadingProfileDb, setLoadingProfileDb] = useState(true);
   const [loadingReviews, setLoadingReviews] = useState(false);
 
   const [globalError, setGlobalError] = useState(null);
@@ -73,9 +70,8 @@ function Profile() {
   const [isLoggingOut, setIsLoggingOut] = useState(false);
 
   const [userProfile, setUserProfile] = useState(null);
-  const [loadingProfile, setLoadingProfile] = useState(false);
+  const [loadingProfile, setLoadingProfile] = useState(true);
   const [profileError, setProfileError] = useState(null);
-  const [birthdayMessage, setBirthdayMessage] = useState('');
 
   const supabase = useMemo(() => 
     createBrowserClient(
@@ -203,42 +199,14 @@ function Profile() {
         } else if (profileData) {
             console.log('Profile: Данные профиля из БД загружены:', profileData);
             setUserProfile(profileData);
-            if (profileData.birthday) {
-                try {
-                    const today = new Date();
-                    const birthDate = new Date(profileData.birthday);
-                    
-                    birthDate.setFullYear(today.getFullYear());
-                    
-                    const diffTime = birthDate.getTime() - today.getTime();
-                    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-                    
-                    const birthDateFormatted = birthDate.toLocaleDateString('ru-RU', { day: '2-digit', month: '2-digit' });
-
-                    if (diffDays === 0) {
-                        setBirthdayMessage(`🎂 С днем рождения!`);
-                    } else if (diffDays > 0 && diffDays <= 15) {
-                        setBirthdayMessage(`🎉 Скоро день рождения! (${birthDateFormatted})`);
-                    } else {
-                        setBirthdayMessage('');
-                    }
-                } catch(birthdayError) {
-                    console.error("Ошибка обработки даты рождения:", birthdayError);
-                    setBirthdayMessage('');
-                }
-            } else {
-                setBirthdayMessage('');
-            }
         } else {
              console.log('Profile: Профиль в БД не найден для пользователя:', userId);
              setUserProfile(null);
-             setBirthdayMessage('');
         }
     } catch (error) {
         console.error('Profile: Общая ошибка загрузки профиля из БД:', error);
         setProfileError('Произошла ошибка при загрузке профиля.');
         setUserProfile(null);
-        setBirthdayMessage('');
     } finally {
         setLoadingProfile(false);
     }
@@ -332,22 +300,22 @@ function Profile() {
   }, [fetchTwitchUserData, loadUserProfileDbData, loadTierlists, searchParams]);
 
   const { isBirthday, daysToBirthday } = useMemo(() => {
-      if (!userProfileDbData?.birthday) {
+      if (!userProfile?.birthday) {
           return { isBirthday: false, daysToBirthday: null };
       }
       try {
-          const birthDate = new Date(userProfileDbData.birthday);
+          const birthDate = new Date(userProfile.birthday);
           if (!isNaN(birthDate.getTime())) {
               return checkBirthday(birthDate);
           } else {
-              console.warn('Profile: Невалидная дата рождения в userProfileDbData:', userProfileDbData.birthday);
+              console.warn('Profile: Невалидная дата рождения в userProfile:', userProfile.birthday);
               return { isBirthday: false, daysToBirthday: null };
           }
       } catch (e) {
           console.error('Profile: Ошибка вычисления дня рождения:', e);
           return { isBirthday: false, daysToBirthday: null };
       }
-  }, [userProfileDbData?.birthday]);
+  }, [userProfile?.birthday]);
 
   const isLoadingPage = loadingTwitchUser || loadingProfile;
 
@@ -363,34 +331,33 @@ function Profile() {
   };
 
   const renderBirthday = () => {
-    if (!userProfileDbData?.birthday || !userProfileDbData?.show_birthday) return null;
+    if (!userProfile?.birthday /* || !userProfile?.show_birthday */) return null;
 
     if (isBirthday) {
       return (
         <div className={styles.birthdayContainer}>
           <span className={styles.birthdayIcon}>🎂</span>
-          <span className={styles.birthdayText}>С днем рождения! +100 стример-коинов!</span>
+          <span className={styles.birthdayText}>С днем рождения!</span>
         </div>
       );
     }
     
-    if (daysToBirthday !== null && daysToBirthday <= 7) {
+    if (daysToBirthday !== null && daysToBirthday > 0 && daysToBirthday <= 15) {
+        const birthDate = new Date(userProfile.birthday);
+        birthDate.setFullYear(new Date().getFullYear());
+        const formattedDate = birthDate.toLocaleDateString('ru-RU', { day: '2-digit', month: '2-digit' });
+
       return (
         <div className={styles.birthdayContainer}>
-          <span className={styles.birthdayIcon}>🎂</span>
+          <span className={styles.birthdayIcon}>🎉</span>
           <span className={styles.birthdayText}>
-            День рождения через {daysToBirthday} {getDaysText(daysToBirthday)}!
+            Скоро день рождения! ({formattedDate})
           </span>
         </div>
       );
     }
     
-    return (
-       <div className={styles.birthdayContainer}>
-         <span className={styles.birthdayIcon}>🎂</span>
-         <span className={styles.birthdayText}>Скоро день рождения!</span>
-       </div>
-    );
+    return null;
   };
   
   const renderSocialLinks = () => {

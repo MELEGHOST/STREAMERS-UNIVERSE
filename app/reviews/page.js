@@ -212,10 +212,20 @@ export default function Reviews() {
         Любой пользователь может оставить свой отзыв. Выберите категорию, чтобы просмотреть отзывы или добавить свой.
       </p>
       
-      <button onClick={openWriteReviewModal} className={styles.writeReviewButton}>
-        <span className={styles.buttonIcon}>✏️</span>
-        Написать отзыв
-      </button>
+      <div className={styles.actionButtonsContainer}>
+        <button className={styles.writeReviewButton} onClick={openWriteReviewModal}>
+          <span className={styles.writeReviewIcon}>✏️</span>
+          Написать свой отзыв
+        </button>
+        <button 
+          className={`${styles.writeReviewButton} ${styles.uploadReviewButton}`}
+          onClick={() => router.push('/reviews/upload')}
+          title="Загрузить найденный отзыв (текст, фото, видео) для обработки"
+        >
+          <span className={styles.writeReviewIcon}>💾</span>
+          Загрузить чужой отзыв
+        </button>
+      </div>
       
       <ReviewCategories onWriteReview={openWriteReviewModal} />
       

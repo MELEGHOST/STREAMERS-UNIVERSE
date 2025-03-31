@@ -1,10 +1,10 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import UploadForm from './UploadForm';
-import { DataStorage } from '../../utils/dataStorage';
+import { createBrowserClient } from '@supabase/ssr';
 import styles from './page.module.css';
 
 export default function UploadPage() {
@@ -12,22 +12,35 @@ export default function UploadPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
 
+  const supabase = useMemo(() => 
+    createBrowserClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+    ), 
+  []);
+
   useEffect(() => {
-    // Проверяем авторизацию пользователя
     const checkAuth = async () => {
-      const isAuth = DataStorage.isAuthenticated();
-      setIsAuthenticated(isAuth);
-      
-      if (!isAuth) {
-        // Если пользователь не авторизован, перенаправляем на страницу авторизации
-        router.push('/auth');
+      setIsLoading(true);
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session) {
+          console.log('UploadPage: Сессия не найдена, редирект на /auth');
+          router.push('/auth?reason=unauthenticated&redirect=/reviews/upload');
+        } else {
+          console.log('UploadPage: Сессия найдена');
+          setIsAuthenticated(true);
+        }
+      } catch (error) {
+        console.error('UploadPage: Ошибка при проверке сессии Supabase:', error);
+        router.push('/auth?reason=session_error');
+      } finally {
+        setIsLoading(false);
       }
-      
-      setIsLoading(false);
     };
-    
+
     checkAuth();
-  }, [router]);
+  }, [router, supabase]);
 
   if (isLoading) {
     return (
@@ -39,7 +52,7 @@ export default function UploadPage() {
   }
 
   if (!isAuthenticated) {
-    return null; // Пользователь будет перенаправлен на страницу авторизации
+    return null;
   }
 
   return (
@@ -61,7 +74,7 @@ export default function UploadPage() {
         </p>
       </div>
       
-      <UploadForm />
+      <UploadForm supabase={supabase} />
     </div>
   );
 } 

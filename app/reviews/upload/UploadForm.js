@@ -2,12 +2,12 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import supabase from '../../../lib/supabase';
+// import supabase from '../../../lib/supabase'; // УДАЛЯЕМ, получаем как пропс
 import FileUploader from '../../components/reviews/FileUploader';
-import { DataStorage } from '../../utils/dataStorage';
+// import { DataStorage } from '../../utils/dataStorage'; // УДАЛЯЕМ
 import styles from './UploadForm.module.css';
 
-export default function UploadForm() {
+export default function UploadForm({ supabase }) { // Получаем supabase как пропс
   const router = useRouter();
   const [authorName, setAuthorName] = useState('');
   const [authorSocialLink, setAuthorSocialLink] = useState('');
@@ -15,6 +15,7 @@ export default function UploadForm() {
   const [category, setCategory] = useState('');
   const [rating, setRating] = useState('');
   const [files, setFiles] = useState([]);
+  const [links, setLinks] = useState(['']); // Состояние для ссылок
   const [isUploading, setIsUploading] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
@@ -24,14 +25,35 @@ export default function UploadForm() {
     setFiles(selectedFiles);
   };
 
+  // Функции для управления ссылками
+  const handleLinkChange = (index, value) => {
+    const newLinks = [...links];
+    newLinks[index] = value;
+    setLinks(newLinks);
+  };
+
+  const addLinkInput = () => {
+    setLinks([...links, '']);
+  };
+
+  const removeLinkInput = (index) => {
+    const newLinks = links.filter((_, i) => i !== index);
+    // Если удалили все поля, оставляем одно пустое
+    setLinks(newLinks.length > 0 ? newLinks : ['']); 
+  };
+
   // Обработчик отправки формы
   const handleSubmit = async (e) => {
     e.preventDefault();
     setErrorMessage('');
     setSuccessMessage('');
 
-    if (!authorName || !productName || files.length === 0) {
-      setErrorMessage('Пожалуйста, заполните все обязательные поля и загрузите хотя бы один файл.');
+    // Фильтруем пустые ссылки перед валидацией и отправкой
+    const validLinks = links.filter(link => link.trim() !== '');
+
+    // Добавляем проверку: хотя бы один файл ИЛИ одна ссылка
+    if (!authorName || !productName || (files.length === 0 && validLinks.length === 0)) {
+      setErrorMessage('Пожалуйста, заполните имя автора, название продукта и загрузите хотя бы один файл или добавьте ссылку.');
       return;
     }
 
@@ -39,54 +61,64 @@ export default function UploadForm() {
     setIsUploading(true);
 
     try {
-      // Получаем данные пользователя
-      const userData = await DataStorage.getData('user');
-      
-      if (!userData || !userData.id) {
-        setErrorMessage('Ошибка: не удалось получить данные пользователя. Пожалуйста, войдите в систему.');
+      // Получаем ID пользователя из сессии Supabase
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+      if (sessionError || !session) {
+        setErrorMessage('Ошибка: Сессия не найдена. Пожалуйста, перезайдите.');
         setIsUploading(false);
         return;
+      }
+      const userId = session.user.id;
+      if (!userId) {
+         setErrorMessage('Ошибка: Не удалось получить ID пользователя из сессии.');
+         setIsUploading(false);
+         return;
       }
       
       // Загружаем файлы в Supabase Storage
       const uploadedFiles = [];
       
-      for (const file of files) {
-        // Генерируем уникальное имя файла
-        const fileExt = file.name.split('.').pop();
-        const fileName = `${userData.id}_${Date.now()}_${Math.floor(Math.random() * 1000)}.${fileExt}`;
-        const filePath = `reviews/${fileName}`;
-        
-        // Загружаем файл
-        const { error: uploadError } = await supabase.storage
-          .from('user-uploads')
-          .upload(filePath, file);
-        
-        if (uploadError) {
-          console.error('Ошибка при загрузке файла:', uploadError);
-          setErrorMessage(`Ошибка при загрузке файла ${file.name}: ${uploadError.message}`);
-          setIsUploading(false);
-          return;
+      if (files.length > 0) {
+        console.log('Загрузка файлов...');
+        for (const file of files) {
+          const fileExt = file.name.split('.').pop();
+          const fileName = `${userId}_${Date.now()}_${Math.floor(Math.random() * 1000)}.${fileExt}`;
+          // Используем бакет 'reviews' как в API
+          const filePath = `reviews/${fileName}`; 
+          
+          // Используем клиент supabase из пропсов
+          const { error: uploadError } = await supabase.storage
+            .from('reviews') // Убедитесь, что бакет 'reviews' существует и настроен
+            .upload(filePath, file);
+          
+          if (uploadError) {
+            console.error('Ошибка при загрузке файла:', uploadError);
+            setErrorMessage(`Ошибка при загрузке файла ${file.name}: ${uploadError.message}`);
+            setIsUploading(false);
+            return;
+          }
+          
+          uploadedFiles.push(filePath);
         }
-        
-        // Добавляем путь к файлу в список загруженных файлов
-        uploadedFiles.push(filePath);
+        console.log('Файлы загружены:', uploadedFiles);
       }
       
       // Создаем запись в базе данных
       const { data: reviewData, error: reviewError } = await supabase
         .from('reviews')
         .insert({
-          user_id: userData.id,
+          user_id: userId, // ID пользователя, который загрузил (модератор/админ)
           author_name: authorName,
           author_social_link: authorSocialLink || null,
-          content: '', // Будет заполнено нейросетью после обработки
-          sources: [],  // Будет заполнено нейросетью после обработки
+          content: '', 
+          sources: validLinks,  
           original_files: uploadedFiles,
-          status: 'pending',
+          status: 'pending', 
           product_name: productName,
           category: category || null,
-          rating: rating ? parseInt(rating, 10) : null
+          rating: rating ? parseInt(rating, 10) : null,
+          created_at: new Date().toISOString(), // Добавляем, т.к. default now() может не сработать для status pending
+          updated_at: new Date().toISOString(),
         })
         .select()
         .single();
@@ -99,36 +131,44 @@ export default function UploadForm() {
       }
       
       // Запускаем обработку файлов нейросетью
+      // Передаем ID созданного отзыва
       const response = await fetch('/api/reviews/generate', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          // Куки сессии должны автоматически передаваться
         },
         body: JSON.stringify({
           reviewId: reviewData.id,
-          files: uploadedFiles,
+          // Передаем пути к файлам в Storage
+          files: uploadedFiles, 
+          links: validLinks,
+          // Можно передать доп. инфо, если AI будет это использовать
           authorName,
           productName,
           category: category || undefined,
-          rating: rating ? parseInt(rating, 10) : undefined
+          rating: rating ? parseInt(rating, 10) : undefined,
+          authorSocialLink: authorSocialLink || undefined
         }),
       });
       
       const responseData = await response.json();
       
       if (!response.ok) {
-        console.error('Ошибка при обработке файлов нейросетью:', responseData.error);
-        setErrorMessage(`Файлы загружены, но произошла ошибка при их обработке: ${responseData.error}`);
+        console.error('Ошибка при запуске обработки AI:', responseData.error);
+        // Отзыв создан, но AI не запустился - нужно сообщить админу или обработать иначе?
+        // Пока показываем ошибку, но оставляем файлы и запись
+        setErrorMessage(`Файлы загружены, запись создана (ID: ${reviewData.id}), но произошла ошибка при запуске обработки AI: ${responseData.error || response.statusText}`);
       } else {
-        // Очищаем форму
+        // Очищаем форму и показываем сообщение об успехе
         setAuthorName('');
         setAuthorSocialLink('');
         setProductName('');
         setCategory('');
         setRating('');
         setFiles([]);
+        setLinks(['']);
         
-        // Показываем сообщение об успехе
         setSuccessMessage('Отзыв успешно загружен и отправлен на обработку. После модерации он будет опубликован.');
         
         // Перенаправляем на страницу с отзывами через 3 секунды
@@ -219,12 +259,19 @@ export default function UploadForm() {
               disabled={isUploading}
             >
               <option value="">Выберите категорию</option>
-              <option value="electronics">Электроника</option>
-              <option value="clothing">Одежда</option>
-              <option value="food">Еда</option>
+              {/* Нужно будет подгружать категории динамически */} 
+              <option value="hardware">Техника</option>
+              <option value="peripherals">Периферия</option>
+              <option value="furniture">Мебель</option>
+              <option value="lighting">Освещение</option>
+              <option value="audio">Аудио</option>
+              <option value="software">ПО</option>
               <option value="games">Игры</option>
-              <option value="services">Услуги</option>
-              <option value="other">Другое</option>
+              <option value="merch">Мерч</option>
+              <option value="services">Сервисы</option>
+              <option value="accessories">Аксессуары</option>
+              <option value="cameras">Камеры</option>
+              <option value="other">Прочее</option>
             </select>
           </div>
           
@@ -249,15 +296,53 @@ export default function UploadForm() {
           </div>
         </div>
         
+        {/* --- Поле для ссылок --- */} 
+        <div className={styles.formGroup}>
+            <label className={styles.label}>Ссылки на отзывы/источники</label>
+            {links.map((link, index) => (
+                <div key={index} className={styles.linkInputGroup}>
+                    <input
+                        type="url"
+                        value={link}
+                        onChange={(e) => handleLinkChange(index, e.target.value)}
+                        className={styles.input}
+                        placeholder="https://example.com/review"
+                        disabled={isUploading}
+                    />
+                    {links.length > 1 && (
+                        <button 
+                            type="button" 
+                            onClick={() => removeLinkInput(index)}
+                            className={styles.removeLinkButton}
+                            disabled={isUploading}
+                            title="Удалить ссылку"
+                        >
+                            ×
+                        </button>
+                    )}
+                </div>
+            ))}
+            <button 
+                type="button" 
+                onClick={addLinkInput}
+                className={styles.addLinkButton}
+                disabled={isUploading}
+            >
+                + Добавить еще ссылку
+            </button>
+        </div>
+        {/* --- Конец поля для ссылок --- */} 
+
         <div className={styles.formGroup}>
           <label className={styles.label}>
-            Файлы с отзывом <span className={styles.required}>*</span>
+            Файлы с отзывом (txt, png, jpg, mp3, wav, mp4)
           </label>
           <FileUploader
             onFilesSelected={handleFilesSelected}
-            acceptedTypes={['image/*', 'video/*', 'text/plain']}
+            // Расширяем типы, но помним об ограничениях AI
+            acceptedTypes={['text/plain', 'image/png', 'image/jpeg', 'image/webp', 'image/gif', 'audio/mpeg', 'audio/wav', 'video/mp4']} 
             maxFiles={5}
-            maxSizeMB={10}
+            maxSizeMB={25} // Увеличим немного лимит для аудио/видео?
           />
         </div>
         

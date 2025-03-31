@@ -128,6 +128,89 @@
   cursor: not-allowed;
 }
 
+/* Стили для поля ввода ссылок */
+.linkInputGroup {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 10px; /* Отступ между полями ссылок */
+}
+
+.linkInputGroup .input {
+  flex-grow: 1; /* Поле ввода занимает все доступное место */
+}
+
+.removeLinkButton {
+  background-color: #f1f1f1;
+  border: 1px solid #ddd;
+  color: #555;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  font-size: 20px;
+  line-height: 1;
+  cursor: pointer;
+  transition: background-color 0.2s, color 0.2s;
+  flex-shrink: 0; /* Кнопка не сжимается */
+  padding: 0; /* Убираем паддинг по умолчанию */
+  display: inline-flex; /* Для центрирования крестика */
+  align-items: center;
+  justify-content: center;
+}
+
+.removeLinkButton:hover {
+  background-color: #ff5252;
+  color: white;
+  border-color: #ff5252;
+}
+
+.removeLinkButton:disabled {
+   background-color: #e0e0e0;
+   color: #999;
+   cursor: not-allowed;
+}
+
+.addLinkButton {
+  background: none;
+  border: 1px dashed #ccc;
+  color: #6441a5;
+  padding: 8px 16px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background-color 0.2s, border-color 0.2s, color 0.2s;
+  align-self: flex-start; /* Кнопка слева */
+  margin-top: 5px; /* Небольшой отступ сверху */
+}
+
+.addLinkButton:hover {
+  background-color: #f5f0ff;
+  border-color: #b7a8d8;
+  color: #583a92;
+}
+
+.addLinkButton:disabled {
+    background-color: #f5f5f5;
+    border-color: #e0e0e0;
+    color: #aaa;
+    cursor: not-allowed;
+}
+
+/* Медиа-запросы для поля ссылок (если нужно) */
+@media (max-width: 480px) {
+  .linkInputGroup {
+      gap: 5px;
+  }
+  .removeLinkButton {
+      width: 25px;
+      height: 25px;
+      font-size: 16px;
+  }
+  .addLinkButton {
+      padding: 6px 12px;
+      font-size: 14px;
+  }
+}
+
 /* Responsive styles */
 @media (max-width: 768px) {
   .formContainer {

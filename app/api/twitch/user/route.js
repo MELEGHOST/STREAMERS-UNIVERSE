@@ -1,7 +1,6 @@
 import { NextResponse } from 'next/server';
 // import { cookies } from 'next/headers'; // Не используется напрямую
 import { createServerClient } from '@supabase/ssr'; // Используем SSR клиент
-import { cookies } from 'next/headers'; // Нужен для createServerClient
 
 export async function GET(request) {
   const response = new NextResponse();

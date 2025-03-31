@@ -126,13 +126,18 @@ export async function POST(request) {
     
     // 4. Подготавливаем данные для вставки
     const reviewData = {
-      author_id: currentUserId, // Используем ID из сессии
+      user_id: currentUserId, // ИСПРАВЛЕНО: Используем user_id вместо author_id
       content,
       rating,
       target_name: targetName,
       target_type: targetType,
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString()
+      // Добавляем другие поля из таблицы, если они НЕ имеют default value и обязательны
+      // Например, если product_name, category не могут быть NULL
+      // product_name: ???, // Нужно убедиться, что это поле передается или не обязательно
+      // category: ???, // Нужно убедиться, что это поле передается или не обязательно
+      // status: 'pending' // Статус по умолчанию устанавливается в БД, можно не передавать
     };
     if (targetId) {
       reviewData.target_id = targetId;
