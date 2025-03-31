@@ -3,9 +3,8 @@
 import React, { useEffect, useState /*, useCallback */ } from 'react';
 import { useRouter } from 'next/navigation';
 import styles from './reviews.module.css';
-import ReviewCategories from '../components/ReviewCategories';
+import { ReviewCategories, subCategories } from '../../components/ReviewCategories';
 // import Link from 'next/link'; // Удаляем неиспользуемый импорт
-import { DataStorage } from '../utils/dataStorage';
 import { useAuth } from '../../contexts/AuthContext';
 import { createBrowserClient } from '@supabase/ssr';
 import { useMemo } from 'react';
