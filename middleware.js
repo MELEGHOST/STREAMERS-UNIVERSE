@@ -135,8 +135,8 @@ export async function middleware(request) {
     response.headers.set('X-Frame-Options', 'DENY');
     response.headers.set('X-XSS-Protection', '1; mode=block');
     response.headers.set('Referrer-Policy', 'strict-origin-when-cross-origin');
-    // Уточненный CSP, разрешающий Vercel Analytics, если используется
-    const cspValue = "default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://va.vercel-scripts.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https://*.twitch.tv https://*.jtvnw.net; connect-src 'self' https://api.twitch.tv https://id.twitch.tv https://*.supabase.co https://va.vercel-scripts.com; frame-ancestors 'none'; form-action 'self'; base-uri 'self'; object-src 'none';";
+    // Уточненный CSP, разрешающий Vercel Analytics и Supabase
+    const cspValue = "default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://va.vercel-scripts.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https://*.twitch.tv https://*.jtvnw.net; connect-src 'self' https://api.twitch.tv https://id.twitch.tv https://*.supabase.co https://udogabnowepgxjhycddc.supabase.co https://va.vercel-scripts.com; frame-ancestors 'none'; form-action 'self'; base-uri 'self'; object-src 'none';";
     response.headers.set('Content-Security-Policy', cspValue.replace(/\s{2,}/g, ' ').trim());
 
      // Установка CORS заголовков
