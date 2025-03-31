@@ -35,10 +35,10 @@ export default function UploadPage() {
         console.error('UploadPage: Ошибка при проверке сессии Supabase:', error);
         router.push('/auth?reason=session_error');
       } finally {
-        setIsLoading(false);
+      setIsLoading(false);
       }
     };
-
+    
     checkAuth();
   }, [router, supabase]);
 
