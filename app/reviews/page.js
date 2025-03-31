@@ -3,11 +3,14 @@
 import React, { useEffect, useState /*, useCallback */ } from 'react';
 import { useRouter } from 'next/navigation';
 import styles from './reviews.module.css';
-import ReviewCategories, { categories } from '../components/ReviewCategories';
+import ReviewCategories from '../components/ReviewCategories';
 // import Link from 'next/link'; // Удаляем неиспользуемый импорт
 import { useAuth } from '../../contexts/AuthContext';
 import { createBrowserClient } from '@supabase/ssr';
 import { useMemo } from 'react';
+
+// Импортируем categories отдельно
+import { categories } from '../components/ReviewCategories';
 
 export default function Reviews() {
   const { /* Удаляем userId */ /* Удаляем isAuthenticated */ } = useAuth();
