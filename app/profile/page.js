@@ -83,6 +83,27 @@ function Profile() {
     setLoadingTwitchUser(true);
     setGlobalError(null);
     console.log('Profile: Начало загрузки данных Twitch пользователя...');
+
+    try {
+        const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+        if (sessionError) {
+            console.error('Profile: Ошибка при проверке сессии Supabase перед запросом к API:', sessionError);
+            throw new Error('Ошибка проверки сессии');
+        }
+        if (!session) {
+            console.log('Profile: Сессия Supabase НЕ найдена НА КЛИЕНТЕ перед запросом к API. Перенаправление на /auth.');
+            router.push('/auth?reason=no_client_session');
+            setLoadingTwitchUser(false);
+            return null;
+        }
+        console.log('Profile: Сессия Supabase НА КЛИЕНТЕ найдена перед запросом к API.');
+    } catch (e) {
+        console.error('Profile: Критическая ошибка при проверке сессии Supabase на клиенте:', e);
+        setGlobalError('Ошибка проверки сессии. Попробуйте обновить страницу или войти снова.');
+        setLoadingTwitchUser(false);
+        return null;
+    }
+
     const shouldRefresh = forceRefresh || searchParams.get('refresh') === 'true';
 
     if (!shouldRefresh) {
@@ -103,6 +124,8 @@ function Profile() {
     }
 
     try {
+      console.log('Profile: Текущие document.cookie перед fetch /api/twitch/user:', document.cookie);
+
       const response = await fetch('/api/twitch/user', {
         method: 'GET',
         headers: {
@@ -116,8 +139,9 @@ function Profile() {
       console.log(`Profile: Получен статус ответа от /api/twitch/user: ${response.status}`);
 
       if (response.status === 401) {
-          console.log('Profile: Не аутентифицирован (Twitch), перенаправление на /auth');
-          router.push('/auth?reason=unauthenticated');
+          console.log('Profile: Не аутентифицирован (ответ 401 от API /api/twitch/user), перенаправление на /auth');
+          router.push('/auth?reason=api_unauthorized');
+          setLoadingTwitchUser(false);
           return null;
       }
       
@@ -148,7 +172,7 @@ function Profile() {
       setLoadingTwitchUser(false);
       return null;
     }
-  }, [router, searchParams]);
+  }, [router, searchParams, supabase]);
 
   const loadUserProfileDbData = useCallback(async () => {
     setLoadingProfileDb(true);
