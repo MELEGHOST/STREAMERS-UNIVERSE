@@ -17,24 +17,51 @@ export async function GET(request) {
   );
 
   try {
+    // Используем getUser() для получения и верификации сессии с сервером Supabase
+    // const { data: { session }, error: sessionError } = await supabase.auth.getSession(); // Заменяем
+    const { data: userDataAuth, error: userError } = await supabase.auth.getUser();
+
+    if (userError) {
+      console.error('/api/twitch/user: Ошибка получения/проверки пользователя Supabase (getUser):', userError);
+      // Если ошибка связана с отсутствием сессии, возвращаем 401
+      if (userError.message.includes('Auth session missing') || userError.status === 401) {
+         return NextResponse.json({ error: 'Пользователь не аутентифицирован (getUser)' }, { status: 401 });
+      }
+      // Другие ошибки getUser
+      return NextResponse.json({ error: 'Ошибка сервера при проверке сессии (getUser)' }, { status: 500 });
+    }
+
+    if (!userDataAuth || !userDataAuth.user) {
+      console.log('/api/twitch/user: Пользователь не аутентифицирован (getUser вернул null)');
+      return NextResponse.json({ error: 'Пользователь не аутентифицирован (getUser)' }, { status: 401 });
+    }
+    
+    // Получаем сессию из данных пользователя для доступа к provider_token
+    // Важно: getUser() возвращает пользователя, но нам все еще может понадобиться сессия для provider_token
+    // Мы можем снова вызвать getSession() *после* успешного getUser(), 
+    // так как теперь мы уверены, что куки валидны (раз getUser() сработал).
+    // Или, возможно, provider_token уже где-то сохранен/доступен? 
+    // Проверим структуру userDataAuth.user
+    // console.log('Структура userDataAuth.user:', userDataAuth.user); 
+    // provider_token обычно находится в объекте сессии, а не пользователя.
+    
+    // Поэтому, после успешного getUser(), мы можем безопасно получить сессию из кук.
     const { data: { session }, error: sessionError } = await supabase.auth.getSession();
-
-    if (sessionError) {
-      console.error('/api/twitch/user: Ошибка получения сессии Supabase:', sessionError);
-      return NextResponse.json({ error: 'Ошибка сервера при проверке сессии' }, { status: 500 });
+    
+    if (sessionError || !session) {
+        console.error('/api/twitch/user: Ошибка получения сессии ПОСЛЕ успешного getUser() или сессия null:', sessionError);
+        // Это не должно происходить, если getUser() успешен, но добавим проверку
+        return NextResponse.json({ error: 'Ошибка получения данных сессии после аутентификации' }, { status: 500 });
     }
 
-    if (!session) {
-      console.log('/api/twitch/user: Сессия не найдена');
-      return NextResponse.json({ error: 'Пользователь не аутентифицирован' }, { status: 401 });
-    }
-
+    // Теперь используем session, полученную ПОСЛЕ валидации через getUser()
     const providerToken = session.provider_token;
     const providerRefreshToken = session.provider_refresh_token;
-    const twitchUserId = session.user?.user_metadata?.provider_id;
+    const twitchUserId = session.user?.user_metadata?.provider_id; // Можно взять из session.user
 
     if (!providerToken || !twitchUserId) {
-      console.error('/api/twitch/user: Отсутствует provider_token или twitchUserId в сессии');
+      console.error('/api/twitch/user: Отсутствует provider_token или twitchUserId в сессии (после getUser)');
+      // Если getUser успешен, но в сессии нет токенов, это проблема конфигурации/логина
       return NextResponse.json({ error: 'Неполные данные аутентификации Twitch в сессии' }, { status: 401 });
     }
     
