@@ -54,7 +54,6 @@ function Profile() {
 
   const [userProfile, setUserProfile] = useState(null);
   const [loadingProfile, setLoadingProfile] = useState(true);
-  const [profileError, setProfileError] = useState(null);
 
   const supabase = useMemo(() => 
     createBrowserClient(
@@ -160,11 +159,12 @@ function Profile() {
 
   const loadUserProfileDbData = useCallback(async () => {
     setLoadingProfile(true);
-    setProfileError(null);
+    setSpecificErrors(prev => ({ ...prev, profileDb: null }));
     console.log('Profile: Загрузка данных профиля из БД...');
     try {
         const { data: { session }, error: sessionError } = await supabase.auth.getSession();
         if (sessionError || !session) {
+            setSpecificErrors(prev => ({ ...prev, profileDb: 'Сессия не найдена' }));
             throw new Error('Сессия не найдена для загрузки профиля БД');
         }
         const userId = session.user.id;
@@ -177,7 +177,7 @@ function Profile() {
 
         if (profileDbError) {
             console.error('Profile: Ошибка загрузки профиля из БД:', profileDbError);
-            setProfileError('Не удалось загрузить данные профиля.');
+            setSpecificErrors(prev => ({ ...prev, profileDb: 'Ошибка загрузки данных профиля из БД.' }));
             setUserProfile(null);
         } else if (profileData) {
             console.log('Profile: Данные профиля из БД загружены:', profileData);
@@ -192,7 +192,9 @@ function Profile() {
         }
     } catch (error) {
         console.error('Profile: Общая ошибка загрузки профиля из БД:', error);
-        setProfileError('Произошла ошибка при загрузке профиля.');
+        if (!specificErrors.profileDb) {
+            setSpecificErrors(prev => ({ ...prev, profileDb: 'Крит. ошибка при загрузке профиля.' }));
+        }
         setUserProfile(null);
     } finally {
         setLoadingProfile(false);
@@ -303,8 +305,6 @@ function Profile() {
           return { isBirthday: false, daysToBirthday: null };
       }
   }, [userProfile?.birthday]);
-
-  const isLoadingPage = loadingTwitchUser || loadingProfile;
 
   const formatDate = (dateString) => {
     if (!dateString) return '';
@@ -500,7 +500,7 @@ function Profile() {
   };
 
   // Используем данные из userProfile (БД) и twitchUserData (API/кэш)
-  const { description: profileDescriptionDb, birthday: profileBirthdayDb, social_links: profileSocialLinksDb } = userProfile || {};
+  const { description: profileDescriptionDb, social_links: profileSocialLinksDb } = userProfile || {};
   const { profile_image_url, login, display_name: twitchDisplayName, view_count, broadcaster_type, created_at, followers_count } = twitchUserData || {};
 
   // Определяем имя и аватар для отображения
