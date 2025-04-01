@@ -544,16 +544,14 @@ function Profile() {
     );
   }
   
-  const { profile_image_url, display_name, login, view_count, broadcaster_type, created_at } = twitchUserData;
-  const currentDescription = userProfile?.description || twitchUserData.description;
+  const { profile_image_url, login, view_count, broadcaster_type, created_at } = twitchUserData;
   const visibilitySettings = userProfile?.stats_visibility || {};
 
   // Используем данные из сессии, если в userProfile их нет
-  const displayName = userProfile?.username || session?.user?.user_metadata?.name || session?.user?.email || 'Пользователь';
-  const avatarUrl = userProfile?.avatar_url || session?.user?.user_metadata?.avatar_url || '/default-avatar.png';
+  const sessionDisplayName = userProfile?.username || session?.user?.user_metadata?.name || session?.user?.email || 'Пользователь';
+  const sessionAvatarUrl = userProfile?.avatar_url || session?.user?.user_metadata?.avatar_url || '/default-avatar.png';
   // Берем описание из userProfile, если есть, иначе из twitchUser (если он загружен), иначе пусто
   const profileDescription = userProfile?.description || twitchUserData?.description || ''; 
-  const socialLinks = userProfile?.social_links || {};
 
   return (
     <div className={styles.container}>
@@ -561,18 +559,18 @@ function Profile() {
         <div className={styles.profileHeader}>
           <div className={styles.avatarContainer}>
             <CyberAvatar 
-              src={profile_image_url || avatarUrl} 
-              alt={displayName || login || 'Пользователь'} 
+              src={profile_image_url || sessionAvatarUrl} 
+              alt={sessionDisplayName || login || 'Пользователь'} 
               size={150}
               className={styles.profileAvatar}
               layout="responsive"
               width={150}
               height={150}
-              onError={(event) => { event.target.src = avatarUrl; }}
+              onError={(event) => { event.target.src = sessionAvatarUrl; }}
             />
           </div>
           <div className={styles.profileDetails}>
-            <h1 className={styles.displayName}>{displayName}</h1>
+            <h1 className={styles.displayName}>{sessionDisplayName}</h1>
             <div className={styles.profileStats}>
                {(visibilitySettings.followers !== false) && (
                  <div className={styles.profileStat}>

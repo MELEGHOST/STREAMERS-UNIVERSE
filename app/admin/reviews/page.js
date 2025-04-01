@@ -24,22 +24,6 @@ export default function AdminReviewsPage() {
     ), 
   []);
 
-  const checkAccess = useCallback(async () => {
-    try {
-      const access = await checkAdminAccess(supabase);
-      setAdminInfo(access);
-      if (!access.isAdmin) {
-        router.push('/menu');
-        return;
-      }
-      loadReviews(filter);
-    } catch(err) {
-      console.error("Ошибка проверки доступа:", err);
-      setError('Не удалось проверить права доступа.');
-      setLoading(false);
-    }
-  }, [router, filter, supabase]);
-
   const loadReviews = useCallback(async (status) => {
     setLoading(true);
     setError(null);
@@ -70,15 +54,40 @@ export default function AdminReviewsPage() {
     }
   }, [supabase]);
 
-  useEffect(() => {
-    checkAccess();
-  }, [router, filter, supabase]);
+  const checkAccess = useCallback(async () => {
+    try {
+      const access = await checkAdminAccess(supabase);
+      setAdminInfo(access);
+      if (!access.isAdmin) {
+        router.push('/menu');
+        return false;
+      }
+      return true;
+    } catch(err) {
+      console.error("Ошибка проверки доступа:", err);
+      setError('Не удалось проверить права доступа.');
+      setLoading(false);
+      return false;
+    }
+  }, [router, supabase]);
 
   useEffect(() => {
-    if(adminInfo.isAdmin) {
-      loadReviews(filter);
-    }
-  }, [filter, adminInfo.isAdmin, loadReviews]);
+    let didCancel = false;
+    const initializeAndLoad = async () => {
+        setLoading(true);
+        const isAdmin = await checkAccess();
+        if (!didCancel && isAdmin) {
+            await loadReviews(filter);
+        }
+        if (!didCancel) {
+             setLoading(false);
+        }
+    };
+    
+    initializeAndLoad();
+    
+    return () => { didCancel = true; };
+  }, [checkAccess, loadReviews, filter]);
 
   const handleFilterChange = (status) => {
     setFilter(status);
