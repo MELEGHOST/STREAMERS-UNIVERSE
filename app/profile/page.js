@@ -499,59 +499,54 @@ function Profile() {
       }
   };
 
-  if (isLoadingPage) {
-    return (
-      <div className={styles.profileContainer}>
-        <div className={styles.profileHeader}>
-          <h1>Загрузка профиля...</h1>
-          <div className={styles.spinner}></div> 
-        </div>
-      </div>
-    );
-  }
+  // Используем данные из userProfile (БД) и twitchUserData (API/кэш)
+  const { description: profileDescriptionDb, birthday: profileBirthdayDb, social_links: profileSocialLinksDb } = userProfile || {};
+  const { profile_image_url, login, display_name: twitchDisplayName, view_count, broadcaster_type, created_at, followers_count } = twitchUserData || {};
 
-  if (globalError || profileError) {
-    return (
-      <div className={styles.profileContainer}>
-        <div className={styles.error}>
-          <h2>Произошла ошибка</h2>
-          <p>{globalError || profileError}</p>
-          <button onClick={() => fetchTwitchUserData(true)} className={styles.button}>
-            Попробовать снова
-          </button>
-           <button className={styles.button} onClick={() => router.push('/menu')}>
-            Вернуться в меню
-          </button>
+  // Определяем имя и аватар для отображения
+  // Приоритет: Twitch API (display_name -> login), затем generic
+  const finalDisplayName = twitchDisplayName || login || 'Пользователь';
+  // Приоритет: Twitch API, затем generic
+  const finalAvatarUrl = profile_image_url || '/default-avatar.png';
+
+  // Берем описание из БД, если есть, иначе из Twitch API, иначе пусто
+  const profileDescription = profileDescriptionDb || twitchUserData?.description || ''; 
+  
+  // Настройки видимости (пока не используются, но могут понадобиться)
+  // const visibilitySettings = userProfile?.stats_visibility || {};
+  const socialLinks = profileSocialLinksDb || {}; // Используем данные из БД
+
+  // --- Обработка состояния загрузки и ошибок ---
+  if (loadingTwitchUser || loadingProfile) {
+    // Можно вернуть более детальный скелетон или лоадер
+    return <ProfileLoadingFallback />; 
+  }
+  
+  if (globalError) {
+      return (
+        <div className={styles.container}>
+            <p className={styles.errorText}>Ошибка загрузки профиля: {globalError}</p>
+            {/* Можно добавить кнопку для повторной попытки */} 
+            <button onClick={() => fetchTwitchUserData(true)} className={styles.retryButton}>
+                Попробовать снова
+            </button>
         </div>
-      </div>
-    );
+      );
   }
 
   if (!twitchUserData) {
+    // Это состояние не должно достигаться, если нет ошибки, 
+    // так как fetchTwitchUserData должен был сделать редирект или выдать globalError
     return (
-      <div className={styles.profileContainer}>
-         <div className={styles.error}>
-           <h2>Не удалось загрузить данные профиля</h2>
-           <p>Пожалуйста, попробуйте обновить страницу или вернуться в меню.</p>
-           <button onClick={() => window.location.reload()} className={styles.button}>
-             Обновить страницу
-           </button>
-           <button className={styles.button} onClick={() => router.push('/menu')}>
-            Вернуться в меню
-          </button>
+        <div className={styles.container}>
+            <p className={styles.errorText}>Не удалось загрузить данные Twitch. Возможно, требуется авторизация.</p>
+             <button onClick={() => router.push('/auth')} className={styles.retryButton}>
+                Перейти к авторизации
+            </button>
         </div>
-      </div>
     );
   }
-  
-  const { profile_image_url, login, view_count, broadcaster_type, created_at } = twitchUserData;
-  const visibilitySettings = userProfile?.stats_visibility || {};
-
-  // Используем данные из сессии, если в userProfile их нет
-  const sessionDisplayName = userProfile?.username || session?.user?.user_metadata?.name || session?.user?.email || 'Пользователь';
-  const sessionAvatarUrl = userProfile?.avatar_url || session?.user?.user_metadata?.avatar_url || '/default-avatar.png';
-  // Берем описание из userProfile, если есть, иначе из twitchUser (если он загружен), иначе пусто
-  const profileDescription = userProfile?.description || twitchUserData?.description || ''; 
+  // --- Конец обработки состояния ---
 
   return (
     <div className={styles.container}>
@@ -559,59 +554,59 @@ function Profile() {
         <div className={styles.profileHeader}>
           <div className={styles.avatarContainer}>
             <CyberAvatar 
-              src={profile_image_url || sessionAvatarUrl} 
-              alt={sessionDisplayName || login || 'Пользователь'} 
+              src={finalAvatarUrl} 
+              alt={finalDisplayName} 
               size={150}
               className={styles.profileAvatar}
               layout="responsive"
               width={150}
               height={150}
-              onError={(event) => { event.target.src = sessionAvatarUrl; }}
+              onError={(event) => { event.target.src = '/default-avatar.png'; }} 
             />
           </div>
           <div className={styles.profileDetails}>
-            <h1 className={styles.displayName}>{sessionDisplayName}</h1>
-            <div className={styles.profileStats}>
-               {(visibilitySettings.followers !== false) && (
-                 <div className={styles.profileStat}>
-                  <span className={styles.statIcon}>👥</span>
-                  <div className={styles.userStats}>
-                    {twitchUserData?.followers_count !== null && typeof twitchUserData?.followers_count !== 'undefined' && (
-                        <div className={styles.statItem}>
-                          <span className={styles.statLabel}>Подписчики Twitch</span>
-                          <span className={styles.statValue}>{twitchUserData.followers_count.toLocaleString('ru-RU')}</span>
-                        </div>
-                    )}
-                  </div>
-                 </div>
+             <h1 className={styles.displayName}>{finalDisplayName}</h1>
+             {/* Используем описание из profileDescription */} 
+             <p className={styles.description}>{profileDescription || 'Описание отсутствует'}</p>
+             <div className={styles.profileStats}>
+               {/* Добавляем проверки на существование twitchUserData перед доступом к полям */} 
+               {followers_count !== null && followers_count !== undefined && (
+                  <span className={styles.statItem}>Подписчики: {followers_count}</span>
                )}
-               {(visibilitySettings.channel !== false) && view_count > 0 && (
-                <div className={styles.profileStat}>
-                  <span className={styles.statIcon}>👁️</span>
-                  <span className={styles.statValue}>{view_count.toLocaleString('ru-RU')}</span>
-                  <span className={styles.statLabel}>Просмотры Twitch</span>
-                </div>
-              )}
-               {(visibilitySettings.channel !== false) && broadcaster_type && (
-                <div className={styles.profileStat}>
-                  <span className={styles.statIcon}>📺</span>
-                  <span className={styles.statValue}>
-                    {broadcaster_type === 'affiliate' ? 'Компаньон' : 
-                     broadcaster_type === 'partner' ? 'Партнер' : 'Стример'}
-                  </span>
-                  <span className={styles.statLabel}>Тип канала Twitch</span>
-                </div>
-              )}
-            </div>
-            {renderBirthday()} 
+               {view_count !== null && view_count !== undefined && (
+                  <span className={styles.statItem}>Просмотры: {view_count}</span>
+               )}
+               {broadcaster_type && (
+                  <span className={styles.statItem}>Тип: {broadcaster_type}</span>
+               )}
+               {created_at && (
+                  <span className={styles.statItem}>На Twitch с: {formatDate(created_at)}</span>
+               )}
+             </div>
+             {/* День рождения и социальные сети */} 
+             {renderBirthday()} 
+             {renderSocialLinks()} 
           </div>
           <div className={styles.profileActions}>
-            <button className={styles.achievementsButton} onClick={toggleAchievements} title="Посмотреть достижения">Достижения</button>
-            <button className={styles.reviewsButton} onClick={toggleReviews} title="Отзывы о вас">⭐ Отзывы</button>
-            <button className={styles.button} onClick={() => router.push('/edit-profile')}>Редактировать профиль</button>
-            <button className={styles.button} onClick={() => router.push('/menu')}>Вернуться в меню</button>
-            <button className={styles.logoutButton} onClick={handleLogout} disabled={isLoggingOut}>
-              {isLoggingOut ? 'Выход...' : 'Выйти'}
+            <button 
+              onClick={handleLogout}
+              className={`${styles.actionButton} ${styles.logoutButton}`}
+              disabled={isLoggingOut}
+            >
+               {isLoggingOut ? 'Выход...' : 'Выйти'}
+            </button>
+            <button 
+                onClick={() => router.push('/edit-profile')} 
+                className={`${styles.actionButton} ${styles.editButton}`}
+            >
+                Редактировать
+            </button>
+            {/* Кнопки для достижений и обзоров */} 
+            <button onClick={toggleAchievements} className={styles.toggleButton}>
+                {showAchievements ? 'Скрыть достижения' : 'Показать достижения'} ({/* Количество */})
+            </button>
+            <button onClick={toggleReviews} className={styles.toggleButton}>
+                {showReviews ? 'Скрыть обзоры' : 'Показать обзоры'} ({/* Количество */})
             </button>
           </div>
         </div>
@@ -647,7 +642,7 @@ function Profile() {
             <div className={styles.sectionHeader}><h2>Статистика канала</h2></div>
             <div className={styles.statsGrid}>
                <p>Раздел статистики находится в разработке.</p>
-                {(visibilitySettings.accountInfo !== false) && created_at && (
+                {(socialLinks.accountInfo !== false) && created_at && (
                     <div className={styles.statItem}>
                         <div className={styles.statIcon}>📅</div>
                         <div className={styles.statInfo}>
