@@ -601,11 +601,11 @@ function Profile() {
             >
                 Редактировать
             </button>
-            {/* Кнопки для достижений и обзоров */} 
-            <button onClick={toggleAchievements} className={styles.toggleButton}>
+            {/* Кнопки для достижений и обзоров - добавляем класс actionButton */} 
+            <button onClick={toggleAchievements} className={`${styles.actionButton} ${styles.toggleButton}`}>
                 {showAchievements ? 'Скрыть достижения' : 'Показать достижения'} ({/* Количество */})
             </button>
-            <button onClick={toggleReviews} className={styles.toggleButton}>
+            <button onClick={toggleReviews} className={`${styles.actionButton} ${styles.toggleButton}`}>
                 {showReviews ? 'Скрыть обзоры' : 'Показать обзоры'} ({/* Количество */})
             </button>
           </div>
