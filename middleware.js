@@ -88,14 +88,16 @@ export async function middleware(request) {
             // ВОЗВРАЩАЕМ стандартные set и remove, используя response.cookies
             set(name, value, options) {
               try {
-                 response.cookies.set({ name, value, ...options });
+                 // Явно добавляем SameSite=Lax для консистентности
+                 response.cookies.set({ name, value, ...options, sameSite: options.sameSite || 'Lax' });
               } catch (error) {
                  console.error(`[Middleware] Ошибка установки cookie ${name}:`, error);
               }
             },
             remove(name, options) {
               try {
-                 response.cookies.set({ name, value: '', ...options });
+                 // Явно добавляем SameSite=Lax для консистентности
+                 response.cookies.set({ name, value: '', ...options, sameSite: options.sameSite || 'Lax' });
               } catch (error) {
                  console.error(`[Middleware] Ошибка удаления cookie ${name}:`, error);
               }

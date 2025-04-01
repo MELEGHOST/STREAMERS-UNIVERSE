@@ -10,8 +10,8 @@ export async function GET(request) {
     {
       cookies: {
         get: (name) => request.cookies.get(name)?.value,
-        set: (name, value, options) => response.cookies.set({ name, value, ...options }),
-        remove: (name, options) => response.cookies.set({ name, value: '', ...options }),
+        set: (name, value, options) => response.cookies.set({ name, value, ...options, sameSite: options.sameSite || 'Lax' }),
+        remove: (name, options) => response.cookies.set({ name, value: '', ...options, sameSite: options.sameSite || 'Lax' }),
       },
     }
   );
@@ -37,6 +37,9 @@ export async function GET(request) {
       console.error('/api/twitch/user: Отсутствует provider_token или twitchUserId в сессии');
       return NextResponse.json({ error: 'Неполные данные аутентификации Twitch в сессии' }, { status: 401 });
     }
+    
+    // Переменная для хранения актуального токена
+    let currentProviderToken = providerToken; 
 
     console.log('/api/twitch/user: Сессия найдена, ID пользователя Twitch:', twitchUserId);
 
@@ -50,7 +53,8 @@ export async function GET(request) {
       const userResponse = await fetch(`https://api.twitch.tv/helix/users?id=${twitchUserId}`, {
         headers: {
           'Client-ID': process.env.TWITCH_CLIENT_ID,
-          'Authorization': `Bearer ${providerToken}`,
+          // Используем актуальный токен
+          'Authorization': `Bearer ${currentProviderToken}`, 
         },
       });
 
@@ -75,17 +79,22 @@ export async function GET(request) {
               await supabase.auth.signOut();
               return NextResponse.json({ error: 'Ошибка обновления сессии, требуется повторная аутентификация' }, { status: 401 });
             }
-            if (!refreshedSession || !refreshedSession.provider_token) {
+            if (!refreshedSession || !refreshedSession.session?.provider_token) { // Проверяем вложенность session
                console.error('/api/twitch/user: Обновленная сессия не содержит provider_token');
                await supabase.auth.signOut();
                return NextResponse.json({ error: 'Ошибка структуры обновленной сессии' }, { status: 401 });
             }
 
+            // Обновляем актуальный токен
+            currentProviderToken = refreshedSession.session.provider_token; 
             console.log('/api/twitch/user: Сессия успешно обновлена, повторный запрос к /users...');
+            
+            // Повторный запрос с НОВЫМ токеном
             const retryResponse = await fetch(`https://api.twitch.tv/helix/users?id=${twitchUserId}`, {
               headers: {
                 'Client-ID': process.env.TWITCH_CLIENT_ID,
-                'Authorization': `Bearer ${refreshedSession.provider_token}`,
+                // Используем обновленный токен
+                'Authorization': `Bearer ${currentProviderToken}`, 
               },
             });
 
@@ -127,8 +136,8 @@ export async function GET(request) {
           const followersResponse = await fetch(`https://api.twitch.tv/helix/channels/followers?broadcaster_id=${userData.id}`, {
               headers: {
                   'Client-ID': process.env.TWITCH_CLIENT_ID,
-                  // Используем тот же токен, что сработал для /users (или обновленный)
-                  'Authorization': `Bearer ${supabase.auth.session()?.provider_token || providerToken}`
+                  // Используем актуальный токен (изначальный или обновленный)
+                  'Authorization': `Bearer ${currentProviderToken}` 
               },
           });
 
