@@ -19,44 +19,25 @@ export async function GET(request) {
       process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
       {
         cookies: {
+          // Оставляем ТОЛЬКО get. 
+          // @supabase/ssr будет использовать cookieStore напрямую для set/remove.
           get(name) {
             return cookieStore.get(name)?.value
           },
-          set(name, value, options) {
-            try {
-              // Определяем, в production ли мы
-              const isProduction = process.env.NODE_ENV === 'production';
-              
-              // Формируем новые опции с принудительной установкой secure и httpOnly
-              const newOptions = {
-                 ...options, // Копируем остальные опции (path, maxAge и т.д.)
-                 httpOnly: true, // Принудительно ставим true
-                 secure: isProduction, // true для production, false для localhost
-                 sameSite: options.sameSite || 'Lax' // Оставляем Lax
-              };
-              
-              console.log(`Auth Callback: Установка cookie ${name} с новыми опциями:`, newOptions);
-              cookieStore.set({ name, value, ...newOptions });
-              
-            } catch (error) {
-              // Обработка ошибок, если cookie не может быть установлен
-              console.error(`Auth Callback: Ошибка установки cookie ${name}:`, error);
-            }
-          },
-          remove(name, options) {
-            console.log(`Auth Callback: Удаление cookie ${name}`);
-            try {
-              cookieStore.set({ name, value: '', ...options, sameSite: options.sameSite || 'Lax' })
-            } catch (error) {
-               console.error(`Auth Callback: Ошибка удаления cookie ${name}:`, error);
-            }
-          },
+          /* Удаляем кастомные set и remove
+          set(name, value, options) { ... },
+          remove(name, options) { ... },
+          */
         },
       }
     )
+    
+    // Просто вызываем обмен кода. Установка кук должна произойти автоматически.
     const { error } = await supabase.auth.exchangeCodeForSession(code)
+    
     if (!error) {
       console.log('Auth Callback: Обмен кода на сессию прошел успешно. Перенаправление на:', `${origin}${next}`);
+      // Важно: Редирект должен содержать заголовки Set-Cookie, установленные библиотекой.
       return NextResponse.redirect(`${origin}${next}`)
     } else {
       console.error('Auth Callback: Ошибка при обмене кода на сессию:', error);

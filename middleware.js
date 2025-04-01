@@ -44,6 +44,15 @@ function generateRandomString(length) {
 }
 
 export async function middleware(request) {
+  // --- ЛОГИРОВАНИЕ ВХОДЯЩИХ КУК --- 
+  try {
+    const cookieHeader = request.headers.get('cookie') || 'Нет заголовка Cookie';
+    console.log(`[Middleware] Входящие куки для ${request.nextUrl.pathname}:`, cookieHeader);
+  } catch (e) {
+    console.error('[Middleware] Ошибка чтения заголовка Cookie:', e);
+  }
+  // --- КОНЕЦ ЛОГИРОВАНИЯ ---
+  
   const url = request.nextUrl.clone();
   const { pathname } = url;
   const isProduction = process.env.NODE_ENV === 'production';
