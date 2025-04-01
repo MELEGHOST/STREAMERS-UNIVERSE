@@ -85,16 +85,6 @@ export async function middleware(request) {
             get(name) {
               return request.cookies.get(name)?.value;
             },
-            set(name, value, options) {
-              // Важно: Middleware не должен устанавливать куки авторизации,
-              // это делается в /auth/callback. Но если нужно обновить/удалить
-              // другие куки, можно использовать response.cookies.set
-               response.cookies.set({ name, value, ...options });
-            },
-            remove(name, options) {
-              // Аналогично для удаления
-               response.cookies.set({ name, value: '', ...options });
-            },
           },
         }
       );
@@ -104,19 +94,17 @@ export async function middleware(request) {
         const { data, error } = await supabase.auth.getUser();
         if (error) {
           authError = error;
-          // Не обязательно прерывать выполнение, просто пользователь будет не аутентифицирован
-          if (!isProduction) console.log('[Middleware] Ошибка получения пользователя Supabase:', error.message);
+          console.error('[Middleware] Ошибка Supabase getUser:', error.message);
         } else if (data?.user) {
-          session = data.user; // Сохраняем данные пользователя, если есть
+          session = data.user;
           userId = data.user.id;
            if (!isProduction) console.log('[Middleware] Сессия Supabase найдена, User ID:', userId);
         } else {
-           if (!isProduction) console.log('[Middleware] Сессия Supabase НЕ найдена.');
+           if (!isProduction) console.log('[Middleware] Сессия Supabase НЕ найдена (getUser вернул null).');
         }
       } catch (e) {
-         // Обработка непредвиденных ошибок при работе с Supabase
          console.error('[Middleware] Непредвиденная ошибка при получении сессии Supabase:', e);
-         authError = e; // Сохраняем ошибку
+         authError = e;
       }
   } else {
        if (!isProduction) console.log('[Middleware] Пропуск проверки Supabase из-за отсутствия ключей.');
