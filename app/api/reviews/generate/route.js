@@ -6,17 +6,18 @@ import { NextResponse } from 'next/server';
 import { createServerClient } from '@supabase/ssr'; // Используем SSR клиент
 import { cookies } from 'next/headers'; // Нужен для SSR клиента
 
-// Адрес OpenAI API
-const OPENAI_API_URL = "https://api.openai.com/v1/chat/completions";
+// Адрес OpenRouter API
+const OPENROUTER_API_URL = "https://openrouter.ai/api/v1/chat/completions";
+const MODEL_NAME = "google/gemini-2.5-pro-exp-03-25:free"; // Используем Gemini 2.5 Pro Free
 
 // Вспомогательная функция для создания SSR клиента Supabase
 const createSupabaseAdminClient = () => {
     // Используем СЕРВИСНЫЙ КЛЮЧ для операций обновления из API,
     // так как RLS могут запрещать обновление чужих записей даже админу,
     // а проверка прав администратора должна быть реализована отдельно.
-    // Убедитесь, что SUPABASE_SERVICE_ROLE_KEY добавлен в переменные окружения!
+    // Убедитесь, что SUPABASE_SERVICE_KEY добавлен в переменные окружения!
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-    const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+    const supabaseServiceKey = process.env.SUPABASE_SERVICE_KEY;
     
     if (!supabaseUrl || !supabaseServiceKey) {
         console.error('API generate: Отсутствуют Supabase URL или Service Key');
@@ -88,23 +89,22 @@ export async function POST(request) {
         authorSocialLink = body.authorSocialLink;
         submittedLinks = body.links; // Массив ссылок от пользователя
 
-        if (!reviewId || !files || files.length === 0) {
-            return NextResponse.json({ error: 'Отсутствуют обязательные параметры (reviewId, files)' }, { status: 400 });
+        if (!reviewId || (!files || files.length === 0) && (!submittedLinks || submittedLinks.length === 0)) {
+            return NextResponse.json({ error: 'Отсутствуют обязательные параметры (reviewId и files/links)' }, { status: 400 });
         }
     } catch (e) {
         return NextResponse.json({ error: 'Неверный формат запроса' }, { status: 400 });
     }
 
-    // 3. Получение OpenAI API ключа
-    const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
-    if (!OPENAI_API_KEY) {
-        console.error('API generate: Отсутствует OPENAI_API_KEY');
-        // Обновляем статус отзыва на ошибку, чтобы админ видел
+    // 3. Получение OpenRouter API ключа
+    const OPENROUTER_API_KEY = process.env.OPENROUTER_API_KEY;
+    if (!OPENROUTER_API_KEY) {
+        console.error('API generate: Отсутствует OPENROUTER_API_KEY');
         await supabaseAdmin.from('reviews').update({ status: 'error_config' }).eq('id', reviewId);
         return NextResponse.json({ error: 'Ошибка конфигурации сервера (AI)' }, { status: 500 });
     }
 
-    // 4. Подготовка данных для OpenAI
+    // 4. Подготовка данных для AI
     const textContents = [];
     const imageUrls = [];
     const fileSources = []; // Для поля sources в БД
@@ -139,7 +139,7 @@ export async function POST(request) {
         }
     }
     
-    // 5. Формирование промпта для GPT-4o
+    // 5. Формирование промпта для AI
     const messages = [
         {
             role: "system",
@@ -183,52 +183,64 @@ export async function POST(request) {
          messages[1].content.push({ type: "text", text: "Нет текстового или визуального контента для анализа, кроме метаданных." });
     }
 
-    // 6. Вызов OpenAI API
+    // 6. Вызов OpenRouter API
     let aiResponseData;
     try {
-        console.log('API generate: Отправка запроса к OpenAI...');
-        const response = await fetch(OPENAI_API_URL, {
+        console.log(`API generate: Отправка запроса к OpenRouter (Модель: ${MODEL_NAME})...`);
+        const response = await fetch(OPENROUTER_API_URL, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                'Authorization': `Bearer ${OPENAI_API_KEY}`
+                'Authorization': `Bearer ${OPENROUTER_API_KEY}`,
+                'HTTP-Referer': process.env.NEXT_PUBLIC_BASE_URL || 'https://streamers-universe.vercel.app',
+                'X-Title': process.env.NEXT_PUBLIC_APP_NAME || 'Streamers Universe'
             },
             body: JSON.stringify({
-                model: "gpt-4o", // Используем GPT-4o
+                model: MODEL_NAME,
                 messages: messages,
-                max_tokens: 300, // Ограничиваем длину ответа
-                temperature: 0.5, // Более предсказуемый результат
-                response_format: { type: "json_object" } // Просим JSON ответ
+                max_tokens: 300,
+                temperature: 0.5,
             })
         });
 
         if (!response.ok) {
-            const errorBody = await response.json();
-            console.error(`API generate: Ошибка от OpenAI API (${response.status}):`, errorBody);
-            throw new Error(errorBody?.error?.message || `Ошибка OpenAI API ${response.status}`);
+            const errorBody = await response.json().catch(() => response.text());
+            console.error(`API generate: Ошибка от OpenRouter API (${response.status}):`, errorBody);
+            const errorMessage = errorBody?.error?.message || JSON.stringify(errorBody) || `Ошибка OpenRouter API ${response.status}`;
+            throw new Error(errorMessage);
         }
 
         aiResponseData = await response.json();
-        console.log('API generate: Ответ от OpenAI получен.');
+        console.log('API generate: Ответ от OpenRouter получен.');
 
     } catch (apiError) {
-        console.error('API generate: Ошибка при вызове OpenAI API:', apiError);
+        console.error('API generate: Ошибка при вызове OpenRouter API:', apiError);
         await supabaseAdmin.from('reviews').update({ status: 'error_ai' }).eq('id', reviewId);
-        return NextResponse.json({ error: `Ошибка при обращении к AI: ${apiError.message}` }, { status: 502 }); // Bad Gateway
+        return NextResponse.json({ error: `Ошибка при обращении к AI: ${apiError.message}` }, { status: 502 });
     }
 
-    // 7. Обработка ответа OpenAI и обновление отзыва
+    // 7. Обработка ответа AI и обновление отзыва
     try {
-        const choice = aiResponseData?.choices?.[0]?.message?.content;
-        if (!choice) {
-            throw new Error('Некорректный формат ответа от AI');
+        const choiceContent = aiResponseData?.choices?.[0]?.message?.content;
+        if (!choiceContent) {
+            throw new Error('Некорректный или пустой ответ от AI');
+        }
+        
+        let generatedData = {};
+        try {
+            const jsonMatch = choiceContent.match(/\{.*\}/s);
+            if (jsonMatch && jsonMatch[0]) {
+                generatedData = JSON.parse(jsonMatch[0]);
+            } else {
+                generatedData = JSON.parse(choiceContent);
+            }
+        } catch (parseError) {
+            console.error('API generate: Не удалось распарсить JSON из ответа AI:', choiceContent, parseError);
+            throw new Error(`Не удалось извлечь JSON из ответа AI. Ответ: ${choiceContent}`);
         }
 
-        const generatedData = JSON.parse(choice);
-
-        // Валидация полученных данных (базовая)
-        const finalRating = (typeof generatedData.rating === 'number' && generatedData.rating >= 1 && generatedData.rating <= 5) ? Math.round(generatedData.rating) : (rating || null); // Оставляем предварительный рейтинг, если AI не дал валидный
-        const finalCategory = generatedData.category || category || 'other'; // Приоритет AI, потом исходный, потом other
+        const finalRating = (typeof generatedData.rating === 'number' && generatedData.rating >= 1 && generatedData.rating <= 5) ? Math.round(generatedData.rating) : (rating || null);
+        const finalCategory = generatedData.category || category || 'other';
         const finalSubcategory = generatedData.subcategory || null;
         const finalContent = generatedData.content || 'Не удалось сгенерировать текст отзыва.';
 
@@ -237,8 +249,8 @@ export async function POST(request) {
             rating: finalRating,
             category: finalCategory,
             subcategory: finalSubcategory,
-            sources: fileSources, // Сохраняем URL загруженных файлов
-            status: 'pending_approval', // Статус ожидания модерации
+            sources: fileSources,
+            status: 'pending_approval',
             updated_at: new Date().toISOString()
         };
 
@@ -251,7 +263,6 @@ export async function POST(request) {
 
         if (updateError) {
             console.error('API generate: Ошибка обновления отзыва в БД:', updateError);
-            // Статус не меняем, так как AI отработал, но запись не удалась
             return NextResponse.json({ error: 'Ошибка сохранения результата AI', details: updateError.message }, { status: 500 });
         }
 
