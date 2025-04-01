@@ -1,12 +1,11 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
-import supabase from '../../../lib/supabase';
+import { createBrowserClient } from '@supabase/ssr';
 import { checkAdminAccess, isModeratorOrHigher } from '../../utils/adminUtils';
-import { DataStorage } from '../../utils/dataStorage';
 import styles from './page.module.css';
 
 export default function AdminReviewsPage() {
@@ -14,126 +13,119 @@ export default function AdminReviewsPage() {
   const [loading, setLoading] = useState(true);
   const [adminInfo, setAdminInfo] = useState({ isAdmin: false, role: null });
   const [reviews, setReviews] = useState([]);
-  const [filter, setFilter] = useState('pending');
+  const [filter, setFilter] = useState('pending_approval');
   const [error, setError] = useState(null);
+  const [actionLoading, setActionLoading] = useState({});
 
-  // Проверка прав администратора
+  const supabase = useMemo(() => 
+    createBrowserClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+    ), 
+  []);
+
   useEffect(() => {
     const checkAccess = async () => {
-      const access = await checkAdminAccess();
-      setAdminInfo(access);
-      
-      if (!access.isAdmin) {
-        router.push('/menu');
-        return;
+      try {
+        const access = await checkAdminAccess(supabase);
+        setAdminInfo(access);
+        if (!access.isAdmin) {
+          router.push('/menu');
+          return;
+        }
+        loadReviews(filter);
+      } catch(err) {
+        console.error("Ошибка проверки доступа:", err);
+        setError('Не удалось проверить права доступа.');
+        setLoading(false);
       }
-      
-      loadReviews(filter);
     };
-    
     checkAccess();
-  }, [router, filter]);
+  }, [router, filter, supabase]);
 
-  // Загрузка отзывов из Supabase
   const loadReviews = async (status) => {
     setLoading(true);
     setError(null);
-    
     try {
-      const { data, error } = await supabase
+      const { data, error: dbError } = await supabase
         .from('reviews')
         .select(`
           *,
-          user:user_id (id, username, displayName),
-          approvedBy:approved_by (id, username, displayName)
+          user:user_id (id, username, display_name),
+          approvedBy:approved_by (id, username, display_name)
         `)
-        .eq('status', status)
+        .in('status', status === 'pending_approval' ? ['pending_approval', 'pending'] : [status])
         .order('created_at', { ascending: false });
       
-      if (error) {
-        console.error('Ошибка при загрузке отзывов:', error);
+      if (dbError) {
+        console.error('Ошибка при загрузке отзывов:', dbError);
         setError('Не удалось загрузить отзывы');
+        setReviews([]);
       } else {
         setReviews(data || []);
       }
     } catch (err) {
       console.error('Произошла ошибка при загрузке отзывов:', err);
       setError('Произошла ошибка при загрузке отзывов');
+      setReviews([]);
     } finally {
       setLoading(false);
     }
   };
 
-  // Обработчик изменения фильтра
   const handleFilterChange = (status) => {
     setFilter(status);
-    loadReviews(status);
   };
 
-  // Обработчик одобрения отзыва
-  const handleApproveReview = async (reviewId) => {
+  const updateReviewStatus = async (reviewId, newStatus) => {
     if (!adminInfo.isAdmin || !isModeratorOrHigher(adminInfo.role)) {
-      setError('У вас нет прав для одобрения отзывов');
-      return;
+      setError('У вас нет прав для этого действия');
+      return false;
     }
     
+    setActionLoading(prev => ({ ...prev, [reviewId]: true }));
+    setError(null);
+    
     try {
-      // Используем DataStorage вместо прямого обращения к localStorage
-      const userData = await DataStorage.getData('user');
+      let updateData = { status: newStatus };
       
-      if (!userData || !userData.id) {
-        setError('Не удалось получить данные пользователя');
-        return;
+      if (newStatus === 'approved') {
+        const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+        if (sessionError || !session) {
+          throw new Error('Не удалось получить сессию для подтверждения действия.');
+        }
+        updateData.approved_by = session.user.id;
+        updateData.approved_at = new Date().toISOString();
       }
       
-      const { error } = await supabase
+      const { error: updateError } = await supabase
         .from('reviews')
-        .update({
-          status: 'approved',
-          approved_by: userData.id,
-          approved_at: new Date().toISOString()
-        })
+        .update(updateData)
         .eq('id', reviewId);
-      
-      if (error) {
-        console.error('Ошибка при одобрении отзыва:', error);
-        setError('Не удалось одобрить отзыв');
+        
+      if (updateError) {
+        console.error(`Ошибка при установке статуса ${newStatus}:`, updateError);
+        setError(`Не удалось обновить статус отзыва: ${updateError.message}`);
+        return false;
       } else {
-        // Обновляем список отзывов
-        loadReviews(filter);
+        setReviews(prev => prev.filter(r => r.id !== reviewId));
+        return true;
       }
     } catch (err) {
-      console.error('Произошла ошибка при одобрении отзыва:', err);
-      setError('Произошла ошибка при одобрении отзыва');
+      console.error(`Произошла ошибка при установке статуса ${newStatus}:`, err);
+      setError(`Произошла ошибка: ${err.message}`);
+      return false;
+    } finally {
+      setActionLoading(prev => ({ ...prev, [reviewId]: false }));
     }
   };
 
-  // Обработчик отклонения отзыва
-  const handleRejectReview = async (reviewId) => {
-    if (!adminInfo.isAdmin || !isModeratorOrHigher(adminInfo.role)) {
-      setError('У вас нет прав для отклонения отзывов');
-      return;
-    }
-    
-    try {
-      const { error } = await supabase
-        .from('reviews')
-        .update({
-          status: 'rejected'
-        })
-        .eq('id', reviewId);
-      
-      if (error) {
-        console.error('Ошибка при отклонении отзыва:', error);
-        setError('Не удалось отклонить отзыв');
-      } else {
-        // Обновляем список отзывов
-        loadReviews(filter);
-      }
-    } catch (err) {
-      console.error('Произошла ошибка при отклонении отзыва:', err);
-      setError('Произошла ошибка при отклонении отзыва');
-    }
+  const handleApproveReview = (reviewId) => {
+    updateReviewStatus(reviewId, 'approved');
+  };
+
+  const handleRejectReview = (reviewId) => {
+    updateReviewStatus(reviewId, 'rejected');
   };
 
   if (loading) {
@@ -145,7 +137,6 @@ export default function AdminReviewsPage() {
     );
   }
 
-  // Если нет прав администратора, отображаем пустой компонент (произойдет редирект)
   if (!adminInfo.isAdmin) {
     return null;
   }
@@ -163,8 +154,8 @@ export default function AdminReviewsPage() {
       
       <div className={styles.filters}>
         <button 
-          className={`${styles.filterButton} ${filter === 'pending' ? styles.active : ''}`}
-          onClick={() => handleFilterChange('pending')}
+          className={`${styles.filterButton} ${filter === 'pending_approval' ? styles.active : ''}`}
+          onClick={() => handleFilterChange('pending_approval')}
         >
           Ожидают модерации
         </button>
@@ -184,7 +175,7 @@ export default function AdminReviewsPage() {
       
       {reviews.length === 0 ? (
         <div className={styles.emptyState}>
-          {filter === 'pending' ? 'Нет отзывов, ожидающих модерации.' : 
+          {filter === 'pending_approval' ? 'Нет отзывов, ожидающих модерации.' : 
            filter === 'approved' ? 'Нет одобренных отзывов.' : 
            'Нет отклоненных отзывов.'}
         </div>
@@ -245,27 +236,29 @@ export default function AdminReviewsPage() {
                 </div>
               )}
               
-              {filter === 'pending' && isModeratorOrHigher(adminInfo.role) && (
+              {(review.status === 'pending_approval' || review.status === 'pending') && (
                 <div className={styles.reviewActions}>
                   <button 
                     className={styles.approveButton}
                     onClick={() => handleApproveReview(review.id)}
+                    disabled={actionLoading[review.id]}
                   >
-                    Одобрить
+                    {actionLoading[review.id] ? 'Одобряем...' : 'Одобрить'}
                   </button>
                   <button 
                     className={styles.rejectButton}
                     onClick={() => handleRejectReview(review.id)}
+                    disabled={actionLoading[review.id]}
                   >
-                    Отклонить
+                    {actionLoading[review.id] ? '...' : 'Отклонить'}
                   </button>
                 </div>
               )}
               
-              {filter === 'approved' && (
+              {review.status === 'approved' && review.approvedBy && (
                 <div className={styles.approvalInfo}>
-                  <span>Одобрен: {new Date(review.approved_at).toLocaleDateString('ru-RU')}</span>
-                  <span>Модератор: {review.approvedBy?.displayName || review.approvedBy?.username || 'Неизвестно'}</span>
+                  <span>Одобрено: {review.approvedBy.display_name || review.approvedBy.username}</span>
+                  <span>{new Date(review.approved_at).toLocaleString('ru-RU')}</span>
                 </div>
               )}
             </div>

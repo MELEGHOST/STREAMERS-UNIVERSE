@@ -93,6 +93,7 @@ export async function POST(request) {
             return NextResponse.json({ error: 'Отсутствуют обязательные параметры (reviewId и files/links)' }, { status: 400 });
         }
     } catch (e) {
+        console.error('API generate: Ошибка парсинга тела запроса:', e);
         return NextResponse.json({ error: 'Неверный формат запроса' }, { status: 400 });
     }
 

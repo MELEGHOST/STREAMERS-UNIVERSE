@@ -11,23 +11,6 @@ import { DataStorage } from '../utils/dataStorage';
 import { createBrowserClient } from '@supabase/ssr';
 import CyberAvatar from '../components/CyberAvatar';
 
-// Вспомогательная функция для склонения слова "день"
-const getDaysText = (days) => {
-  if (days === null || days === undefined) return '';
-  const lastDigit = days % 10;
-  const lastTwoDigits = days % 100;
-  if (lastTwoDigits >= 11 && lastTwoDigits <= 19) {
-    return 'дней';
-  }
-  if (lastDigit === 1) {
-    return 'день';
-  }
-  if (lastDigit >= 2 && lastDigit <= 4) {
-    return 'дня';
-  }
-  return 'дней';
-};
-
 // Компонент-заглушка для Suspense
 function ProfileLoadingFallback() {
   return (
