@@ -40,10 +40,29 @@ export async function GET(request) {
       }
     )
     
-    // Просто вызываем обмен кода. Установка кук должна произойти автоматически.
-    const { error } = await supabase.auth.exchangeCodeForSession(code)
+    // Вызываем обмен кода. 
+    const { data, error } = await supabase.auth.exchangeCodeForSession(code)
+    
+    // --- ЛОГИРОВАНИЕ СЕССИИ --- 
+    if (data && data.session) {
+        console.log('Auth Callback: Сессия ПОСЛЕ обмена кода:', {
+            userId: data.user?.id,
+            hasProviderToken: !!data.session.provider_token,
+            providerTokenLength: data.session.provider_token?.length,
+            hasProviderRefreshToken: !!data.session.provider_refresh_token, 
+            providerRefreshTokenLength: data.session.provider_refresh_token?.length,
+            metadataProviderId: data.user?.user_metadata?.provider_id,
+            // Выведем часть токена для визуальной проверки (если есть)
+            providerTokenStart: data.session.provider_token?.substring(0, 5),
+            refreshTokenStart: data.session.provider_refresh_token?.substring(0, 5)
+        });
+    } else {
+        console.log('Auth Callback: Объект data или data.session отсутствует после обмена кода.');
+    }
+    // --- КОНЕЦ ЛОГИРОВАНИЯ ---
     
     if (!error) {
+      // Используем объект data, полученный выше, если он нужен дальше
       console.log('Auth Callback: Обмен кода на сессию прошел успешно. Перенаправление на:', `${origin}${next}`);
       // Важно: Редирект должен содержать заголовки Set-Cookie, установленные библиотекой.
       return NextResponse.redirect(`${origin}${next}`)
