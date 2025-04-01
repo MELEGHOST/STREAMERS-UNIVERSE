@@ -24,7 +24,7 @@ export default function UploadForm({ supabase }) { // Получаем supabase 
   // Предзаполнение полей из URL при загрузке компонента
   useEffect(() => {
     const targetUserName = searchParams.get('targetUserName');
-    const targetUserId = searchParams.get('targetUserId'); // Может понадобиться позже
+    // const targetUserId = searchParams.get('targetUserId'); // Пока убираем
     // const defaultProduct = searchParams.get('productName'); // Пример
 
     if (targetUserName) {

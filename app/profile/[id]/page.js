@@ -1,16 +1,14 @@
 'use client';
 
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import styles from '../profile.module.css';
 import { createBrowserClient } from '@supabase/ssr';
 import CyberAvatar from '../../components/CyberAvatar';
-import Image from 'next/image';
 
 export default function UserProfile({ params }) {
   const { id: targetUserId } = params;
   const router = useRouter();
-  const [currentUser, setCurrentUser] = useState(null);
   const [userData, setUserData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -32,10 +30,8 @@ export default function UserProfile({ params }) {
         router.push('/auth?reason=unauthenticated');
         return;
       }
-      const currentUserId = session.user.id;
-      setCurrentUser(session.user);
 
-      if (targetUserId === currentUserId) {
+      if (targetUserId === session.user.id) {
         router.push('/profile');
         return;
       }

@@ -41,7 +41,7 @@ export default function AdminReviewsPage() {
       }
     };
     checkAccess();
-  }, [router, filter, supabase]);
+  }, [router, filter, supabase, loadReviews]);
 
   const loadReviews = async (status) => {
     setLoading(true);
