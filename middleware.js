@@ -85,6 +85,21 @@ export async function middleware(request) {
             get(name) {
               return request.cookies.get(name)?.value;
             },
+            // ВОЗВРАЩАЕМ стандартные set и remove, используя response.cookies
+            set(name, value, options) {
+              try {
+                 response.cookies.set({ name, value, ...options });
+              } catch (error) {
+                 console.error(`[Middleware] Ошибка установки cookie ${name}:`, error);
+              }
+            },
+            remove(name, options) {
+              try {
+                 response.cookies.set({ name, value: '', ...options });
+              } catch (error) {
+                 console.error(`[Middleware] Ошибка удаления cookie ${name}:`, error);
+              }
+            },
           },
         }
       );

@@ -19,15 +19,23 @@ export async function GET(request) {
       process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
       {
         cookies: {
-          // Оставляем ТОЛЬКО get. 
-          // @supabase/ssr будет использовать cookieStore напрямую для set/remove.
           get(name) {
             return cookieStore.get(name)?.value
           },
-          /* Удаляем кастомные set и remove
-          set(name, value, options) { ... },
-          remove(name, options) { ... },
-          */
+          set(name, value, options) {
+            try {
+              cookieStore.set({ name, value, ...options })
+            } catch (error) {
+              console.error(`Auth Callback: Ошибка установки cookie ${name}:`, error);
+            }
+          },
+          remove(name, options) {
+            try {
+              cookieStore.set({ name, value: '', ...options })
+            } catch (error) {
+               console.error(`Auth Callback: Ошибка удаления cookie ${name}:`, error);
+            }
+          },
         },
       }
     )

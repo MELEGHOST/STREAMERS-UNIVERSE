@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
@@ -24,26 +24,23 @@ export default function AdminReviewsPage() {
     ), 
   []);
 
-  useEffect(() => {
-    const checkAccess = async () => {
-      try {
-        const access = await checkAdminAccess(supabase);
-        setAdminInfo(access);
-        if (!access.isAdmin) {
-          router.push('/menu');
-          return;
-        }
-        loadReviews(filter);
-      } catch(err) {
-        console.error("Ошибка проверки доступа:", err);
-        setError('Не удалось проверить права доступа.');
-        setLoading(false);
+  const checkAccess = useCallback(async () => {
+    try {
+      const access = await checkAdminAccess(supabase);
+      setAdminInfo(access);
+      if (!access.isAdmin) {
+        router.push('/menu');
+        return;
       }
-    };
-    checkAccess();
-  }, [router, filter, supabase, loadReviews]);
+      loadReviews(filter);
+    } catch(err) {
+      console.error("Ошибка проверки доступа:", err);
+      setError('Не удалось проверить права доступа.');
+      setLoading(false);
+    }
+  }, [router, filter, supabase]);
 
-  const loadReviews = async (status) => {
+  const loadReviews = useCallback(async (status) => {
     setLoading(true);
     setError(null);
     try {
@@ -71,7 +68,17 @@ export default function AdminReviewsPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [supabase]);
+
+  useEffect(() => {
+    checkAccess();
+  }, [router, filter, supabase]);
+
+  useEffect(() => {
+    if(adminInfo.isAdmin) {
+      loadReviews(filter);
+    }
+  }, [filter, adminInfo.isAdmin, loadReviews]);
 
   const handleFilterChange = (status) => {
     setFilter(status);

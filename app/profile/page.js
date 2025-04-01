@@ -171,9 +171,9 @@ function Profile() {
 
         const { data: profileData, error: profileDbError } = await supabase
             .from('user_profiles')
-            .select('username, avatar_url, description, birthday, social_links')
+            .select('description, birthday, social_links')
             .eq('user_id', userId)
-            .single();
+            .maybeSingle();
 
         if (profileDbError) {
             console.error('Profile: Ошибка загрузки профиля из БД:', profileDbError);
@@ -183,8 +183,12 @@ function Profile() {
             console.log('Profile: Данные профиля из БД загружены:', profileData);
             setUserProfile(profileData);
         } else {
-             console.log('Profile: Профиль в БД не найден для пользователя:', userId);
-             setUserProfile(null);
+             console.log('Profile: Профиль в БД не найден, используем данные сессии.');
+             setUserProfile({
+                description: session.user.user_metadata?.description || '', 
+                birthday: null,
+                social_links: session.user.user_metadata?.social_links || {}
+             });
         }
     } catch (error) {
         console.error('Profile: Общая ошибка загрузки профиля из БД:', error);
@@ -544,24 +548,31 @@ function Profile() {
   const currentDescription = userProfile?.description || twitchUserData.description;
   const visibilitySettings = userProfile?.stats_visibility || {};
 
+  // Используем данные из сессии, если в userProfile их нет
+  const displayName = userProfile?.username || session?.user?.user_metadata?.name || session?.user?.email || 'Пользователь';
+  const avatarUrl = userProfile?.avatar_url || session?.user?.user_metadata?.avatar_url || '/default-avatar.png';
+  // Берем описание из userProfile, если есть, иначе из twitchUser (если он загружен), иначе пусто
+  const profileDescription = userProfile?.description || twitchUserData?.description || ''; 
+  const socialLinks = userProfile?.social_links || {};
+
   return (
     <div className={styles.container}>
       <div className={styles.profileContainer}>
         <div className={styles.profileHeader}>
           <div className={styles.avatarContainer}>
             <CyberAvatar 
-              src={profile_image_url || '/images/default-avatar.png'} 
-              alt={display_name || login || 'Пользователь'} 
+              src={profile_image_url || avatarUrl} 
+              alt={displayName || login || 'Пользователь'} 
               size={150}
               className={styles.profileAvatar}
               layout="responsive"
               width={150}
               height={150}
-              onError={(event) => { event.target.src = '/images/default-avatar.png'; }}
+              onError={(event) => { event.target.src = avatarUrl; }}
             />
           </div>
           <div className={styles.profileDetails}>
-            <h1 className={styles.displayName}>{display_name || login}</h1>
+            <h1 className={styles.displayName}>{displayName}</h1>
             <div className={styles.profileStats}>
                {(visibilitySettings.followers !== false) && (
                  <div className={styles.profileStat}>
@@ -675,8 +686,8 @@ function Profile() {
                     <span>{specificErrors.profileDb}</span>
                     <button onClick={loadUserProfileDbData} className={styles.retryButtonSmall} title="Повторить">↺</button>
                   </div>
-                ) : currentDescription ? (
-                  <p>{currentDescription}</p>
+                ) : profileDescription ? (
+                  <p>{profileDescription}</p>
                 ) : (
                   <div className={styles.emptyDescription}>
                     <p>Нет описания профиля.</p>
