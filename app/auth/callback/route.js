@@ -24,8 +24,20 @@ export async function GET(request) {
           },
           set(name, value, options) {
             try {
-              console.log(`Auth Callback: Установка cookie ${name}, secure: ${options.secure}, httpOnly: ${options.httpOnly}, sameSite: ${options.sameSite || 'Lax (default)'}`);
-              cookieStore.set({ name, value, ...options, sameSite: options.sameSite || 'Lax' })
+              // Определяем, в production ли мы
+              const isProduction = process.env.NODE_ENV === 'production';
+              
+              // Формируем новые опции с принудительной установкой secure и httpOnly
+              const newOptions = {
+                 ...options, // Копируем остальные опции (path, maxAge и т.д.)
+                 httpOnly: true, // Принудительно ставим true
+                 secure: isProduction, // true для production, false для localhost
+                 sameSite: options.sameSite || 'Lax' // Оставляем Lax
+              };
+              
+              console.log(`Auth Callback: Установка cookie ${name} с новыми опциями:`, newOptions);
+              cookieStore.set({ name, value, ...newOptions });
+              
             } catch (error) {
               // Обработка ошибок, если cookie не может быть установлен
               console.error(`Auth Callback: Ошибка установки cookie ${name}:`, error);

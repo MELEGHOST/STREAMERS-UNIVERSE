@@ -1,7 +1,7 @@
 'use client';
 
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useState, useEffect } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 // import supabase from '../../../lib/supabase'; // УДАЛЯЕМ, получаем как пропс
 import FileUploader from '../../components/reviews/FileUploader';
 // import { DataStorage } from '../../utils/dataStorage'; // УДАЛЯЕМ
@@ -9,6 +9,7 @@ import styles from './UploadForm.module.css';
 
 export default function UploadForm({ supabase }) { // Получаем supabase как пропс
   const router = useRouter();
+  const searchParams = useSearchParams(); // Получаем параметры URL
   const [authorName, setAuthorName] = useState('');
   const [authorSocialLink, setAuthorSocialLink] = useState('');
   const [productName, setProductName] = useState('');
@@ -19,6 +20,20 @@ export default function UploadForm({ supabase }) { // Получаем supabase 
   const [isUploading, setIsUploading] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
+
+  // Предзаполнение полей из URL при загрузке компонента
+  useEffect(() => {
+    const targetUserName = searchParams.get('targetUserName');
+    const targetUserId = searchParams.get('targetUserId'); // Может понадобиться позже
+    // const defaultProduct = searchParams.get('productName'); // Пример
+
+    if (targetUserName) {
+        setAuthorName(targetUserName); // Предзаполняем имя автора
+    }
+    // if (defaultProduct) {
+    //     setProductName(defaultProduct); // Предзаполняем продукт
+    // }
+  }, [searchParams]); // Зависимость от searchParams
 
   // Обработчик изменения файлов
   const handleFilesSelected = (selectedFiles) => {

@@ -1,144 +1,82 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import styles from '../profile.module.css';
-import { useAuth } from '../../../contexts/AuthContext';
+import { createBrowserClient } from '@supabase/ssr';
 import CyberAvatar from '../../components/CyberAvatar';
-import SynthwaveButton from '../../components/SynthwaveButton';
-import Cookies from 'js-cookie';
 import Image from 'next/image';
 
 export default function UserProfile({ params }) {
-  const { id } = params;
+  const { id: targetUserId } = params;
   const router = useRouter();
-  const { isAuthenticated, userId } = useAuth();
+  const [currentUser, setCurrentUser] = useState(null);
   const [userData, setUserData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [isFollowed, setIsFollowed] = useState(false);
-  const [followers, setFollowers] = useState([]);
-  const [showFollowers, setShowFollowers] = useState(false);
-  const [followings, setFollowings] = useState([]);
-  const [showFollowings, setShowFollowings] = useState(false);
 
-  const fetchFollowers = useCallback(async () => {
-    try {
-      const response = await fetch(`/api/twitch/user-followers?userId=${id}`);
-      if (response.ok) {
-        const data = await response.json();
-        setFollowers(data.followers || []);
-      } else {
-        console.error('Ошибка при загрузке фолловеров:', response.status);
-      }
-    } catch (error) {
-      console.error('Ошибка при загрузке фолловеров:', error);
-    }
-  }, [id]);
-
-  const fetchFollowings = useCallback(async () => {
-    try {
-      const response = await fetch(`/api/twitch/user-followings?userId=${id}`);
-      if (response.ok) {
-        const data = await response.json();
-        setFollowings(data.followings || []);
-      } else {
-        console.error('Ошибка при загрузке фолловингов:', response.status);
-      }
-    } catch (error) {
-      console.error('Ошибка при загрузке фолловингов:', error);
-    }
-  }, [id]);
+  const supabase = useMemo(() => 
+    createBrowserClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+    ), 
+  []);
 
   useEffect(() => {
-    if (!isAuthenticated) {
-      router.push('/auth');
-      return;
-    }
-
-    // Проверяем, не пытается ли пользователь открыть свой профиль
-    if (id === userId) {
-      router.push('/profile');
-      return;
-    }
-
-    const fetchUserData = async () => {
+    const checkAuthAndLoad = async () => {
       setLoading(true);
+      setError(null);
+      
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+      if (sessionError || !session) {
+        router.push('/auth?reason=unauthenticated');
+        return;
+      }
+      const currentUserId = session.user.id;
+      setCurrentUser(session.user);
+
+      if (targetUserId === currentUserId) {
+        router.push('/profile');
+        return;
+      }
+
       try {
-        // Получаем данные пользователя
-        const response = await fetch(`/api/twitch/user?userId=${id}`, {
-          method: 'GET',
-          credentials: 'include',
-        });
-
-        if (!response.ok) {
-          throw new Error(`Ошибка при получении данных пользователя: ${response.status}`);
-        }
-
-        const data = await response.json();
-        setUserData(data);
-
-        // Проверяем статус подписки
-        const isFollowing = Cookies.get(`follow_${userId}_${id}`);
-        setIsFollowed(!!isFollowing);
-
-        // Загружаем фолловеров
-        fetchFollowers();
+        console.log(`Загрузка данных для профиля ID: ${targetUserId}`);
+        const targetUserDataFromApi = {
+            id: targetUserId,
+            display_name: `Пользователь ${targetUserId.substring(0, 6)}`, 
+            login: `user_${targetUserId.substring(0, 6)}`,
+            profile_image_url: '/default-avatar.png',
+            description: 'Описание пользователя...',
+            broadcaster_type: null
+        };
         
-        // Загружаем фолловингов
-        fetchFollowings();
-      } catch (error) {
-        console.error('Ошибка при загрузке данных пользователя:', error);
-        setError(error.message || 'Произошла ошибка при загрузке данных');
+        await new Promise(resolve => setTimeout(resolve, 500)); 
+        if (!targetUserDataFromApi) {
+             throw new Error(`Пользователь с ID ${targetUserId} не найден.`);
+        }
+        setUserData(targetUserDataFromApi);
+
+      } catch (fetchError) {
+        console.error('Ошибка при загрузке данных пользователя:', fetchError);
+        setError(fetchError.message || 'Произошла ошибка при загрузке данных');
+        setUserData(null);
       } finally {
         setLoading(false);
       }
     };
 
-    fetchUserData();
-  }, [id, userId, isAuthenticated, router, fetchFollowers, fetchFollowings]);
+    checkAuthAndLoad();
+  }, [targetUserId, supabase, router]);
 
-  const handleFollow = async () => {
-    try {
-      setLoading(true);
-      // Отправляем запрос на API для подписки/отписки
-      const response = await fetch(`/api/twitch/follow`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ 
-          targetUserId: id,
-          action: isFollowed ? 'unfollow' : 'follow'
-        }),
-      });
-
-      if (!response.ok) {
-        throw new Error(`Ошибка: ${response.status}`);
-      }
-
-      const data = await response.json();
+  const handleProposeReview = () => {
+      if (!userData) return;
       
-      // Обновляем состояние
-      setIsFollowed(!isFollowed);
-
-      alert(data.success ? 
-        (isFollowed ? 'Вы успешно отписались' : 'Вы успешно подписались') : 
-        'Произошла ошибка. Попробуйте позже.');
-    } catch (error) {
-      console.error('Ошибка при подписке/отписке:', error);
-      alert('Произошла ошибка при обновлении подписки. Пожалуйста, попробуйте позже.');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const toggleFollowers = () => {
-    setShowFollowers(!showFollowers);
-  };
-
-  const toggleFollowings = () => {
-    setShowFollowings(!showFollowings);
+      const uploadUrl = new URL('/reviews/upload', window.location.origin);
+      uploadUrl.searchParams.set('targetUserId', userData.id);
+      uploadUrl.searchParams.set('targetUserName', userData.display_name || userData.login);
+      
+      router.push(uploadUrl.toString());
   };
 
   if (loading) {
@@ -179,126 +117,45 @@ export default function UserProfile({ params }) {
     );
   }
 
+  const profileDisplayName = userData.display_name || userData.login || 'Неизвестный пользователь';
+  const profileAvatarUrl = userData.profile_image_url || '/default-avatar.png';
+  const profileStatus = userData.broadcaster_type === 'partner' ? 'Партнер' : 
+                        userData.broadcaster_type === 'affiliate' ? 'Аффилиат' : 'Зритель';
+
   return (
     <div className={styles.profileContainer}>
       <div className={styles.profileHeader}>
         <div className={styles.avatarContainer}>
           <CyberAvatar 
-            imageUrl={userData.profile_image_url || '/default-avatar.png'} 
-            alt={userData.display_name}
+            imageUrl={profileAvatarUrl}
+            alt={profileDisplayName}
             size={150}
           />
         </div>
         <div className={styles.profileInfo}>
-          <h1>{userData.display_name || userData.login}</h1>
+          <h1>{profileDisplayName}</h1>
           <div className={styles.statusContainer}>
             <span className={styles.statusText}>Статус:</span>
-            <span className={styles.statusValue}>
-              {userData.broadcaster_type === 'partner' ? 'Партнер' : 
-               userData.broadcaster_type === 'affiliate' ? 'Аффилиат' : 
-               'Зритель'}
-            </span>
+            <span className={styles.statusValue}>{profileStatus}</span>
           </div>
-          
-          <div className={styles.statsContainer}>
-            <div className={styles.statItem}>
-              <div className={styles.statValue}>{userData.follower_count || 0}</div>
-              <div className={styles.statLabel}>Фолловеров</div>
-            </div>
-            <div className={styles.statItem}>
-              <div className={styles.statValue}>{userData.following_count || 0}</div>
-              <div className={styles.statLabel}>Фолловит</div>
-            </div>
-            <div className={styles.statItem}>
-              <div className={styles.statValue}>{userData.view_count || 0}</div>
-              <div className={styles.statLabel}>Просмотров</div>
-            </div>
+          <div className={styles.actionButtons}>
+              <button 
+                  className={`${styles.button} ${styles.proposeReviewButton}`}
+                  onClick={handleProposeReview}
+                  title={`Предложить отзыв для ${profileDisplayName}`}
+              >
+                 💾 Предложить отзыв
+              </button>
           </div>
         </div>
       </div>
 
-      <div className={styles.profileActions}>
-        <SynthwaveButton 
-          text="ПОСЛЕДОВАТЬ"
-          isActive={isFollowed}
-          onClick={handleFollow}
-        />
-        <button 
-          className={styles.button}
-          onClick={() => router.push(`/streamer-schedule/${id}`)}
-        >
-          Расписание трансляций
-        </button>
-        <button 
-          className={styles.button}
-          onClick={toggleFollowers}
-        >
-          Показать фолловеров
-        </button>
-        <button 
-          className={styles.button}
-          onClick={toggleFollowings}
-        >
-          Показать подписки
-        </button>
-      </div>
-
-      {showFollowers && (
-        <div className={styles.followersSection}>
-          <h2>Фолловеры ({followers.length})</h2>
-          {followers.length > 0 ? (
-            <div className={styles.followersGrid}>
-              {followers.map(follower => (
-                <div key={follower.id} className={styles.followerCard}>
-                  <Image 
-                    src={follower.avatar || '/images/default-avatar.png'} 
-                    alt={follower.login}
-                    width={50}
-                    height={50}
-                    className={styles.followerAvatar}
-                    onClick={() => router.push(`/profile/${follower.id}`)}
-                  />
-                  <p>{follower.login}</p>
-                </div>
-              ))}
+      {userData.description && (
+            <div className={styles.profileDescription}>
+                <h3>Описание</h3>
+                <p>{userData.description}</p>
             </div>
-          ) : (
-            <p>У этого пользователя нет фолловеров.</p>
-          )}
-        </div>
-      )}
-
-      {showFollowings && (
-        <div className={styles.followingsSection}>
-          <h2>Подписки ({followings.length})</h2>
-          {followings.length > 0 ? (
-            <div className={styles.followingsGrid}>
-              {followings.map(following => (
-                <div key={following.id} className={styles.followingCard}>
-                  <Image 
-                    src={following.avatar || '/images/default-avatar.png'}
-                    alt={following.login}
-                    width={50}
-                    height={50}
-                    className={styles.followingAvatar}
-                    onClick={() => router.push(`/profile/${following.id}`)}
-                  />
-                  <p>{following.login}</p>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <p>Этот пользователь ни на кого не подписан.</p>
-          )}
-        </div>
-      )}
-
-      <button 
-        className={styles.backToProfileButton}
-        onClick={() => router.push('/menu')}
-      >
-        Вернуться в меню
-      </button>
+       )}
     </div>
   );
 } 
