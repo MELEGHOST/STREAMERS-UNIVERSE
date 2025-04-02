@@ -59,6 +59,8 @@ export async function middleware(request) {
   const response = NextResponse.next();
 
   // --- Настройка Supabase Client ---
+  // ВЫКЛЮЧАЕМ ВРЕМЕННО ДЛЯ ТЕСТА
+  /*
   // Выносим переменные окружения для читаемости
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
@@ -126,6 +128,8 @@ export async function middleware(request) {
   } else {
        if (!isProduction) console.log('[Middleware] Пропуск проверки Supabase из-за отсутствия ключей.');
   }
+  */
+  // --- КОНЕЦ ВРЕМЕННОГО ОТКЛЮЧЕНИЯ SUPABASE В MIDDLEWARE ---
 
   if (!isProduction) {
     console.log('[Middleware] Обработка:', pathname);
@@ -220,7 +224,8 @@ export async function middleware(request) {
     return response;
   }
 
-  // НОВАЯ проверка аутентификации
+  // НОВАЯ проверка аутентификации - ВРЕМЕННО ВЫКЛЮЧЕНА
+  /*
   const isAuthenticated = !!session && !!userId && !authError; // Считаем авторизованным, если есть сессия и нет ошибок
 
   if (!isProduction) {
@@ -249,15 +254,8 @@ export async function middleware(request) {
     loginUrl.searchParams.set('reason', 'middleware_unauthenticated');
     return NextResponse.redirect(loginUrl);
   }
-
-   // Если пользователь АУТЕНТИФИЦИРОВАН (по новой логике) и пытается зайти на /auth
-   if (pathname === '/auth' && isAuthenticated) {
-      console.log(`[Middleware] Авторизован (${pathname}). Редирект на /menu`);
-      // Возможно, стоит редиректить на /profile или на запрошенный redirect?
-      // Пока оставляем /menu как основную страницу для авторизованных.
-      const menuUrl = new URL('/menu', request.url);
-      return NextResponse.redirect(menuUrl);
-   }
+  */
+  // --- КОНЕЦ ВРЕМЕННОГО ОТКЛЮЧЕНИЯ ЛОГИКИ АВТОРИЗАЦИИ ---
 
   // Если пользователь авторизован и находится на публичной или своей странице,
   // просто возвращаем response с нужными заголовками
