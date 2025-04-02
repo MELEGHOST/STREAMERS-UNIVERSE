@@ -264,8 +264,9 @@ function Profile() {
       console.log(`Profile: Основные данные Twitch загружены (ID: ${currentTwitchUserId}). Запускаем параллельную загрузку остальных данных.`);
 
       await Promise.allSettled([
-          loadUserProfileDbData(),
+          // loadUserProfileDbData(), // Временно отключаем для теста
           loadTierlists(currentTwitchUserId),
+          // loadReviews(currentTwitchUserId) // Отзывы загружаются по кнопке
       ]);
 
       if (isMounted) {
