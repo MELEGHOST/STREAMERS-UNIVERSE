@@ -3,6 +3,15 @@ import { NextResponse } from 'next/server';
 import { createServerClient } from '@supabase/ssr'; // Используем SSR клиент
 
 export async function GET(request) {
+  // --- ЛОГИРОВАНИЕ ВХОДЯЩИХ КУК в API ---
+  try {
+    const cookieHeader = request.headers.get('cookie') || 'Нет заголовка Cookie в API';
+    console.log(`[/api/twitch/user] Входящие куки:`, cookieHeader);
+  } catch (e) {
+    console.error('[/api/twitch/user] Ошибка чтения заголовка Cookie:', e);
+  }
+  // --- КОНЕЦ ЛОГИРОВАНИЯ ---
+  
   const response = new NextResponse();
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL,
