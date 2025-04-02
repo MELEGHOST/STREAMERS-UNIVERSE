@@ -13,6 +13,20 @@ export async function GET() {
       {
         cookies: {
           get: (name) => cookieStore.get(name)?.value,
+          set: (name, value, options) => {
+            try {
+              cookieStore.set({ name, value, ...options });
+            } catch (error) {
+              console.warn(`[/api/twitch/user] Ошибка установки cookie '${name}':`, error);
+            }
+          },
+          remove: (name, options) => {
+            try {
+              cookieStore.set({ name, value: '', ...options });
+            } catch (error) {
+              console.warn(`[/api/twitch/user] Ошибка удаления cookie '${name}':`, error);
+            }
+          },
         },
       }
     );
