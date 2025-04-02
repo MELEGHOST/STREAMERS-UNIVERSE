@@ -1,4 +1,4 @@
-import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs';
+import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
 import { NextResponse } from 'next/server';
 
@@ -6,9 +6,25 @@ export async function GET() {
   try {
     console.log('[/api/twitch/user] Начало обработки запроса');
     const cookieStore = cookies();
-    const supabase = createRouteHandlerClient({ cookies: () => cookieStore });
+    
+    // Используем createServerClient из @supabase/ssr
+    const supabase = createServerClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
+      {
+        cookies: {
+          get: (name) => cookieStore.get(name)?.value,
+          // Route Handlers не могут устанавливать куки напрямую в объекте response,
+          // но supabase-js может нуждаться в этой функции для внутренних нужд.
+          // Оставим заглушку или используем NextResponse для обертки, если это необходимо.
+          // В данном случае, мы читаем сессию, установка не требуется.
+          // set: (name, value, options) => cookieStore.set(name, value, options),
+          // remove: (name, options) => cookieStore.delete(name, options), 
+        },
+      }
+    );
 
-    // Получаем текущую сессию
+    // Получаем текущую сессию (теперь через createServerClient)
     const { data: { session }, error: sessionError } = await supabase.auth.getSession();
     
     if (sessionError) {
@@ -23,7 +39,7 @@ export async function GET() {
 
     console.log('[/api/twitch/user] Сессия найдена, проверяем данные пользователя');
 
-    // Получаем данные пользователя
+    // Получаем данные пользователя (теперь через createServerClient)
     const { data: { user }, error: userError } = await supabase.auth.getUser();
     
     if (userError) {
