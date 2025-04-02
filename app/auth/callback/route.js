@@ -22,16 +22,19 @@ export async function GET(request) {
           get(name) {
             return cookieStore.get(name)?.value
           },
+          // Явно добавляем set и remove, т.к. exchangeCodeForSession должен ЗАПИСАТЬ cookie
           set(name, value, options) {
             try {
-              cookieStore.set({ name, value, ...options, sameSite: options.sameSite || 'Lax', path: '/' })
+              console.log(`Auth Callback: Установка cookie ${name} (path: ${options.path || '/'})`);
+              cookieStore.set({ name, value, ...options, sameSite: options.sameSite || 'Lax', path: options.path || '/' })
             } catch (error) {
               console.error(`Auth Callback: Ошибка установки cookie ${name}:`, error);
             }
           },
           remove(name, options) {
             try {
-              cookieStore.set({ name, value: '', ...options, sameSite: options.sameSite || 'Lax', path: '/' })
+              console.log(`Auth Callback: Удаление cookie ${name} (path: ${options.path || '/'})`);
+              cookieStore.set({ name, value: '', ...options, sameSite: options.sameSite || 'Lax', path: options.path || '/' })
             } catch (error) {
                console.error(`Auth Callback: Ошибка удаления cookie ${name}:`, error);
             }
@@ -40,37 +43,33 @@ export async function GET(request) {
       }
     )
     
-    // Вызываем обмен кода. 
+    console.log('Auth Callback: Вызов supabase.auth.exchangeCodeForSession...');
     const { data, error } = await supabase.auth.exchangeCodeForSession(code)
     
-    // --- ЛОГИРОВАНИЕ СЕССИИ --- 
-    if (data && data.session) {
-        console.log('Auth Callback: Сессия ПОСЛЕ обмена кода:', {
+    if (error) {
+        console.error('Auth Callback: Ошибка при обмене кода на сессию:', error);
+        // Перенаправляем на страницу входа с сообщением об ошибке
+        return NextResponse.redirect(`${origin}/auth?error=auth_code_exchange_failed&message=${encodeURIComponent(error.message)}`);
+    }
+
+    // --- СТРОГАЯ ПРОВЕРКА СЕССИИ И ТОКЕНА СРАЗУ ПОСЛЕ ОБМЕНА --- 
+    if (data && data.session && data.session.provider_token) {
+        console.log('Auth Callback: Сессия УСПЕШНО получена и provider_token присутствует СРАЗУ ПОСЛЕ обмена кода.', {
             userId: data.user?.id,
-            hasProviderToken: !!data.session.provider_token,
-            providerTokenLength: data.session.provider_token?.length,
-            hasProviderRefreshToken: !!data.session.provider_refresh_token, 
-            providerRefreshTokenLength: data.session.provider_refresh_token?.length,
-            metadataProviderId: data.user?.user_metadata?.provider_id,
-            // Выведем часть токена для визуальной проверки (если есть)
             providerTokenStart: data.session.provider_token?.substring(0, 5),
             refreshTokenStart: data.session.provider_refresh_token?.substring(0, 5)
         });
+        // Если все хорошо, продолжаем редирект
+        console.log('Auth Callback: Обмен кода на сессию прошел успешно. Перенаправление на:', `${origin}${next}`);
+        return NextResponse.redirect(`${origin}${next}`)
     } else {
-        console.log('Auth Callback: Объект data или data.session отсутствует после обмена кода.');
+        console.error('Auth Callback: КРИТИЧЕСКАЯ ОШИБКА - provider_token ОТСУТСТВУЕТ в сессии СРАЗУ ПОСЛЕ exchangeCodeForSession!', { data });
+        // Если токена нет уже здесь, это проблема конфигурации Supabase или ответа Twitch
+        // Перенаправляем на страницу входа с сообщением об ошибке
+        return NextResponse.redirect(`${origin}/auth?error=provider_token_missing_post_exchange`);
     }
-    // --- КОНЕЦ ЛОГИРОВАНИЯ ---
-    
-    if (!error) {
-      // Используем объект data, полученный выше, если он нужен дальше
-      console.log('Auth Callback: Обмен кода на сессию прошел успешно. Перенаправление на:', `${origin}${next}`);
-      // Важно: Редирект должен содержать заголовки Set-Cookie, установленные библиотекой.
-      return NextResponse.redirect(`${origin}${next}`)
-    } else {
-      console.error('Auth Callback: Ошибка при обмене кода на сессию:', error);
-      // Перенаправляем на страницу входа с сообщением об ошибке
-      return NextResponse.redirect(`${origin}/auth?error=auth_code_exchange_failed`);
-    }
+    // --- КОНЕЦ ПРОВЕРКИ ---
+
   } else {
       console.warn('Auth Callback: Код авторизации отсутствует в запросе.');
       // Если код отсутствует, перенаправляем на страницу входа с сообщением об ошибке
