@@ -59,8 +59,7 @@ export async function middleware(request) {
   const response = NextResponse.next();
 
   // --- Настройка Supabase Client ---
-  // ВЫКЛЮЧАЕМ ВРЕМЕННО ДЛЯ ТЕСТА
-  /*
+  // Убираем временное отключение
   // Выносим переменные окружения для читаемости
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
@@ -77,6 +76,7 @@ export async function middleware(request) {
   let session = null;
   let userId = null;
   let authError = null;
+  let user = null; // Добавляем переменную user
 
   if (supabaseUrl && supabaseAnonKey) {
       supabase = createServerClient(
@@ -84,22 +84,23 @@ export async function middleware(request) {
         supabaseAnonKey,
         {
           cookies: {
-            get(name) {
-              return request.cookies.get(name)?.value;
+            // Используем getAll
+            getAll: () => {
+              const allCookies = request.cookies.getAll(); // Используем request.cookies
+              return allCookies.map(({ name, value }) => ({ name, value }));
             },
-            // ВОЗВРАЩАЕМ стандартные set и remove, используя response.cookies
-            set(name, value, options) {
+            // Используем setAll с response.cookies
+            setAll: (cookiesToSet) => {
               try {
-                 // Явно добавляем SameSite=Lax и Path=/ для консистентности
-                 response.cookies.set({ name, value, ...options, sameSite: options.sameSite || 'Lax', path: '/' });
+                cookiesToSet.forEach(({ name, value, options }) => response.cookies.set(name, value, options));
               } catch (error) {
-                 console.error(`[Middleware] Ошибка установки cookie ${name}:`, error);
+                 console.error(`[Middleware] Ошибка установки cookies:`, error);
               }
             },
-            remove(name, options) {
+            // Используем remove с response.cookies
+            remove: (name, options) => {
               try {
-                 // Явно добавляем SameSite=Lax и Path=/ для консистентности
-                 response.cookies.set({ name, value: '', ...options, sameSite: options.sameSite || 'Lax', path: '/' });
+                 response.cookies.set({ name, value: '', ...options, maxAge: 0 });
               } catch (error) {
                  console.error(`[Middleware] Ошибка удаления cookie ${name}:`, error);
               }
@@ -108,28 +109,32 @@ export async function middleware(request) {
         }
       );
 
-      // --- Получаем сессию Supabase ---
+      // --- Получаем пользователя Supabase (заменяет getSession) ---
       try {
-        const { data, error } = await supabase.auth.getUser();
+        // getUser обновляет cookie автоматически при необходимости
+        const { data: { user: fetchedUser }, error } = await supabase.auth.getUser(); 
         if (error) {
           authError = error;
-          console.error('[Middleware] Ошибка Supabase getUser:', error.message);
-        } else if (data?.user) {
-          session = data.user;
-          userId = data.user.id;
-           if (!isProduction) console.log('[Middleware] Сессия Supabase найдена, User ID:', userId);
+          // Не выводим ошибку 'Invalid Refresh Token' как критическую, 
+          // так как это может быть просто истекшая сессия
+          if (error.message !== 'Invalid Refresh Token: Refresh Token Not Found') {
+              console.warn('[Middleware] Ошибка Supabase getUser:', error.message);
+          }
+        } else if (fetchedUser) {
+          user = fetchedUser; // Сохраняем всего пользователя
+          userId = fetchedUser.id;
+           if (!isProduction) console.log('[Middleware] Пользователь Supabase аутентифицирован, User ID:', userId);
         } else {
-           if (!isProduction) console.log('[Middleware] Сессия Supabase НЕ найдена (getUser вернул null).');
+           if (!isProduction) console.log('[Middleware] Пользователь Supabase НЕ аутентифицирован (getUser вернул null).');
         }
       } catch (e) {
-         console.error('[Middleware] Непредвиденная ошибка при получении сессии Supabase:', e);
-         authError = e;
+         console.error('[Middleware] Непредвиденная ошибка при вызове getUser Supabase:', e);
+         authError = e; // Сохраняем ошибку
       }
   } else {
        if (!isProduction) console.log('[Middleware] Пропуск проверки Supabase из-за отсутствия ключей.');
   }
-  */
-  // --- КОНЕЦ ВРЕМЕННОГО ОТКЛЮЧЕНИЯ SUPABASE В MIDDLEWARE ---
+  // --- КОНЕЦ НАСТРОЙКИ SUPABASE ---
 
   if (!isProduction) {
     console.log('[Middleware] Обработка:', pathname);
@@ -224,9 +229,8 @@ export async function middleware(request) {
     return response;
   }
 
-  // НОВАЯ проверка аутентификации - ВРЕМЕННО ВЫКЛЮЧЕНА
-  /*
-  const isAuthenticated = !!session && !!userId && !authError; // Считаем авторизованным, если есть сессия и нет ошибок
+  // НОВАЯ проверка аутентификации - Раскомментируем
+  const isAuthenticated = !!user && !authError; // Считаем авторизованным, если есть user и нет ошибок
 
   if (!isProduction) {
       console.log('[Middleware] Статус авторизации (Supabase):', {
@@ -235,13 +239,23 @@ export async function middleware(request) {
           isAuthenticated: isAuthenticated,
           userId: userId,
           hasAuthError: !!authError,
+          authErrorMessage: authError?.message
       });
   }
 
   // Обработка API запросов (кроме публичных API)
   if (pathname.startsWith('/api/') && !isPublicPath) {
-    // Теперь API роуты *должны* сами проверять аутентификацию через createServerClient
-    // Middleware просто передает запрос дальше с установленными заголовками
+    // Если API не публичный и пользователь не аутентифицирован, возвращаем 401
+    // Исключаем callback и другие auth-связанные API, они проверят сами
+    if (!isAuthenticated && !pathname.startsWith('/api/auth')) { 
+        console.warn(`[Middleware] API: Не авторизован (${pathname}). Ответ 401.`);
+        // Возвращаем ошибку 401 вместо редиректа для API
+        return new NextResponse(JSON.stringify({ error: 'Authentication required' }), { 
+            status: 401, 
+            headers: { 'Content-Type': 'application/json' } 
+        });
+    }
+    // Для авторизованных запросов к API просто передаем дальше
     return response;
   }
 
@@ -254,8 +268,7 @@ export async function middleware(request) {
     loginUrl.searchParams.set('reason', 'middleware_unauthenticated');
     return NextResponse.redirect(loginUrl);
   }
-  */
-  // --- КОНЕЦ ВРЕМЕННОГО ОТКЛЮЧЕНИЯ ЛОГИКИ АВТОРИЗАЦИИ ---
+  // --- КОНЕЦ ПРОВЕРКИ АВТОРИЗАЦИИ ---
 
   // Если пользователь авторизован и находится на публичной или своей странице,
   // просто возвращаем response с нужными заголовками

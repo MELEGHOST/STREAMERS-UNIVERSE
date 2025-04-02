@@ -19,22 +19,28 @@ export async function GET(request) {
       process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
       {
         cookies: {
-          get(name) {
-            return cookieStore.get(name)?.value
+          // Используем getAll
+          getAll: () => {
+            const allCookies = cookieStore.getAll();
+            return allCookies.map(({ name, value }) => ({ name, value }));
           },
-          // Явно добавляем set и remove, т.к. exchangeCodeForSession должен ЗАПИСАТЬ cookie
-          set(name, value, options) {
+          // Используем setAll
+          setAll: (cookiesToSet) => {
             try {
-              console.log(`Auth Callback: Установка cookie ${name} (path: ${options.path || '/'})`);
-              cookieStore.set({ name, value, ...options, sameSite: options.sameSite || 'Lax', path: options.path || '/' })
+              console.log(`Auth Callback: Установка ${cookiesToSet.length} cookies...`);
+              cookiesToSet.forEach(({ name, value, options }) => {
+                console.log(`  - Установка ${name} (path: ${options.path || '/'})`);
+                cookieStore.set(name, value, options);
+              });
             } catch (error) {
-              console.error(`Auth Callback: Ошибка установки cookie ${name}:`, error);
+              console.error(`Auth Callback: Ошибка установки cookies:`, error);
             }
           },
-          remove(name, options) {
+          // Используем remove
+          remove: (name, options) => {
             try {
               console.log(`Auth Callback: Удаление cookie ${name} (path: ${options.path || '/'})`);
-              cookieStore.set({ name, value: '', ...options, sameSite: options.sameSite || 'Lax', path: options.path || '/' })
+              cookieStore.set({ name, value: '', ...options, maxAge: 0 });
             } catch (error) {
                console.error(`Auth Callback: Ошибка удаления cookie ${name}:`, error);
             }

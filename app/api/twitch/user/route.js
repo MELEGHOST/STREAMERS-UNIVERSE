@@ -12,17 +12,20 @@ export async function GET() {
       process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
       {
         cookies: {
-          get: (name) => cookieStore.get(name)?.value,
-          set: (name, value, options) => {
+          getAll: () => {
+            const allCookies = cookieStore.getAll();
+            return allCookies.map(({ name, value }) => ({ name, value }));
+          },
+          setAll: (cookiesToSet) => {
             try {
-              cookieStore.set({ name, value, ...options });
+              cookiesToSet.forEach(({ name, value, options }) => cookieStore.set(name, value, options));
             } catch (error) {
-              console.warn(`[/api/twitch/user] Ошибка установки cookie '${name}':`, error);
+              console.warn(`[/api/twitch/user] Ошибка установки cookies:`, error);
             }
           },
           remove: (name, options) => {
             try {
-              cookieStore.set({ name, value: '', ...options });
+              cookieStore.set({ name, value: '', ...options, maxAge: 0 });
             } catch (error) {
               console.warn(`[/api/twitch/user] Ошибка удаления cookie '${name}':`, error);
             }
