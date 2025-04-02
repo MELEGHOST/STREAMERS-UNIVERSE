@@ -10,8 +10,8 @@ export async function GET(request) {
     {
       cookies: {
         get: (name) => request.cookies.get(name)?.value,
-        set: (name, value, options) => response.cookies.set({ name, value, ...options, sameSite: options.sameSite || 'Lax' }),
-        remove: (name, options) => response.cookies.set({ name, value: '', ...options, sameSite: options.sameSite || 'Lax' }),
+        set: (name, value, options) => response.cookies.set({ name, value, ...options, sameSite: options.sameSite || 'Lax', path: '/' }),
+        remove: (name, options) => response.cookies.set({ name, value: '', ...options, sameSite: options.sameSite || 'Lax', path: '/' }),
       },
     }
   );

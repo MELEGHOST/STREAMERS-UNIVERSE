@@ -24,14 +24,14 @@ export async function GET(request) {
           },
           set(name, value, options) {
             try {
-              cookieStore.set({ name, value, ...options, sameSite: options.sameSite || 'Lax' })
+              cookieStore.set({ name, value, ...options, sameSite: options.sameSite || 'Lax', path: '/' })
             } catch (error) {
               console.error(`Auth Callback: Ошибка установки cookie ${name}:`, error);
             }
           },
           remove(name, options) {
             try {
-              cookieStore.set({ name, value: '', ...options, sameSite: options.sameSite || 'Lax' })
+              cookieStore.set({ name, value: '', ...options, sameSite: options.sameSite || 'Lax', path: '/' })
             } catch (error) {
                console.error(`Auth Callback: Ошибка удаления cookie ${name}:`, error);
             }
