@@ -157,7 +157,8 @@ function Profile() {
     }
   }, [router, searchParams, supabase]);
 
-  const loadUserProfileDbData = useCallback(async () => {
+  const loadUserProfileDbData = useCallback(async (twitchId) => {
+    if (!twitchId) return;
     setLoadingProfile(true);
     setSpecificErrors(prev => ({ ...prev, profileDb: null }));
     console.log('Profile: Загрузка данных профиля из БД...');
@@ -199,13 +200,13 @@ function Profile() {
     } finally {
         setLoadingProfile(false);
     }
-  }, [supabase]);
+  }, [supabase, setLoadingProfile, setSpecificErrors, setUserProfile, specificErrors.profileDb]);
 
-  const loadTierlists = useCallback(async (currentUserId) => {
-    if (!currentUserId) return;
+  const loadTierlists = useCallback(async (authorId) => {
+    if (!authorId) return;
     try {
-        console.log('Profile: Загрузка тирлистов для:', currentUserId);
-        const response = await fetch(`/api/tierlists?userId=${currentUserId}&_=${Date.now()}`, {
+        console.log('Profile: Загрузка тирлистов для:', authorId);
+        const response = await fetch(`/api/tierlists?userId=${authorId}&_=${Date.now()}`, {
             method: 'GET', headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-cache' }, credentials: 'include' });
         if (response.ok) {
             const data = await response.json();
@@ -493,7 +494,7 @@ function Profile() {
           return;
       }
       switch (section) {
-          case 'profileDb': loadUserProfileDbData(); break;
+          case 'profileDb': loadUserProfileDbData(userId); break;
           case 'tierlists': loadTierlists(userId); break;
           case 'reviews': loadReviews(userId); break;
           default: console.warn(`Неизвестная секция для повторной загрузки: ${section}`);
