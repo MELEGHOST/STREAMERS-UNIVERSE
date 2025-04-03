@@ -89,51 +89,56 @@ function Profile() {
 
     try {
       console.log('Profile: Текущие document.cookie перед fetch /api/twitch/user:', document.cookie);
-
       const response = await fetch('/api/twitch/user', {
         method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-          'Cache-Control': 'no-cache, no-store',
-          'Pragma': 'no-cache'
-        },
+        headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-cache', 'Pragma': 'no-cache' },
         credentials: 'include'
       });
-
       console.log(`Profile: Получен статус ответа от /api/twitch/user: ${response.status}`);
 
-      if (response.status === 401) {
-          console.warn('Profile: Не аутентифицирован (ответ 401 от API /api/twitch/user). Сессия могла истечь.');
-          setGlobalError('Сессия истекла или недействительна.');
-      }
-      
-      if (!response.ok) {
-          const errorText = await response.text();
-          console.error('Profile: Ошибка при запросе Twitch пользователя к API:', response.status, errorText);
-          setGlobalError(`Ошибка API Twitch: ${response.status}`);
+      let responseData;
+      try {
+          responseData = await response.json(); 
+      } catch (jsonError) {
+          console.error('Profile: Ошибка парсинга JSON ответа от /api/twitch/user:', jsonError);
+          responseData = { error: 'Invalid response format' };
       }
 
-      const apiUserData = await response.json();
-      if (apiUserData && apiUserData.id) {
-          console.log('Profile: Данные Twitch пользователя получены с API:', apiUserData.id);
-          if (apiUserData.id === authenticatedUserId) {
-              await DataStorage.saveData('user', apiUserData);
-              setTwitchUserData(apiUserData);
+      if (!response.ok) {
+          const errorMessage = responseData?.error || `Unknown API Error (Status: ${response.status})`;
+          console.error('Profile: Ошибка от API /api/twitch/user:', response.status, errorMessage);
+          if (response.status === 401) {
+              setGlobalError('Сессия истекла или недействительна.');
           } else {
-              console.warn('Profile: ID пользователя из API не совпадает с ID из сессии!')
-              setGlobalError('Несоответствие данных пользователя.');
-              setTwitchUserData(null);
+              setGlobalError(`Ошибка API: ${errorMessage}`);
           }
           setLoadingTwitchUser(false);
-          return apiUserData;
+          setTwitchUserData(null);
+          return null;
+      }
+
+      if (responseData && responseData.id) {
+        console.log('Profile: Данные Twitch пользователя получены с API:', responseData.id);
+        if (responseData.id === authenticatedUserId) {
+            await DataStorage.saveData('user', responseData);
+            setTwitchUserData(responseData);
+        } else {
+            console.warn('Profile: ID пользователя из API не совпадает с ID из сессии!');
+            setGlobalError('Несоответствие данных пользователя.');
+            setTwitchUserData(null);
+        }
+        setLoadingTwitchUser(false);
+        return responseData;
       } else {
-          console.error('Profile: Некорректные данные от API Twitch пользователя:', apiUserData);
-          throw new Error('Получены некорректные данные Twitch пользователя');
+        console.error('Profile: Некорректные данные от API Twitch пользователя (успешный статус):', responseData);
+        throw new Error('Получены некорректные данные Twitch пользователя (успешный статус)');
       }
 
     } catch (apiError) {
       console.error('Profile: Ошибка в блоке catch fetchTwitchUserData:', apiError);
-      setGlobalError('Не удалось загрузить основные данные профиля Twitch. Попробуйте обновить страницу.');
+      if (!globalError) {
+          setGlobalError('Не удалось загрузить основные данные профиля Twitch. Попробуйте обновить страницу.');
+      }
       setTwitchUserData(null);
       setLoadingTwitchUser(false);
       return null;
