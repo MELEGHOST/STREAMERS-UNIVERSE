@@ -84,7 +84,7 @@ export async function GET() {
         return NextResponse.json({ error: `Ошибка при вызове функции: ${functionError.message}` }, { status });
     }
 
-    console.log('[/api/twitch/user] Edge Function 'get-twitch-user' успешно выполнена.');
+    console.log("[/api/twitch/user] Edge Function 'get-twitch-user' успешно выполнена.");
 
     // 3. Возвращаем результат от Edge Function
     return NextResponse.json(functionData);
