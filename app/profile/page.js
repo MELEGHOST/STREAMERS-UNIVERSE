@@ -294,7 +294,7 @@ function Profile() {
           console.log("Profile: Отписались от onAuthStateChange");
       }
     };
-  }, [supabase, router]);
+  }, [supabase, router, fetchTwitchUserData, loadUserProfileDbData]);
 
   const { isBirthday, daysToBirthday } = useMemo(() => {
       if (!userProfile?.birthday) {
@@ -558,6 +558,25 @@ function Profile() {
   return (
     <div className={styles.container}>
       <div className={styles.profileContainer}>
+        {globalError && (
+          <div className={styles.globalErrorContainer}>
+            <span className={styles.errorIcon}>⚠️</span> 
+            <p>{globalError}</p>
+             <button 
+                 onClick={() => {
+                     setGlobalError(null); 
+                     if(currentUser?.id) {
+                        fetchTwitchUserData(currentUser.id, true);
+                        loadUserProfileDbData(currentUser.id);
+                     }
+                 }}
+                 className={styles.retryButtonSmall}
+                 title="Попробовать снова"
+              >
+                 Обновить
+             </button>
+          </div>
+        )}
         <div className={styles.profileHeader}>
           <div className={styles.avatarContainer}>
             <CyberAvatar 
