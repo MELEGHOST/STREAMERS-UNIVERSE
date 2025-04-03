@@ -49,11 +49,13 @@ function Profile() {
   const [showReviews, setShowReviews] = useState(false);
   const [showStats, setShowStats] = useState(false);
   
-  const [userId, setUserId] = useState('');
   const [isLoggingOut, setIsLoggingOut] = useState(false);
 
   const [userProfile, setUserProfile] = useState(null);
   const [loadingProfile, setLoadingProfile] = useState(true);
+
+  const [currentUser, setCurrentUser] = useState(null);
+  const [authLoading, setAuthLoading] = useState(true);
 
   const supabase = useMemo(() => 
     createBrowserClient(
@@ -62,48 +64,27 @@ function Profile() {
     ), 
   []);
 
-  const fetchTwitchUserData = useCallback(async (forceRefresh = false) => {
+  const fetchTwitchUserData = useCallback(async (authenticatedUserId, forceRefresh = false) => {
+    if (!authenticatedUserId) return null;
+
     setLoadingTwitchUser(true);
     setGlobalError(null);
-    console.log('Profile: Начало загрузки данных Twitch пользователя...');
-
-    try {
-        const { data: { session }, error: sessionError } = await supabase.auth.getSession();
-        if (sessionError) {
-            console.error('Profile: Ошибка при проверке сессии Supabase перед запросом к API:', sessionError);
-            throw new Error('Ошибка проверки сессии');
-        }
-        if (!session) {
-            console.log('Profile: Сессия Supabase НЕ найдена НА КЛИЕНТЕ перед запросом к API. Перенаправление на /auth.');
-            router.push('/auth?reason=no_client_session');
-            setLoadingTwitchUser(false);
-            return null;
-        }
-        console.log('Profile: Сессия Supabase НА КЛИЕНТЕ найдена перед запросом к API.');
-    } catch (e) {
-        console.error('Profile: Критическая ошибка при проверке сессии Supabase на клиенте:', e);
-        setGlobalError('Ошибка проверки сессии. Попробуйте обновить страницу или войти снова.');
-        setLoadingTwitchUser(false);
-        return null;
-    }
+    console.log(`Profile: Начало загрузки данных Twitch пользователя для ${authenticatedUserId}...`);
 
     const shouldRefresh = forceRefresh || searchParams.get('refresh') === 'true';
 
     if (!shouldRefresh) {
       try {
         const cachedUserData = await DataStorage.getData('user');
-        if (cachedUserData && cachedUserData.id) {
+        if (cachedUserData && cachedUserData.id === authenticatedUserId) {
           console.log('Profile: Данные Twitch пользователя получены из DataStorage:', cachedUserData.id);
           setTwitchUserData(cachedUserData);
-          setUserId(cachedUserData.id);
           setLoadingTwitchUser(false);
           return cachedUserData;
         }
       } catch (e) {
-        console.error('Profile: Ошибка при получении данных Twitch из DataStorage:', e);
+        console.warn('Profile: Ошибка при получении данных Twitch из DataStorage:', e);
       }
-    } else {
-      console.log('Profile: Запрошено принудительное обновление данных Twitch, пропускаем кэш DataStorage');
     }
 
     try {
@@ -122,24 +103,27 @@ function Profile() {
       console.log(`Profile: Получен статус ответа от /api/twitch/user: ${response.status}`);
 
       if (response.status === 401) {
-          console.log('Profile: Не аутентифицирован (ответ 401 от API /api/twitch/user), перенаправление на /auth');
-          router.push('/auth?reason=api_unauthorized');
-          setLoadingTwitchUser(false);
-          return null;
+          console.warn('Profile: Не аутентифицирован (ответ 401 от API /api/twitch/user). Сессия могла истечь.');
+          setGlobalError('Сессия истекла или недействительна.');
       }
       
       if (!response.ok) {
           const errorText = await response.text();
           console.error('Profile: Ошибка при запросе Twitch пользователя к API:', response.status, errorText);
-          throw new Error(`Ошибка API Twitch: ${response.status}`);
+          setGlobalError(`Ошибка API Twitch: ${response.status}`);
       }
 
       const apiUserData = await response.json();
       if (apiUserData && apiUserData.id) {
           console.log('Profile: Данные Twitch пользователя получены с API:', apiUserData.id);
-          await DataStorage.saveData('user', apiUserData);
-          setTwitchUserData(apiUserData);
-          setUserId(apiUserData.id);
+          if (apiUserData.id === authenticatedUserId) {
+              await DataStorage.saveData('user', apiUserData);
+              setTwitchUserData(apiUserData);
+          } else {
+              console.warn('Profile: ID пользователя из API не совпадает с ID из сессии!')
+              setGlobalError('Несоответствие данных пользователя.');
+              setTwitchUserData(null);
+          }
           setLoadingTwitchUser(false);
           return apiUserData;
       } else {
@@ -149,31 +133,23 @@ function Profile() {
 
     } catch (apiError) {
       console.error('Profile: Ошибка в блоке catch fetchTwitchUserData:', apiError);
-      console.error('Profile: Ошибка при запросе Twitch к API или обработке:', apiError);
       setGlobalError('Не удалось загрузить основные данные профиля Twitch. Попробуйте обновить страницу.');
       setTwitchUserData(null);
       setLoadingTwitchUser(false);
       return null;
     }
-  }, [router, searchParams, supabase]);
+  }, [searchParams]);
 
-  const loadUserProfileDbData = useCallback(async (twitchId) => {
-    if (!twitchId) return;
+  const loadUserProfileDbData = useCallback(async (authenticatedUserId) => {
+    if (!authenticatedUserId) return;
     setLoadingProfile(true);
     setSpecificErrors(prev => ({ ...prev, profileDb: null }));
-    console.log('Profile: Загрузка данных профиля из БД...');
+    console.log(`Profile: Загрузка данных профиля из БД для ${authenticatedUserId}...`);
     try {
-        const { data: { session }, error: sessionError } = await supabase.auth.getSession();
-        if (sessionError || !session) {
-            setSpecificErrors(prev => ({ ...prev, profileDb: 'Сессия не найдена' }));
-            throw new Error('Сессия не найдена для загрузки профиля БД');
-        }
-        const userId = session.user.id;
-
         const { data: profileData, error: profileDbError } = await supabase
             .from('user_profiles')
-            .select('description, birthday, social_links')
-            .eq('user_id', userId)
+            .select('description, birthday, show_birthday, social_links, stats_visibility')
+            .eq('user_id', authenticatedUserId)
             .maybeSingle();
 
         if (profileDbError) {
@@ -182,13 +158,21 @@ function Profile() {
             setUserProfile(null);
         } else if (profileData) {
             console.log('Profile: Данные профиля из БД загружены:', profileData);
-            setUserProfile(profileData);
+            setUserProfile({
+                description: profileData.description || '',
+                birthday: profileData.birthday,
+                show_birthday: profileData.show_birthday !== undefined ? profileData.show_birthday : true,
+                social_links: profileData.social_links || {},
+                stats_visibility: profileData.stats_visibility || { followers: true, followings: true, streams: true, channel: true, accountInfo: true }
+            });
         } else {
-             console.log('Profile: Профиль в БД не найден, используем данные сессии.');
+             console.log('Profile: Профиль в БД не найден, используем пустые значения по умолчанию.');
              setUserProfile({
-                description: session.user.user_metadata?.description || '', 
+                description: '',
                 birthday: null,
-                social_links: session.user.user_metadata?.social_links || {}
+                show_birthday: true,
+                social_links: {},
+                stats_visibility: { followers: true, followings: true, streams: true, channel: true, accountInfo: true }
              });
         }
     } catch (error) {
@@ -200,7 +184,7 @@ function Profile() {
     } finally {
         setLoadingProfile(false);
     }
-  }, [supabase, setLoadingProfile, setSpecificErrors, setUserProfile, specificErrors.profileDb]);
+  }, [supabase, specificErrors.profileDb]);
 
   const loadTierlists = useCallback(async (authorId) => {
     if (!authorId) return;
@@ -246,49 +230,71 @@ function Profile() {
   }, []);
 
   useEffect(() => {
-    let isMounted = true;
-    console.log("Profile: Запуск основного useEffect для загрузки данных");
+    setAuthLoading(true);
+    console.log("Profile: useEffect onAuthStateChange Сработал");
 
-    const loadAllData = async () => {
-      const twitchData = await fetchTwitchUserData();
-      
-      if (!isMounted || !twitchData || !twitchData.id) {
-          console.log("Profile: Основные данные Twitch не загружены или компонент размонтирован, прерываем загрузку остального.");
-          if (isMounted) {
-              setLoadingTwitchUser(false);
-              setLoadingProfile(false);
-          }
-          return;
+    supabase.auth.getSession().then(({ data: { session } }) => {
+        if (session) {
+            console.log("Profile: Начальная сессия найдена", session.user.id);
+            setCurrentUser(session.user);
+            fetchTwitchUserData(session.user.id);
+            loadUserProfileDbData(session.user.id);
+        } else {
+            console.log("Profile: Начальная сессия НЕ найдена");
+            setCurrentUser(null);
+            router.push('/auth?reason=initial_no_session'); 
+        }
+         setAuthLoading(false);
+    }).catch(err => {
+        console.error("Profile: Ошибка при начальной проверке сессии", err);
+        setCurrentUser(null);
+        setAuthLoading(false);
+        setGlobalError("Ошибка проверки сессии при загрузке.");
+    });
+
+    const { data: authListener } = supabase.auth.onAuthStateChange((event, session) => {
+      console.log(`Profile: Событие AuthStateChange: ${event}`);
+      if (event === 'SIGNED_IN' && session) {
+        console.log('Profile: Пользователь вошел (SIGNED_IN)', session.user.id);
+        setCurrentUser(session.user);
+         setAuthLoading(false);
+         if (!twitchUserData || twitchUserData.id !== session.user.id) {
+             fetchTwitchUserData(session.user.id);
+         }
+         if (!userProfile || currentUser?.id !== session.user.id) {
+             loadUserProfileDbData(session.user.id);
+         }
+      } else if (event === 'SIGNED_OUT') {
+        console.log('Profile: Пользователь вышел (SIGNED_OUT)');
+        setCurrentUser(null);
+        setTwitchUserData(null);
+        setUserProfile(null);
+        DataStorage.clearData('user').catch(e => console.warn("Failed to clear user cache on logout", e));
+         setAuthLoading(false);
+        router.push('/auth?reason=signed_out');
+      } else if (event === 'INITIAL_SESSION') {
+         console.log("Profile: Событие INITIAL_SESSION получено");
+         if(session) {
+            setCurrentUser(session.user);
+         } else {
+            setCurrentUser(null);
+            router.push('/auth?reason=initial_session_null'); 
+         }
+         setAuthLoading(false);
       }
-
-      const currentTwitchUserId = twitchData.id;
-      console.log(`Profile: Основные данные Twitch загружены (ID: ${currentTwitchUserId}). Запускаем параллельную загрузку остальных данных.`);
-
-      await Promise.allSettled([
-          // loadUserProfileDbData(), // Временно отключаем для теста
-          loadTierlists(currentTwitchUserId),
-          // loadReviews(currentTwitchUserId) // Отзывы загружаются по кнопке
-      ]);
-
-      if (isMounted) {
-          console.log('Profile: Все параллельные загрузки завершены (или была попытка).');
-           if (searchParams.get('refresh') === 'true' && window.history.replaceState) {
-              const cleanUrl = window.location.pathname;
-              window.history.replaceState({ path: cleanUrl }, '', cleanUrl);
-              console.log('Profile: Параметр refresh удален из URL.');
-          }
-      } else {
-           console.log("Profile: Компонент размонтирован после завершения параллельных загрузок.");
-      }
-    };
-
-    loadAllData();
+       else if (event === 'TOKEN_REFRESHED' && session) {
+           console.log('Profile: Токен обновлен (TOKEN_REFRESHED)');
+           setCurrentUser(session.user);
+       }
+    });
 
     return () => {
-      console.log("Profile: Компонент размонтирован, isMounted = false.");
-      isMounted = false;
+      if (authListener && authListener.subscription) {
+          authListener.subscription.unsubscribe();
+          console.log("Profile: Отписались от onAuthStateChange");
+      }
     };
-  }, [fetchTwitchUserData, loadUserProfileDbData, loadTierlists, searchParams]);
+  }, [supabase, router]);
 
   const { isBirthday, daysToBirthday } = useMemo(() => {
       if (!userProfile?.birthday) {
@@ -369,7 +375,7 @@ function Profile() {
       return (
         <div className={styles.emptySocialLinks}>
           Нет социальных ссылок.
-          {twitchUserData?.id === userId && (
+          {twitchUserData?.id === currentUser?.id && (
             <p>Добавьте их в разделе &quot;Редактировать профиль&quot;.</p>
           )}
         </div>
@@ -388,7 +394,7 @@ function Profile() {
       return (
         <div className={styles.emptySocialLinks}>
           Нет активных социальных ссылок.
-           {twitchUserData?.id === userId && (
+           {twitchUserData?.id === currentUser?.id && (
             <p>Добавьте их в разделе &quot;Редактировать профиль&quot;.</p>
           )}
         </div>
@@ -454,8 +460,8 @@ function Profile() {
       setShowReviews(newState);
       setShowAchievements(false);
       setShowStats(false);
-      if (newState && userId && !loadingReviews) {
-          loadReviews(userId);
+      if (newState && currentUser?.id && !loadingReviews) {
+          loadReviews(currentUser.id);
       }
   };
 
@@ -489,14 +495,14 @@ function Profile() {
 
   const retryLoading = (section) => {
       console.log(`Повторная попытка загрузки секции: ${section}`);
-      if (!userId) {
-          console.error('Невозможно повторить загрузку: userId отсутствует');
+      if (!currentUser?.id) {
+          console.error('Невозможно повторить загрузку: currentUser.id отсутствует');
           return;
       }
       switch (section) {
-          case 'profileDb': loadUserProfileDbData(userId); break;
-          case 'tierlists': loadTierlists(userId); break;
-          case 'reviews': loadReviews(userId); break;
+          case 'profileDb': loadUserProfileDbData(currentUser.id); break;
+          case 'tierlists': loadTierlists(currentUser.id); break;
+          case 'reviews': loadReviews(currentUser.id); break;
           default: console.warn(`Неизвестная секция для повторной загрузки: ${section}`);
       }
   };
@@ -518,38 +524,37 @@ function Profile() {
   // const visibilitySettings = userProfile?.stats_visibility || {};
   const socialLinks = profileSocialLinksDb || {}; // Используем данные из БД
 
-  // --- Обработка состояния загрузки и ошибок ---
-  if (loadingTwitchUser || loadingProfile) {
-    // Можно вернуть более детальный скелетон или лоадер
-    return <ProfileLoadingFallback />; 
+  // Добавляем состояние загрузки аутентификации
+  if (authLoading) {
+    return (
+      <div className={styles.container}>
+        <div className={styles.profileContainer}>
+          <div className={styles.profileHeader}>
+            <h1>Проверка аутентификации...</h1>
+            <div className={styles.spinner}></div>
+          </div>
+        </div>
+      </div>
+    );
   }
   
-  if (globalError) {
+  // Если пользователь не аутентифицирован после проверки (на всякий случай)
+  if (!currentUser && !authLoading) {
+      console.log("Profile: Пользователь не аутентифицирован после загрузки, редирект на /auth");
       return (
-        <div className={styles.container}>
-            <p className={styles.errorText}>Ошибка загрузки профиля: {globalError}</p>
-            {/* Можно добавить кнопку для повторной попытки */} 
-            <button onClick={() => fetchTwitchUserData(true)} className={styles.retryButton}>
-                Попробовать снова
-            </button>
-        </div>
+         <div className={styles.container}>
+           <div className={styles.profileContainer}>
+             <div className={styles.profileHeader}>
+               <h1>Ошибка аутентификации</h1>
+               <p>Пожалуйста, <a href="/auth">войдите</a>.</p>
+             </div>
+           </div>
+         </div>
       );
   }
 
-  if (!twitchUserData) {
-    // Это состояние не должно достигаться, если нет ошибки, 
-    // так как fetchTwitchUserData должен был сделать редирект или выдать globalError
-    return (
-        <div className={styles.container}>
-            <p className={styles.errorText}>Не удалось загрузить данные Twitch. Возможно, требуется авторизация.</p>
-             <button onClick={() => router.push('/auth')} className={styles.retryButton}>
-                Перейти к авторизации
-            </button>
-        </div>
-    );
-  }
-  // --- Конец обработки состояния ---
-
+  // Основной рендер компонента, когда пользователь аутентифицирован
+  // Используем twitchUserData и userProfile для отображения
   return (
     <div className={styles.container}>
       <div className={styles.profileContainer}>
@@ -616,9 +621,9 @@ function Profile() {
         {showAchievements ? (
           <div className={styles.achievementsSection}>
             <div className={styles.sectionHeader}><h2>Достижения</h2></div>
-            {userId && (
+            {currentUser?.id && (
                 <AchievementsSystem 
-                  userId={userId} 
+                  userId={currentUser.id} 
                 />
             )}
           </div>
@@ -632,9 +637,9 @@ function Profile() {
                      <span>{specificErrors.reviews}</span>
                      <button onClick={() => retryLoading('reviews')} className={styles.retryButtonSmall} title="Повторить">↺</button>
                  </div>
-             ) : userId ? (
+             ) : currentUser?.id ? (
                  <ReviewSection 
-                   userId={userId} 
+                   userId={currentUser.id} 
                    isAuthor={true}
                  />
              ) : null}
@@ -686,7 +691,7 @@ function Profile() {
                 ) : (
                   <div className={styles.emptyDescription}>
                     <p>Нет описания профиля.</p>
-                     {twitchUserData?.id === userId && (
+                     {twitchUserData?.id === currentUser?.id && (
                       <p>Добавьте его в разделе &quot;Редактировать профиль&quot;.</p>
                      )}
                   </div>
