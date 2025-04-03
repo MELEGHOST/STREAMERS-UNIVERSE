@@ -1,13 +1,15 @@
 import { createServerClient } from '@supabase/ssr';
+import { createClient } from '@supabase/supabase-js';
 import { cookies } from 'next/headers';
 import { NextResponse } from 'next/server';
 
 export async function GET() {
   try {
-    console.log('[/api/twitch/user] Начало обработки запроса');
+    console.log('[/api/twitch/user] Начало обработки запроса (v2 - Edge Function)');
     const cookieStore = cookies();
     
-    const supabase = createServerClient(
+    // --- Клиент для проверки аутентификации пользователя --- 
+    const supabaseAuthClient = createServerClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL,
       process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
       {
@@ -34,9 +36,9 @@ export async function GET() {
       }
     );
 
-    // Сначала getUser для валидации аутентификации
-    console.log('[/api/twitch/user] Вызов supabase.auth.getUser()...');
-    const { data: { user }, error: userError } = await supabase.auth.getUser();
+    // 1. Получаем аутентифицированного пользователя
+    console.log('[/api/twitch/user] Вызов supabaseAuthClient.auth.getUser()...');
+    const { data: { user }, error: userError } = await supabaseAuthClient.auth.getUser();
     
     if (userError) {
       console.error('[/api/twitch/user] Ошибка при getUser():', userError);
@@ -50,74 +52,42 @@ export async function GET() {
 
     console.log('[/api/twitch/user] getUser() успешен, ID пользователя:', user.id);
 
-    // Теперь, когда мы знаем, что пользователь аутентифицирован, попробуем получить сессию
-    console.log('[/api/twitch/user] Вызов supabase.auth.getSession() ПОСЛЕ успешного getUser()...');
-    const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+    // 2. Вызываем Supabase Edge Function "get-twitch-user"
+    console.log(`[/api/twitch/user] Вызов Edge Function 'get-twitch-user' для пользователя ${user.id}...`);
+    
+    // Создаем сервисный клиент для вызова функции (или можно использовать обычный, если RLS позволяет)
+    // Использование сервисного ключа здесь может быть избыточным, если функция не требует особой авторизации
+    // Но если функция использует SUPABASE_SERVICE_ROLE_KEY внутри, то вызывать ее лучше с ним же для консистентности
+    // Используем обычный клиент, так как функция сама использует Admin Client внутри
+    const supabaseClient = createClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL,
+        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+        // Можно добавить глобальный fetch для обработки ошибок сети
+    );
 
-    if (sessionError) {
-      console.error('[/api/twitch/user] Ошибка при getSession() ПОСЛЕ getUser():', sessionError);
-      // Если getUser успешен, но getSession нет, это странно, но вернем ошибку
-      return NextResponse.json({ error: 'Ошибка получения сессии после getUser()' }, { status: 500 });
+    const { data: functionData, error: functionError } = await supabaseClient.functions.invoke(
+        'get-twitch-user', 
+        { 
+            body: { userId: user.id },
+            // Устанавливаем заголовок Authorization вручную, используя токен из сессии текущего пользователя
+            // Это может быть необходимо, если Edge Function проверяет JWT через `--verify-jwt`
+            // Но так как мы используем --no-verify-jwt, это может быть не нужно. Оставляем для примера.
+            // headers: {
+            //     Authorization: `Bearer ${session?.access_token}` 
+            // }
+        }
+    );
+
+    if (functionError) {
+        console.error(`[/api/twitch/user] Ошибка при вызове Edge Function 'get-twitch-user':`, functionError);
+        const status = functionError instanceof Error && functionError.message.includes('status') ? parseInt(functionError.message.split('status ')[1] || '500', 10) : 500;
+        return NextResponse.json({ error: `Ошибка при вызове функции: ${functionError.message}` }, { status });
     }
 
-    if (!session) {
-      console.log('[/api/twitch/user] Сессия НЕ найдена после getSession() (даже после успешного getUser())');
-      // Это очень странная ситуация, указывающая на проблему с cookie или состоянием
-      return NextResponse.json({ error: 'Не удалось получить сессию, несмотря на аутентификацию' }, { status: 401 });
-    }
+    console.log('[/api/twitch/user] Edge Function 'get-twitch-user' успешно выполнена.');
 
-    console.log('[/api/twitch/user] Сессия успешно получена ПОСЛЕ getUser()');
-
-    // Пытаемся получить токен и ID из разных источников
-    const providerTokenFromSession = session.provider_token;
-    const providerTokenFromUserIdentity = user.identities?.[0]?.identity_data?.provider_token;
-    const twitchUserIdFromSession = session.user?.user_metadata?.provider_id; // Менее надежно
-    const twitchUserIdFromUserIdentity = user.identities?.[0]?.identity_data?.provider_id; // Предпочтительно
-
-    // Выбираем лучший источник
-    const providerToken = providerTokenFromSession || providerTokenFromUserIdentity;
-    const twitchUserId = twitchUserIdFromUserIdentity || twitchUserIdFromSession;
-
-    console.log('[/api/twitch/user] Проверка токенов и ID:', {
-        hasTokenSession: !!providerTokenFromSession,
-        hasTokenIdentity: !!providerTokenFromUserIdentity,
-        hasIdSession: !!twitchUserIdFromSession,
-        hasIdIdentity: !!twitchUserIdFromUserIdentity,
-        finalTokenSelected: !!providerToken,
-        finalIdSelected: !!twitchUserId
-    });
-
-    if (!providerToken || !twitchUserId) {
-      console.error('[/api/twitch/user] КРИТИЧЕСКАЯ ОШИБКА: Отсутствует provider_token или twitchUserId даже после проверки session и user identity!');
-      return NextResponse.json({ error: 'Отсутствуют необходимые данные Twitch в сессии' }, { status: 401 });
-    }
-
-    // Получаем данные из Twitch API
-    console.log(`[/api/twitch/user] Запрос к Twitch API для пользователя ${twitchUserId}...`);
-    const twitchResponse = await fetch(`https://api.twitch.tv/helix/users?id=${twitchUserId}`, {
-      headers: {
-        'Authorization': `Bearer ${providerToken}`,
-        'Client-Id': process.env.NEXT_PUBLIC_TWITCH_CLIENT_ID // Используем PUBLIC ключ, если это API route, доступный клиенту
-      }
-    });
-
-    if (!twitchResponse.ok) {
-      const errorBody = await twitchResponse.text();
-      console.error(`[/api/twitch/user] Ошибка при запросе к Twitch API (${twitchResponse.status}):`, errorBody);
-      // Здесь можно добавить логику обновления токена, если есть refresh_token
-      return NextResponse.json({ error: `Ошибка получения данных Twitch (${twitchResponse.status})` }, { status: twitchResponse.status });
-    }
-
-    const twitchData = await twitchResponse.json();
-    const userData = twitchData.data[0];
-
-    if (!userData) {
-      console.log('[/api/twitch/user] Данные не найдены в ответе Twitch API для ID:', twitchUserId);
-      return NextResponse.json({ error: 'Данные пользователя Twitch не найдены' }, { status: 404 });
-    }
-
-    console.log('[/api/twitch/user] Данные успешно получены от Twitch API для пользователя:', userData.login);
-    return NextResponse.json(userData);
+    // 3. Возвращаем результат от Edge Function
+    return NextResponse.json(functionData);
 
   } catch (error) {
     console.error('[/api/twitch/user] Критическая ошибка в обработчике:', error);

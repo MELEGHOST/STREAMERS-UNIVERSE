@@ -58,23 +58,54 @@ export async function GET(request) {
         return NextResponse.redirect(`${origin}/auth?error=auth_code_exchange_failed&message=${encodeURIComponent(error.message)}`);
     }
 
-    // --- СТРОГАЯ ПРОВЕРКА СЕССИИ И ТОКЕНА СРАЗУ ПОСЛЕ ОБМЕНА --- 
-    if (data && data.session && data.session.provider_token) {
-        console.log('Auth Callback: Сессия УСПЕШНО получена и provider_token присутствует СРАЗУ ПОСЛЕ обмена кода.', {
-            userId: data.user?.id,
-            providerTokenStart: data.session.provider_token?.substring(0, 5),
-            refreshTokenStart: data.session.provider_refresh_token?.substring(0, 5)
-        });
-        // Если все хорошо, продолжаем редирект
-        console.log('Auth Callback: Обмен кода на сессию прошел успешно. Перенаправление на:', `${origin}${next}`);
-        return NextResponse.redirect(`${origin}${next}`)
+    // --- ИЗМЕНЕНО: Пытаемся сохранить токены вручную --- 
+    if (data && data.session && data.user) {
+      const { session, user } = data;
+      const providerToken = session.provider_token;
+      const providerRefreshToken = session.provider_refresh_token;
+
+      if (providerToken) {
+          console.log('Auth Callback: Сессия УСПЕШНО получена и provider_token присутствует СРАЗУ ПОСЛЕ обмена кода.', {
+              userId: user.id,
+              providerTokenStart: providerToken?.substring(0, 5),
+              refreshTokenStart: providerRefreshToken?.substring(0, 5)
+          });
+          
+          // Сохраняем токены в user_metadata
+          console.log(`Auth Callback: Попытка сохранить токены в метаданных пользователя ${user.id}...`);
+          const { error: updateError } = await supabase.auth.updateUser({
+              data: {
+                  // Добавляем поля или обновляем существующие
+                  provider_token: providerToken,
+                  provider_refresh_token: providerRefreshToken,
+              }
+          });
+
+          if (updateError) {
+              console.error('Auth Callback: Ошибка при обновлении метаданных пользователя с токенами:', updateError);
+              // Не критично для редиректа, но нужно залогировать
+              // Можно перенаправить с параметром ошибки, если это важно
+              // return NextResponse.redirect(`${origin}/auth?error=user_metadata_update_failed`);
+          } else {
+              console.log('Auth Callback: Токены успешно сохранены в метаданных пользователя.');
+          }
+          
+          // Если все хорошо, продолжаем редирект
+          console.log('Auth Callback: Обмен кода и обновление метаданных прошли успешно. Перенаправление на:', `${origin}${next}`);
+          return NextResponse.redirect(`${origin}${next}`)
+
+      } else {
+          // provider_token все еще отсутствует!
+          console.error('Auth Callback: КРИТИЧЕСКАЯ ОШИБКА - provider_token ОТСУТСТВУЕТ в сессии СРАЗУ ПОСЛЕ exchangeCodeForSession! Невозможно сохранить токены вручную.', { session });
+          // Если токена нет уже здесь, это проблема конфигурации Supabase или ответа Twitch
+          // Перенаправляем на страницу входа с сообщением об ошибке
+          return NextResponse.redirect(`${origin}/auth?error=provider_token_missing_post_exchange`);
+      }
     } else {
-        console.error('Auth Callback: КРИТИЧЕСКАЯ ОШИБКА - provider_token ОТСУТСТВУЕТ в сессии СРАЗУ ПОСЛЕ exchangeCodeForSession!', { data });
-        // Если токена нет уже здесь, это проблема конфигурации Supabase или ответа Twitch
-        // Перенаправляем на страницу входа с сообщением об ошибке
-        return NextResponse.redirect(`${origin}/auth?error=provider_token_missing_post_exchange`);
+        console.error('Auth Callback: Ошибка - отсутствуют данные сессии или пользователя после обмена кода.', { data });
+        return NextResponse.redirect(`${origin}/auth?error=session_data_missing_post_exchange`);
     }
-    // --- КОНЕЦ ПРОВЕРКИ ---
+    // --- КОНЕЦ ИЗМЕНЕНИЙ ---
 
   } else {
       console.warn('Auth Callback: Код авторизации отсутствует в запросе.');
