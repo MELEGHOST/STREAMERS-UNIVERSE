@@ -16,8 +16,8 @@ const CyberAvatar = ({ imageUrl, src, alt, size = 190 }) => {
   const containerRef = useRef(null);
   const cardRef = useRef(null);
   
-  // Используем либо imageUrl, либо src параметр
-  const imageSrc = imageUrl || src || '/default-avatar.png';
+  // Используем либо imageUrl, либо src параметр, или null если ничего нет
+  const imageSrc = imageUrl || src || null;
   
   useEffect(() => {
     const container = containerRef.current;
@@ -109,6 +109,7 @@ const CyberAvatar = ({ imageUrl, src, alt, size = 190 }) => {
                   alt={alt || 'Аватар'} 
                   layout="fill" 
                   objectFit="cover"
+                  onError={(e) => { e.target.style.display = 'none'; }}
                 />
               </div>
               <div className={styles.glowingElements}>

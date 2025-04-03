@@ -119,14 +119,8 @@ function Profile() {
 
       if (responseData && responseData.id) {
         console.log('Profile: Данные Twitch пользователя получены с API:', responseData.id);
-        if (responseData.id === authenticatedUserId) {
-            await DataStorage.saveData('user', responseData);
-            setTwitchUserData(responseData);
-        } else {
-            console.warn('Profile: ID пользователя из API не совпадает с ID из сессии!');
-            setGlobalError('Несоответствие данных пользователя.');
-            setTwitchUserData(null);
-        }
+        await DataStorage.saveData('user', responseData);
+        setTwitchUserData(responseData);
         setLoadingTwitchUser(false);
         return responseData;
       } else {
@@ -274,7 +268,7 @@ function Profile() {
         setCurrentUser(null);
         setTwitchUserData(null);
         setUserProfile(null);
-        DataStorage.clearData('user').catch(e => console.warn("Failed to clear user cache on logout", e));
+        DataStorage.clearAll().catch(e => console.warn("Failed to clear user cache on logout", e));
          setAuthLoading(false);
         router.push('/auth?reason=signed_out');
       } else if (event === 'INITIAL_SESSION') {
@@ -487,7 +481,7 @@ function Profile() {
       // 2. Очистка локального хранилища (более безопасно)
       try {
           console.log('Попытка очистки DataStorage...');
-          await DataStorage.clearAll(); // Используем await, если clearAll асинхронный
+          await DataStorage.clearAll(); // Исправляем опечатку clearData на clearAll
           console.log('DataStorage успешно очищен.');
       } catch (storageError) {
           console.error('Ошибка при очистке DataStorage:', storageError);
