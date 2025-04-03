@@ -473,26 +473,48 @@ function Profile() {
   const handleLogout = async () => {
     if (isLoggingOut) return;
 
+    setIsLoggingOut(true);
+    console.log('Выполняем выход из аккаунта через Supabase...');
+    setGlobalError(null); // Сбрасываем глобальную ошибку перед выходом
+
+    let signOutError = null;
+
     try {
-      console.log('Выполняем выход из аккаунта через Supabase...');
-      setIsLoggingOut(true);
-      
+      // 1. Выход из Supabase
       const { error } = await supabase.auth.signOut();
-      
-      DataStorage.clearAll();
-      
-      if (error) {
-          console.error('Ошибка при выходе из Supabase:', error);
-          alert(`Ошибка при выходе: ${error.message}`);
+      signOutError = error; // Сохраняем ошибку выхода
+
+      // 2. Очистка локального хранилища (более безопасно)
+      try {
+          console.log('Попытка очистки DataStorage...');
+          await DataStorage.clearAll(); // Используем await, если clearAll асинхронный
+          console.log('DataStorage успешно очищен.');
+      } catch (storageError) {
+          console.error('Ошибка при очистке DataStorage:', storageError);
+          // Эта ошибка не должна прерывать основной процесс выхода
+          setGlobalError('Не удалось полностью очистить локальные данные, но выход выполнен.');
+      }
+
+      // 3. Обработка результата выхода Supabase
+      if (signOutError) {
+          console.error('Ошибка при выходе из Supabase:', signOutError);
+          setGlobalError(`Ошибка при выходе: ${signOutError.message}`);
+          // Решаем, нужно ли перенаправлять при ошибке выхода
+          // Возможно, лучше остаться на странице и показать ошибку
+          // router.push('/'); 
       } else {
           console.log('Выход из Supabase успешен. Перенаправление на /auth');
+          // Успешный выход - всегда перенаправляем на /auth
+          // Состояния currentUser и т.д. обновятся через onAuthStateChange
           router.push('/auth?action=logout');
       }
 
-    } catch (error) {
-      console.error('Критическая ошибка при выходе из аккаунта:', error);
-      alert('Произошла критическая ошибка при выходе из аккаунта.');
-      router.push('/');
+    } catch (criticalError) {
+      // Ловим только самые критические, непредвиденные ошибки
+      console.error('Критическая ошибка при выходе из аккаунта (внешний catch):', criticalError);
+      setGlobalError('Произошла критическая ошибка при выходе из аккаунта.');
+      // Можно перенаправить на главную или оставить для отображения ошибки
+      // router.push('/');
     } finally {
       setIsLoggingOut(false);
     }
