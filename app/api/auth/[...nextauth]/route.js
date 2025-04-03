@@ -8,7 +8,7 @@ const handler = NextAuth({
       clientSecret: process.env.TWITCH_CLIENT_SECRET,
       authorization: {
         params: {
-          scope: 'user:read:email user:read:follows channel:read:subscriptions',
+          scope: 'user:read:email user:read:follows channel:read:subscriptions offline_access',
           force_verify: true
         }
       }
