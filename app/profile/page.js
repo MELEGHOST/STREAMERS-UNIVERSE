@@ -532,16 +532,36 @@ function Profile() {
   const { description: profileDescriptionDb, social_links: profileSocialLinksDb } = userProfile || {};
   const { profile_image_url, login, display_name: twitchDisplayName, view_count, broadcaster_type, created_at, followers_count } = twitchUserData || {};
 
+  console.log('Profile DEBUG twitchUserData:', twitchUserData ? JSON.stringify({ 
+    profile_image_url, login, display_name: twitchDisplayName 
+  }) : 'null');
+
   // Определяем имя и аватар для отображения
   // Приоритет: Twitch API (display_name -> login), затем generic
   const finalDisplayName = twitchDisplayName || login || 'Пользователь';
-  // Приоритет: Twitch API, затем generic
-  const finalAvatarUrl = profile_image_url;
+  
+  // Получаем URL аватара из данных Twitch, из localStorage или используем placeholder
+  // Сначала проверяем, есть ли значение в profile_image_url, если нет - проверяем localStorage
+  let finalAvatarUrl = profile_image_url;
+  
+  // Если avatar из Twitch API не доступен, попробуем получить его из локального хранилища
+  if (!finalAvatarUrl && typeof window !== 'undefined') {
+    try {
+      const storedUserData = localStorage.getItem('twitch_user_data');
+      if (storedUserData) {
+        const parsedData = JSON.parse(storedUserData);
+        finalAvatarUrl = parsedData?.avatar;
+        console.log('Profile: Получен аватар из localStorage:', finalAvatarUrl);
+      }
+    } catch (e) {
+      console.error('Profile: Ошибка при получении аватара из localStorage:', e);
+    }
+  }
+
+  console.log('[Profile Render] finalDisplayName:', finalDisplayName, 'finalAvatarUrl:', finalAvatarUrl);
 
   // Берем описание из БД, если есть, иначе из Twitch API, иначе пусто
   const profileDescription = profileDescriptionDb || twitchUserData?.description || '';
-
-  console.log('[Profile Render] finalDisplayName:', finalDisplayName, 'finalAvatarUrl:', finalAvatarUrl);
 
   // Настройки видимости (пока не используются, но могут понадобиться)
   // const visibilitySettings = userProfile?.stats_visibility || {};

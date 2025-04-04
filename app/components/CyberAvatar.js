@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useRef, useEffect } from 'react';
+import React, { useRef, useEffect, useState, useCallback } from 'react';
 import Image from 'next/image';
 import styles from './CyberAvatar.module.css';
 
@@ -12,12 +12,36 @@ import styles from './CyberAvatar.module.css';
  * @param {string} props.alt - Альтернативный текст для изображения
  * @param {number} props.size - Размер аватарки (по умолчанию 190px)
  */
-const CyberAvatar = ({ imageUrl, src, alt, size = 190 }) => {
+const CyberAvatar = ({ 
+  imageUrl = null, 
+  src = null, 
+  alt = 'User avatar', 
+  size = 96,
+  className = '',
+  onClick,
+  isInteractive = false
+}) => {
   const containerRef = useRef(null);
   const cardRef = useRef(null);
   
-  // Используем либо imageUrl, либо src параметр, или null если ничего нет
-  const imageSrc = imageUrl || src || null;
+  // Используем состояние для отслеживания ошибок загрузки
+  const [imageError, setImageError] = useState(false);
+  const [imageLoaded, setImageLoaded] = useState(false);
+  
+  // Определяем источник изображения: приоритет отдаем props src, затем imageUrl
+  const imageSrc = src || imageUrl || null;
+  
+  // Обработчик ошибок загрузки изображения
+  const handleError = useCallback((error) => {
+    console.error('[CyberAvatar] Error loading image:', imageSrc);
+    setImageError(true);
+  }, [imageSrc]);
+  
+  // Обработчик успешной загрузки
+  const handleLoadComplete = useCallback(() => {
+    console.log('[CyberAvatar] Loading complete for:', imageSrc);
+    setImageLoaded(true);
+  }, [imageSrc]);
   
   useEffect(() => {
     const container = containerRef.current;
@@ -93,47 +117,47 @@ const CyberAvatar = ({ imageUrl, src, alt, size = 190 }) => {
     };
   }, []);
   
-  return (
-    <div className={styles.cyberAvatarWrapper} style={{ width: `${size}px`, height: `${size * 1.32}px` }}>
-      <div className={styles.container} ref={containerRef}>
-        <div className={styles.canvas}>
-          <div id="card" className={styles.card} ref={cardRef}>
-            <div className={styles.cardContent}>
-              <div className={styles.cardGlare} />
-              <div className={styles.cyberLines}>
-                <span /><span /><span /><span />
-              </div>
-              <div className={styles.avatarImage}>
-                <Image 
-                  src={imageSrc || ''}
-                  alt={alt || 'Аватар'}
-                  layout="fill"
-                  objectFit="cover"
-                  onLoadingComplete={() => {
-                    console.log('[CyberAvatar] Loading complete for:', imageSrc);
-                  }}
-                  onError={() => {
-                    console.error('[CyberAvatar] Error loading image:', imageSrc);
-                    if (onError) onError();
-                  }}
-                />
-              </div>
-              <div className={styles.glowingElements}>
-                <div className={styles.glow1} />
-                <div className={styles.glow2} />
-                <div className={styles.glow3} />
-              </div>
-              <div className={styles.cardParticles}>
-                <span /><span /><span /><span /><span /><span />
-              </div>
-              <div className={styles.cornerElements}>
-                <span /><span /><span /><span />
-              </div>
-              <div className={styles.scanLine} />
-            </div>
-          </div>
-        </div>
+  // Если источник не определен или произошла ошибка загрузки, возвращаем пустой div с классом аватара
+  if (!imageSrc || imageError) {
+    return (
+      <div 
+        className={`${styles.avatarPlaceholder} ${className} ${isInteractive ? styles.interactive : ''}`}
+        style={{ 
+          width: size, 
+          height: size,
+          borderRadius: '50%', 
+          backgroundColor: '#4A5568',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          fontSize: size * 0.5,
+          color: '#CBD5E0'
+        }}
+        onClick={onClick}
+      >
+        {/* Можно добавить инициалы или иконку placeholder */}
+        <span>{alt.charAt(0).toUpperCase()}</span>
       </div>
+    );
+  }
+  
+  // Рендерим аватар
+  return (
+    <div 
+      className={`${styles.avatar} ${className} ${isInteractive ? styles.interactive : ''}`}
+      style={{ width: size, height: size }}
+      onClick={onClick}
+    >
+      <Image
+        src={imageSrc}
+        alt={alt}
+        width={size}
+        height={size}
+        className={styles.avatarImage}
+        onError={handleError}
+        onLoadingComplete={handleLoadComplete}
+        priority={true}
+      />
     </div>
   );
 };
