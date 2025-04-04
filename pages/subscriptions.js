@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
-import Cookies from 'js-cookie';
+// import Cookies from 'js-cookie';
 import { useRouter } from 'next/router';
 import { useAuth } from '../src/context/AuthContext';
 import styles from './subscriptions.module.css';
