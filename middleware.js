@@ -166,7 +166,7 @@ script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://va.vercel-scr
 style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; \
 font-src 'self' https://fonts.gstatic.com; \
 img-src 'self' data: https://*.twitch.tv https://*.jtvnw.net; \
-connect-src 'self' https://api.twitch.tv https://id.twitch.tv https://*.supabase.co ${supabaseApiUrl || ''} https://udogabnowepgxjhycddc.supabase.co https://va.vercel-scripts.com https://vercel.live; \
+connect-src 'self' https://api.twitch.tv https://id.twitch.tv https://www.twitch.tv https://*.twitch.tv https://*.supabase.co https://udogabnowepgxjhycddc.supabase.co https://va.vercel-scripts.com https://vercel.live; \
 frame-src 'self' https://vercel.live; \
 frame-ancestors 'none'; \
 form-action 'self'; \

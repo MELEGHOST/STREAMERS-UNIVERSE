@@ -57,8 +57,8 @@ const nextConfig = {
               style-src 'self' 'unsafe-inline';
               img-src 'self' data: https: blob:;
               font-src 'self' data:;
-              connect-src 'self' https://api.twitch.tv https://id.twitch.tv https://www.twitch.tv https://*.twitch.tv;
-              frame-src 'self' https://id.twitch.tv https://www.twitch.tv;
+              connect-src 'self' https://api.twitch.tv https://id.twitch.tv https://www.twitch.tv https://*.twitch.tv https://*.supabase.co https://udogabnowepgxjhycddc.supabase.co;
+              frame-src 'self' https://id.twitch.tv https://www.twitch.tv https://vercel.live;
               form-action 'self' https://id.twitch.tv https://www.twitch.tv;
             `.replace(/\s+/g, ' ').trim()
           },
