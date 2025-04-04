@@ -7,39 +7,74 @@ import styles from './CyberAvatar.module.css';
 /**
  * Компонент стилизованной аватарки с 3D эффектом
  * @param {object} props - Свойства компонента
- * @param {string} props.imageUrl - URL изображения аватарки
- * @param {string} props.src - Альтернативный prop для URL изображения аватарки
+ * @param {string} props.src - URL изображения аватарки
  * @param {string} props.alt - Альтернативный текст для изображения
- * @param {number} props.size - Размер аватарки (по умолчанию 190px)
+ * @param {string|number} props.size - Размер аватарки (xs, sm, md, lg, xl или число в пикселях)
+ * @param {string} props.className - Дополнительные CSS классы
+ * @param {string} props.layout - Тип компоновки Next.js Image ('fixed', 'responsive', 'fill')
+ * @param {number} props.width - Ширина изображения (для layout='fixed')
+ * @param {number} props.height - Высота изображения (для layout='fixed')
+ * @param {boolean} props.priority - Приоритетная загрузка изображения
+ * @param {Function} props.onError - Функция обратного вызова при ошибке загрузки
  */
 const CyberAvatar = ({ 
-  imageUrl = null, 
-  src = null, 
-  alt = 'User avatar', 
-  size = 96,
-  className = '',
-  onClick,
-  isInteractive = false
+  src, 
+  alt = "Аватар", 
+  size = "md", 
+  className = "", 
+  layout = "responsive",
+  width,
+  height,
+  priority = false,
+  onError
 }) => {
   const containerRef = useRef(null);
   const cardRef = useRef(null);
   
-  // Используем состояние для отслеживания ошибок загрузки
-  const [imageError, setImageError] = useState(false);
+  const [error, setError] = useState(false);
+  const [imageSrc, setImageSrc] = useState("/images/default_avatar.png");
   
-  // Определяем источник изображения: приоритет отдаем props src, затем imageUrl
-  const imageSrc = src || imageUrl || null;
+  // Определяем размеры на основе prop size
+  const getSizeInPixels = () => {
+    const sizeMap = {
+      'xs': 30,
+      'sm': 50,
+      'md': 80,
+      'lg': 100,
+      'xl': 150
+    };
+    
+    if (typeof size === 'number') {
+      return size;
+    }
+    
+    return sizeMap[size] || sizeMap.md;
+  };
   
-  // Обработчик ошибок загрузки изображения
-  const handleError = useCallback(() => {
-    console.error('[CyberAvatar] Error loading image:', imageSrc);
-    setImageError(true);
-  }, [imageSrc]);
+  const sizeInPixels = getSizeInPixels();
   
-  // Обработчик успешной загрузки
-  const handleLoadComplete = useCallback(() => {
-    console.log('[CyberAvatar] Loading complete for:', imageSrc);
-  }, [imageSrc]);
+  // Обновляем src, когда prop src изменяется
+  useEffect(() => {
+    if (src) {
+      setImageSrc(src);
+      setError(false); // Сбрасываем состояние ошибки при изменении src
+    } else {
+      // Если src не предоставлен, используем изображение по умолчанию
+      setImageSrc("/images/default_avatar.png");
+    }
+  }, [src]);
+  
+  // Обработчик ошибки загрузки изображения
+  const handleImageError = () => {
+    console.warn(`CyberAvatar: Ошибка загрузки изображения: ${src}`);
+    setError(true);
+    setImageSrc("/images/default_avatar.png");
+    
+    // Вызываем пользовательский обработчик ошибок, если он предоставлен
+    if (typeof onError === 'function') {
+      onError();
+    }
+  };
   
   useEffect(() => {
     const container = containerRef.current;
@@ -115,32 +150,70 @@ const CyberAvatar = ({
     };
   }, []);
   
-  // Рендерим аватар с обработкой ошибок
+  // Компонент изображения с различными размерами для различных макетов
+  const renderImage = () => {
+    const imgProps = {
+      src: error ? "/images/default_avatar.png" : imageSrc,
+      alt: alt,
+      className: styles.avatarImage,
+      onError: handleImageError,
+      priority: priority // Добавляем поддержку приоритетной загрузки
+    };
+    
+    if (layout === 'fixed') {
+      return (
+        <Image 
+          {...imgProps}
+          width={width || sizeInPixels}
+          height={height || sizeInPixels}
+          layout="fixed"
+        />
+      );
+    } else if (layout === 'fill') {
+      return <Image {...imgProps} layout="fill" objectFit="cover" />;
+    } else {
+      // По умолчанию используем 'responsive'
+      return (
+        <Image 
+          {...imgProps}
+          width={100}
+          height={100}
+          layout="responsive"
+        />
+      );
+    }
+  };
+
+  // Вычисляем размер бордюра на основе размера аватара
+  const borderSize = typeof size === 'number' 
+    ? Math.max(2, Math.floor(size / 20)) 
+    : {
+        'xs': 2,
+        'sm': 2,
+        'md': 3,
+        'lg': 4,
+        'xl': 5
+      }[size] || 3;
+
+  // Формируем стиль контейнера
+  const containerStyle = {
+    width: layout !== 'fill' ? (width || sizeInPixels) : '100%',
+    height: layout !== 'fill' ? (height || sizeInPixels) : '100%',
+    '--border-size': `${borderSize}px`
+  };
+
   return (
     <div 
       ref={containerRef}
-      className={`${styles.container} ${className} ${isInteractive ? styles.interactive : ''}`}
-      style={{ width: size, height: size }}
-      onClick={onClick}
+      className={`${styles.container} ${className}`} 
+      style={containerStyle}
+      data-size={size}
     >
       <div ref={cardRef} className={styles.card}>
         <div className={styles.cardContent}>
-          <div className={styles.avatarImage}>
-            {imageSrc && !imageError ? (
-              <Image
-                src={imageSrc}
-                alt={alt}
-                width={size}
-                height={size}
-                onError={handleError}
-                onLoadingComplete={handleLoadComplete}
-                priority={true}
-              />
-            ) : (
-              <div className={styles.placeholderAvatar}>
-                {alt.charAt(0).toUpperCase()}
-              </div>
-            )}
+          <div className={styles.avatarWrapper}>
+            {renderImage()}
+            <div className={styles.glow}></div>
           </div>
           
           <div className={styles.glowingElements}>

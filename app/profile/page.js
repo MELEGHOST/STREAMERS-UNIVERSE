@@ -64,82 +64,104 @@ function Profile() {
     ), 
   []);
 
-  const fetchTwitchUserData = useCallback(async (userId, forceRefresh = false) => {
-    setLoadingTwitchUser(true);
-    
-    if (!forceRefresh) {
+  const fetchTwitchUserData = useCallback(async () => {
+    try {
+      setLoading(true);
+      setGlobalError(null);
+
+      // Сначала пытаемся получить данные из localStorage
+      let cachedData = null;
       try {
-        // Если уже есть данные в состоянии и не требуется обновление, используем их
-        if (twitchUserData?.id === userId) {
-          console.log('Profile: Используем данные пользователя из состояния:', userId);
-          setLoadingTwitchUser(false);
-          return twitchUserData;
-        }
-        
-        // Проверяем локальный кэш
-        const cachedData = await DataStorage.getData('user');
-        if (cachedData && cachedData.id) {
-          console.log('Profile: Данные пользователя найдены в кэше:', cachedData.id);
-          setTwitchUserData(cachedData);
-          setLoadingTwitchUser(false);
-          return cachedData;
+        const storedData = localStorage.getItem('twitch_user');
+        if (storedData) {
+          cachedData = JSON.parse(storedData);
+          console.log('Профиль: найдены кэшированные данные в localStorage');
         }
       } catch (e) {
-        console.warn('Profile: Ошибка при получении данных Twitch из DataStorage:', e);
+        console.error('Ошибка при чтении из localStorage:', e);
       }
-    }
 
-    try {
-      console.log('Profile: Текущие document.cookie перед fetch /api/twitch/user:', document.cookie);
-      const response = await fetch(`/api/twitch/user?userId=${userId}`, {
+      // Делаем запрос к API с явным флагом проверки сессии
+      const apiUrl = `/api/twitch/user?sessionCheck=true${userId ? `&userId=${userId}` : ''}`;
+      console.log(`Профиль: запрос к ${apiUrl}`);
+      const response = await fetch(apiUrl, {
         method: 'GET',
-        headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-cache', 'Pragma': 'no-cache' },
+        headers: {
+          'Content-Type': 'application/json',
+          'Cache-Control': 'no-cache'
+        },
         credentials: 'include'
       });
-      console.log(`Profile: Получен статус ответа от /api/twitch/user: ${response.status}`);
-
-      let responseData;
-      try {
-          responseData = await response.json(); 
-      } catch (jsonError) {
-          console.error('Profile: Ошибка парсинга JSON ответа от /api/twitch/user:', jsonError);
-          responseData = { error: 'Invalid response format' };
-      }
 
       if (!response.ok) {
-          const errorMessage = responseData?.error || `Unknown API Error (Status: ${response.status})`;
-          console.error('Profile: Ошибка от API /api/twitch/user:', response.status, errorMessage);
-          if (response.status === 401) {
-              setGlobalError('Сессия истекла или недействительна.');
-          } else {
-              setGlobalError(`Ошибка API: ${errorMessage}`);
+        // Если ответ НЕ ок и это 401, значит пользователь не авторизован
+        if (response.status === 401) {
+          console.log('Профиль: пользователь не авторизован (401), перенаправляем на страницу авторизации');
+          setError('Вы не авторизованы. Пожалуйста, войдите в систему.');
+          
+          // Используем данные из localStorage, если они есть, чтобы показать что-то пользователю
+          if (cachedData) {
+            console.log('Профиль: используем кэшированные данные для отображения');
+            setTwitchUserData(cachedData);
           }
-          setLoadingTwitchUser(false);
-          setTwitchUserData(null);
-          return null;
+          
+          // Добавляем задержку перед редиректом, чтобы пользователь увидел сообщение
+          setTimeout(() => {
+            const redirectUrl = '/auth';
+            console.log(`Профиль: перенаправляем на ${redirectUrl}`);
+            router.push(redirectUrl);
+          }, 2000);
+          return;
+        }
+        
+        // Обрабатываем другие ошибки
+        const errorText = await response.text();
+        console.error(`Профиль: ошибка API ${response.status}:`, errorText);
+        throw new Error(`Ошибка при получении данных: ${response.status} ${errorText}`);
       }
 
-      if (responseData && responseData.id) {
-        console.log('Profile: Данные Twitch пользователя получены с API:', responseData.id);
-        await DataStorage.saveData('user', responseData);
-        setTwitchUserData(responseData);
-        setLoadingTwitchUser(false);
-        return responseData;
+      // Обрабатываем успешный ответ
+      const data = await response.json();
+      console.log('Профиль: получены данные пользователя Twitch:', data);
+      
+      if (data && data.id) {
+        setTwitchUserData(data);
+        
+        // Сохраняем в localStorage для будущего использования
+        try {
+          localStorage.setItem('twitch_user', JSON.stringify(data));
+        } catch (e) {
+          console.error('Ошибка при сохранении в localStorage:', e);
+        }
+        
+        // Если это первая загрузка, проверяем права администратора
+        if (!hasCheckedAdmin) {
+          checkAdminAccess(data.id);
+          setHasCheckedAdmin(true);
+        }
       } else {
-        console.error('Profile: Некорректные данные от API Twitch пользователя (успешный статус):', responseData);
-        throw new Error('Получены некорректные данные Twitch пользователя (успешный статус)');
+        console.warn('Профиль: получен пустой ответ или отсутствует ID пользователя');
+        throw new Error('Не удалось получить данные пользователя');
       }
-
-    } catch (apiError) {
-      console.error('Profile: Ошибка в блоке catch fetchTwitchUserData:', apiError);
-      if (!globalError || globalError !== 'Сессия истекла или недействительна.') {
-          setGlobalError('Не удалось загрузить основные данные профиля Twitch. Попробуйте обновить страницу.');
+    } catch (error) {
+      console.error('Профиль: ошибка при получении данных пользователя:', error);
+      setGlobalError(`Ошибка при получении данных пользователя: ${error.message}`);
+      
+      // В случае ошибки используем кэшированные данные, если они есть
+      try {
+        const storedData = localStorage.getItem('twitch_user');
+        if (storedData) {
+          const cachedData = JSON.parse(storedData);
+          console.log('Профиль: используем кэшированные данные после ошибки');
+          setTwitchUserData(cachedData);
+        }
+      } catch (e) {
+        console.error('Ошибка при чтении из localStorage:', e);
       }
-      setTwitchUserData(null);
-      setLoadingTwitchUser(false);
-      return null;
+    } finally {
+      setLoading(false);
     }
-  }, [searchParams, setGlobalError, globalError, twitchUserData]);
+  }, [userId, router, globalError, hasCheckedAdmin]);
 
   const loadUserProfileDbData = useCallback(async (authenticatedUserId) => {
     if (!authenticatedUserId) return;
@@ -540,29 +562,53 @@ function Profile() {
     profile_image_url, login, display_name: twitchDisplayName 
   }) : 'null');
 
-  // Определяем имя и аватар для отображения
-  // Приоритет: Twitch API (display_name -> login), затем generic
-  const finalDisplayName = twitchDisplayName || login || 'Пользователь';
+  // Определяем финальное имя для отображения
+  const finalDisplayName = showEditMode 
+    ? editedDisplayName 
+    : (
+        // Приоритет: 1) Из базы данных 2) Из Twitch API 3) Резервное
+        dbDisplayName || 
+        (twitchDisplayName) || 
+        (login) || 
+        "Стример"
+      );
+
+  // Определяем URL аватара для отображения
+  // Делаем URL безопасным с проверками на undefined и null
+  const defaultAvatar = "/images/default_avatar.png"; // Локальный путь к запасному изображению
   
-  // Получаем URL аватара из данных Twitch, из localStorage или используем placeholder
-  // Сначала проверяем, есть ли значение в profile_image_url, если нет - проверяем localStorage
-  let finalAvatarUrl = profile_image_url;
+  // Инициализируем переменную для URL аватара
+  let finalAvatarUrl = null;
   
-  // Если avatar из Twitch API не доступен, попробуем получить его из локального хранилища
-  if (!finalAvatarUrl && typeof window !== 'undefined') {
+  // Выбираем URL аватара с приоритетом: 1) Из базы данных 2) Из Twitch API 3) Из localStorage 4) Запасное изображение
+  if (dbAvatarUrl) {
+    // Если есть URL из базы данных
+    finalAvatarUrl = dbAvatarUrl;
+  } else if (twitchUserData?.profile_image_url) {
+    // Если есть URL из Twitch API
+    finalAvatarUrl = twitchUserData.profile_image_url;
+  } else {
+    // Безопасно получаем данные из localStorage
     try {
-      const storedUserData = localStorage.getItem('twitch_user_data');
-      if (storedUserData) {
-        const parsedData = JSON.parse(storedUserData);
-        finalAvatarUrl = parsedData?.avatar;
-        console.log('Profile: Получен аватар из localStorage:', finalAvatarUrl);
+      const storedTwitchUser = localStorage.getItem('twitch_user');
+      if (storedTwitchUser) {
+        const parsedUser = JSON.parse(storedTwitchUser);
+        if (parsedUser?.profile_image_url) {
+          finalAvatarUrl = parsedUser.profile_image_url;
+        }
       }
-    } catch (e) {
-      console.error('Profile: Ошибка при получении аватара из localStorage:', e);
+    } catch (error) {
+      console.error("Ошибка при получении данных аватара из localStorage:", error);
+    }
+    
+    // Если всё ещё нет URL, используем запасное изображение
+    if (!finalAvatarUrl) {
+      finalAvatarUrl = defaultAvatar;
     }
   }
 
-  console.log('[Profile Render] finalDisplayName:', finalDisplayName, 'finalAvatarUrl:', finalAvatarUrl);
+  // Отладочное сообщение для URL аватара
+  console.log("Профиль: URL аватара для отображения:", finalAvatarUrl);
 
   // Берем описание из БД, если есть, иначе из Twitch API, иначе пусто
   const profileDescription = profileDescriptionDb || twitchUserData?.description || '';
@@ -626,14 +672,16 @@ function Profile() {
         )}
         <div className={styles.profileHeader}>
           <div className={styles.avatarContainer}>
-            <CyberAvatar 
-              src={finalAvatarUrl} 
-              alt={finalDisplayName} 
-              size={150}
-              className={styles.profileAvatar}
-              layout="responsive"
-              width={150}
-              height={150}
+            <CyberAvatar
+              src={finalAvatarUrl}
+              alt={`Аватар ${finalDisplayName}`}
+              size="xl"
+              className={`userAvatar ${styles.profileAvatar}`}
+              layout="fixed"
+              width={100}
+              height={100}
+              priority={true}
+              onError={() => console.error("Ошибка загрузки аватара с URL:", finalAvatarUrl)}
             />
           </div>
           <div className={styles.profileDetails}>
