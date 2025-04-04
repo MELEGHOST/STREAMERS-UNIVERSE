@@ -5,87 +5,96 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/router';
 import { useAuth } from '../src/context/AuthContext';
 import styles from './subscriptions.module.css';
+import dynamic from 'next/dynamic'; // Импортируем dynamic
 
-export default function Subscriptions() {
+// --- Компонент с основной логикой --- 
+function SubscriptionsContent() {
   const router = useRouter();
-  // const { isAuthenticated } = useAuth(); // Убираем вызов useAuth отсюда
+  const auth = useAuth(); // Безопасно вызывать здесь, т.к. рендерится только на клиенте
   const [subscriptions, setSubscriptions] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [isClient, setIsClient] = useState(false);
-  const [authState, setAuthState] = useState({ isAuthenticated: false, isLoading: true }); // Добавляем isLoading
+  const [loadingSubscriptions, setLoadingSubscriptions] = useState(true);
 
-  // Этот useEffect для установки isClient
-  useEffect(() => {
-    setIsClient(true);
-  }, []);
-
-  // Используем useAuth только на клиенте
-  const auth = useAuth(); // Вызываем useAuth здесь, чтобы React отслеживал хук
-  useEffect(() => {
-    if (isClient) {
-      // Обновляем состояние аутентификации на клиенте
-      setAuthState({ isAuthenticated: auth.isAuthenticated, isLoading: false }); 
-    }
-  }, [isClient, auth.isAuthenticated]); // Зависим от isClient и auth.isAuthenticated
-
-  const fetchSubscriptions = useCallback(async () => { // Оборачиваем в useCallback
+  const fetchSubscriptions = useCallback(async () => {
+    setLoadingSubscriptions(true);
     try {
       const storedUserData = localStorage.getItem('twitch_user');
       if (!storedUserData) {
-        throw new Error('User data not found in localStorage');
+        // Не бросаем ошибку, если нет данных, просто выходим
+        console.log('User data not found in localStorage for fetching subscriptions.');
+        setLoadingSubscriptions(false);
+        return;
       }
       const storedUser = JSON.parse(storedUserData);
       const userId = storedUser.id || 'unknown';
 
+      // Проверяем, есть ли userId перед запросом
+      if (!userId || userId === 'unknown') {
+          console.error('User ID not available for fetching subscriptions.');
+          setLoadingSubscriptions(false);
+          return;
+      }
+
       const response = await fetch(`/api/twitch/followed?userId=${userId}`);
       if (!response.ok) {
-        throw new Error('Failed to fetch followed channels');
+        // Логируем ошибку, но не прерываем все
+        console.error(`Failed to fetch followed channels: ${response.status} ${response.statusText}`);
+        setSubscriptions([]); // Устанавливаем пустой массив при ошибке API
+      } else {
+        const data = await response.json();
+        if (Array.isArray(data)) {
+          setSubscriptions(data);
+        } else {
+           console.error('Received non-array data for subscriptions:', data);
+           setSubscriptions([]);
+        }
       }
-      const data = await response.json();
-      setSubscriptions(data);
     } catch (error) {
-      console.error('Ошибка при получении данных пользователя:', error);
+      console.error('Ошибка при получении данных подписок:', error);
+      setSubscriptions([]);
     } finally {
-      setLoading(false);
+      setLoadingSubscriptions(false);
     }
-  }, []); // Пустой массив зависимостей, если нет внешних зависимостей
+  }, []);
 
   useEffect(() => {
-    if (!isClient) {
-      return;
-    }
-
-    // Используем authState.isAuthenticated
-    if (!authState.isAuthenticated) {
-      const storedUserData = localStorage.getItem('twitch_user');
-      if (!storedUserData) {
-        console.log('User not authenticated, redirecting from subscriptions.');
-        router.push('/');
-        return;
+    // Ждем инициализации auth контекста
+    if (auth.loading === false) { 
+      if (auth.isAuthenticated) {
+        fetchSubscriptions();
+      } else {
+        // Если точно не аутентифицирован, можно перенаправить
+        // или просто не загружать подписки и показать сообщение ниже
+        console.log('User not authenticated, not fetching subscriptions.');
+        setLoadingSubscriptions(false); // Завершаем загрузку, т.к. не будем фетчить
+        router.push('/'); // Перенаправляем на главную, если не авторизован
       }
-      setLoading(true);
-      return;
     }
-
-    fetchSubscriptions();
-
-  }, [authState.isAuthenticated, router, isClient, fetchSubscriptions]); // Добавляем fetchSubscriptions
+    // Добавим зависимость от auth.loading, если useAuth предоставляет его
+    // Если нет, условие будет работать, когда auth.isAuthenticated изменится
+  }, [auth.isAuthenticated, auth.loading, router, fetchSubscriptions]); 
 
   const handleUnsubscribe = async (streamerId) => {
     try {
       await fetch(`/api/twitch/follow?streamerId=${streamerId}&action=unfollow`, { method: 'POST' });
-      setSubscriptions(prev => prev.filter(sub => sub.id !== streamerId)); // Фильтруем по sub.id (исправлено)
+      setSubscriptions(prev => prev.filter(sub => sub.id !== streamerId));
     } catch (error) {
       console.error('Ошибка при отписке:', error);
     }
   };
 
-  if (!isClient) {
-    return null;
+  // Показываем загрузку, пока контекст auth инициализируется
+  if (auth.loading !== false) { 
+    return (
+      <div className={styles.loadingContainer}>
+        <div className={styles.spinner}></div>
+        <p>Проверка авторизации...</p>
+      </div>
+    );
   }
 
-  // Используем authState.isAuthenticated
-  if (!authState.isAuthenticated) {
+  // Если не аутентифицирован (после проверки)
+  // Эта часть может быть избыточной, если происходит редирект выше
+  if (!auth.isAuthenticated) {
     return (
       <div className={styles.container}>
         <div className={styles.authMessage}>
@@ -99,7 +108,8 @@ export default function Subscriptions() {
     );
   }
 
-  if (loading) {
+  // Загрузка самих подписок
+  if (loadingSubscriptions) {
     return (
       <div className={styles.loadingContainer}>
         <div className={styles.spinner}></div>
@@ -108,13 +118,13 @@ export default function Subscriptions() {
     );
   }
 
+  // Основной контент
   return (
     <div className={styles.subscriptionsContainer}>
       <h1>Мои фолловинги на Twitch</h1>
       <p className={styles.description}>
         Здесь отображаются каналы на Twitch, на которые вы подписаны (фолловите).
       </p>
-      
       {subscriptions.length > 0 ? (
         <div className={styles.subscriptionsList}>
           {subscriptions.map(subscription => (
@@ -125,7 +135,7 @@ export default function Subscriptions() {
               <div className={styles.subscriptionActions}>
                 <button 
                   className={styles.unfollowButton}
-                  onClick={() => handleUnsubscribe(subscription.id)} // Передаем subscription.id
+                  onClick={() => handleUnsubscribe(subscription.id)}
                 >
                   Отписаться
                 </button>
@@ -138,10 +148,22 @@ export default function Subscriptions() {
           <p>Вы пока ни на кого не подписаны на Twitch.</p>
         </div>
       )}
-      
       <button className={styles.backButton} onClick={() => router.push('/menu')}>
         Назад в меню
       </button>
     </div>
   );
 }
+
+// --- Динамическая обертка --- 
+const SubscriptionsPage = dynamic(() => Promise.resolve(SubscriptionsContent), {
+  ssr: false, // Отключаем Server-Side Rendering для этого компонента
+  loading: () => ( // Показываем заглушку во время загрузки компонента
+    <div className={styles.loadingContainer}>
+      <div className={styles.spinner}></div>
+      <p>Загрузка страницы...</p>
+    </div>
+  ),
+});
+
+export default SubscriptionsPage;
