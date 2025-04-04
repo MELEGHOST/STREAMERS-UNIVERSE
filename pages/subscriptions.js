@@ -5,7 +5,6 @@ import Cookies from 'js-cookie';
 import { useRouter } from 'next/router';
 import { useAuth } from '../src/context/AuthContext';
 import styles from './subscriptions.module.css';
-import SubscriptionCard from '../src/components/SubscriptionCard';
 
 export default function Subscriptions() {
   const router = useRouter();
