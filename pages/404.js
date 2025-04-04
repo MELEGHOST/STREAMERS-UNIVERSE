@@ -1,5 +1,5 @@
 import { useRouter } from 'next/router';
-import styles from '../styles/404.module.css'; // Используем собственные стили для страницы 404
+// import styles from '../styles/404.module.css'; // Удаляем импорт отсутствующего файла стилей
 import Image from 'next/image';
 
 export default function Custom404() {
@@ -20,10 +20,28 @@ export default function Custom404() {
     router.back();
   };
 
+  // Используем инлайновые стили, которые уже есть
   return (
-    <div className={styles.container}>
-      <div className={styles.stars} />
-      <div className={styles.authContainer}>
+    <div style={{ 
+      minHeight: '100vh', 
+      display: 'flex', 
+      alignItems: 'center', 
+      justifyContent: 'center', 
+      background: 'linear-gradient(135deg, #1e133a, #3b217a)', // Градиент фона
+      color: '#fff',
+      fontFamily: 'Arial, sans-serif'
+    }}>
+      {/* <div className={styles.stars} /> // Удаляем использование класса */}
+      <div style={{
+        padding: '40px',
+        background: 'rgba(255, 255, 255, 0.1)', // Полупрозрачный фон
+        borderRadius: '10px',
+        textAlign: 'center',
+        maxWidth: '500px',
+        boxShadow: '0 4px 30px rgba(0, 0, 0, 0.1)',
+        backdropFilter: 'blur(5px)',
+        border: '1px solid rgba(255, 255, 255, 0.3)'
+      }}>
         <h1 style={{ color: '#ff6b81', marginBottom: '20px', textAlign: 'center' }}>
           404 - Страница не найдена
         </h1>
