@@ -115,47 +115,66 @@ const CyberAvatar = ({
     };
   }, []);
   
-  // Если источник не определен или произошла ошибка загрузки, возвращаем пустой div с классом аватара
-  if (!imageSrc || imageError) {
-    return (
-      <div 
-        className={`${styles.avatarPlaceholder} ${className} ${isInteractive ? styles.interactive : ''}`}
-        style={{ 
-          width: size, 
-          height: size,
-          borderRadius: '50%', 
-          backgroundColor: '#4A5568',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          fontSize: size * 0.5,
-          color: '#CBD5E0'
-        }}
-        onClick={onClick}
-      >
-        {/* Можно добавить инициалы или иконку placeholder */}
-        <span>{alt.charAt(0).toUpperCase()}</span>
-      </div>
-    );
-  }
-  
-  // Рендерим аватар
+  // Рендерим аватар с обработкой ошибок
   return (
     <div 
-      className={`${styles.avatar} ${className} ${isInteractive ? styles.interactive : ''}`}
+      ref={containerRef}
+      className={`${styles.container} ${className} ${isInteractive ? styles.interactive : ''}`}
       style={{ width: size, height: size }}
       onClick={onClick}
     >
-      <Image
-        src={imageSrc}
-        alt={alt}
-        width={size}
-        height={size}
-        className={styles.avatarImage}
-        onError={handleError}
-        onLoadingComplete={handleLoadComplete}
-        priority={true}
-      />
+      <div ref={cardRef} className={styles.card}>
+        <div className={styles.cardContent}>
+          <div className={styles.avatarImage}>
+            {imageSrc && !imageError ? (
+              <Image
+                src={imageSrc}
+                alt={alt}
+                width={size}
+                height={size}
+                onError={handleError}
+                onLoadingComplete={handleLoadComplete}
+                priority={true}
+              />
+            ) : (
+              <div className={styles.placeholderAvatar}>
+                {alt.charAt(0).toUpperCase()}
+              </div>
+            )}
+          </div>
+          
+          <div className={styles.glowingElements}>
+            <div className={styles.glow1}></div>
+            <div className={styles.glow2}></div>
+            <div className={styles.glow3}></div>
+          </div>
+          
+          <div className={styles.cardParticles}>
+            <span></span>
+            <span></span>
+            <span></span>
+            <span></span>
+            <span></span>
+            <span></span>
+          </div>
+          
+          <div className={styles.cardGlare}></div>
+          
+          <div className={styles.cyberLines}>
+            <span></span>
+            <span></span>
+            <span></span>
+            <span></span>
+          </div>
+          
+          <div className={styles.cornerElements}>
+            <span></span>
+            <span></span>
+            <span></span>
+            <span></span>
+          </div>
+        </div>
+      </div>
     </div>
   );
 };
