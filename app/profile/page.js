@@ -64,23 +64,25 @@ function Profile() {
     ), 
   []);
 
-  const fetchTwitchUserData = useCallback(async (authenticatedUserId, forceRefresh = false) => {
-    if (!authenticatedUserId) return null;
-
+  const fetchTwitchUserData = useCallback(async (userId, forceRefresh = false) => {
     setLoadingTwitchUser(true);
-    setGlobalError(null);
-    console.log(`Profile: Начало загрузки данных Twitch пользователя для ${authenticatedUserId}...`);
-
-    const shouldRefresh = forceRefresh || searchParams.get('refresh') === 'true';
-
-    if (!shouldRefresh) {
+    
+    if (!forceRefresh) {
       try {
-        const cachedUserData = await DataStorage.getData('user');
-        if (cachedUserData && cachedUserData.id === authenticatedUserId) {
-          console.log('Profile: Данные Twitch пользователя получены из DataStorage:', cachedUserData.id);
-          setTwitchUserData(cachedUserData);
+        // Если уже есть данные в состоянии и не требуется обновление, используем их
+        if (twitchUserData?.id === userId) {
+          console.log('Profile: Используем данные пользователя из состояния:', userId);
           setLoadingTwitchUser(false);
-          return cachedUserData;
+          return twitchUserData;
+        }
+        
+        // Проверяем локальный кэш
+        const cachedData = await DataStorage.getData('user');
+        if (cachedData && cachedData.id) {
+          console.log('Profile: Данные пользователя найдены в кэше:', cachedData.id);
+          setTwitchUserData(cachedData);
+          setLoadingTwitchUser(false);
+          return cachedData;
         }
       } catch (e) {
         console.warn('Profile: Ошибка при получении данных Twitch из DataStorage:', e);
@@ -89,7 +91,7 @@ function Profile() {
 
     try {
       console.log('Profile: Текущие document.cookie перед fetch /api/twitch/user:', document.cookie);
-      const response = await fetch('/api/twitch/user', {
+      const response = await fetch(`/api/twitch/user?userId=${userId}`, {
         method: 'GET',
         headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-cache', 'Pragma': 'no-cache' },
         credentials: 'include'
@@ -137,7 +139,7 @@ function Profile() {
       setLoadingTwitchUser(false);
       return null;
     }
-  }, [searchParams, setGlobalError, globalError]);
+  }, [searchParams, setGlobalError, globalError, twitchUserData]);
 
   const loadUserProfileDbData = useCallback(async (authenticatedUserId) => {
     if (!authenticatedUserId) return;

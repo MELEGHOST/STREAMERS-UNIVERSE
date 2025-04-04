@@ -85,7 +85,7 @@ export default function Home() {
         
         // Пробуем получить данные с сервера
         try {
-          const response = await fetch('/api/twitch/user', {
+          const response = await fetch('/api/twitch/user?sessionCheck=true', {
             method: 'GET',
             headers: {
               'Content-Type': 'application/json',

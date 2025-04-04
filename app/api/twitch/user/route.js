@@ -3,10 +3,15 @@ import { createClient } from '@supabase/supabase-js';
 import { cookies } from 'next/headers';
 import { NextResponse } from 'next/server';
 
-export async function GET() {
+export async function GET(request) {
   try {
     console.log('[/api/twitch/user] Начало обработки запроса (v2 - Edge Function)');
     const cookieStore = cookies();
+    
+    // Получаем параметры из URL
+    const url = new URL(request.url);
+    const requestedUserId = url.searchParams.get('userId');
+    const sessionCheck = url.searchParams.get('sessionCheck') === 'true'; // Проверка, является ли запрос проверкой сессии
     
     // --- Клиент для проверки аутентификации пользователя --- 
     const supabaseAuthClient = createServerClient(
@@ -36,45 +41,67 @@ export async function GET() {
       }
     );
 
+    // Создаем клиент Supabase для вызова Edge Function
+    const supabaseClient = createClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL,
+        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+    );
+
     // 1. Получаем аутентифицированного пользователя
     console.log('[/api/twitch/user] Вызов supabaseAuthClient.auth.getUser()...');
     const { data: { user }, error: userError } = await supabaseAuthClient.auth.getUser();
     
+    // Определяем, какой userId будем использовать для запроса
+    let targetUserId = null;
+    
     if (userError) {
       console.error('[/api/twitch/user] Ошибка при getUser():', userError);
-      return NextResponse.json({ error: 'Ошибка аутентификации (getUser)' }, { status: 401 });
-    }
-
-    if (!user) {
+      
+      // Если это проверка сессии, возвращаем ошибку аутентификации
+      if (sessionCheck) {
+        console.log('[/api/twitch/user] Запрос с sessionCheck=true, сессия отсутствует');
+        return NextResponse.json({ error: 'Не авторизован' }, { status: 401 });
+      }
+      
+      // Если сессия отсутствует, но есть параметр userId, используем его
+      if (requestedUserId) {
+        console.log(`[/api/twitch/user] Сессия отсутствует, но указан userId=${requestedUserId} в параметрах`);
+        targetUserId = requestedUserId;
+      } else {
+        // Если нет ни сессии, ни userId в параметрах - возвращаем ошибку
+        return NextResponse.json({ error: 'Ошибка аутентификации. Укажите userId в параметрах запроса' }, { status: 401 });
+      }
+    } else if (!user) {
       console.log('[/api/twitch/user] Пользователь не найден после getUser()');
-      return NextResponse.json({ error: 'Пользователь не аутентифицирован (getUser)' }, { status: 401 });
+      
+      // Если это проверка сессии, возвращаем ошибку аутентификации
+      if (sessionCheck) {
+        console.log('[/api/twitch/user] Запрос с sessionCheck=true, пользователь не найден');
+        return NextResponse.json({ error: 'Пользователь не аутентифицирован' }, { status: 401 });
+      }
+      
+      // Если пользователь не найден, но есть параметр userId, используем его
+      if (requestedUserId) {
+        console.log(`[/api/twitch/user] Пользователь не найден, но указан userId=${requestedUserId} в параметрах`);
+        targetUserId = requestedUserId;
+      } else {
+        return NextResponse.json({ error: 'Пользователь не аутентифицирован. Укажите userId в параметрах запроса' }, { status: 401 });
+      }
+    } else {
+      console.log('[/api/twitch/user] getUser() успешен, ID пользователя:', user.id);
+      
+      // Если есть авторизованный пользователь, используем его ID или requestedUserId если он указан
+      targetUserId = requestedUserId || user.id;
+      console.log(`[/api/twitch/user] Используем ${requestedUserId ? 'запрошенный' : 'авторизованный'} ID: ${targetUserId}`);
     }
-
-    console.log('[/api/twitch/user] getUser() успешен, ID пользователя:', user.id);
 
     // 2. Вызываем Supabase Edge Function "get-twitch-user"
-    console.log(`[/api/twitch/user] Вызов Edge Function 'get-twitch-user' для пользователя ${user.id}...`);
+    console.log(`[/api/twitch/user] Вызов Edge Function 'get-twitch-user' для пользователя ${targetUserId}...`);
     
-    // Создаем сервисный клиент для вызова функции (или можно использовать обычный, если RLS позволяет)
-    // Использование сервисного ключа здесь может быть избыточным, если функция не требует особой авторизации
-    // Но если функция использует SUPABASE_SERVICE_ROLE_KEY внутри, то вызывать ее лучше с ним же для консистентности
-    // Используем обычный клиент, так как функция сама использует Admin Client внутри
-    const supabaseClient = createClient(
-        process.env.NEXT_PUBLIC_SUPABASE_URL,
-        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-        // Можно добавить глобальный fetch для обработки ошибок сети
-    );
-
     const { data: functionData, error: functionError } = await supabaseClient.functions.invoke(
         'get-twitch-user', 
         { 
-            body: { userId: user.id },
-            // Устанавливаем заголовок Authorization вручную, используя токен из сессии текущего пользователя
-            // Это может быть необходимо, если Edge Function проверяет JWT через `--verify-jwt`
-            // Но так как мы используем --no-verify-jwt, это может быть не нужно. Оставляем для примера.
-            // headers: {
-            //     Authorization: `Bearer ${session?.access_token}` 
-            // }
+            body: { userId: targetUserId }
         }
     );
 
