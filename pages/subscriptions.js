@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 // import Cookies from 'js-cookie';
 import { useRouter } from 'next/router';
 import { useAuth } from '../src/context/AuthContext';
@@ -8,16 +8,27 @@ import styles from './subscriptions.module.css';
 
 export default function Subscriptions() {
   const router = useRouter();
-  const { isAuthenticated } = useAuth();
+  // const { isAuthenticated } = useAuth(); // Убираем вызов useAuth отсюда
   const [subscriptions, setSubscriptions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [isClient, setIsClient] = useState(false);
+  const [authState, setAuthState] = useState({ isAuthenticated: false }); // Состояние для аутентификации
 
+  // Этот useEffect для установки isClient
   useEffect(() => {
     setIsClient(true);
   }, []);
 
-  const fetchSubscriptions = async () => {
+  // Используем useAuth только на клиенте
+  const auth = useAuth(); // Вызываем useAuth здесь, но используем внутри эффекта
+  useEffect(() => {
+    if (isClient) {
+      // Обновляем состояние аутентификации на клиенте
+      setAuthState({ isAuthenticated: auth.isAuthenticated }); 
+    }
+  }, [isClient, auth.isAuthenticated]); // Зависим от isClient и auth.isAuthenticated
+
+  const fetchSubscriptions = useCallback(async () => { // Оборачиваем в useCallback
     try {
       const storedUserData = localStorage.getItem('twitch_user');
       if (!storedUserData) {
@@ -37,14 +48,15 @@ export default function Subscriptions() {
     } finally {
       setLoading(false);
     }
-  };
+  }, []); // Пустой массив зависимостей, если нет внешних зависимостей
 
   useEffect(() => {
     if (!isClient) {
       return;
     }
 
-    if (!isAuthenticated) {
+    // Используем authState.isAuthenticated
+    if (!authState.isAuthenticated) {
       const storedUserData = localStorage.getItem('twitch_user');
       if (!storedUserData) {
         console.log('User not authenticated, redirecting from subscriptions.');
@@ -57,12 +69,12 @@ export default function Subscriptions() {
 
     fetchSubscriptions();
 
-  }, [isAuthenticated, router, isClient]);
+  }, [authState.isAuthenticated, router, isClient, fetchSubscriptions]); // Добавляем fetchSubscriptions
 
   const handleUnsubscribe = async (streamerId) => {
     try {
       await fetch(`/api/twitch/follow?streamerId=${streamerId}&action=unfollow`, { method: 'POST' });
-      setSubscriptions(prev => prev.filter(sub => sub.streamer_id !== streamerId));
+      setSubscriptions(prev => prev.filter(sub => sub.id !== streamerId)); // Фильтруем по sub.id (исправлено)
     } catch (error) {
       console.error('Ошибка при отписке:', error);
     }
@@ -72,7 +84,8 @@ export default function Subscriptions() {
     return null;
   }
 
-  if (!isAuthenticated) {
+  // Используем authState.isAuthenticated
+  if (!authState.isAuthenticated) {
     return (
       <div className={styles.container}>
         <div className={styles.authMessage}>
@@ -112,7 +125,7 @@ export default function Subscriptions() {
               <div className={styles.subscriptionActions}>
                 <button 
                   className={styles.unfollowButton}
-                  onClick={() => handleUnsubscribe(subscription.id)}
+                  onClick={() => handleUnsubscribe(subscription.id)} // Передаем subscription.id
                 >
                   Отписаться
                 </button>
@@ -131,10 +144,4 @@ export default function Subscriptions() {
       </button>
     </div>
   );
-}
-
-export async function getStaticProps() {
-  return {
-    props: {}, // Нет данных для prerendering, всё загружается на клиенте
-  };
 }
