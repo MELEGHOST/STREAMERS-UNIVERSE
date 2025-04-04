@@ -12,7 +12,7 @@ export default function Subscriptions() {
   const [subscriptions, setSubscriptions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [isClient, setIsClient] = useState(false);
-  const [authState, setAuthState] = useState({ isAuthenticated: false }); // Состояние для аутентификации
+  const [authState, setAuthState] = useState({ isAuthenticated: false, isLoading: true }); // Добавляем isLoading
 
   // Этот useEffect для установки isClient
   useEffect(() => {
@@ -20,11 +20,11 @@ export default function Subscriptions() {
   }, []);
 
   // Используем useAuth только на клиенте
-  const auth = useAuth(); // Вызываем useAuth здесь, но используем внутри эффекта
+  const auth = useAuth(); // Вызываем useAuth здесь, чтобы React отслеживал хук
   useEffect(() => {
     if (isClient) {
       // Обновляем состояние аутентификации на клиенте
-      setAuthState({ isAuthenticated: auth.isAuthenticated }); 
+      setAuthState({ isAuthenticated: auth.isAuthenticated, isLoading: false }); 
     }
   }, [isClient, auth.isAuthenticated]); // Зависим от isClient и auth.isAuthenticated
 
