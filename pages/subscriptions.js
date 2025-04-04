@@ -11,60 +11,86 @@ export default function Subscriptions() {
   const { isAuthenticated } = useAuth();
   const [subscriptions, setSubscriptions] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [isClient, setIsClient] = useState(false);
 
   useEffect(() => {
-    const accessToken = Cookies.get('twitch_access_token');
-    if (!accessToken) {
-      console.error('Отсутствует токен доступа, перенаправление на страницу авторизации');
-      router.push('/auth');
-      return;
-    }
-    
+    setIsClient(true);
+  }, []);
+
+  const fetchSubscriptions = async () => {
     try {
       const storedUserData = localStorage.getItem('twitch_user');
       if (!storedUserData) {
-        console.error('Отсутствуют данные пользователя');
-        setLoading(false);
-        return;
+        throw new Error('User data not found in localStorage');
       }
-      
       const storedUser = JSON.parse(storedUserData);
       const userId = storedUser.id || 'unknown';
 
-      // Получаем каналы, на которые пользователь подписан на Twitch (фолловит)
-      if (storedUser.followings && Array.isArray(storedUser.followings)) {
-        const formattedSubscriptions = storedUser.followings.map((name, index) => ({
-          id: `subscription-${index}`,
-          name: name
-        }));
-        setSubscriptions(formattedSubscriptions);
-      } else {
-        // Если нет данных в профиле, пробуем получить из localStorage
-        const subscriptionsData = JSON.parse(localStorage.getItem(`subscriptions_${userId}`)) || [];
-        setSubscriptions(subscriptionsData);
+      const response = await fetch(`/api/twitch/followed?userId=${userId}`);
+      if (!response.ok) {
+        throw new Error('Failed to fetch followed channels');
       }
-      setLoading(false);
+      const data = await response.json();
+      setSubscriptions(data);
     } catch (error) {
       console.error('Ошибка при получении данных пользователя:', error);
+    } finally {
       setLoading(false);
     }
-  }, [router]);
+  };
+
+  useEffect(() => {
+    if (!isClient) {
+      return;
+    }
+
+    if (!isAuthenticated) {
+      const storedUserData = localStorage.getItem('twitch_user');
+      if (!storedUserData) {
+        console.log('User not authenticated, redirecting from subscriptions.');
+        router.push('/');
+        return;
+      }
+      setLoading(true);
+      return;
+    }
+
+    fetchSubscriptions();
+
+  }, [isAuthenticated, router, isClient]);
 
   const handleUnsubscribe = async (streamerId) => {
     try {
       await fetch(`/api/twitch/follow?streamerId=${streamerId}&action=unfollow`, { method: 'POST' });
       setSubscriptions(prev => prev.filter(sub => sub.streamer_id !== streamerId));
-      // console.log(`Отписался от ${streamerId} на Twitch`);
     } catch (error) {
       console.error('Ошибка при отписке:', error);
     }
   };
 
-  if (!isAuthenticated || loading) {
+  if (!isClient) {
+    return null;
+  }
+
+  if (!isAuthenticated) {
     return (
-      <div className={styles.loading}>
+      <div className={styles.container}>
+        <div className={styles.authMessage}>
+          <h2>Требуется авторизация</h2>
+          <p>Пожалуйста, войдите в систему, чтобы просматривать подписки.</p>
+          <button onClick={() => router.push('/')} className={styles.authButton}>
+            Войти
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  if (loading) {
+    return (
+      <div className={styles.loadingContainer}>
         <div className={styles.spinner}></div>
-        <p>Загрузка...</p>
+        <p>Загрузка подписок...</p>
       </div>
     );
   }
@@ -96,12 +122,12 @@ export default function Subscriptions() {
         </div>
       ) : (
         <div className={styles.emptyState}>
-          <p>Вы не подписаны ни на один канал на Twitch.</p>
+          <p>Вы пока ни на кого не подписаны на Twitch.</p>
         </div>
       )}
       
-      <button className={styles.button} onClick={() => router.push('/menu')}>
-        Вернуться в меню
+      <button className={styles.backButton} onClick={() => router.push('/menu')}>
+        Назад в меню
       </button>
     </div>
   );
