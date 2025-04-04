@@ -105,11 +105,17 @@ const CyberAvatar = ({ imageUrl, src, alt, size = 190 }) => {
               </div>
               <div className={styles.avatarImage}>
                 <Image 
-                  src={imageSrc} 
-                  alt={alt || 'Аватар'} 
-                  layout="fill" 
+                  src={imageSrc || ''}
+                  alt={alt || 'Аватар'}
+                  layout="fill"
                   objectFit="cover"
-                  onError={(e) => { e.target.style.display = 'none'; }}
+                  onLoadingComplete={() => {
+                    console.log('[CyberAvatar] Loading complete for:', imageSrc);
+                  }}
+                  onError={() => {
+                    console.error('[CyberAvatar] Error loading image:', imageSrc);
+                    if (onError) onError();
+                  }}
                 />
               </div>
               <div className={styles.glowingElements}>

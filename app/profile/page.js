@@ -130,14 +130,14 @@ function Profile() {
 
     } catch (apiError) {
       console.error('Profile: Ошибка в блоке catch fetchTwitchUserData:', apiError);
-      if (!globalError) {
+      if (!globalError || globalError !== 'Сессия истекла или недействительна.') {
           setGlobalError('Не удалось загрузить основные данные профиля Twitch. Попробуйте обновить страницу.');
       }
       setTwitchUserData(null);
       setLoadingTwitchUser(false);
       return null;
     }
-  }, [searchParams]);
+  }, [searchParams, setGlobalError]);
 
   const loadUserProfileDbData = useCallback(async (authenticatedUserId) => {
     if (!authenticatedUserId) return;
@@ -293,7 +293,7 @@ function Profile() {
           console.log("Profile: Отписались от onAuthStateChange");
       }
     };
-  }, [supabase, router, fetchTwitchUserData, loadUserProfileDbData]);
+  }, [supabase, router, fetchTwitchUserData, loadUserProfileDbData, currentUser?.id, twitchUserData, userProfile]);
 
   const { isBirthday, daysToBirthday } = useMemo(() => {
       if (!userProfile?.birthday) {
