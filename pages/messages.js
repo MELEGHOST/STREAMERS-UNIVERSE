@@ -16,8 +16,6 @@ export default function Messages() {
   const [newMessage, setNewMessage] = useState('');
   const [usersData, setUsersData] = useState({}); // Хранилище данных о пользователях
   const [loadingConversations, setLoadingConversations] = useState(true);
-  const [loadingMessages, setLoadingMessages] = useState(false);
-  const [sendingMessage, setSendingMessage] = useState(false);
 
   // Загружаем данные пользователей для отображения имен и аватаров
   const loadUsersData = useCallback(async () => {

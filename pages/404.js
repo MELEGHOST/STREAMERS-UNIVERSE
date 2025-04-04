@@ -1,6 +1,5 @@
 import { useRouter } from 'next/router';
 // import styles from '../styles/404.module.css'; // Удаляем импорт отсутствующего файла стилей
-import Image from 'next/image';
 
 export default function Custom404() {
   const router = useRouter();

@@ -4,12 +4,10 @@ import styles from './media.module.css';
 import MediaReview from '../../components/MediaReview';
 import Cookies from 'js-cookie';
 import Image from 'next/image';
-import { useAuth } from '../../contexts/AuthContext';
 
 export default function MediaPage() {
   const router = useRouter();
   const { id } = router.query;
-  const { currentUser } = useAuth(); // Получаем текущего пользователя
   
   const [media, setMedia] = useState(null);
   const [loading, setLoading] = useState(true);
