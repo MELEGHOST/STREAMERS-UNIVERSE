@@ -137,7 +137,7 @@ function Profile() {
       setLoadingTwitchUser(false);
       return null;
     }
-  }, [searchParams, setGlobalError]);
+  }, [searchParams, setGlobalError, globalError]);
 
   const loadUserProfileDbData = useCallback(async (authenticatedUserId) => {
     if (!authenticatedUserId) return;
