@@ -26,13 +26,12 @@ const CyberAvatar = ({
   
   // Используем состояние для отслеживания ошибок загрузки
   const [imageError, setImageError] = useState(false);
-  const [imageLoaded, setImageLoaded] = useState(false);
   
   // Определяем источник изображения: приоритет отдаем props src, затем imageUrl
   const imageSrc = src || imageUrl || null;
   
   // Обработчик ошибок загрузки изображения
-  const handleError = useCallback((error) => {
+  const handleError = useCallback(() => {
     console.error('[CyberAvatar] Error loading image:', imageSrc);
     setImageError(true);
   }, [imageSrc]);
@@ -40,7 +39,6 @@ const CyberAvatar = ({
   // Обработчик успешной загрузки
   const handleLoadComplete = useCallback(() => {
     console.log('[CyberAvatar] Loading complete for:', imageSrc);
-    setImageLoaded(true);
   }, [imageSrc]);
   
   useEffect(() => {
