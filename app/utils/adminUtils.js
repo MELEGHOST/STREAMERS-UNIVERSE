@@ -16,22 +16,68 @@ export const checkAdminAccess = async () => {
       return { isAdmin: false, role: null, error: 'Не авторизован' };
     }
     
-    // Проверяем наличие прав администратора в Supabase
-    const { data: adminData, error: adminError } = await supabase
-      .from('admin_users')
-      .select('role')
-      .eq('user_id', userData.id)
-      .single();
+    console.log('Проверка админ-прав для пользователя с ID:', userData.id);
+    
+    // Определяем, какого формата ID
+    const userId = userData.id;
+    const isUUID = typeof userId === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(userId);
+    
+    console.log(`AdminUtils: ID пользователя: ${userId}, формат UUID: ${isUUID}`);
+    
+    let query;
+    
+    if (isUUID) {
+      // Если это UUID, делаем прямой запрос
+      query = supabase
+        .from('admin_users')
+        .select('role')
+        .eq('user_id', userId);
+        
+      console.log(`AdminUtils: Прямой запрос по UUID: ${userId}`);
+    } else {
+      // Если это числовой ID Twitch, ищем через связанную таблицу users
+      console.log(`AdminUtils: Запрос по Twitch ID: ${userId}`);
+      
+      // Сначала проверим, есть ли вообще такой пользователь в таблице users
+      const { data: userData, error: userError } = await supabase
+        .from('users')
+        .select('id')
+        .eq('twitchId', userId)
+        .maybeSingle();
+        
+      if (userError) {
+        console.error(`AdminUtils: Ошибка при поиске пользователя с Twitch ID ${userId}:`, userError);
+        return { isAdmin: false, role: null, error: `Ошибка поиска пользователя: ${userError.message}` };
+      }
+      
+      if (!userData) {
+        console.log(`AdminUtils: Пользователь с Twitch ID ${userId} не найден в таблице users`);
+        return { isAdmin: false, role: null, error: 'Пользователь не найден в системе' };
+      }
+      
+      console.log(`AdminUtils: Пользователь найден, внутренний ID: ${userData.id}`);
+      
+      // Теперь проверяем права администратора
+      query = supabase
+        .from('admin_users')
+        .select('role')
+        .eq('user_id', userData.id);
+    }
+    
+    // Выполняем запрос
+    const { data: adminData, error: adminError } = await query.maybeSingle();
     
     if (adminError) {
-      console.error('Ошибка при проверке прав администратора:', adminError);
-      return { isAdmin: false, role: null, error: 'Ошибка при проверке прав' };
+      console.error('AdminUtils: Ошибка при проверке прав администратора:', adminError);
+      return { isAdmin: false, role: null, error: `Ошибка при проверке прав: ${adminError.message}` };
     }
     
     if (!adminData) {
+      console.log('AdminUtils: У пользователя нет прав администратора');
       return { isAdmin: false, role: null, error: 'Нет прав администратора' };
     }
     
+    console.log(`AdminUtils: Пользователь имеет права администратора, роль: ${adminData.role}`);
     return { isAdmin: true, role: adminData.role, error: null };
   } catch (error) {
     console.error('Ошибка при проверке прав администратора:', error);

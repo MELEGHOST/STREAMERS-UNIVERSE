@@ -155,7 +155,8 @@ function Profile() {
 
         if (profileDbError) {
             console.error('Profile: Ошибка загрузки профиля из БД:', profileDbError);
-            setSpecificErrors(prev => ({ ...prev, profileDb: 'Ошибка загрузки данных профиля из БД.' }));
+            const errorMessage = `Ошибка загрузки данных профиля: ${profileDbError.message || 'Неизвестная ошибка'}`;
+            setSpecificErrors(prev => ({ ...prev, profileDb: errorMessage }));
             setUserProfile(null);
         } else if (profileData) {
             console.log('Profile: Данные профиля из БД загружены:', profileData);
@@ -178,8 +179,9 @@ function Profile() {
         }
     } catch (error) {
         console.error('Profile: Общая ошибка загрузки профиля из БД:', error);
+        const errorMessage = `Ошибка загрузки профиля: ${error.message || 'Неизвестная ошибка'}`;
         if (!specificErrors.profileDb) {
-            setSpecificErrors(prev => ({ ...prev, profileDb: 'Крит. ошибка при загрузке профиля.' }));
+            setSpecificErrors(prev => ({ ...prev, profileDb: errorMessage }));
         }
         setUserProfile(null);
     } finally {
