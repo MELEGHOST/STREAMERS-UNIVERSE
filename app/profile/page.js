@@ -38,12 +38,10 @@ function Profile() {
   const router = useRouter();
   
   const [twitchUserData, setTwitchUserData] = useState(null);
-  const [loading, setLoading] = useState(true);
   const [loadingReviews, setLoadingReviews] = useState(false);
 
   const [globalError, setGlobalError] = useState(null);
   const [specificErrors, setSpecificErrors] = useState({});
-  const [error, setError] = useState(null);
 
   const [showAchievements, setShowAchievements] = useState(false);
   const [showReviews, setShowReviews] = useState(false);
@@ -59,10 +57,10 @@ function Profile() {
   
   const [userId, setUserId] = useState(null);
   const [hasCheckedAdmin, setHasCheckedAdmin] = useState(false);
-  const [showEditMode, setShowEditMode] = useState(false);
-  const [editedDisplayName, setEditedDisplayName] = useState('');
-  const [dbDisplayName, setDbDisplayName] = useState('');
-  const [dbAvatarUrl, setDbAvatarUrl] = useState('');
+  const [showEditMode, ] = useState(false);
+  const [editedDisplayName, ] = useState('');
+  const [dbDisplayName, ] = useState('');
+  const [dbAvatarUrl, ] = useState('');
 
   const supabase = useMemo(() => 
     createBrowserClient(
@@ -70,6 +68,12 @@ function Profile() {
       process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
     ), 
   []);
+
+  useEffect(() => {
+    if (currentUser && currentUser.id) {
+      setUserId(currentUser.id);
+    }
+  }, [currentUser]);
 
   const checkAdminAccess = useCallback(async (userId) => {
     if (!userId) return { isAdmin: false, role: null };
@@ -102,10 +106,8 @@ function Profile() {
 
   const fetchTwitchUserData = useCallback(async () => {
     try {
-      setLoading(true);
       setGlobalError(null);
 
-      // Сначала пытаемся получить данные из localStorage
       let cachedData = null;
       try {
         const storedData = localStorage.getItem('twitch_user');
@@ -117,7 +119,6 @@ function Profile() {
         console.error('Ошибка при чтении из localStorage:', e);
       }
 
-      // Делаем запрос к API с явным флагом проверки сессии
       const apiUrl = `/api/twitch/user?sessionCheck=true${userId ? `&userId=${userId}` : ''}`;
       console.log(`Профиль: запрос к ${apiUrl}`);
       const response = await fetch(apiUrl, {
@@ -130,18 +131,14 @@ function Profile() {
       });
 
       if (!response.ok) {
-        // Если ответ НЕ ок и это 401, значит пользователь не авторизован
         if (response.status === 401) {
           console.log('Профиль: пользователь не авторизован (401), перенаправляем на страницу авторизации');
-          setError('Вы не авторизованы. Пожалуйста, войдите в систему.');
           
-          // Используем данные из localStorage, если они есть, чтобы показать что-то пользователю
           if (cachedData) {
             console.log('Профиль: используем кэшированные данные для отображения');
             setTwitchUserData(cachedData);
           }
           
-          // Добавляем задержку перед редиректом, чтобы пользователь увидел сообщение
           setTimeout(() => {
             const redirectUrl = '/auth';
             console.log(`Профиль: перенаправляем на ${redirectUrl}`);
@@ -150,27 +147,23 @@ function Profile() {
           return;
         }
         
-        // Обрабатываем другие ошибки
         const errorText = await response.text();
         console.error(`Профиль: ошибка API ${response.status}:`, errorText);
         throw new Error(`Ошибка при получении данных: ${response.status} ${errorText}`);
       }
 
-      // Обрабатываем успешный ответ
       const data = await response.json();
       console.log('Профиль: получены данные пользователя Twitch:', data);
       
       if (data && data.id) {
         setTwitchUserData(data);
         
-        // Сохраняем в localStorage для будущего использования
         try {
           localStorage.setItem('twitch_user', JSON.stringify(data));
         } catch (e) {
           console.error('Ошибка при сохранении в localStorage:', e);
         }
         
-        // Если это первая загрузка, проверяем права администратора
         if (!hasCheckedAdmin) {
           checkAdminAccess(data.id);
           setHasCheckedAdmin(true);
@@ -183,7 +176,6 @@ function Profile() {
       console.error('Профиль: ошибка при получении данных пользователя:', error);
       setGlobalError(`Ошибка при получении данных пользователя: ${error.message}`);
       
-      // В случае ошибки используем кэшированные данные, если они есть
       try {
         const storedData = localStorage.getItem('twitch_user');
         if (storedData) {
@@ -194,10 +186,8 @@ function Profile() {
       } catch (e) {
         console.error('Ошибка при чтении из localStorage:', e);
       }
-    } finally {
-      setLoading(false);
     }
-  }, [router, checkAdminAccess]);
+  }, [router, checkAdminAccess, userId, hasCheckedAdmin]);
 
   const loadUserProfileDbData = useCallback(async (authenticatedUserId) => {
     if (!authenticatedUserId) return;
@@ -531,46 +521,34 @@ function Profile() {
 
     setIsLoggingOut(true);
     console.log('Выполняем выход из аккаунта через Supabase...');
-    setGlobalError(null); // Сбрасываем глобальную ошибку перед выходом
+    setGlobalError(null);
 
     let signOutError = null;
 
     try {
-      // 1. Выход из Supabase
       const { error } = await supabase.auth.signOut();
-      signOutError = error; // Сохраняем ошибку выхода
+      signOutError = error;
 
-      // 2. Очистка локального хранилища (более безопасно)
       try {
           console.log('Попытка очистки DataStorage...');
-          await DataStorage.clearAll(); // Исправляем опечатку clearData на clearAll
+          await DataStorage.clearAll();
           console.log('DataStorage успешно очищен.');
       } catch (storageError) {
           console.error('Ошибка при очистке DataStorage:', storageError);
-          // Эта ошибка не должна прерывать основной процесс выхода
           setGlobalError('Не удалось полностью очистить локальные данные, но выход выполнен.');
       }
 
-      // 3. Обработка результата выхода Supabase
       if (signOutError) {
           console.error('Ошибка при выходе из Supabase:', signOutError);
           setGlobalError(`Ошибка при выходе: ${signOutError.message}`);
-          // Решаем, нужно ли перенаправлять при ошибке выхода
-          // Возможно, лучше остаться на странице и показать ошибку
-          // router.push('/'); 
       } else {
           console.log('Выход из Supabase успешен. Перенаправление на /auth');
-          // Успешный выход - всегда перенаправляем на /auth
-          // Состояния currentUser и т.д. обновятся через onAuthStateChange
           router.push('/auth?action=logout');
       }
 
     } catch (criticalError) {
-      // Ловим только самые критические, непредвиденные ошибки
       console.error('Критическая ошибка при выходе из аккаунта (внешний catch):', criticalError);
       setGlobalError('Произошла критическая ошибка при выходе из аккаунта.');
-      // Можно перенаправить на главную или оставить для отображения ошибки
-      // router.push('/');
     } finally {
       setIsLoggingOut(false);
     }
@@ -590,7 +568,6 @@ function Profile() {
       }
   };
 
-  // Используем данные из userProfile (БД) и twitchUserData (API/кэш)
   const { description: profileDescriptionDb, social_links: profileSocialLinksDb } = userProfile || {};
   const { profile_image_url, login, display_name: twitchDisplayName, view_count, broadcaster_type, created_at, followers_count } = twitchUserData || {};
 
@@ -598,33 +575,24 @@ function Profile() {
     profile_image_url, login, display_name: twitchDisplayName 
   }) : 'null');
 
-  // Определяем финальное имя для отображения
   const finalDisplayName = showEditMode 
     ? editedDisplayName 
     : (
-        // Приоритет: 1) Из базы данных 2) Из Twitch API 3) Резервное
         dbDisplayName || 
         (twitchDisplayName) || 
         (login) || 
         "Стример"
       );
 
-  // Определяем URL аватара для отображения
-  // Делаем URL безопасным с проверками на undefined и null
-  const defaultAvatar = "/images/default_avatar.png"; // Локальный путь к запасному изображению
+  const defaultAvatar = "/images/default_avatar.png";
   
-  // Инициализируем переменную для URL аватара
   let finalAvatarUrl = null;
   
-  // Выбираем URL аватара с приоритетом: 1) Из базы данных 2) Из Twitch API 3) Из localStorage 4) Запасное изображение
   if (dbAvatarUrl) {
-    // Если есть URL из базы данных
     finalAvatarUrl = dbAvatarUrl;
   } else if (twitchUserData?.profile_image_url) {
-    // Если есть URL из Twitch API
     finalAvatarUrl = twitchUserData.profile_image_url;
   } else {
-    // Безопасно получаем данные из localStorage
     try {
       const storedTwitchUser = localStorage.getItem('twitch_user');
       if (storedTwitchUser) {
@@ -637,23 +605,17 @@ function Profile() {
       console.error("Ошибка при получении данных аватара из localStorage:", error);
     }
     
-    // Если всё ещё нет URL, используем запасное изображение
     if (!finalAvatarUrl) {
       finalAvatarUrl = defaultAvatar;
     }
   }
 
-  // Отладочное сообщение для URL аватара
   console.log("Профиль: URL аватара для отображения:", finalAvatarUrl);
 
-  // Берем описание из БД, если есть, иначе из Twitch API, иначе пусто
   const profileDescription = profileDescriptionDb || twitchUserData?.description || '';
 
-  // Настройки видимости (пока не используются, но могут понадобиться)
-  // const visibilitySettings = userProfile?.stats_visibility || {};
-  const socialLinks = profileSocialLinksDb || {}; // Используем данные из БД
+  const socialLinks = profileSocialLinksDb || {};
 
-  // Добавляем состояние загрузки аутентификации
   if (authLoading) {
     return (
       <div className={styles.container}>
@@ -667,7 +629,6 @@ function Profile() {
     );
   }
   
-  // Если пользователь не аутентифицирован после проверки (на всякий случай)
   if (!currentUser && !authLoading) {
       console.log("Profile: Пользователь не аутентифицирован после загрузки, редирект на /auth");
       return (
@@ -682,8 +643,6 @@ function Profile() {
       );
   }
 
-  // Основной рендер компонента, когда пользователь аутентифицирован
-  // Используем twitchUserData и userProfile для отображения
   return (
     <div className={styles.container}>
       <div className={styles.profileContainer}>
@@ -722,10 +681,8 @@ function Profile() {
           </div>
           <div className={styles.profileDetails}>
              <h1 className={styles.displayName}>{finalDisplayName}</h1>
-             {/* Используем описание из profileDescription */} 
              <p className={styles.description}>{profileDescription || 'Описание отсутствует'}</p>
              <div className={styles.profileStats}>
-               {/* Добавляем проверки на существование twitchUserData перед доступом к полям */} 
                {followers_count !== null && followers_count !== undefined && (
                   <span className={styles.statItem}>Подписчики: {followers_count}</span>
                )}
@@ -739,7 +696,6 @@ function Profile() {
                   <span className={styles.statItem}>На Twitch с: {formatDate(created_at)}</span>
                )}
              </div>
-             {/* День рождения и социальные сети */} 
              {renderBirthday()} 
              {renderSocialLinks()} 
           </div>
@@ -757,7 +713,6 @@ function Profile() {
             >
                 Редактировать
             </button>
-            {/* Кнопки для достижений и обзоров - добавляем класс actionButton */} 
             <button onClick={toggleAchievements} className={`${styles.actionButton} ${styles.toggleButton}`}>
                 {showAchievements ? 'Скрыть достижения' : 'Показать достижения'} ({/* Количество */})
             </button>

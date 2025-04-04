@@ -152,30 +152,39 @@ const CyberAvatar = ({
   
   // Компонент изображения с различными размерами для различных макетов
   const renderImage = () => {
-    const imgProps = {
+    // Передаем alt напрямую, чтобы удовлетворить линтер
+    const baseImgProps = {
       src: error ? "/images/default_avatar.png" : imageSrc,
-      alt: alt,
       className: styles.avatarImage,
       onError: handleImageError,
-      priority: priority // Добавляем поддержку приоритетной загрузки
+      priority: priority
     };
     
     if (layout === 'fixed') {
       return (
         <Image 
-          {...imgProps}
+          {...baseImgProps}
+          alt={alt}
           width={width || sizeInPixels}
           height={height || sizeInPixels}
           layout="fixed"
         />
       );
     } else if (layout === 'fill') {
-      return <Image {...imgProps} layout="fill" objectFit="cover" />;
+      return (
+        <Image 
+          {...baseImgProps}
+          alt={alt}
+          layout="fill" 
+          objectFit="cover" 
+        />
+      );
     } else {
       // По умолчанию используем 'responsive'
       return (
         <Image 
-          {...imgProps}
+          {...baseImgProps}
+          alt={alt}
           width={100}
           height={100}
           layout="responsive"
