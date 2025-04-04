@@ -15,8 +15,10 @@ const Profile = () => {
   useEffect(() => {
     // Если пользователь не авторизован, перенаправляем на страницу авторизации
     if (typeof window !== 'undefined' && !currentUser) {
-      router.push('/');
-      console.log('Redirecting to / due to no currentUser'); // Отладка
+      // Отладочное сообщение
+      // console.log('Redirecting to / due to no currentUser'); 
+      router.push('/'); // Перенаправляем на главную, если нет пользователя
+      return null; // Возвращаем null, чтобы избежать рендеринга остальной части компонента
     }
   }, [currentUser, router]);
 
@@ -28,15 +30,17 @@ const Profile = () => {
 
   // Функция для открытия модального окна выбора профиля
   const handleSwitchProfile = () => {
-    console.log('Opening profile switch menu, profiles:', profiles); // Отладка
+    // Отладочное сообщение
+    // console.log('Opening profile switch menu, profiles:', profiles); 
     setShowProfileSwitch(true);
   };
 
   // Функция для выбора профиля
   const handleSelectProfile = (profileId) => {
+    // console.log('Selected profile with ID:', profileId); // Отладка
     switchProfile(profileId);
     setShowProfileSwitch(false);
-    console.log('Selected profile with ID:', profileId); // Отладка
+    router.push(`/user/${profileId}`);
   };
 
   return (

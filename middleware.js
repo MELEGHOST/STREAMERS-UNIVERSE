@@ -45,12 +45,14 @@ function generateRandomString(length) {
 
 export async function middleware(request) {
   // --- ЛОГИРОВАНИЕ ВХОДЯЩИХ КУК --- 
-  try {
-    const cookieHeader = request.headers.get('cookie') || 'Нет заголовка Cookie';
-    console.log(`[Middleware] Входящие куки для ${request.nextUrl.pathname}:`, cookieHeader);
-  } catch (e) {
-    console.error('[Middleware] Ошибка чтения заголовка Cookie:', e);
-  }
+  // const cookieHeader = request.headers.get('Cookie') || '';
+  // if (!isProduction) {
+  //     try {
+  //         console.log(`[Middleware] Входящие куки для ${request.nextUrl.pathname}:`, cookieHeader);
+  //     } catch (e) {
+  //         console.error('[Middleware] Ошибка чтения заголовка Cookie:', e);
+  //     }
+  // }
   // --- КОНЕЦ ЛОГИРОВАНИЯ ---
   
   const url = request.nextUrl.clone();
@@ -117,28 +119,27 @@ export async function middleware(request) {
           authError = error;
           // Не выводим ошибку 'Invalid Refresh Token' как критическую, 
           // так как это может быть просто истекшая сессия
-          if (error.message !== 'Invalid Refresh Token: Refresh Token Not Found') {
-              console.warn('[Middleware] Ошибка Supabase getUser:', error.message);
-          }
+          // console.warn('[Middleware] Ошибка Supabase getUser:', error.message);
+          userId = null;
         } else if (fetchedUser) {
           user = fetchedUser; // Сохраняем всего пользователя
           userId = fetchedUser.id;
-           if (!isProduction) console.log('[Middleware] Пользователь Supabase аутентифицирован, User ID:', userId);
+          // if (!isProduction) console.log('[Middleware] Пользователь Supabase аутентифицирован, User ID:', userId);
         } else {
-           if (!isProduction) console.log('[Middleware] Пользователь Supabase НЕ аутентифицирован (getUser вернул null).');
+           // if (!isProduction) console.log('[Middleware] Пользователь Supabase НЕ аутентифицирован (getUser вернул null).');
         }
       } catch (e) {
          console.error('[Middleware] Непредвиденная ошибка при вызове getUser Supabase:', e);
          authError = e; // Сохраняем ошибку
+         userId = null;
       }
   } else {
-       if (!isProduction) console.log('[Middleware] Пропуск проверки Supabase из-за отсутствия ключей.');
+       // if (!isProduction) console.log('[Middleware] Пропуск проверки Supabase из-за отсутствия ключей.');
   }
   // --- КОНЕЦ НАСТРОЙКИ SUPABASE ---
 
-  if (!isProduction) {
-    console.log('[Middleware] Обработка:', pathname);
-  }
+  // Логика маршрутизации
+  // console.log('[Middleware] Обработка:', pathname);
 
   // --- Безопасность и CORS --- (Оставляем без изменений, но можно рефакторить)
   // Получаем origin и проверяем разрешенные домены
@@ -173,10 +174,8 @@ base-uri 'self'; \
 object-src 'none';`;
     response.headers.set('Content-Security-Policy', cspValue.replace(/\s{2,}/g, ' ').trim());
 
-    // Логируем установленный CSP
-    if (!isProduction) {
-        console.log('[Middleware] Установленный CSP:', response.headers.get('Content-Security-Policy'));
-    }
+    // Логируем установленный CSP всегда для отладки
+    console.log('[Middleware] Установленный CSP:', response.headers.get('Content-Security-Policy'));
 
      // Установка CORS заголовков
      if (isAllowedOrigin) {
@@ -185,7 +184,7 @@ object-src 'none';`;
       response.headers.set('Access-Control-Allow-Methods', 'GET,OPTIONS,PATCH,DELETE,POST,PUT');
       response.headers.set('Access-Control-Allow-Headers', 'X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version, Authorization');
     } else if (origin && !isProduction) {
-      console.log(`[Middleware] Origin ${origin} не разрешен`);
+      // console.log(`[Middleware] Origin ${origin} не разрешен`);
     }
 
   } catch (e) {
@@ -220,7 +219,7 @@ object-src 'none';`;
       maxAge: 60 * 60 * 24 // 1 день
     });
     if (!isProduction) {
-      console.log('[Middleware] Установлен новый CSRF-токен');
+      // console.log('[Middleware] Установлен новый CSRF-токен');
     }
   }
 
@@ -249,14 +248,14 @@ object-src 'none';`;
   const isAuthenticated = !!user && !authError; // Считаем авторизованным, если есть user и нет ошибок
 
   if (!isProduction) {
-      console.log('[Middleware] Статус авторизации (Supabase):', {
-          pathname,
-          isPublicPath,
-          isAuthenticated: isAuthenticated,
-          userId: userId,
-          hasAuthError: !!authError,
-          authErrorMessage: authError?.message
-      });
+      // console.log('[Middleware] Статус авторизации (Supabase):', {
+      //     pathname,
+      //     isPublicPath,
+      //     isAuthenticated: isAuthenticated,
+      //     userId: userId,
+      //     hasAuthError: !!authError,
+      //     authErrorMessage: authError?.message
+      // });
   }
 
   // Обработка API запросов (кроме публичных API)
@@ -264,7 +263,7 @@ object-src 'none';`;
     // Если API не публичный и пользователь не аутентифицирован, возвращаем 401
     // Исключаем callback и другие auth-связанные API, они проверят сами
     if (!isAuthenticated && !pathname.startsWith('/api/auth')) { 
-        console.warn(`[Middleware] API: Не авторизован (${pathname}). Ответ 401.`);
+        // console.warn(`[Middleware] API: Не авторизован (${pathname}). Ответ 401.`);
         // Возвращаем ошибку 401 вместо редиректа для API
         return new NextResponse(JSON.stringify({ error: 'Authentication required' }), { 
             status: 401, 
@@ -277,7 +276,7 @@ object-src 'none';`;
 
   // Обработка защищенных страниц
   if (!isPublicPath && !isAuthenticated) {
-    console.log(`[Middleware] Страница: Не авторизован (${pathname}). Редирект на /auth`);
+    // console.log(`[Middleware] Страница: Не авторизован (${pathname}). Редирект на /auth`);
     const loginUrl = new URL('/auth', request.url);
     loginUrl.searchParams.set('redirect', pathname);
     // Добавляем причину редиректа для отладки на странице /auth

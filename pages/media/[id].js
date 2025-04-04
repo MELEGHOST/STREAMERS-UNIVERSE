@@ -17,55 +17,57 @@ export default function MediaPage() {
   const [viewerReviews, setViewerReviews] = useState([]);
   const [isStreamer, setIsStreamer] = useState(false);
   
-  // Загрузка данных о медиа
+  // Этот хук будет выполняться один раз при монтировании компонента
   useEffect(() => {
+    // console.log('Монтирование компонента MediaPage');
+    // Загружаем данные медиа и рецензии
+    fetchMediaData();
+  }, [id]); // Зависимость от id, чтобы перезагружать при смене страницы
+
+  const fetchMediaData = async () => {
     if (!id) return;
     
-    const fetchMedia = async () => {
-      try {
-        setLoading(true);
-        
-        // Получаем данные о медиа
-        const response = await fetch(`/api/media?id=${id}`);
-        
-        if (!response.ok) {
-          throw new Error('Failed to fetch media');
-        }
-        
-        const data = await response.json();
-        setMedia(data);
-        
-        // Получаем ID пользователя из localStorage
-        const userData = JSON.parse(localStorage.getItem('twitch_user') || '{}');
-        setIsStreamer(userData.isStreamer || false);
-        
-        // Разделяем отзывы на отзыв стримера, отзыв текущего пользователя и отзывы зрителей
-        if (data.reviews && Array.isArray(data.reviews)) {
-          // Отзыв стримера
-          const streamerReview = data.reviews.find(review => review.isStreamer);
-          setStreamerReview(streamerReview);
-          
-          // Отзыв текущего пользователя
-          const userReview = data.reviews.find(review => review.userId === userData.id);
-          setUserReview(userReview);
-          
-          // Отзывы зрителей (кроме текущего пользователя)
-          const otherViewerReviews = data.reviews.filter(
-            review => !review.isStreamer && review.userId !== userData.id
-          );
-          setViewerReviews(otherViewerReviews);
-        }
-        
-        setLoading(false);
-      } catch (error) {
-        console.error('Error fetching media:', error);
-        setError('Не удалось загрузить информацию о медиа');
-        setLoading(false);
+    try {
+      setLoading(true);
+      
+      // Получаем данные о медиа
+      const response = await fetch(`/api/media?id=${id}`);
+      
+      if (!response.ok) {
+        throw new Error('Failed to fetch media');
       }
-    };
-    
-    fetchMedia();
-  }, [id]);
+      
+      const data = await response.json();
+      setMedia(data);
+      
+      // Получаем ID пользователя из localStorage
+      const userData = JSON.parse(localStorage.getItem('twitch_user') || '{}');
+      setIsStreamer(userData.isStreamer || false);
+      
+      // Разделяем отзывы на отзыв стримера, отзыв текущего пользователя и отзывы зрителей
+      if (data.reviews && Array.isArray(data.reviews)) {
+        // Отзыв стримера
+        const streamerReview = data.reviews.find(review => review.isStreamer);
+        setStreamerReview(streamerReview);
+        
+        // Отзыв текущего пользователя
+        const userReview = data.reviews.find(review => review.userId === userData.id);
+        setUserReview(userReview);
+        
+        // Отзывы зрителей (кроме текущего пользователя)
+        const otherViewerReviews = data.reviews.filter(
+          review => !review.isStreamer && review.userId !== userData.id
+        );
+        setViewerReviews(otherViewerReviews);
+      }
+      
+      setLoading(false);
+    } catch (error) {
+      console.error('Error fetching media:', error);
+      setError('Не удалось загрузить информацию о медиа');
+      setLoading(false);
+    }
+  };
   
   // Обработчик сохранения отзыва
   const handleSaveReview = async (review) => {

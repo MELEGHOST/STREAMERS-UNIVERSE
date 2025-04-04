@@ -239,41 +239,34 @@ export default function UserProfile() {
   
   // Функция для получения социальных ссылок пользователя
   const fetchSocialLinks = async (userId) => {
+    if (!userId) return;
+    // console.log('Получение социальных ссылок для пользователя:', userId);
     try {
-      console.log('Получение социальных ссылок для пользователя:', userId);
-      
-      // Пытаемся получить данные через API
-      const response = await fetch(`/api/socials?userId=${userId}`);
-      
-      if (response.ok) {
-        const data = await response.json();
-        console.log('Социальные ссылки получены через API:', data);
-        setSocialLinks(data);
-        return data;
-      } else {
-        console.warn('API не вернул соц. ссылки, проверяем localStorage');
-        
-        // Если API недоступен, пробуем localStorage
-        if (typeof window !== 'undefined') {
-          const cachedData = localStorage.getItem(`social_links_${userId}`);
-          if (cachedData) {
-            try {
-              const parsedData = JSON.parse(cachedData);
-              console.log('Социальные ссылки получены из localStorage');
-              setSocialLinks(parsedData);
-              return parsedData;
-            } catch (err) {
-              console.error('Ошибка при парсинге данных из localStorage:', err);
-            }
-          }
+      const response = await fetch(`/api/user-socials?userId=${userId}`);
+      if (!response.ok) {
+        throw new Error('Network response was not ok');
+      }
+      const data = await response.json();
+      // console.log('Социальные ссылки получены через API:', data);
+      setSocialLinks(data);
+      // Сохраняем в localStorage для оффлайн доступа
+      localStorage.setItem(`socialLinks_${userId}`, JSON.stringify(data));
+    } catch (error) {
+      // Если API недоступен, пробуем загрузить из localStorage
+      // console.warn('API не вернул соц. ссылки, проверяем localStorage');
+      const storedLinks = localStorage.getItem(`socialLinks_${userId}`);
+      if (storedLinks) {
+        try {
+          const parsedLinks = JSON.parse(storedLinks);
+          setSocialLinks(parsedLinks);
+          // console.log('Социальные ссылки получены из localStorage');
+        } catch (err) {
+          console.error('Ошибка при парсинге данных из localStorage:', err);
+          setSocialLinks({}); // Сбрасываем, если данные повреждены
         }
       }
-      
-      // Если данные не получены ни из API, ни из localStorage
-      return null;
-    } catch (error) {
       console.error('Ошибка при получении социальных ссылок:', error);
-      return null;
+      setSocialLinks({}); // Сброс в случае ошибки
     }
   };
   
@@ -281,7 +274,7 @@ export default function UserProfile() {
   const renderSocialLinks = () => {
     if (!socialLinks) return null;
     
-    console.log('Отображение социальных ссылок:', socialLinks);
+    // console.log('Отображение социальных ссылок:', socialLinks);
     
     return (
       <div className={styles.socialIconsContainer}>

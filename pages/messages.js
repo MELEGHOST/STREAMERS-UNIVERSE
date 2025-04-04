@@ -8,7 +8,7 @@ import { useAuth } from '../contexts/AuthContext';
 
 export default function Messages() {
   const router = useRouter();
-  const { isAuthenticated, userId } = useAuth();
+  const { isAuthenticated, userId, currentUser } = useAuth();
   
   const [conversations, setConversations] = useState([]);
   const [activeConversation, setActiveConversation] = useState(null);
@@ -20,6 +20,7 @@ export default function Messages() {
   
   // Загружаем беседы пользователя
   useEffect(() => {
+    // console.log('Messages component mounted');
     if (!isAuthenticated || !userId) return;
     
     const fetchConversations = async () => {

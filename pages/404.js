@@ -5,13 +5,10 @@ import styles from './404.module.css'; // Используем собствен�
 export default function Custom404() {
   const router = useRouter();
 
-  useEffect(() => {
-    // Логируем информацию об ошибке 404
-    console.error('Ошибка 404: Страница не найдена', {
-      path: router.asPath,
-      query: router.query
-    });
-  }, [router]);
+  // console.error('Ошибка 404: Страница не найдена', {
+  //   path: router.asPath,
+  //   query: router.query
+  // });
 
   // Функция для возврата на главную страницу
   const goToHome = () => {

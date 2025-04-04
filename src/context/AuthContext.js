@@ -19,7 +19,7 @@ export function AuthProvider({ children }) {
     // Проверяем Telegram Mini App initData
     if (typeof window !== 'undefined' && window.Telegram && window.Telegram.WebApp) {
       const initData = window.Telegram.WebApp.initDataUnsafe || {};
-      console.log('Telegram initData:', initData);
+      // console.log('Telegram initData:', initData);
     }
 
     const savedToken = localStorage.getItem('twitchToken');
@@ -35,7 +35,7 @@ export function AuthProvider({ children }) {
       setLoading(false);
     } else if (savedToken && savedUser && status === 'unauthenticated') {
       // Восстанавливаем сессию из localStorage
-      console.log('Restoring session from localStorage:', { token: savedToken, user: JSON.parse(savedUser) });
+      // console.log('Restoring session from localStorage:', { token: savedToken, user: JSON.parse(savedUser) });
       fetch('/api/auth/verify', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${savedToken}` },

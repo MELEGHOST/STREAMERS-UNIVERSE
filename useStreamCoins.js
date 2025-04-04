@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import StreamCoinsManager from './streamCoins';
 
 // Custom React hook for using StreamCoins in components
@@ -13,6 +13,11 @@ export default function useStreamCoins(userId) {
   });
   
   const coinsManager = useRef(null);
+  
+  const handleError = useCallback((error) => {
+    console.error('StreamCoins Error:', error);
+    // Здесь можно добавить логику уведомления пользователя
+  }, []);
   
   useEffect(() => {
     if (!userId || typeof window === 'undefined') return;

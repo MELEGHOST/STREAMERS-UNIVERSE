@@ -118,6 +118,10 @@ export default function AddMediaPage() {
     );
   }
   
+  if (!isStreamer) {
+    return <p>Только стримеры могут добавлять медиа.</p>;
+  }
+  
   return (
     <div className={styles.mediaPageContainer}>
       <div className={styles.mediaHeader}>

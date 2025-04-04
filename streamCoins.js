@@ -68,7 +68,9 @@ class StreamCoinsManager {
           }
         }
       } catch (error) {
-        console.warn('Failed to load from localStorage:', error);
+        // console.warn('Failed to load from localStorage:', error);
+        // Очищаем некорректные данные
+        localStorage.removeItem(`streamcoins_${this.userId}`);
       }
       
       // Then fetch latest from server
@@ -83,11 +85,13 @@ class StreamCoinsManager {
               localStorage.setItem(`streamcoins_${this.userId}`, JSON.stringify(this.data));
             }
           } catch (cacheError) {
-            console.warn('Failed to update cache:', cacheError);
+            // console.warn('Failed to update cache:', cacheError);
           }
         }
       } catch (fetchError) {
+        // console.warn('Failed to fetch from server:', fetchError);
         console.error('Failed to fetch from server:', fetchError);
+        throw fetchError; // Пробрасываем ошибку дальше
       }
       
       return this.data;
@@ -114,7 +118,7 @@ class StreamCoinsManager {
           .find(row => row.startsWith('csrf_token='))
           ?.split('=')[1] || '';
       } catch (error) {
-        console.warn('Could not get CSRF token:', error);
+        // console.warn('Could not get CSRF token:', error);
       }
       
       let token = '';
@@ -123,7 +127,7 @@ class StreamCoinsManager {
           token = localStorage.getItem('token') || '';
         }
       } catch (error) {
-        console.warn('Could not get auth token:', error);
+        // console.warn('Could not get auth token:', error);
       }
         
       const response = await fetch(this.apiEndpoint, {
@@ -143,7 +147,7 @@ class StreamCoinsManager {
             localStorage.setItem(`streamcoins_${this.userId}`, JSON.stringify(this.data));
           }
         } catch (cacheError) {
-          console.warn('Failed to update cache:', cacheError);
+          // console.warn('Failed to update cache:', cacheError);
         }
         return true;
       }

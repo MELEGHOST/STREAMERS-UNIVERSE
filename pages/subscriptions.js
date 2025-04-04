@@ -52,11 +52,14 @@ export default function Subscriptions() {
     }
   }, [router]);
 
-  const handleUnsubscribe = (streamerId) => {
-    const updatedSubscriptions = subscriptions.filter(sub => sub.id !== streamerId);
-    setSubscriptions(updatedSubscriptions);
-    localStorage.setItem(`subscriptions_${userId}`, JSON.stringify(updatedSubscriptions));
-    console.log(`Отписался от ${streamerId} на Twitch`);
+  const handleUnsubscribe = async (streamerId) => {
+    try {
+      await fetch(`/api/twitch/follow?streamerId=${streamerId}&action=unfollow`, { method: 'POST' });
+      setSubscriptions(prev => prev.filter(sub => sub.streamer_id !== streamerId));
+      // console.log(`Отписался от ${streamerId} на Twitch`);
+    } catch (error) {
+      console.error('Ошибка при отписке:', error);
+    }
   };
 
   if (!isAuthenticated || loading) {

@@ -48,7 +48,8 @@ export default function StreamersUniverseSubscribers() {
       const updatedSubscribers = subscribers.filter(sub => sub.id !== subscriberId);
       setSubscribers(updatedSubscribers);
       localStorage.setItem(`su_subscribers_${userId}`, JSON.stringify(updatedSubscribers));
-      console.log(`Удален подписчик ${subscriberId} из Streamers Universe`);
+      // Сохранение изменений на сервере (если необходимо)
+      // console.log(`Удален подписчик ${subscriberId} из Streamers Universe`);
     }
   };
 

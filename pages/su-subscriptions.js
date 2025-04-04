@@ -47,7 +47,8 @@ export default function StreamersUniverseSubscriptions() {
     const updatedSubscriptions = subscriptions.filter(sub => sub.id !== creatorId);
     setSubscriptions(updatedSubscriptions);
     localStorage.setItem(`su_subscriptions_${userId}`, JSON.stringify(updatedSubscriptions));
-    console.log(`Отписался от ${creatorId} в Streamers Universe`);
+    // Сохранение изменений на сервере (если необходимо)
+    // console.log(`Отписался от ${creatorId} в Streamers Universe`);
   };
 
   if (!isAuthenticated || loading) {
