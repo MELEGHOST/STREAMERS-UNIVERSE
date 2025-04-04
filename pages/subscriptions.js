@@ -3,12 +3,13 @@
 import React, { useState, useEffect } from 'react';
 import Cookies from 'js-cookie';
 import { useRouter } from 'next/router';
+import { useAuth } from '../../contexts/AuthContext';
 import styles from './subscriptions.module.css';
+import SubscriptionCard from '../../components/SubscriptionCard';
 
 export default function Subscriptions() {
   const router = useRouter();
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [userId, setUserId] = useState(null);
+  const { isAuthenticated } = useAuth();
   const [subscriptions, setSubscriptions] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -21,7 +22,6 @@ export default function Subscriptions() {
     }
     
     try {
-      setIsAuthenticated(true);
       const storedUserData = localStorage.getItem('twitch_user');
       if (!storedUserData) {
         console.error('Отсутствуют данные пользователя');
@@ -31,7 +31,6 @@ export default function Subscriptions() {
       
       const storedUser = JSON.parse(storedUserData);
       const userId = storedUser.id || 'unknown';
-      setUserId(userId);
 
       // Получаем каналы, на которые пользователь подписан на Twitch (фолловит)
       if (storedUser.followings && Array.isArray(storedUser.followings)) {

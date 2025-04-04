@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/router';
 import Head from 'next/head';
 import Link from 'next/link';
@@ -8,112 +8,73 @@ import { useAuth } from '../contexts/AuthContext';
 
 export default function Messages() {
   const router = useRouter();
-  const { isAuthenticated, userId, currentUser } = useAuth();
+  const { isAuthenticated, userId } = useAuth();
   
   const [conversations, setConversations] = useState([]);
-  const [activeConversation, setActiveConversation] = useState(null);
+  const [selectedConversation, setSelectedConversation] = useState(null);
   const [messages, setMessages] = useState([]);
   const [newMessage, setNewMessage] = useState('');
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-  const [users, setUsers] = useState({});
-  
+  const [usersData, setUsersData] = useState({}); // Хранилище данных о пользователях
+  const [loadingConversations, setLoadingConversations] = useState(true);
+  const [loadingMessages, setLoadingMessages] = useState(false);
+  const [sendingMessage, setSendingMessage] = useState(false);
+
+  // Загружаем данные пользователей для отображения имен и аватаров
+  const loadUsersData = useCallback(async () => {
+    try {
+      const response = await fetch('/api/users/list');
+      if (response.ok) {
+        const data = await response.json();
+        const usersMap = data.reduce((acc, user) => {
+          acc[user.id] = { name: user.username, avatar: user.avatar_url };
+          return acc;
+        }, {});
+        setUsersData(usersMap);
+      } else {
+        console.error('Ошибка загрузки данных пользователей');
+      }
+    } catch (error) {
+      console.error('Ошибка при запросе данных пользователей:', error);
+    }
+  }, []);
+
   // Загружаем беседы пользователя
+  const loadConversations = useCallback(async (currentUserId) => {
+    if (!currentUserId) return;
+    setLoadingConversations(true);
+    try {
+      const response = await fetch(`/api/messages/conversations?userId=${currentUserId}`);
+      if (response.ok) {
+        const data = await response.json();
+        setConversations(data);
+      } else {
+        console.error('Ошибка загрузки бесед');
+        setConversations([]); // Очищаем на случай ошибки
+      }
+    } catch (error) {
+      console.error('Ошибка при запросе бесед:', error);
+      setConversations([]);
+    } finally {
+      setLoadingConversations(false);
+    }
+  }, []);
+
+  // Загрузка данных при монтировании
   useEffect(() => {
     // console.log('Messages component mounted');
-    if (!isAuthenticated || !userId) return;
-    
-    const fetchConversations = async () => {
-      try {
-        setLoading(true);
-        
-        // Получаем беседы из localStorage (временное решение)
-        const storedMessages = localStorage.getItem('su_messages');
-        let userMessages = [];
-        
-        if (storedMessages) {
-          try {
-            const parsedMessages = JSON.parse(storedMessages);
-            
-            // Фильтруем сообщения пользователя
-            userMessages = parsedMessages.filter(msg => 
-              msg.senderId === userId || msg.receiverId === userId
-            );
-            
-            // Группируем сообщения по беседам
-            const conversations = {};
-            
-            userMessages.forEach(msg => {
-              const conversationId = msg.conversationId;
-              
-              if (!conversations[conversationId]) {
-                conversations[conversationId] = {
-                  id: conversationId,
-                  participants: [msg.senderId, msg.receiverId],
-                  lastMessage: msg,
-                  messages: [],
-                  unreadCount: 0
-                };
-              }
-              
-              conversations[conversationId].messages.push(msg);
-              
-              // Обновляем последнее сообщение, если текущее новее
-              if (new Date(msg.createdAt) > new Date(conversations[conversationId].lastMessage.createdAt)) {
-                conversations[conversationId].lastMessage = msg;
-              }
-              
-              // Считаем непрочитанные сообщения
-              if (!msg.read && msg.receiverId === userId) {
-                conversations[conversationId].unreadCount++;
-              }
-            });
-            
-            // Преобразуем объект бесед в массив
-            setConversations(Object.values(conversations));
-          } catch (e) {
-            console.error('Ошибка при парсинге сообщений из localStorage:', e);
-            setError('Ошибка при загрузке сообщений. Пожалуйста, попробуйте позже.');
-          }
-        }
-        
-        // Если есть беседы, загружаем информацию о пользователях
-        if (userMessages.length > 0) {
-          const userIds = new Set();
-          
-          userMessages.forEach(msg => {
-            if (msg.senderId !== userId) userIds.add(msg.senderId);
-            if (msg.receiverId !== userId) userIds.add(msg.receiverId);
-          });
-          
-          // Загружаем информацию о пользователях из localStorage
-          const storedUsers = localStorage.getItem('twitch_users');
-          let usersData = {};
-          
-          if (storedUsers) {
-            try {
-              usersData = JSON.parse(storedUsers);
-            } catch (e) {
-              console.error('Ошибка при парсинге данных пользователей из localStorage:', e);
-            }
-          }
-          
-          setUsers(usersData);
-        }
-      } catch (err) {
-        console.error('Ошибка при загрузке бесед:', err);
-        setError('Не удалось загрузить беседы. Пожалуйста, попробуйте позже.');
-      } finally {
-        setLoading(false);
-      }
-    };
-    
-    fetchConversations();
-  }, [isAuthenticated, userId]);
+    if (userId) { // Используем userId из useAuth
+      // console.log('Current user ID in Messages:', userId);
+      loadConversations(userId);
+      loadUsersData();
+    } else if (!isAuthenticated && typeof window !== 'undefined') {
+      // Если не аутентифицирован, перенаправляем на главную
+      router.push('/');
+    }
+  }, [isAuthenticated, userId, loadConversations, loadUsersData, router]);
   
   // Загружаем сообщения активной беседы
   useEffect(() => {
-    if (!activeConversation) return;
+    if (!selectedConversation) return;
     
     const fetchMessages = async () => {
       try {
@@ -126,7 +87,7 @@ export default function Messages() {
             
             // Фильтруем сообщения текущей беседы
             const conversationMessages = parsedMessages.filter(
-              msg => msg.conversationId === activeConversation.id
+              msg => msg.conversationId === selectedConversation.id
             );
             
             // Сортируем сообщения по дате
@@ -138,7 +99,7 @@ export default function Messages() {
             
             // Отмечаем сообщения как прочитанные
             const updatedMessages = parsedMessages.map(msg => {
-              if (msg.conversationId === activeConversation.id && msg.receiverId === userId && !msg.read) {
+              if (msg.conversationId === selectedConversation.id && msg.receiverId === userId && !msg.read) {
                 return { ...msg, read: true };
               }
               return msg;
@@ -149,7 +110,7 @@ export default function Messages() {
             // Обновляем счетчик непрочитанных сообщений
             setConversations(prevConversations => 
               prevConversations.map(conv => {
-                if (conv.id === activeConversation.id) {
+                if (conv.id === selectedConversation.id) {
                   return { ...conv, unreadCount: 0 };
                 }
                 return conv;
@@ -165,22 +126,22 @@ export default function Messages() {
     };
     
     fetchMessages();
-  }, [activeConversation, userId]);
+  }, [selectedConversation, userId]);
   
   // Отправка нового сообщения
   const handleSendMessage = async (e) => {
     e.preventDefault();
     
-    if (!newMessage.trim() || !activeConversation) return;
+    if (!newMessage.trim() || !selectedConversation) return;
     
     try {
       // Определяем получателя (не текущий пользователь)
-      const receiverId = activeConversation.participants.find(id => id !== userId);
+      const receiverId = selectedConversation.participants.find(id => id !== userId);
       
       // Создаем новое сообщение
       const newMessageObj = {
         id: `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-        conversationId: activeConversation.id,
+        conversationId: selectedConversation.id,
         senderId: userId,
         receiverId,
         content: newMessage,
@@ -209,7 +170,7 @@ export default function Messages() {
       // Обновляем последнее сообщение в беседе
       setConversations(prevConversations => 
         prevConversations.map(conv => {
-          if (conv.id === activeConversation.id) {
+          if (conv.id === selectedConversation.id) {
             return {
               ...conv,
               lastMessage: newMessageObj
@@ -232,9 +193,9 @@ export default function Messages() {
     if (!conversation) return '';
     
     const otherUserId = conversation.participants.find(id => id !== userId);
-    const otherUser = users[otherUserId];
+    const otherUser = usersData[otherUserId];
     
-    return otherUser ? otherUser.display_name : `Пользователь ${otherUserId}`;
+    return otherUser ? otherUser.name : `Пользователь ${otherUserId}`;
   };
   
   // Получаем аватар пользователя для отображения в беседе
@@ -242,9 +203,9 @@ export default function Messages() {
     if (!conversation) return '/images/default-avatar.png';
     
     const otherUserId = conversation.participants.find(id => id !== userId);
-    const otherUser = users[otherUserId];
+    const otherUser = usersData[otherUserId];
     
-    return otherUser && otherUser.profile_image_url ? otherUser.profile_image_url : '/images/default-avatar.png';
+    return otherUser && otherUser.avatar ? otherUser.avatar : '/images/default-avatar.png';
   };
   
   // Форматирование даты сообщения
@@ -311,17 +272,10 @@ export default function Messages() {
             </Link>
           </div>
           
-          {loading ? (
+          {loadingConversations ? (
             <div className={styles.loadingContainer}>
               <div className={styles.loadingSpinner}></div>
               <p>Загрузка бесед...</p>
-            </div>
-          ) : error ? (
-            <div className={styles.errorContainer}>
-              <p>{error}</p>
-              <button onClick={() => window.location.reload()} className={styles.retryButton}>
-                Повторить
-              </button>
             </div>
           ) : conversations.length === 0 ? (
             <div className={styles.emptyState}>
@@ -336,8 +290,8 @@ export default function Messages() {
               {conversations.map(conversation => (
                 <div 
                   key={conversation.id}
-                  className={`${styles.conversationItem} ${activeConversation && activeConversation.id === conversation.id ? styles.activeConversation : ''}`}
-                  onClick={() => setActiveConversation(conversation)}
+                  className={`${styles.conversationItem} ${selectedConversation && selectedConversation.id === conversation.id ? styles.activeConversation : ''}`}
+                  onClick={() => setSelectedConversation(conversation)}
                 >
                   <div className={styles.conversationAvatar}>
                     <Image 
@@ -376,25 +330,25 @@ export default function Messages() {
         
         {/* Область сообщений */}
         <div className={styles.messagesArea}>
-          {activeConversation ? (
+          {selectedConversation ? (
             <>
               <div className={styles.messagesHeader}>
                 <div className={styles.conversationAvatar}>
                   <Image 
-                    src={getConversationAvatar(activeConversation)}
-                    alt={getConversationName(activeConversation)}
+                    src={getConversationAvatar(selectedConversation)}
+                    alt={getConversationName(selectedConversation)}
                     width={40}
                     height={40}
                     className={styles.avatarImage}
                   />
                 </div>
-                <h3 className={styles.conversationName}>{getConversationName(activeConversation)}</h3>
+                <h3 className={styles.conversationName}>{getConversationName(selectedConversation)}</h3>
               </div>
               
               <div className={styles.messagesContent}>
                 {messages.length === 0 ? (
                   <div className={styles.emptyMessages}>
-                    <p>Начните беседу с {getConversationName(activeConversation)}</p>
+                    <p>Начните беседу с {getConversationName(selectedConversation)}</p>
                   </div>
                 ) : (
                   messages.map(message => (

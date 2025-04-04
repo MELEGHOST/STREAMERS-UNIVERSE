@@ -9,6 +9,15 @@ export default function MyApp({ Component, pageProps }) {
   const router = useRouter();
   const [savedDomain, setSavedDomain] = useState('');
   
+  // Восстанавливаем обработчик смены домена
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const currentDomain = window.location.hostname;
+      // console.log('Текущий домен при загрузке:', currentDomain);
+      setSavedDomain(currentDomain);
+    }
+  }, []); // Выполняем один раз при монтировании
+
   // Добавляем обработчик переходов между страницами для плавного перехода
   useEffect(() => {
     const handleStart = (url) => {
@@ -20,41 +29,28 @@ export default function MyApp({ Component, pageProps }) {
       }
     };
 
-    const handleComplete = () => {
-      // Удаляем класс после завершения перехода
-      setTimeout(() => {
-        document.body.classList.remove('page-transition');
-        // console.log('Завершение перехода между страницами');
-        
-        // Проверяем, изменился ли домен
-        const currentDomain = window.location.origin;
-        const savedDomain = localStorage.getItem('current_domain');
-        
-        if (savedDomain && currentDomain !== savedDomain) {
-          // console.log('Обнаружено изменение домена при переходе:', { savedDomain, currentDomain });
-          // Обновляем сохраненный домен
-          localStorage.setItem('current_domain', currentDomain);
-        }
-      }, 300);
+    const handleComplete = (url) => {
+      // console.log('Завершение перехода между страницами');
+      
+      // Проверяем, изменился ли домен
+      const currentDomain = new URL(url, window.location.origin).hostname;
+      if (savedDomain && currentDomain !== savedDomain) {
+        // console.log('Обнаружено изменение домена при переходе:', { savedDomain, currentDomain });
+        // Обновляем сохраненный домен
+        setSavedDomain(currentDomain); // Обновляем состояние
+      }
     };
 
     router.events.on('routeChangeStart', handleStart);
     router.events.on('routeChangeComplete', handleComplete);
-    router.events.on('routeChangeError', handleComplete);
-
-    // Проверяем и сохраняем текущий домен при загрузке страницы
-    if (typeof window !== 'undefined') {
-      const currentDomain = window.location.hostname;
-      // console.log('Текущий домен при загрузке:', currentDomain);
-      setSavedDomain(currentDomain);
-    }
+    router.events.on('routeChangeError', handleComplete); // Также обрабатываем ошибки
 
     return () => {
       router.events.off('routeChangeStart', handleStart);
       router.events.off('routeChangeComplete', handleComplete);
       router.events.off('routeChangeError', handleComplete);
     };
-  }, [router]);
+  }, [router.events, savedDomain]); // Добавляем savedDomain в зависимости
 
   return (
     <AuthProvider>

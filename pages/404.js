@@ -1,6 +1,6 @@
-import React, { useEffect } from 'react';
 import { useRouter } from 'next/router';
-import styles from './404.module.css'; // Используем собственные стили для страницы 404
+import styles from '../styles/404.module.css'; // Используем собственные стили для страницы 404
+import Image from 'next/image';
 
 export default function Custom404() {
   const router = useRouter();

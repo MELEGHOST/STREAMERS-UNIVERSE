@@ -1,13 +1,15 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/router';
 import styles from './media.module.css';
 import MediaReview from '../../components/MediaReview';
 import Cookies from 'js-cookie';
 import Image from 'next/image';
+import { useAuth } from '../../contexts/AuthContext';
 
 export default function MediaPage() {
   const router = useRouter();
   const { id } = router.query;
+  const { currentUser } = useAuth(); // Получаем текущего пользователя
   
   const [media, setMedia] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -22,9 +24,9 @@ export default function MediaPage() {
     // console.log('Монтирование компонента MediaPage');
     // Загружаем данные медиа и рецензии
     fetchMediaData();
-  }, [id]); // Зависимость от id, чтобы перезагружать при смене страницы
+  }, [id, fetchMediaData]); // Добавляем fetchMediaData в зависимости
 
-  const fetchMediaData = async () => {
+  const fetchMediaData = useCallback(async () => {
     if (!id) return;
     
     try {
@@ -67,7 +69,7 @@ export default function MediaPage() {
       setError('Не удалось загрузить информацию о медиа');
       setLoading(false);
     }
-  };
+  }, [id]);
   
   // Обработчик сохранения отзыва
   const handleSaveReview = async (review) => {

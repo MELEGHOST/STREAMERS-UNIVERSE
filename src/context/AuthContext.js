@@ -18,7 +18,7 @@ export function AuthProvider({ children }) {
 
     // Проверяем Telegram Mini App initData
     if (typeof window !== 'undefined' && window.Telegram && window.Telegram.WebApp) {
-      const initData = window.Telegram.WebApp.initDataUnsafe || {};
+      // const initData = window.Telegram.WebApp.initDataUnsafe || {}; // Закомментировали, так как не используется
       // console.log('Telegram initData:', initData);
     }
 
