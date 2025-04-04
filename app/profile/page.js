@@ -536,11 +536,13 @@ function Profile() {
   // Приоритет: Twitch API (display_name -> login), затем generic
   const finalDisplayName = twitchDisplayName || login || 'Пользователь';
   // Приоритет: Twitch API, затем generic
-  const finalAvatarUrl = profile_image_url || '/default-avatar.png';
+  const finalAvatarUrl = profile_image_url;
 
   // Берем описание из БД, если есть, иначе из Twitch API, иначе пусто
-  const profileDescription = profileDescriptionDb || twitchUserData?.description || ''; 
-  
+  const profileDescription = profileDescriptionDb || twitchUserData?.description || '';
+
+  console.log('[Profile Render] finalDisplayName:', finalDisplayName, 'finalAvatarUrl:', finalAvatarUrl);
+
   // Настройки видимости (пока не используются, но могут понадобиться)
   // const visibilitySettings = userProfile?.stats_visibility || {};
   const socialLinks = profileSocialLinksDb || {}; // Используем данные из БД
@@ -608,7 +610,6 @@ function Profile() {
               layout="responsive"
               width={150}
               height={150}
-              onError={(event) => { event.target.src = '/default-avatar.png'; }} 
             />
           </div>
           <div className={styles.profileDetails}>
