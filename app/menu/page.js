@@ -9,6 +9,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import clientStorage from '../utils/clientStorage';
 import Cookies from 'js-cookie';
 import { DataStorage } from '../utils/dataStorage';
+import { checkAdminAccess } from '../utils/adminUtils'; // Добавляем импорт для проверки прав администратора
 
 // Безопасные функции для работы с локальным хранилищем
 const safeGetFromStorage = (key) => {
@@ -31,6 +32,8 @@ export default function Menu() {
   const [streamCoins, setStreamCoins] = useState(100);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [isAdmin, setIsAdmin] = useState(false); // Добавляем состояние для проверки прав администратора
+  const [adminRole, setAdminRole] = useState(null); // Добавляем состояние для хранения роли администратора
   const hasRedirectedRef = useRef(false);
   
   // Выносим функции за пределы useEffect для оптимизации
@@ -231,8 +234,11 @@ export default function Menu() {
           // Загружаем стример-коины
           loadStreamCoins(userIdToUse);
           
-          // Генерируем реферальный код
-          // setReferralCode(generateReferralCode(userIdToUse)); // Удаляем установку неиспользуемого состояния
+          // Проверяем права администратора
+          const adminAccess = await checkAdminAccess();
+          setIsAdmin(adminAccess.isAdmin);
+          setAdminRole(adminAccess.role);
+          console.log('Проверка прав администратора:', adminAccess);
         } else {
           console.error('Не удалось получить userId');
           setError('Не удалось получить данные пользователя. Пожалуйста, попробуйте войти снова.');
@@ -293,6 +299,14 @@ export default function Menu() {
       e.stopPropagation();
     }
     router.push('/coins');
+  };
+  
+  // Функция для перехода в админ-панель
+  const goToAdminPanel = (e) => {
+    if (e) {
+      e.preventDefault();
+    }
+    router.push('/admin');
   };
   
   // Если идет загрузка, показываем индикатор
@@ -364,6 +378,12 @@ export default function Menu() {
                 </div>
                 <span className={styles.coinsAmount}>{streamCoins}</span>
               </div>
+              {isAdmin && (
+                <div className={styles.adminBadge} onClick={goToAdminPanel} title="Перейти в админ-панель">
+                  <span className={styles.badgeIcon}>⚙️</span>
+                  <span className={styles.badgeText}>Администратор {adminRole && `(${adminRole})`}</span>
+                </div>
+              )}
             </div>
           </div>
           <p className={styles.menuSubtitle}>Выберите раздел, чтобы продолжить</p>
@@ -435,6 +455,19 @@ export default function Menu() {
               <p>Возможность сменить тему (тёмная/светлая), поменять шрифт, часовой пояс, язык и другие настройки</p>
             </div>
           </div>
+          
+          {isAdmin && (
+            <div 
+              className={`${styles.menuItem} ${styles.adminMenuItem}`}
+              onClick={goToAdminPanel}
+            >
+              <div className={styles.menuIcon}>👑</div>
+              <div className={styles.menuContent}>
+                <h2>Админ-панель</h2>
+                <p>Перейти в панель управления для администраторов</p>
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </div>
