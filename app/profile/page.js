@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useEffect, useState, useCallback, useMemo, Suspense } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 import styles from './profile.module.css';
 import SocialButton from '../components/SocialButton';
 import AchievementsSystem from '../components/AchievementsSystem';
@@ -36,14 +36,14 @@ export default function ProfilePageWrapper() {
 
 function Profile() {
   const router = useRouter();
-  const searchParams = useSearchParams();
-
+  
   const [twitchUserData, setTwitchUserData] = useState(null);
-  const [loadingTwitchUser, setLoadingTwitchUser] = useState(true);
+  const [loading, setLoading] = useState(true);
   const [loadingReviews, setLoadingReviews] = useState(false);
 
   const [globalError, setGlobalError] = useState(null);
   const [specificErrors, setSpecificErrors] = useState({});
+  const [error, setError] = useState(null);
 
   const [showAchievements, setShowAchievements] = useState(false);
   const [showReviews, setShowReviews] = useState(false);
@@ -56,6 +56,13 @@ function Profile() {
 
   const [currentUser, setCurrentUser] = useState(null);
   const [authLoading, setAuthLoading] = useState(true);
+  
+  const [userId, setUserId] = useState(null);
+  const [hasCheckedAdmin, setHasCheckedAdmin] = useState(false);
+  const [showEditMode, setShowEditMode] = useState(false);
+  const [editedDisplayName, setEditedDisplayName] = useState('');
+  const [dbDisplayName, setDbDisplayName] = useState('');
+  const [dbAvatarUrl, setDbAvatarUrl] = useState('');
 
   const supabase = useMemo(() => 
     createBrowserClient(
@@ -63,6 +70,35 @@ function Profile() {
       process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
     ), 
   []);
+
+  const checkAdminAccess = useCallback(async (userId) => {
+    if (!userId) return { isAdmin: false, role: null };
+    
+    try {
+      console.log(`Проверяем права администратора для пользователя: ${userId}`);
+      
+      const { data, error } = await supabase
+        .from('admin_users')
+        .select('role')
+        .eq('user_id', userId)
+        .maybeSingle();
+        
+      if (error) {
+        console.error('Ошибка при проверке прав администратора:', error);
+        return { isAdmin: false, role: null };
+      }
+      
+      if (data && data.role) {
+        console.log(`Пользователь имеет права администратора с ролью: ${data.role}`);
+        return { isAdmin: true, role: data.role };
+      }
+      
+      return { isAdmin: false, role: null };
+    } catch (error) {
+      console.error('Непредвиденная ошибка при проверке прав администратора:', error);
+      return { isAdmin: false, role: null };
+    }
+  }, [supabase]);
 
   const fetchTwitchUserData = useCallback(async () => {
     try {
@@ -161,7 +197,7 @@ function Profile() {
     } finally {
       setLoading(false);
     }
-  }, [userId, router, globalError, hasCheckedAdmin]);
+  }, [router, checkAdminAccess]);
 
   const loadUserProfileDbData = useCallback(async (authenticatedUserId) => {
     if (!authenticatedUserId) return;
