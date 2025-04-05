@@ -9,7 +9,6 @@ import styles from './auth.module.css'; // Используем стили из 
 function AuthContent() {
   const { supabase } = useAuth();
   const searchParams = useSearchParams();
-  const router = useRouter();
 
   const error = searchParams.get('error');
   const errorDescription = searchParams.get('error_description');
