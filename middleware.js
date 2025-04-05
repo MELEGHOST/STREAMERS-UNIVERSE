@@ -162,17 +162,27 @@ export async function middleware(request) {
 
     // Получаем URL Supabase из переменных окружения
     const supabaseHostname = supabaseUrl ? new URL(supabaseUrl).hostname : null;
-    // Разрешаем и сам домен, и поддомены (*.domain)
-    const supabaseConnectSrc = supabaseHostname 
-        ? `${supabaseUrl} https://*.${supabaseHostname}` 
-        : 'https://*.supabase.co'; // Резервный вариант
     
-    // Формируем CSP
+    // --- ИСПРАВЛЕНИЕ CSP для Supabase --- 
+    // Формируем строку для connect-src, разрешая:
+    // 1. Основной URL (https://udogabnowepgxjhycddc.supabase.co)
+    // 2. URL с поддоменом (https://*.udogabnowepgxjhycddc.supabase.co)
+    const supabaseConnectSrc = supabaseUrl && supabaseHostname
+        ? `${supabaseUrl} https://*.${supabaseHostname}`
+        : 'https://*.supabase.co https://supabase.co'; // Резервный вариант, если URL не найден
+
+    // Формируем строку для img-src (только поддомены для безопасности)
+    const supabaseImgSrc = supabaseHostname 
+        ? `https://*.${supabaseHostname}` 
+        : 'https://*.supabase.co'; // Резервный вариант
+    // --- КОНЕЦ ИСПРАВЛЕНИЯ CSP --- 
+
+    // Формируем CSP, используя новые переменные
     const cspValue = `default-src 'self'; \
 script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net https://va.vercel-scripts.com https://vercel.live; \
 style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; \
 font-src 'self' https://fonts.gstatic.com; \
-img-src 'self' data: https://*.twitch.tv https://*.jtvnw.net ${supabaseConnectSrc}; \
+img-src 'self' data: https://*.twitch.tv https://*.jtvnw.net ${supabaseImgSrc}; \
 connect-src 'self' https://api.twitch.tv https://id.twitch.tv https://www.twitch.tv https://*.twitch.tv ${supabaseConnectSrc} https://va.vercel-scripts.com https://vercel.live; \
 frame-src 'self' https://vercel.live; \
 frame-ancestors 'none'; \

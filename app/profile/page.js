@@ -37,7 +37,21 @@ export default function ProfilePageWrapper() {
 function Profile() {
   const router = useRouter();
   
-  const [twitchUserData, setTwitchUserData] = useState(null);
+  const [twitchUserData, setTwitchUserData] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const cached = localStorage.getItem('twitch_user');
+      if (cached) {
+        try {
+          console.log("Profile Init: Загрузка twitchUserData из localStorage");
+          return JSON.parse(cached);
+        } catch (e) {
+          console.error("Profile Init: Ошибка парсинга кэша twitchUserData", e);
+          localStorage.removeItem('twitch_user');
+        }
+      }
+    }
+    return null;
+  });
   const [loadingReviews, setLoadingReviews] = useState(false);
 
   const [globalError, setGlobalError] = useState(null);
@@ -110,22 +124,18 @@ function Profile() {
     }
     setGlobalError(null);
     let dataToSet = null;
+    let currentCachedData = null;
+
+    if (typeof window !== 'undefined') {
+      const cachedStr = localStorage.getItem('twitch_user');
+      if (cachedStr) {
+        try {
+          currentCachedData = JSON.parse(cachedStr);
+        } catch (e) { /* ignore */ }
+      }
+    }
 
     try {
-      let cachedData = null;
-      if (typeof window !== 'undefined') { 
-        try {
-          const storedData = localStorage.getItem('twitch_user');
-          if (storedData) {
-            cachedData = JSON.parse(storedData);
-            console.log('Профиль: найдены кэшированные данные в localStorage');
-            dataToSet = cachedData;
-          }
-        } catch (e) {
-          console.error('Ошибка при чтении из localStorage:', e);
-        }
-      }
-
       const apiUrl = `/api/twitch/user?userId=${userId}`;
       console.log(`Профиль: запрос к ${apiUrl}`);
       const response = await fetch(apiUrl, {
@@ -138,52 +148,57 @@ function Profile() {
 
       if (!response.ok) {
         const errorText = await response.text();
-        console.error(`Профиль: ошибка API /api/twitch/user (${response.status}):`, errorText);
-        if (response.status === 401 && !cachedData) {
+        const errorMsg = `Профиль: ошибка API /api/twitch/user (${response.status}): ${errorText}`;
+        console.error(errorMsg);
+        setGlobalError(`Не удалось обновить данные с Twitch: ${response.statusText}`);
+        
+        if (currentCachedData) {
+           console.warn("Профиль: Ошибка API, используем данные из кэша.");
+           dataToSet = currentCachedData; 
+        } else if (response.status === 401) {
             console.log('Профиль: 401 и нет кэша, перенаправляем на /auth');
             router.push('/auth?reason=api_unauthorized');
             return;
         }
-        if (!cachedData) {
-             throw new Error(`Ошибка при получении данных: ${response.status} ${errorText}`);
-        }
+
       } else {
           const data = await response.json();
           console.log('Профиль: получены СВЕЖИЕ данные пользователя Twitch:', data);
-          if (data && data.id) {
-            dataToSet = data;
-            if (typeof window !== 'undefined') { 
-              try {
-                localStorage.setItem('twitch_user', JSON.stringify(data));
-              } catch (e) {
-                console.error('Ошибка при сохранении в localStorage:', e);
-              }
-            }
-          } else {
-             console.warn('Профиль: получен пустой ответ или отсутствует ID пользователя от API');
-             if (!cachedData) {
-                 throw new Error('Не удалось получить данные пользователя');
+          if (data && (data.id || data.data?.[0]?.id)) {
+             const userData = data.data?.[0] || data;
+             dataToSet = userData;
+             if (typeof window !== 'undefined') { 
+               try {
+                 userData._cachedAt = new Date().toISOString(); 
+                 localStorage.setItem('twitch_user', JSON.stringify(userData));
+                 console.log("Профиль: Свежие данные сохранены в localStorage.");
+               } catch (e) {
+                 console.error('Ошибка при сохранении в localStorage:', e);
+               }
              }
-          }
+           } else {
+              console.warn('Профиль: получен пустой ответ или отсутствует ID пользователя от API');
+              setGlobalError('Не удалось получить актуальные данные от Twitch.');
+              if (currentCachedData) {
+                  console.warn("Профиль: Используем данные из кэша.");
+                  dataToSet = currentCachedData;
+              } 
+           }
       }
       
     } catch (error) {
-      console.error('Профиль: ошибка при получении данных пользователя:', error);
+      console.error('Профиль: критическая ошибка при получении данных пользователя:', error);
       setGlobalError(`Ошибка при получении данных пользователя: ${error.message}`);
-      if (!dataToSet) {
-           console.error("Профиль: Ошибка загрузки и нет кэшированных данных.");
-      }
+      if (currentCachedData) {
+           console.warn("Профиль: Критическая ошибка, используем данные из кэша.");
+           dataToSet = currentCachedData;
+      } 
     } finally {
-       if (dataToSet) {
+       if (dataToSet !== null) { 
            setTwitchUserData(dataToSet);
-           const idToCheck = dataToSet.twitchId || dataToSet.id;
-           if (!hasCheckedAdmin && idToCheck) {
-             checkAdminAccess(idToCheck);
-             setHasCheckedAdmin(true);
-           }
        }
     }
-  }, [userId, router, checkAdminAccess, hasCheckedAdmin]);
+  }, [userId, router]);
 
   const loadUserProfileDbData = useCallback(async (authenticatedUserId) => {
     if (!authenticatedUserId) return;
@@ -276,9 +291,7 @@ function Profile() {
       }
   }, []);
 
-  // Эффект для загрузки данных при изменении userId (который зависит от currentUser)
   useEffect(() => {
-    // Добавляем лог для проверки срабатывания и значения userId
     console.log(`Profile: useEffect[userId] сработал. Текущий userId: ${userId}`); 
     if (userId) {
       console.log(`Profile: UserId (${userId}) ЕСТЬ, запускаем загрузку данных...`);
@@ -286,16 +299,18 @@ function Profile() {
       loadUserProfileDbData(userId);
       loadTierlists(userId);
       loadReviews(userId);
+      if (!hasCheckedAdmin) { 
+          checkAdminAccess().then(access => {
+          });
+          setHasCheckedAdmin(true);
+      }
     } else {
       console.log("Profile: UserId сброшен или отсутствует, данные не загружаем.");
       setTwitchUserData(null);
       setUserProfile(null);
-      // Сбросить другие данные, если нужно
     }
-    // Убираем функции из зависимостей, оставляем только userId
-  }, [userId]); 
+  }, [userId]);
 
-  // Эффект для прослушивания изменений состояния аутентификации
   useEffect(() => {
     console.log("Profile: useEffect onAuthStateChange Сработал");
     let isActive = true;
@@ -316,22 +331,19 @@ function Profile() {
       if (session) {
         console.log(`Profile: Начальная сессия найдена ${session.user.id}`);
         setCurrentUser(session.user);
-        setUserId(session.user.id); // Установка userId здесь вызовет useEffect выше
+        setUserId(session.user.id);
       } else {
         console.log("Profile: Начальная сессия не найдена.");
-        // Если сессии нет, возможно, стоит перенаправить на /auth?
-        // router.push('/auth?reason=no_initial_session');
       }
       setAuthLoading(false);
 
       console.log("Profile: Подписка на onAuthStateChange...");
       const { data } = supabase.auth.onAuthStateChange((event, session) => {
-        if (!isActive) return; // Предотвращаем обновление после размонтирования
+        if (!isActive) return;
         
         console.log("Profile: Событие AuthStateChange:", event, ", Session:", !!session);
         setCurrentUser(session?.user ?? null);
         
-        // Обновляем userId только если он изменился
         const newUserId = session?.user?.id ?? null;
         setUserId(currentUserId => {
           if (currentUserId !== newUserId) {
@@ -341,21 +353,17 @@ function Profile() {
           return currentUserId;
         });
 
-        // Убираем явный вызов fetchTwitchUserData отсюда
-
         if (event === 'SIGNED_OUT') {
           console.log("Profile: Пользователь вышел, очищаем данные.");
           setTwitchUserData(null);
           setUserProfile(null);
         }
-        // Не нужно устанавливать authLoading здесь снова, т.к. начальная загрузка завершена
       });
-      authListener = data; // Сохраняем для отписки
+      authListener = data;
     }
 
     initializeAuth();
 
-    // Отписка при размонтировании компонента
     return () => {
       isActive = false;
       if (authListener && authListener.subscription) {
@@ -363,7 +371,6 @@ function Profile() {
           console.log("Profile: Отписались от onAuthStateChange");
       }
     };
-    // Убираем fetchTwitchUserData из зависимостей
   }, [supabase, router, currentUser?.id]); 
 
   const { isBirthday, daysToBirthday } = useMemo(() => {
