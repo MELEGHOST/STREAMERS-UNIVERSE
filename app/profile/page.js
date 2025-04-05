@@ -276,111 +276,93 @@ function Profile() {
       }
   }, []);
 
-  // Обработка изменений состояния аутентификации
+  // Эффект для загрузки данных при изменении userId (который зависит от currentUser)
   useEffect(() => {
-    setAuthLoading(true);
+    if (userId) {
+      console.log(`Profile: UserId изменился на ${userId}, запускаем загрузку данных...`);
+      fetchTwitchUserData(); 
+      loadUserProfileDbData(userId);
+      loadTierlists(userId);
+      loadReviews(userId);
+    } else {
+      console.log("Profile: UserId сброшен или отсутствует, данные не загружаем.");
+      setTwitchUserData(null);
+      setUserProfile(null);
+      // Сбросить другие данные, если нужно
+    }
+    // Убираем функции из зависимостей, оставляем только userId
+  }, [userId]); 
+
+  // Эффект для прослушивания изменений состояния аутентификации
+  useEffect(() => {
     console.log("Profile: useEffect onAuthStateChange Сработал");
+    let isActive = true;
+    let authListener = null;
 
-    // Получаем начальную сессию
-    supabase.auth.getSession().then(({ data: { session } }) => {
-        if (session) {
-            console.log("Profile: Начальная сессия найдена", session.user.id);
-            setCurrentUser(session.user);
-            // Загружаем данные, если их еще нет или userId изменился
-            // (Убрали прямой вызов fetch/load отсюда, полагаемся на currentUser)
-        } else {
-            console.log("Profile: Начальная сессия НЕ найдена");
-            setCurrentUser(null);
-            router.push('/auth?reason=initial_no_session'); 
-        }
-         setAuthLoading(false);
-    }).catch(err => {
-        console.error("Profile: Ошибка при начальной проверке сессии", err);
-        setCurrentUser(null);
-        setAuthLoading(false);
-        setGlobalError("Ошибка проверки сессии при загрузке.");
-    });
-
-    // Подписываемся на изменения состояния аутентификации
-    const { data: authListener } = supabase.auth.onAuthStateChange((event, session) => {
-      console.log(`Profile: Событие AuthStateChange: ${event}, Session: ${!!session}`);
+    async function initializeAuth() {
+      console.log("Profile: Попытка получить начальную сессию...");
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
       
-      switch (event) {
-        case 'SIGNED_IN':
-          if (session) {
-            console.log('Profile: Пользователь вошел (SIGNED_IN)', session.user.id);
-            setCurrentUser(session.user);
-            // Загрузка данных инициируется изменением currentUser -> userId
-          } else {
-             console.warn('Profile: Событие SIGNED_IN без сессии?');
+      if (!isActive) return;
+
+      if (sessionError) {
+        console.error("Profile: Ошибка при получении начальной сессии:", sessionError);
+        setAuthLoading(false);
+        return;
+      }
+
+      if (session) {
+        console.log(`Profile: Начальная сессия найдена ${session.user.id}`);
+        setCurrentUser(session.user);
+        setUserId(session.user.id); // Установка userId здесь вызовет useEffect выше
+      } else {
+        console.log("Profile: Начальная сессия не найдена.");
+        // Если сессии нет, возможно, стоит перенаправить на /auth?
+        // router.push('/auth?reason=no_initial_session');
+      }
+      setAuthLoading(false);
+
+      console.log("Profile: Подписка на onAuthStateChange...");
+      const { data } = supabase.auth.onAuthStateChange((event, session) => {
+        if (!isActive) return; // Предотвращаем обновление после размонтирования
+        
+        console.log("Profile: Событие AuthStateChange:", event, ", Session:", !!session);
+        setCurrentUser(session?.user ?? null);
+        
+        // Обновляем userId только если он изменился
+        const newUserId = session?.user?.id ?? null;
+        setUserId(currentUserId => {
+          if (currentUserId !== newUserId) {
+            console.log(`Profile: UserId обновлен через onAuthStateChange на ${newUserId}`);
+            return newUserId;
           }
-          setAuthLoading(false);
-          break;
-        case 'SIGNED_OUT':
-          console.log('Profile: Пользователь вышел (SIGNED_OUT)');
-          setCurrentUser(null);
+          return currentUserId;
+        });
+
+        // Убираем явный вызов fetchTwitchUserData отсюда
+
+        if (event === 'SIGNED_OUT') {
+          console.log("Profile: Пользователь вышел, очищаем данные.");
           setTwitchUserData(null);
           setUserProfile(null);
-          setUserId(null); // Сбрасываем userId
-          DataStorage.clearAll().catch(e => console.warn("Failed to clear user cache on logout", e));
-          setAuthLoading(false);
-          router.push('/auth?reason=signed_out');
-          break;
-        case 'INITIAL_SESSION':
-           console.log("Profile: Событие INITIAL_SESSION обработано ранее в getSession()");
-           // Дополнительная логика здесь не нужна, так как getSession() уже отработал
-           setAuthLoading(false);
-           break;
-        case 'TOKEN_REFRESHED':
-           console.log('Profile: Токен обновлен (TOKEN_REFRESHED)');
-           if (session) {
-               // Обновляем пользователя, если он изменился (маловероятно, но возможно)
-               if (currentUser?.id !== session.user.id) {
-                  setCurrentUser(session.user);
-               }
-               console.log('Profile: Provider token мог обновиться в сессии.');
-           } else {
-               console.warn('Profile: Событие TOKEN_REFRESHED без сессии?');
-               // Если токен обновлен, но сессии нет - пользователь вышел
-               setCurrentUser(null);
-               router.push('/auth?reason=refresh_failed');
-           }
-           break;
-         case 'USER_UPDATED':
-            console.log('Profile: Данные пользователя обновлены (USER_UPDATED)');
-            if (session) {
-               setCurrentUser(session.user);
-            } else {
-               console.warn('Profile: Событие USER_UPDATED без сессии?');
-            }
-            break;
-         default:
-           console.log(`Profile: Неизвестное событие AuthStateChange: ${event}`);
-      }
-    });
+        }
+        // Не нужно устанавливать authLoading здесь снова, т.к. начальная загрузка завершена
+      });
+      authListener = data; // Сохраняем для отписки
+    }
+
+    initializeAuth();
 
     // Отписка при размонтировании компонента
     return () => {
+      isActive = false;
       if (authListener && authListener.subscription) {
           authListener.subscription.unsubscribe();
           console.log("Profile: Отписались от onAuthStateChange");
       }
     };
-  }, [supabase, router, currentUser?.id]);
-
-  // Эффект для загрузки данных при изменении userId (который зависит от currentUser)
-  useEffect(() => {
-    if (userId) {
-        console.log(`Profile: UserId изменился на ${userId}, запускаем загрузку данных...`);
-        fetchTwitchUserData();
-        loadUserProfileDbData(userId);
-    } else {
-        console.log("Profile: UserId сброшен или отсутствует, данные не загружаем.");
-        // Опционально: сбросить состояния twitchUserData и userProfile
-        // setTwitchUserData(null);
-        // setUserProfile(null);
-    }
-  }, [userId, fetchTwitchUserData, loadUserProfileDbData]); // Добавляем функции в зависимости
+    // Убираем fetchTwitchUserData из зависимостей
+  }, [supabase, router, currentUser?.id]); 
 
   const { isBirthday, daysToBirthday } = useMemo(() => {
       if (!userProfile?.birthday) {

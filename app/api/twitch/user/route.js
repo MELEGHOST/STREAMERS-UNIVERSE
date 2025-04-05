@@ -226,8 +226,12 @@ export async function GET(request) {
     }
     
     // Запрос к Twitch API с ТОКЕНОМ ПРИЛОЖЕНИЯ
-    console.log(`[API] /api/twitch/user: Запрос к Twitch API для пользователя ${targetUserId} с токеном приложения...`);
-    
+    console.log(`[API] /api/twitch/user: Запрос к Twitch API.`);
+    console.log(`  - Target User ID: ${targetUserId}`);
+    console.log(`  - Client ID: ${process.env.NEXT_PUBLIC_TWITCH_CLIENT_ID}`);
+    // Логируем только часть токена для безопасности
+    console.log(`  - App Token Used (частично): ${currentAppAccessToken?.substring(0, 5)}...${currentAppAccessToken?.substring(currentAppAccessToken.length - 5)}`);
+
     const twitchResponse = await fetch(`https://api.twitch.tv/helix/users?id=${targetUserId}`, {
       headers: {
         // Используем ТОКЕН ПРИЛОЖЕНИЯ
