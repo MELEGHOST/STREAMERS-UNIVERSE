@@ -161,8 +161,11 @@ export async function middleware(request) {
     response.headers.set('Referrer-Policy', 'strict-origin-when-cross-origin');
 
     // Получаем URL Supabase из переменных окружения
-    const supabaseDomain = process.env.NEXT_PUBLIC_SUPABASE_URL ? new URL(process.env.NEXT_PUBLIC_SUPABASE_URL).hostname : null;
-    const supabaseConnectSrc = supabaseDomain ? `https://*.${supabaseDomain}` : 'https://*.supabase.co'; // Резервный вариант
+    const supabaseHostname = supabaseUrl ? new URL(supabaseUrl).hostname : null;
+    // Разрешаем и сам домен, и поддомены (*.domain)
+    const supabaseConnectSrc = supabaseHostname 
+        ? `${supabaseUrl} https://*.${supabaseHostname}` 
+        : 'https://*.supabase.co'; // Резервный вариант
     
     // Формируем CSP
     const cspValue = `default-src 'self'; \
@@ -177,10 +180,10 @@ form-action 'self'; \
 base-uri 'self'; \
 object-src 'none';`;
     
-    // Устанавливаем CSP и логируем его
     const finalCsp = cspValue.replace(/\s{2,}/g, ' ').trim();
     response.headers.set('Content-Security-Policy', finalCsp);
-    console.log(`[Middleware] CSP для ${pathname}:`, finalCsp);
+    // Убираем повторное логирование CSP, оставляем только для pathname
+    // console.log(`[Middleware] CSP для ${pathname}:`, finalCsp);
 
     // Установка CORS заголовков
     if (isAllowedOrigin) {

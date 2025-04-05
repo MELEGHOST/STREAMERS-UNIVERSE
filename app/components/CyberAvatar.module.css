@@ -1,390 +1,189 @@
-.cyberAvatarWrapper {
+/* УДАЛИТЬ или ЗАКОММЕНТИРОВАТЬ стили, добавленные ошибочно */
+/* .cyberAvatarWrapper { ... } */
+/* .container { ... } // Возможно, оставить только базовые стили позиционирования */
+/* .card { ... } */
+/* .cardContent { ... } */
+/* .glowingElements { ... } */
+/* .glow1, .glow2, .glow3 { ... } */
+/* .cardParticles { ... } */
+/* .cardGlare { ... } */
+/* .cyberLines { ... } */
+/* .cornerElements { ... } */
+
+/* СТИЛИ ДЛЯ АВАТАРА В ПРОФИЛЕ (из старой версии или uiverse) */
+.profileAvatarContainer {
   position: relative;
-  display: inline-block;
+  width: var(--avatar-size, 150px); /* Используем CSS переменную для размера */
+  height: var(--avatar-size, 150px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 20px auto; /* Пример центрирования */
 }
 
-.container {
+/* Основной контейнер для input-подобного бордюра */
+.poda {
   position: relative;
   width: 100%;
   height: 100%;
-  transition: 200ms;
-  cursor: pointer;
-  perspective: 1000px;
-}
-
-.container:active {
-  transform: scale(0.95);
-}
-
-.canvas {
-  position: absolute;
-  inset: 0;
-  z-index: 200;
-}
-
-.card {
-  position: absolute;
-  inset: 0;
-  z-index: 0;
   display: flex;
-  justify-content: center;
   align-items: center;
-  border-radius: 0;
-  transition: transform 350ms ease, filter 350ms ease, box-shadow 350ms ease;
-  background: linear-gradient(45deg, #1a1a1a, #262626);
-  border: 2px solid rgba(255, 255, 255, 0.1);
+  justify-content: center;
+}
+
+/* Слои для градиентных бордюров и свечения */
+.white,
+.border,
+.darkBorderBg,
+.glow {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
   overflow: hidden;
-  box-shadow:
-    0 0 20px rgba(0, 0, 0, 0.3),
-    inset 0 0 20px rgba(0, 0, 0, 0.2);
-  transform-style: preserve-3d;
-  will-change: transform, filter;
+  border-radius: 0; /* КВАДРАТНАЯ форма */
+  z-index: -1; 
 }
 
-.cardContent {
+/* Свечение */
+.glow {
+  filter: blur(15px); /* Размытие поменьше для рамки аватара */
+  opacity: 0.5;
+}
+
+.glow::before {
+  content: "";
+  position: absolute;
+  width: 200%; /* Больше размер для градиента */
+  height: 200%;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%) rotate(60deg);
+  background-image: conic-gradient(
+    /* Яркие цвета для свечения */
+    transparent 0%,
+    #a099d8 10%,
+    transparent 20%,
+    transparent 50%,
+    #dfa2da 60%,
+    transparent 70%
+  );
+  animation: rotate 4s linear infinite;
+  transition: all 0.3s ease;
+}
+
+/* Белая подложка для яркости градиента */
+.white {
+  filter: blur(2px);
+}
+.white::before {
+  content: "";
+  position: absolute;
+  width: 200%;
+  height: 200%;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%) rotate(83deg);
+  filter: brightness(1.4);
+  background-image: conic-gradient(
+    rgba(0, 0, 0, 0) 0%,
+    #a099d8 5%,
+    rgba(0, 0, 0, 0) 15%,
+    rgba(0, 0, 0, 0) 50%,
+    #dfa2da 55%,
+    rgba(0, 0, 0, 0) 65%
+  );
+  animation: rotate 4s 0.1s linear infinite; /* Небольшая задержка */
+  transition: all 0.3s ease;
+}
+
+/* Основной цветной бордюр */
+.border {
+   filter: blur(0.5px);
+}
+.border::before {
+  content: "";
+  position: absolute;
+  width: 200%;
+  height: 200%;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%) rotate(70deg);
+  filter: brightness(1.3);
+  background-image: conic-gradient(
+    #1c191c,
+    #402fb5 5%,
+    #1c191c 14%,
+    #1c191c 50%,
+    #cf30aa 60%,
+    #1c191c 64%
+  );
+  animation: rotate 4s 0.2s linear infinite; /* Еще задержка */
+  transition: all 0.3s ease;
+}
+
+/* Темная подложка для глубины */
+.darkBorderBg::before {
+  content: "";
+  position: absolute;
+  width: 200%;
+  height: 200%;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%) rotate(82deg);
+  background-image: conic-gradient(
+    rgba(0, 0, 0, 0),
+    #18116a,
+    rgba(0, 0, 0, 0) 10%,
+    rgba(0, 0, 0, 0) 50%,
+    #6e1b60,
+    rgba(0, 0, 0, 0) 60%
+  );
+  animation: rotate 4s 0.3s linear infinite;
+  transition: all 0.3s ease;
+}
+
+/* Контейнер для самого изображения */
+.avatarWrapper {
   position: relative;
-  width: 100%;
-  height: 100%;
-  display: flex;
-  justify-content: center;
-  align-items: center;
+  width: calc(100% - 10px); /* Делаем чуть меньше рамки */
+  height: calc(100% - 10px);
+  overflow: hidden;
+  border-radius: 0; /* КВАДРАТНАЯ форма */
+  z-index: 1; /* Выше рамки */
+  background-color: #010201; /* Фон подложки */
 }
 
+/* Стили для Next.js Image */
 .avatarImage {
-  width: 70%;
-  height: 70%;
-  border-radius: 0;
-  overflow: hidden;
-  border: 2px solid rgba(92, 103, 255, 0.8);
-  box-shadow: 0 0 15px rgba(92, 103, 255, 0.3);
-  z-index: 2;
-  transition: all 0.3s ease;
-  transform-style: preserve-3d;
-  transform: translateZ(20px);
-}
-
-.avatarImage img {
+  display: block; /* Убираем лишние отступы */
   width: 100%;
   height: 100%;
-  object-fit: cover;
-  transition: all 0.3s ease;
+  object-fit: cover; /* Масштабируем изображение с сохранением пропорций */
+  border-radius: 0; /* КВАДРАТНАЯ форма */
 }
 
+/* Анимация вращения */
+@keyframes rotate {
+  from {
+    transform: translate(-50%, -50%) rotate(0deg);
+  }
+  to {
+    transform: translate(-50%, -50%) rotate(360deg);
+  }
+}
+
+/* Плейсхолдер, если изображение не загрузилось */
 .placeholderAvatar {
   width: 100%;
   height: 100%;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(135deg, #1a1a2e 0%, #0f3460 100%);
-  color: rgba(255, 255, 255, 0.8);
-  font-size: 2.5rem;
+  background-color: #111;
+  color: #aaa;
+  font-size: calc(var(--avatar-size, 150px) / 3); /* Размер шрифта зависит от размера аватара */
   font-weight: bold;
-  text-shadow: 0 0 10px rgba(92, 103, 255, 0.5);
-}
-
-.glowingElements {
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-}
-
-.glow1,
-.glow2,
-.glow3 {
-  position: absolute;
-  width: 100px;
-  height: 100px;
-  border-radius: 50%;
-  background: radial-gradient(
-    circle at center,
-    rgba(0, 255, 170, 0.3) 0%,
-    rgba(0, 255, 170, 0) 70%
-  );
-  filter: blur(15px);
-  opacity: 0;
-  transition: opacity 0.3s ease;
-}
-
-.glow1 {
-  top: -20px;
-  left: -20px;
-}
-.glow2 {
-  top: 50%;
-  right: -30px;
-  transform: translateY(-50%);
-}
-.glow3 {
-  bottom: -20px;
-  left: 30%;
-}
-
-.cardParticles span {
-  position: absolute;
-  width: 3px;
-  height: 3px;
-  background: #00ffaa;
-  border-radius: 50%;
-  opacity: 0;
-  transition: opacity 0.3s ease;
-}
-
-@keyframes particleFloat {
-  0% {
-    transform: translate(0, 0);
-    opacity: 0;
-  }
-  50% {
-    opacity: 1;
-  }
-  100% {
-    transform: translate(calc(var(--x, 0) * 30px), calc(var(--y, 0) * 30px));
-    opacity: 0;
-  }
-}
-
-/* Particle positions */
-.cardParticles span:nth-child(1) {
-  --x: 1;
-  --y: -1;
-  top: 40%;
-  left: 20%;
-}
-.cardParticles span:nth-child(2) {
-  --x: -1;
-  --y: -1;
-  top: 60%;
-  right: 20%;
-}
-.cardParticles span:nth-child(3) {
-  --x: 0.5;
-  --y: 1;
-  top: 20%;
-  left: 40%;
-}
-.cardParticles span:nth-child(4) {
-  --x: -0.5;
-  --y: 1;
-  top: 80%;
-  right: 40%;
-}
-.cardParticles span:nth-child(5) {
-  --x: 1;
-  --y: 0.5;
-  top: 30%;
-  left: 60%;
-}
-.cardParticles span:nth-child(6) {
-  --x: -1;
-  --y: 0.5;
-  top: 70%;
-  right: 60%;
-}
-
-.card::before {
-  content: "";
-  background: radial-gradient(
-    circle at center,
-    rgba(0, 255, 170, 0.1) 0%,
-    rgba(0, 162, 255, 0.05) 50%,
-    transparent 100%
-  );
-  filter: blur(20px);
-  opacity: 0;
-  width: 150%;
-  height: 150%;
-  position: absolute;
-  left: 50%;
-  top: 50%;
-  transform: translate(-50%, -50%);
-  transition: opacity 0.3s ease;
-}
-
-.container:hover .card::before {
-  opacity: 0.8;
-  transition: opacity 0.3s ease;
-}
-
-.container:hover .card {
-  box-shadow:
-    0 0 30px rgba(0, 0, 0, 0.4),
-    inset 0 0 20px rgba(0, 0, 0, 0.2),
-    0 0 15px rgba(0, 255, 170, 0.3);
-}
-
-.container:hover .glowingElements div {
-  opacity: 0.6;
-}
-
-.container:hover .cardParticles span {
-  opacity: 0.2;
-}
-
-.container:hover .avatarImage {
-  transform: translateZ(25px) scale(1.02);
-  border-color: rgba(0, 255, 170, 0.7);
-  box-shadow: 0 0 15px rgba(0, 255, 170, 0.3);
-}
-
-.cardGlare {
-  position: absolute;
-  inset: 0;
-  background: radial-gradient(
-    circle at 50% -30%,
-    rgba(255, 255, 255, 0.15) 0%,
-    rgba(255, 255, 255, 0.05) 30%,
-    rgba(255, 255, 255, 0) 50%
-  );
-  transform: translateY(-100%);
-  transition: all 0.5s ease;
-  pointer-events: none;
-}
-
-.cyberLines span {
-  position: absolute;
-  width: 100%;
-  height: 2px;
-  background: linear-gradient(
-    90deg,
-    transparent,
-    rgba(92, 103, 255, 0.2),
-    rgba(92, 103, 255, 0.4),
-    rgba(92, 103, 255, 0.2),
-    transparent
-  );
-  opacity: 0.3;
-  transition: all 0.5s ease;
-  pointer-events: none;
-}
-
-.cyberLines span:nth-child(1) {
-  top: 15%;
-  width: 90%;
-  left: 5%;
-  animation: lineGrow 3s infinite alternate;
-  animation-delay: 0s;
-  height: 1px;
-  transform: translateZ(5px);
-}
-
-.cyberLines span:nth-child(2) {
-  top: 35%;
-  width: 95%;
-  right: 5%;
-  animation: lineGrow 3s infinite alternate;
-  animation-delay: 0.5s;
-  height: 1px;
-  transform: translateZ(5px);
-}
-
-.cyberLines span:nth-child(3) {
-  top: 65%;
-  width: 90%;
-  left: 5%;
-  animation: lineGrow 3s infinite alternate;
-  animation-delay: 1s;
-  height: 1px;
-  transform: translateZ(5px);
-}
-
-.cyberLines span:nth-child(4) {
-  top: 85%;
-  width: 95%;
-  right: 5%;
-  animation: lineGrow 3s infinite alternate;
-  animation-delay: 1.5s;
-  height: 1px;
-  transform: translateZ(5px);
-}
-
-.cornerElements span {
-  position: absolute;
-  width: 18px;
-  height: 18px;
-  border: 2px solid rgba(92, 103, 255, 0.5);
-  opacity: 0.6;
-  transition: all 0.3s ease;
-  pointer-events: none;
-  transform: translateZ(10px);
-}
-
-.cornerElements span:nth-child(1) {
-  top: 5px;
-  left: 5px;
-  border-right: none;
-  border-bottom: none;
-}
-
-.cornerElements span:nth-child(2) {
-  top: 5px;
-  right: 5px;
-  border-left: none;
-  border-bottom: none;
-}
-
-.cornerElements span:nth-child(3) {
-  bottom: 5px;
-  left: 5px;
-  border-right: none;
-  border-top: none;
-}
-
-.cornerElements span:nth-child(4) {
-  bottom: 5px;
-  right: 5px;
-  border-left: none;
-  border-top: none;
-}
-
-.scanLine {
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(
-    to bottom,
-    transparent 0%,
-    rgba(92, 103, 255, 0.2) 48%,
-    rgba(92, 103, 255, 0.4) 50%,
-    rgba(92, 103, 255, 0.2) 52%,
-    transparent 100%
-  );
-  animation: scanMove 3s linear infinite;
-  opacity: 0.4;
-  pointer-events: none;
-}
-
-@keyframes lineGrow {
-  0% {
-    transform: scaleX(0.8) translateZ(5px);
-    opacity: 0.2;
-  }
-  50% {
-    transform: scaleX(1) translateZ(5px);
-    opacity: 0.6;
-  }
-  100% {
-    transform: scaleX(0.9) translateZ(5px);
-    opacity: 0.4;
-  }
-}
-
-@keyframes scanMove {
-  0% {
-    transform: translateY(-100%);
-  }
-  100% {
-    transform: translateY(100%);
-  }
-}
-
-.card:hover .cardGlare {
-  transform: translateY(0);
-}
-
-.cornerElements span {
-  opacity: 0.4;
-}
-
-.card:hover .cornerElements span {
-  opacity: 1;
+  border-radius: 0;
 }

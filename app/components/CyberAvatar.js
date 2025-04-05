@@ -213,48 +213,18 @@ const CyberAvatar = ({
 
   return (
     <div 
-      ref={containerRef}
-      className={`${styles.container} ${className}`} 
-      style={containerStyle}
+      className={styles.profileAvatarContainer}
+      style={{ '--avatar-size': `${width || sizeInPixels}px` }}
       data-size={size}
     >
-      <div ref={cardRef} className={styles.card}>
-        <div className={styles.cardContent}>
-          <div className={styles.avatarWrapper}>
-            {renderImage()}
-            <div className={styles.glow}></div>
-          </div>
-          
-          <div className={styles.glowingElements}>
-            <div className={styles.glow1}></div>
-            <div className={styles.glow2}></div>
-            <div className={styles.glow3}></div>
-          </div>
-          
-          <div className={styles.cardParticles}>
-            <span></span>
-            <span></span>
-            <span></span>
-            <span></span>
-            <span></span>
-            <span></span>
-          </div>
-          
-          <div className={styles.cardGlare}></div>
-          
-          <div className={styles.cyberLines}>
-            <span></span>
-            <span></span>
-            <span></span>
-            <span></span>
-          </div>
-          
-          <div className={styles.cornerElements}>
-            <span></span>
-            <span></span>
-            <span></span>
-            <span></span>
-          </div>
+      <div className={styles.poda}>
+        <div className={styles.glow} />
+        <div className={styles.darkBorderBg} />
+        <div className={styles.white} />
+        <div className={styles.border} />
+        
+        <div className={styles.avatarWrapper}>
+          {renderImage()}
         </div>
       </div>
     </div>

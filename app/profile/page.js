@@ -72,54 +72,59 @@ function Profile() {
   useEffect(() => {
     if (currentUser && currentUser.id) {
       setUserId(currentUser.id);
+    } else {
+      setUserId(null);
     }
   }, [currentUser]);
 
-  const checkAdminAccess = useCallback(async (userId) => {
-    if (!userId) return { isAdmin: false, role: null };
-    
+  const checkAdminAccess = useCallback(async () => {
     try {
-      console.log(`Проверяем права администратора для пользователя: ${userId}`);
+      console.log('Профиль: Запрос прав администратора через API...');
+      const response = await fetch('/api/auth/check-admin', {
+         method: 'GET',
+         headers: {
+            'Content-Type': 'application/json',
+         }
+      });
       
-      const { data, error } = await supabase
-        .from('admin_users')
-        .select('role')
-        .eq('user_id', userId)
-        .maybeSingle();
-        
-      if (error) {
-        console.error('Ошибка при проверке прав администратора:', error);
-        return { isAdmin: false, role: null };
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        console.error(`Профиль: Ошибка API при проверке прав (${response.status}):`, errorData.error || response.statusText);
+        return { isAdmin: false, role: null }; 
       }
       
-      if (data && data.role) {
-        console.log(`Пользователь имеет права администратора с ролью: ${data.role}`);
-        return { isAdmin: true, role: data.role };
-      }
-      
-      return { isAdmin: false, role: null };
+      const data = await response.json();
+      console.log('Профиль: Результат проверки прав администратора:', data);
+      return { isAdmin: data.isAdmin, role: data.role };
+
     } catch (error) {
-      console.error('Непредвиденная ошибка при проверке прав администратора:', error);
+      console.error('Профиль: Непредвиденная ошибка при вызове API проверки прав:', error);
       return { isAdmin: false, role: null };
     }
-  }, [supabase]);
+  }, []);
 
   const fetchTwitchUserData = useCallback(async () => {
-    try {
-      setGlobalError(null);
+    if (!userId) {
+        console.log("Профиль (fetchTwitchUserData): userId отсутствует, выход.");
+        return;
+    }
+    setGlobalError(null);
+    let dataToSet = null;
 
+    try {
       let cachedData = null;
       try {
         const storedData = localStorage.getItem('twitch_user');
         if (storedData) {
           cachedData = JSON.parse(storedData);
           console.log('Профиль: найдены кэшированные данные в localStorage');
+          dataToSet = cachedData;
         }
       } catch (e) {
         console.error('Ошибка при чтении из localStorage:', e);
       }
 
-      const apiUrl = `/api/twitch/user?sessionCheck=true${userId ? `&userId=${userId}` : ''}`;
+      const apiUrl = `/api/twitch/user?userId=${userId}`;
       console.log(`Профиль: запрос к ${apiUrl}`);
       const response = await fetch(apiUrl, {
         method: 'GET',
@@ -127,67 +132,54 @@ function Profile() {
           'Content-Type': 'application/json',
           'Cache-Control': 'no-cache'
         },
-        credentials: 'include'
       });
 
       if (!response.ok) {
-        if (response.status === 401) {
-          console.log('Профиль: пользователь не авторизован (401), перенаправляем на страницу авторизации');
-          
-          if (cachedData) {
-            console.log('Профиль: используем кэшированные данные для отображения');
-            setTwitchUserData(cachedData);
-          }
-          
-          setTimeout(() => {
-            const redirectUrl = '/auth';
-            console.log(`Профиль: перенаправляем на ${redirectUrl}`);
-            router.push(redirectUrl);
-          }, 2000);
-          return;
-        }
-        
         const errorText = await response.text();
-        console.error(`Профиль: ошибка API ${response.status}:`, errorText);
-        throw new Error(`Ошибка при получении данных: ${response.status} ${errorText}`);
-      }
-
-      const data = await response.json();
-      console.log('Профиль: получены данные пользователя Twitch:', data);
-      
-      if (data && data.id) {
-        setTwitchUserData(data);
-        
-        try {
-          localStorage.setItem('twitch_user', JSON.stringify(data));
-        } catch (e) {
-          console.error('Ошибка при сохранении в localStorage:', e);
+        console.error(`Профиль: ошибка API /api/twitch/user (${response.status}):`, errorText);
+        if (response.status === 401 && !cachedData) {
+            console.log('Профиль: 401 и нет кэша, перенаправляем на /auth');
+            router.push('/auth?reason=api_unauthorized');
+            return;
         }
-        
-        if (!hasCheckedAdmin) {
-          checkAdminAccess(data.id);
-          setHasCheckedAdmin(true);
+        if (!cachedData) {
+             throw new Error(`Ошибка при получении данных: ${response.status} ${errorText}`);
         }
       } else {
-        console.warn('Профиль: получен пустой ответ или отсутствует ID пользователя');
-        throw new Error('Не удалось получить данные пользователя');
+          const data = await response.json();
+          console.log('Профиль: получены СВЕЖИЕ данные пользователя Twitch:', data);
+          if (data && data.id) {
+            dataToSet = data;
+            try {
+              localStorage.setItem('twitch_user', JSON.stringify(data));
+            } catch (e) {
+              console.error('Ошибка при сохранении в localStorage:', e);
+            }
+          } else {
+             console.warn('Профиль: получен пустой ответ или отсутствует ID пользователя от API');
+             if (!cachedData) {
+                 throw new Error('Не удалось получить данные пользователя');
+             }
+          }
       }
+      
     } catch (error) {
       console.error('Профиль: ошибка при получении данных пользователя:', error);
       setGlobalError(`Ошибка при получении данных пользователя: ${error.message}`);
-      
-      try {
-        const storedData = localStorage.getItem('twitch_user');
-        if (storedData) {
-          const cachedData = JSON.parse(storedData);
-          console.log('Профиль: используем кэшированные данные после ошибки');
-          setTwitchUserData(cachedData);
-        }
-      } catch (e) {
-        console.error('Ошибка при чтении из localStorage:', e);
+      if (!dataToSet) {
+           console.error("Профиль: Ошибка загрузки и нет кэшированных данных.");
       }
+    } finally {
+       if (dataToSet) {
+           setTwitchUserData(dataToSet);
+           const idToCheck = dataToSet.twitchId || dataToSet.id;
+           if (!hasCheckedAdmin && idToCheck) {
+             checkAdminAccess(idToCheck);
+             setHasCheckedAdmin(true);
+           }
+       }
     }
-  }, [router, checkAdminAccess, userId, hasCheckedAdmin]);
+  }, [userId, router, checkAdminAccess, hasCheckedAdmin]);
 
   const loadUserProfileDbData = useCallback(async (authenticatedUserId) => {
     if (!authenticatedUserId) return;
