@@ -1,6 +1,6 @@
 import '../styles/global.css';
 import React from 'react';
-import { AuthProvider } from '../contexts/AuthContext';
+import { AuthProvider } from './contexts/AuthContext';
 
 export const metadata = {
   title: 'Streamers Universe',

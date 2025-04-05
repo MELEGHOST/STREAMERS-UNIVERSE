@@ -68,17 +68,14 @@ export async function middleware(request) {
 
   // Проверяем наличие переменных окружения
   if (!supabaseUrl || !supabaseAnonKey) {
-    console.error('[Middleware] Ошибка: Не установлены переменные окружения Supabase.');
-    // В случае отсутствия ключей, лучше вернуть ошибку или обработать иначе
-    // return new NextResponse('Internal Server Error: Supabase keys missing', { status: 500 });
-    // Пока что просто пропустим дальнейшую логику Supabase
+    console.error('[Middleware] КРИТИЧЕСКАЯ ОШИБКА: Не установлены переменные окружения Supabase.');
+    // Можно вернуть ошибку 500, но пока просто продолжим без Supabase
+    // return new NextResponse('Server Configuration Error', { status: 500 });
   }
 
   let supabase;
-  let session = null;
-  let userId = null;
+  let user = null;
   let authError = null;
-  let user = null; // Добавляем переменную user
 
   if (supabaseUrl && supabaseAnonKey) {
       supabase = createServerClient(
@@ -86,55 +83,33 @@ export async function middleware(request) {
         supabaseAnonKey,
         {
           cookies: {
-            // Используем getAll
-            getAll: () => {
-              const allCookies = request.cookies.getAll(); // Используем request.cookies
-              return allCookies.map(({ name, value }) => ({ name, value }));
-            },
-            // Используем setAll с response.cookies
-            setAll: (cookiesToSet) => {
-              try {
-                cookiesToSet.forEach(({ name, value, options }) => response.cookies.set(name, value, options));
-              } catch (error) {
-                 console.error(`[Middleware] Ошибка установки cookies:`, error);
-              }
-            },
-            // Используем remove с response.cookies
-            remove: (name, options) => {
-              try {
-                 response.cookies.set({ name, value: '', ...options, maxAge: 0 });
-              } catch (error) {
-                 console.error(`[Middleware] Ошибка удаления cookie ${name}:`, error);
-              }
-            },
+            // Используем новые методы getAll/setAll/remove для Vercel Edge Middleware
+            getAll: () => request.cookies.getAll(),
+            setAll: (cookiesToSet) => cookiesToSet.forEach(({ name, value, options }) => response.cookies.set(name, value, options)),
+            remove: (name, options) => response.cookies.set({ name, value: '', ...options, maxAge: 0 }),
           },
         }
       );
 
-      // --- Получаем пользователя Supabase (заменяет getSession) ---
+      // --- Получаем пользователя Supabase --- 
       try {
-        // getUser обновляет cookie автоматически при необходимости
-        const { data: { user: fetchedUser }, error } = await supabase.auth.getUser(); 
-        if (error) {
-          authError = error;
-          // Не выводим ошибку 'Invalid Refresh Token' как критическую, 
-          // так как это может быть просто истекшая сессия
-          // console.warn('[Middleware] Ошибка Supabase getUser:', error.message);
-          userId = null;
-        } else if (fetchedUser) {
-          user = fetchedUser; // Сохраняем всего пользователя
-          userId = fetchedUser.id;
-          // if (!isProduction) console.log('[Middleware] Пользователь Supabase аутентифицирован, User ID:', userId);
+        const { data, error } = await supabase.auth.getUser(); 
+        authError = error; // Сохраняем ошибку, если есть
+        user = data?.user; // Сохраняем пользователя
+        
+        if (error && error.message !== 'Auth session missing!' && error.message !== 'Invalid Refresh Token') {
+           console.warn('[Middleware] Ошибка Supabase getUser:', error.message);
+        } else if (user) {
+           // console.log('[Middleware] Пользователь аутентифицирован, ID:', user.id);
         } else {
-           // if (!isProduction) console.log('[Middleware] Пользователь Supabase НЕ аутентифицирован (getUser вернул null).');
+           // console.log('[Middleware] Пользователь НЕ аутентифицирован.');
         }
       } catch (e) {
          console.error('[Middleware] Непредвиденная ошибка при вызове getUser Supabase:', e);
-         authError = e; // Сохраняем ошибку
-         userId = null;
+         authError = e;
       }
   } else {
-       // if (!isProduction) console.log('[Middleware] Пропуск проверки Supabase из-за отсутствия ключей.');
+      console.warn('[Middleware] Пропуск проверки Supabase из-за отсутствия ключей.');
   }
   // --- КОНЕЦ НАСТРОЙКИ SUPABASE ---
 
@@ -200,7 +175,7 @@ object-src 'none';`;
       response.headers.set('Access-Control-Allow-Credentials', 'true');
       response.headers.set('Access-Control-Allow-Origin', origin);
       response.headers.set('Access-Control-Allow-Methods', 'GET,OPTIONS,PATCH,DELETE,POST,PUT');
-      response.headers.set('Access-Control-Allow-Headers', 'X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version, Authorization');
+      response.headers.set('Access-Control-Allow-Headers', 'X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version, Authorization, apikey, X-Client-Info');
     } else if (origin && !isProduction) {
       // console.log(`[Middleware] Origin ${origin} не разрешен`);
     }

@@ -6,10 +6,10 @@
 // export const revalidate = 0;
 // export const dynamicParams = true;
 
-import React, { useState, useEffect, Suspense } from 'react';
+import React, { useEffect } from 'react';
+import { useAuth } from '../contexts/AuthContext'; // Импортируем useAuth
 import { useRouter, useSearchParams } from 'next/navigation';
-import { createBrowserClient } from '@supabase/ssr';
-import styles from './auth.module.css';
+import styles from '../../styles/auth.module.css'; // Подключаем стили
 
 // Компонент для отображения диагностической информации Twitch
 function TwitchErrorInfo({ errorType, errorDetails }) {
@@ -75,151 +75,86 @@ function TwitchErrorInfo({ errorType, errorDetails }) {
   );
 }
 
-// Компонент-заглушка для Suspense
-function AuthLoadingFallback() {
-  return (
-    <div className={styles.container}>
-      <div className={styles.authBox}>
-        <h1>Загрузка...</h1>
-        <div className={styles.loader}>
-          <div className={styles.spinner}></div>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-export default function AuthPageWrapper() {
-  // Оборачиваем основной компонент в Suspense
-  return (
-    <Suspense fallback={<AuthLoadingFallback />}>
-      <AuthPage />
-    </Suspense>
-  );
-}
-
-// Переименовываем основной компонент, чтобы использовать обертку
-function AuthPage() {
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(null);
+export default function AuthPage() {
+  const { supabase, isAuthenticated, isLoading } = useAuth(); // Получаем supabase и статус из контекста
   const router = useRouter();
   const searchParams = useSearchParams();
-  const supabase = createBrowserClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-  );
-  
-  // Получаем параметры из URL для отображения информации об ошибке
-  const errorType = searchParams.get('error');
-  const errorMessage = searchParams.get('message');
-  const configuredRedirect = searchParams.get('configured');
-  const actualRedirect = searchParams.get('actual');
-  const errorStatus = searchParams.get('status');
-  
-  // Формируем детали ошибки для отображения
-  const errorDetails = {
-    configured: configuredRedirect,
-    actual: actualRedirect,
-    message: errorMessage,
-    status: errorStatus
-  };
 
-  // Обработка отображения ошибок из URL
+  const error = searchParams.get('error');
+  const errorDescription = searchParams.get('error_description');
+  const message = searchParams.get('message');
+
+  // Перенаправляем, если пользователь уже авторизован
   useEffect(() => {
-    // Если есть ошибка в URL, устанавливаем её
-    if (errorType && errorType !== 'auth_code_exchange_failed') {
-      // Отображаем старые ошибки, если они переданы
-      setError(`Ошибка авторизации: ${errorType}`); 
-    } else if (errorType === 'auth_code_exchange_failed') {
-        setError('Не удалось обменять код авторизации на сессию. Попробуйте снова.');
+    if (!isLoading && isAuthenticated) {
+      console.log('[AuthPage] Пользователь уже авторизован, перенаправление на /menu');
+      const nextUrl = searchParams.get('next') || '/menu';
+      router.push(nextUrl);
+    }
+  }, [isLoading, isAuthenticated, router, searchParams]);
+
+  const handleLogin = async () => {
+    if (!supabase) {
+      console.error('[AuthPage] Supabase client не инициализирован!');
+      // Можно показать сообщение об ошибке пользователю
+      return;
     }
     
-    // Проверяем, не пришли ли мы сюда после успешной аутентификации Supabase
-    // Обычно Supabase редиректит на /menu (или что указано в redirectTo),
-    // поэтому эта страница /auth не должна отображаться для авторизованного пользователя.
-    // Но можно добавить проверку на сессию Supabase для надежности.
-    const checkSession = async () => {
-        const { data: { session } } = await supabase.auth.getSession();
-        if (session) {
-            // Если сессия есть, а мы на /auth, перенаправляем
-            console.log('AuthPage: Обнаружена активная сессия Supabase, редирект на /menu');
-            router.push('/menu');
-        }
-    };
-    checkSession();
+    // Получаем URL для перенаправления после входа из параметра 'next' или по умолчанию
+    const redirectTo = `${window.location.origin}/auth/callback`;
+    const nextAfterLogin = searchParams.get('next') ? `?next=${encodeURIComponent(searchParams.get('next'))}` : '';
+    const finalRedirectTo = `${redirectTo}${nextAfterLogin}`;
 
-  }, [errorType, searchParams, router, supabase]);
+    console.log('[AuthPage] Инициируем вход через Twitch OAuth...');
+    console.log('[AuthPage] Redirect URL будет:', finalRedirectTo);
+    
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: 'twitch',
+      options: {
+        redirectTo: finalRedirectTo,
+        // Можно добавить scopes, если нужны доп. разрешения
+        // scopes: 'user:read:email',
+      },
+    });
 
-  // Функция для входа через Twitch с использованием Supabase
-  const handleTwitchLogin = async () => {
-    try {
-      setLoading(true);
-      setError(null);
-      
-      // Инициируем вход через Twitch с помощью Supabase
-      const { error: signInError } = await supabase.auth.signInWithOAuth({
-        provider: 'twitch',
-        options: {
-          // Указываем URL, куда Supabase должен вернуть пользователя ПОСЛЕ
-          // своей внутренней обработки callback'а Twitch.
-          // Этот URL должен вести на наш новый обработчик /auth/callback
-          redirectTo: `${window.location.origin}/auth/callback`,
-          // Можно передать дополнительные параметры, если нужно
-          // queryParams: { access_type: 'offline', prompt: 'consent' }
-        }
-      });
-
-      if (signInError) {
-        console.error('Ошибка при инициации входа через Supabase OAuth:', signInError);
-        setError(signInError.message || 'Не удалось начать процесс входа через Twitch.');
-        setLoading(false);
-      }
-      // Если ошибки нет, Supabase автоматически перенаправит пользователя на страницу авторизации Twitch.
-      // После подтверждения Twitch перенаправит на callback URL Supabase,
-      // а Supabase перенаправит на наш redirectTo (/auth/callback).
-
-    } catch (catchError) {
-      console.error('Критическая ошибка при входе через Twitch:', catchError);
-      setError('Произошла непредвиденная ошибка. Пожалуйста, попробуйте снова.');
-      setLoading(false);
+    if (error) {
+      console.error('[AuthPage] Ошибка при инициации входа через Twitch:', error.message);
+      // Показываем ошибку пользователю
+      alert(`Ошибка входа: ${error.message}`);
     }
   };
 
-  return (
-    <div className={styles.container}>
-      <div className={styles.authBox}>
-        <h1>Авторизация</h1>
-        <p>Войдите с помощью вашего аккаунта Twitch для доступа к функциям платформы</p>
-        
-        {error && <div className={styles.error}>{error}</div>}
-        
-        {/* Отображаем информацию об ошибке, если она есть */}
-        {errorType && <TwitchErrorInfo errorType={errorType} errorDetails={errorDetails} />}
-        
-        <button 
-          className={styles.twitchButton}
-          onClick={handleTwitchLogin}
-          disabled={loading}
-        >
-          {loading ? (
-            <div className={styles.buttonLoader}>
-              <div className={styles.spinner}></div>
-              <span>Загрузка...</span>
-            </div>
-          ) : (
-            <>
-              <svg viewBox="0 0 24 24" width="24" height="24" fill="#fff">
-                <path d="M11.571 4.714h1.715v5.143H11.57zm4.715 0H18v5.143h-1.714zM6 0L1.714 4.286v15.428h5.143V24l4.286-4.286h3.428L22.286 12V0zm14.571 11.143l-3.428 3.428h-3.429l-3 3v-3H6.857V1.714h13.714z"/>
-              </svg>
-              <span>Войти через Twitch</span>
-            </>
-          )}
-        </button>
-        
-        <div className={styles.info}>
-          <p>Авторизуясь, вы соглашаетесь с нашими условиями использования и политикой конфиденциальности.</p>
+  // Показываем индикатор загрузки, пока проверяется сессия
+  if (isLoading) {
+    return (
+        <div className={styles.authContainer}>
+            <div className={styles.spinner}></div>
+            <p>Проверка статуса...</p>
         </div>
-      </div>
+    );
+  }
+
+  return (
+    <div className={styles.authContainer}>
+      <h1>Вход в Streamers Universe</h1>
+      
+      {/* Отображение ошибок или сообщений */} 
+      {error && (
+        <div className={styles.errorMessage}>
+          <p><strong>Ошибка входа:</strong> {error}</p>
+          {errorDescription && <p><small>{errorDescription}</small></p>}
+        </div>
+      )}
+      {message && (
+        <div className={styles.infoMessage}>
+          <p>{message}</p>
+        </div>
+      )}
+
+      <p>Для доступа к функциям платформы войдите через Twitch.</p>
+      <button onClick={handleLogin} className={styles.twitchButton}>
+        Войти через Twitch
+      </button>
     </div>
   );
 } 

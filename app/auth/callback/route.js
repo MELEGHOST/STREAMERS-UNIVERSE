@@ -5,146 +5,72 @@ import { NextResponse } from 'next/server'
 export async function GET(request) {
   const { searchParams, origin } = new URL(request.url)
   const code = searchParams.get('code')
-  // Параметр 'next' может использоваться для перенаправления пользователя
-  // на страницу, с которой он начал вход, если это было реализовано.
-  // По умолчанию перенаправляем на /menu.
+  // Если `next` параметр был передан при вызове signInWithOAuth,
+  // он будет здесь, иначе перенаправим на /menu по умолчанию.
   const next = searchParams.get('next') ?? '/menu'
 
-  console.log(`Auth Callback: Получен code: ${!!code}, origin: ${origin}, next: ${next}`);
+  console.log('[Auth Callback] Начало обработки. Код получен:', !!code)
+  console.log('[Auth Callback] Параметр next:', next)
+  console.log('[Auth Callback] Origin:', origin)
 
   if (code) {
-    try {
-      const cookieStore = cookies()
-      
-      // Логируем все существующие куки для отладки
-      const allCookies = cookieStore.getAll();
-      console.log(`Auth Callback: Текущие куки (${allCookies.length}):`, 
-        allCookies.map(c => `${c.name}=${c.value?.substring(0, 20)}...`).join(', '));
-        
-      const supabase = createServerClient(
-        process.env.NEXT_PUBLIC_SUPABASE_URL,
-        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
-        {
-          cookies: {
-            // Используем getAll
-            getAll: () => {
-              const allCookies = cookieStore.getAll();
-              return allCookies.map(({ name, value }) => ({ name, value }));
-            },
-            // Используем setAll
-            setAll: (cookiesToSet) => {
-              try {
-                console.log(`Auth Callback: Установка ${cookiesToSet.length} cookies...`);
-                cookiesToSet.forEach(({ name, value, options }) => {
-                  console.log(`  - Установка ${name} (path: ${options?.path || '/'}, maxAge: ${options?.maxAge || 'не указано'})`);
-                  // Обеспечиваем корректные параметры куки
-                  const secureOption = process.env.NODE_ENV === 'production';
-                  const cookieOptions = {
-                    ...options,
-                    secure: secureOption,
-                    path: options?.path || '/',
-                    sameSite: options?.sameSite || 'lax',
-                    maxAge: options?.maxAge || 60 * 60 * 24 * 7 // 7 дней по умолчанию
-                  };
-                  cookieStore.set(name, value, cookieOptions);
-                });
-              } catch (error) {
-                console.error(`Auth Callback: Ошибка установки cookies:`, error);
-              }
-            },
-            // Используем remove
-            remove: (name, options) => {
-              try {
-                console.log(`Auth Callback: Удаление cookie ${name} (path: ${options?.path || '/'})`);
-                cookieStore.set({ name, value: '', ...options, maxAge: 0 });
-              } catch (error) {
-                 console.error(`Auth Callback: Ошибка удаления cookie ${name}:`, error);
-              }
-            },
+    const cookieStore = cookies()
+    const supabase = createServerClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
+      {
+        cookies: {
+          get(name) {
+            return cookieStore.get(name)?.value
           },
-        }
-      )
-      
-      console.log('Auth Callback: Вызов supabase.auth.exchangeCodeForSession...');
-      const { data, error } = await supabase.auth.exchangeCodeForSession(code)
-      
-      if (error) {
-          console.error('Auth Callback: Ошибка при обмене кода на сессию:', error);
-          // Перенаправляем на страницу входа с сообщением об ошибке
-          return NextResponse.redirect(`${origin}/auth?error=auth_code_exchange_failed&message=${encodeURIComponent(error.message)}`);
+          set(name, value, options) {
+            try {
+              cookieStore.set({ name, value, ...options })
+              // Логируем установку сессионных кук
+              if (name.includes('sb-') && name.includes('-auth-token')) {
+                console.log(`[Auth Callback] Установлена кука сессии: ${name}`)
+              }
+            } catch (error) {
+              console.error(`[Auth Callback] Ошибка установки куки ${name}:`, error)
+            }
+          },
+          remove(name, options) {
+            try {
+              cookieStore.set({ name, value: '', ...options, maxAge: 0 })
+            } catch (error) {
+              console.error(`[Auth Callback] Ошибка удаления куки ${name}:`, error)
+            }
+          },
+        },
       }
+    )
 
-      // --- УЛУЧШЕНО: Проверяем данные сессии более тщательно --- 
-      if (data && data.session && data.user) {
-          console.log('Auth Callback: Сессия и пользователь УСПЕШНО получены после обмена кода.', {
-              userId: data.user.id,
-              hasProviderToken: !!data.session.provider_token, // Логируем, есть ли токен
-              expiresAt: data.session.expires_at ? new Date(data.session.expires_at * 1000).toISOString() : 'не указано',
-          });
-          
-          // Сохраняем данные в дополнительных cookie для обхода потенциальных проблем
-          // Эти cookie позволят использовать данные в случае проблем с Supabase Auth
-          try {
-            const userData = {
-              id: data.user.id,
-              twitchId: data.user.user_metadata?.provider_id || data.user.id,
-              username: data.user.user_metadata?.preferred_username || data.user.user_metadata?.full_name || data.user.email,
-              avatar: data.user.user_metadata?.avatar_url
-            };
-            
-            // Устанавливаем резервную cookie с информацией о пользователе
-            cookieStore.set('twitch_user_data', JSON.stringify(userData), {
-              path: '/',
-              maxAge: 60 * 60 * 24 * 7, // 7 дней
-              sameSite: 'lax',
-              secure: process.env.NODE_ENV === 'production',
-            });
-            
-            // Устанавливаем флаг успешной авторизации
-            cookieStore.set('auth_successful', 'true', {
-              path: '/',
-              maxAge: 60 * 60 * 24, // 1 день
-              sameSite: 'lax',
-              secure: process.env.NODE_ENV === 'production',
-            });
-            
-            console.log('Auth Callback: Установлены дополнительные cookie для резервной аутентификации');
-          } catch (storageError) {
-            console.error('Auth Callback: Ошибка при сохранении данных в дополнительных cookie:', storageError);
-          }
-          
-          // Проверяем установленные cookie перед редиректом
-          const finalCookies = cookieStore.getAll();
-          console.log(`Auth Callback: Финальные куки перед редиректом (${finalCookies.length}):`, 
-            finalCookies.map(c => c.name).join(', '));
-          
-          // Выполняем редирект, позволяя Supabase SSR установить cookie
-          console.log('Auth Callback: Успешный обмен кода. Перенаправление на:', `${origin}${next}`);
-          
-          // Добавляем параметр для индикации успешной авторизации
-          return NextResponse.redirect(`${origin}${next}?auth_success=true&ts=${Date.now()}`)
+    console.log('[Auth Callback] Обмен кода на сессию...')
+    const { error, data: { session } } = await supabase.auth.exchangeCodeForSession(code)
 
-      } else {
-          // Если нет сессии или пользователя - это проблема
-          console.error('Auth Callback: КРИТИЧЕСКАЯ ОШИБКА - Отсутствуют данные сессии или пользователя после обмена кода!', { 
-            hasData: !!data,
-            hasSession: data && !!data.session,
-            hasUser: data && !!data.user
-          });
-          return NextResponse.redirect(`${origin}/auth?error=session_data_missing_post_exchange`);
-      }
-      // --- КОНЕЦ УЛУЧШЕНИЙ ---
-    } catch (criticalError) {
-      console.error('Auth Callback: Непредвиденная ошибка в процессе авторизации:', criticalError);
-      return NextResponse.redirect(`${origin}/auth?error=critical&message=${encodeURIComponent('Непредвиденная ошибка при авторизации')}`);
+    if (error) {
+      console.error('[Auth Callback] Ошибка обмена кода на сессию:', error.message)
+      // Перенаправляем обратно на страницу входа с сообщением об ошибке
+      return NextResponse.redirect(`${origin}/auth?error=Не удалось войти. Попробуйте снова.&error_description=${encodeURIComponent(error.message)}`)
     }
 
+    if (session) {
+      console.log('[Auth Callback] Сессия успешно получена! User ID:', session.user.id)
+      console.log('[Auth Callback] Перенаправление на:', next)
+      // Устанавливаем куку для индикации успешной авторизации
+      cookieStore.set('auth_successful', 'true', { path: '/', maxAge: 5 }) // Живет 5 секунд
+      // Перенаправляем пользователя на указанный `next` URL или /menu
+      return NextResponse.redirect(`${origin}${next}`)
+    } else {
+      console.error('[Auth Callback] Обмен кода прошел без ошибки, но сессия не получена.')
+      return NextResponse.redirect(`${origin}/auth?error=Неожиданная ошибка входа.`)
+    }
   } else {
-      console.warn('Auth Callback: Код авторизации отсутствует в запросе.');
-      // Если код отсутствует, перенаправляем на страницу входа с сообщением об ошибке
-      return NextResponse.redirect(`${origin}/auth?error=auth_code_missing`);
+    console.error('[Auth Callback] Параметр "code" отсутствует в запросе.')
+    // Если код отсутствует, перенаправляем на страницу входа с ошибкой
+    return NextResponse.redirect(`${origin}/auth?error=Ошибка авторизации: код не найден.`)
   }
 }
 
-// Добавляем динамическую обработку, чтобы Vercel не кэшировал маршрут
-export const dynamic = 'force-dynamic'; 
+// Указываем, что маршрут динамический
+export const dynamic = 'force-dynamic' 
