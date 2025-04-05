@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useRef, useEffect, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import Image from 'next/image';
 import styles from './CyberAvatar.module.css';
 
@@ -28,10 +28,6 @@ const CyberAvatar = ({
   priority = false,
   onError
 }) => {
-  // Убираем неиспользуемые ref, если они не нужны для нового стиля
-  // const containerRef = useRef(null);
-  // const cardRef = useRef(null);
-  
   const [error, setError] = useState(false);
   const [imageSrc, setImageSrc] = useState("/images/default_avatar.png");
   
@@ -194,21 +190,10 @@ const CyberAvatar = ({
     }
   };
 
-  // Вычисляем размер бордюра на основе размера аватара
-  const borderSize = typeof size === 'number' 
-    ? Math.max(2, Math.floor(size / 20)) 
-    : {
-        'xs': 2,
-        'sm': 2,
-        'md': 3,
-        'lg': 4,
-        'xl': 5
-      }[size] || 3;
-
   return (
     <div 
       className={`${styles.profileAvatarContainer} ${className}`}
-      style={{ '--avatar-size': `${width || sizeInPixels}px` }}
+      style={{ '--avatar-size': `${width || sizeInPixels}px` }} 
       data-size={size}
     >
       <div className={styles.poda}>
