@@ -4,19 +4,23 @@ import { cookies } from 'next/headers';
 
 export async function GET(request) {
   const { searchParams } = new URL(request.url);
-  const userId = searchParams.get('userId');
-  const sessionCheck = searchParams.get('sessionCheck');
+  const userIdParam = searchParams.get('userId');
+  const sessionCheck = searchParams.get('sessionCheck') === 'true'; // Преобразуем в boolean
   
-  console.log(`[API] /api/twitch/user: начало обработки запроса, userId=${userId}, sessionCheck=${sessionCheck}`);
+  console.log(`[API] /api/twitch/user (v3 - User Token): начало, userIdParam=${userIdParam}, sessionCheck=${sessionCheck}`);
   
-  // Получаем объект cookies
   const cookieStore = cookies();
   
-  // Проверяем наличие резервных cookie, которые мы добавили в обработчик callback
-  const twitch_user_data = cookieStore.get('twitch_user_data')?.value;
-  const auth_successful = cookieStore.get('auth_successful')?.value;
+  // Логируем все доступные куки
+  const allCookies = cookieStore.getAll();
+  console.log(`[API] /api/twitch/user: Доступные куки (${allCookies.length}):`, 
+    allCookies.map(c => `${c.name}=${c.value?.substring(0, 20)}...`).join(', '));
+
+  const twitch_user_data_cookie = cookieStore.get('twitch_user_data')?.value;
+  const auth_successful_cookie = cookieStore.get('auth_successful')?.value;
   
-  // Создаем клиента Supabase
+  console.log(`[API] /api/twitch/user: Резервные куки: twitch_user_data=${!!twitch_user_data_cookie}, auth_successful=${auth_successful_cookie}`);
+  
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
@@ -25,176 +29,205 @@ export async function GET(request) {
         get(name) {
           return cookieStore.get(name)?.value;
         },
+        set(name, value, options) {
+          try {
+            cookieStore.set({ name, value, ...options });
+          } catch (error) { 
+             console.warn(`[API] /api/twitch/user: Ошибка установки куки ${name}:`, error);
+          } 
+        },
+        remove(name, options) {
+          try {
+            cookieStore.set({ name, value: '', ...options, maxAge: 0 });
+          } catch (error) {
+             console.warn(`[API] /api/twitch/user: Ошибка удаления куки ${name}:`, error);
+          }
+        },
       },
     }
   );
   
+  let session = null;
+  let authUser = null;
+  let providerToken = null;
+  let sessionError = null;
+  
   try {
-    // Получаем сессию Supabase
-    const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+    // Попытка получить сессию
+    console.log('[API] /api/twitch/user: Попытка получить сессию Supabase...');
+    const { data, error } = await supabase.auth.getSession();
+    session = data?.session;
+    sessionError = error;
     
     if (sessionError) {
-      console.error('[API] /api/twitch/user: ошибка получения сессии Supabase:', sessionError.message);
+      console.warn('[API] /api/twitch/user: Ошибка при getSession():', sessionError.message);
+    } else if (session) {
+      console.log('[API] /api/twitch/user: Сессия Supabase найдена, user ID:', session.user.id);
+      authUser = session.user; // Сохраняем пользователя из сессии
+      providerToken = session.provider_token;
+    } else {
+      console.log('[API] /api/twitch/user: Сессия Supabase НЕ найдена через getSession().');
     }
     
-    // Если запрашивается проверка сессии, то проверяем наличие активной сессии
-    if (sessionCheck === 'true' && !session) {
-      console.log('[API] /api/twitch/user: проверка сессии - пользователь не авторизован');
-      
-      // Проверяем наличие резервных cookie
-      if (twitch_user_data && auth_successful === 'true') {
-        try {
-          // Используем данные из резервной cookie
-          const userData = JSON.parse(twitch_user_data);
-          console.log('[API] /api/twitch/user: используем данные из резервной cookie:', 
-            { id: userData.id, twitchId: userData.twitchId });
-          
-          return NextResponse.json(userData);
-        } catch (cookieError) {
-          console.error('[API] /api/twitch/user: ошибка чтения данных из cookie:', cookieError);
-        }
+    // Дополнительная попытка получить пользователя через getUser, если сессии нет
+    if (!authUser) {
+      console.log('[API] /api/twitch/user: Попытка получить пользователя через getUser()...');
+      const { data: userData, error: getUserError } = await supabase.auth.getUser();
+      if (getUserError) {
+         console.warn('[API] /api/twitch/user: Ошибка при getUser():', getUserError.message);
+      } else if (userData?.user) {
+         console.log('[API] /api/twitch/user: Пользователь найден через getUser(), ID:', userData.user.id);
+         authUser = userData.user;
+      } else {
+         console.log('[API] /api/twitch/user: Пользователь НЕ найден через getUser().');
       }
-      
-      // Если нет сессии, возвращаем 401
-      return NextResponse.json(
-        { error: 'Пользователь не авторизован' },
-        { status: 401 }
-      );
     }
 
-    // Пытаемся получить данные пользователя из Supabase
-    let user = null;
-    let twitchId = null;
-    
-    // Если у нас есть userId из параметра запроса, используем его
-    if (userId) {
-      console.log(`[API] /api/twitch/user: используем указанный userId: ${userId}`);
-      twitchId = userId;
-    } 
-    // Если есть активная сессия, получаем пользователя из сессии
-    else if (session) {
-      const { data: userData } = await supabase.auth.getUser();
-      user = userData?.user;
-      
-      if (user) {
-        console.log(`[API] /api/twitch/user: получен пользователь из сессии, id: ${user.id}`);
-        twitchId = user.user_metadata?.provider_id || user.id;
-      }
+  } catch (e) {
+    console.error('[API] /api/twitch/user: Критическая ошибка при работе с Supabase Auth:', e);
+    sessionError = e; // Сохраняем ошибку
+  }
+
+  // --- Логика обработки --- 
+
+  // Если это проверка сессии, и нет ни пользователя, ни резервных данных
+  if (sessionCheck) {
+    if (!authUser && !(twitch_user_data_cookie && auth_successful_cookie === 'true')) {
+        console.log('[API] /api/twitch/user: Проверка сессии НЕ пройдена (нет authUser и резервных cookie).');
+        return NextResponse.json({ error: 'Пользователь не авторизован' }, { status: 401 });
+    } else if (authUser) {
+        console.log('[API] /api/twitch/user: Проверка сессии УСПЕШНА (authUser найден).');
+        // Если проверка успешна, возвращаем данные пользователя из сессии
+        const twitchId = authUser.user_metadata?.provider_id || authUser.id;
+        return NextResponse.json({
+           id: authUser.id, // UUID
+           twitchId: twitchId, // Twitch ID
+           login: authUser.user_metadata?.preferred_username || authUser.user_metadata?.full_name,
+           display_name: authUser.user_metadata?.full_name,
+           profile_image_url: authUser.user_metadata?.avatar_url
+        });
+    } else {
+        // Используем резервные данные, если сессии нет, но есть cookie
+        try {
+          const parsedCookieData = JSON.parse(twitch_user_data_cookie);
+          console.log('[API] /api/twitch/user: Проверка сессии УСПЕШНА (используем резервные cookie).');
+          return NextResponse.json(parsedCookieData);
+        } catch(cookieErr) {
+          console.error('[API] /api/twitch/user: Ошибка парсинга резервных cookie при проверке сессии:', cookieErr);
+          return NextResponse.json({ error: 'Ошибка обработки резервной сессии' }, { status: 500 });
+        }
     }
-    // Если нет ни userId, ни сессии, но есть резервные данные
-    else if (twitch_user_data) {
+  }
+
+  // --- Если это НЕ проверка сессии, а запрос данных --- 
+
+  let targetUserId = userIdParam; // ID пользователя, чьи данные запрашиваем
+  let requestingUserId = null; // ID пользователя, который делает запрос (если он авторизован)
+  let requestingUserTwitchId = null; // Twitch ID пользователя, который делает запрос
+
+  if (authUser) {
+    requestingUserId = authUser.id;
+    requestingUserTwitchId = authUser.user_metadata?.provider_id || authUser.id;
+    console.log(`[API] /api/twitch/user: Запрос от авторизованного пользователя ${requestingUserId} (Twitch: ${requestingUserTwitchId})`);
+  }
+
+  // Если userId не передан в параметрах, используем ID авторизованного пользователя
+  if (!targetUserId && authUser) {
+    targetUserId = requestingUserTwitchId; // Используем Twitch ID
+    console.log(`[API] /api/twitch/user: userId не указан, используем Twitch ID авторизованного пользователя: ${targetUserId}`);
+  }
+  
+  // Если ID для запроса так и не определен, возвращаем ошибку
+  if (!targetUserId) {
+    console.error('[API] /api/twitch/user: Не удалось определить targetUserId для запроса данных Twitch.');
+    // Проверяем, есть ли резервные данные
+    if (twitch_user_data_cookie) {
+       try {
+          const parsedCookieData = JSON.parse(twitch_user_data_cookie);
+          console.log('[API] /api/twitch/user: targetUserId не определен, возвращаем данные из резервных cookie.');
+          return NextResponse.json(parsedCookieData);
+       } catch (e) { /* игнорируем ошибку парсинга здесь */ }
+    }
+    return NextResponse.json({ error: 'Не указан ID пользователя для запроса' }, { status: 400 });
+  }
+
+  // --- Получение данных из Twitch API --- 
+  try {
+    const cachedDataKey = `twitch_user_${targetUserId}`;
+    const cachedDataCookie = cookieStore.get(cachedDataKey)?.value;
+
+    if (cachedDataCookie) {
       try {
-        const userData = JSON.parse(twitch_user_data);
-        twitchId = userData.twitchId || userData.id;
-        console.log(`[API] /api/twitch/user: используем twitchId из резервных данных: ${twitchId}`);
-      } catch (e) {
-        console.error('[API] /api/twitch/user: ошибка при парсинге данных из cookie:', e);
-      }
-    }
-    
-    // Если не удалось определить twitchId, возвращаем ошибку
-    if (!twitchId) {
-      console.error('[API] /api/twitch/user: не удалось определить twitchId');
-      return NextResponse.json(
-        { error: 'Не удалось получить идентификатор пользователя' },
-        { status: 400 }
-      );
-    }
-    
-    // Получение кэшированных данных из cookie
-    const cachedDataKey = `twitch_user_${twitchId}`;
-    const cachedData = cookieStore.get(cachedDataKey)?.value;
-    
-    if (cachedData) {
-      try {
-        const parsedData = JSON.parse(cachedData);
+        const parsedData = JSON.parse(cachedDataCookie);
         const cacheTime = parsedData._cacheTime;
-        
-        // Проверяем, не устарел ли кэш (15 минут)
         if (cacheTime && Date.now() - cacheTime < 15 * 60 * 1000) {
-          console.log(`[API] /api/twitch/user: возвращаем кэшированные данные для twitchId: ${twitchId}`);
+          console.log(`[API] /api/twitch/user: Возвращаем кэшированные данные для targetUserId: ${targetUserId}`);
           return NextResponse.json(parsedData);
         }
       } catch (e) {
-        console.error('[API] /api/twitch/user: ошибка при работе с кэшем:', e);
+        console.error('[API] /api/twitch/user: Ошибка парсинга кэша:', e);
       }
     }
+
+    // Запрос к Twitch API
+    console.log(`[API] /api/twitch/user: Запрос к Twitch API для пользователя ${targetUserId}...`);
+    // ПРОВЕРЬТЕ, что переменная TWITCH_APP_ACCESS_TOKEN установлена!
+    const appAccessToken = process.env.TWITCH_APP_ACCESS_TOKEN;
+    if (!appAccessToken) {
+       console.error('[API] /api/twitch/user: Отсутствует TWITCH_APP_ACCESS_TOKEN!');
+       return NextResponse.json({ error: 'Ошибка конфигурации сервера (нет токена приложения)' }, { status: 500 });
+    }
     
-    // Если twitchId есть, делаем запрос к Twitch API
-    const twitchResponse = await fetch(`https://api.twitch.tv/helix/users?id=${twitchId}`, {
+    const twitchResponse = await fetch(`https://api.twitch.tv/helix/users?id=${targetUserId}`, {
       headers: {
-        'Authorization': `Bearer ${process.env.TWITCH_APP_ACCESS_TOKEN}`,
+        'Authorization': `Bearer ${providerToken}`,
         'Client-Id': process.env.NEXT_PUBLIC_TWITCH_CLIENT_ID
       }
     });
-    
+
     if (!twitchResponse.ok) {
-      console.error('[API] /api/twitch/user: ошибка запроса к Twitch API:', 
-        await twitchResponse.text());
-        
-      // Возвращаем данные из кэша, если они есть, даже если они устарели
-      if (cachedData) {
-        try {
-          const parsedData = JSON.parse(cachedData);
-          console.log('[API] /api/twitch/user: возвращаем устаревшие кэшированные данные');
-          return NextResponse.json(parsedData);
-        } catch (e) {
-          console.error('[API] /api/twitch/user: ошибка при работе с устаревшим кэшем:', e);
-        }
+      const errorText = await twitchResponse.text();
+      console.error('[API] /api/twitch/user: Ошибка запроса к Twitch API:', twitchResponse.status, errorText);
+      // Возвращаем устаревший кэш, если он есть
+      if (cachedDataCookie) {
+         try {
+           const parsedData = JSON.parse(cachedDataCookie);
+           console.log('[API] /api/twitch/user: Ошибка Twitch API, возвращаем устаревшие кэшированные данные');
+           return NextResponse.json(parsedData);
+         } catch (e) {/* игнор */} 
       }
-      
-      return NextResponse.json(
-        { error: 'Ошибка при запросе к Twitch API' },
-        { status: twitchResponse.status }
-      );
+      return NextResponse.json({ error: `Ошибка Twitch API: ${twitchResponse.status}` }, { status: 502 }); // Bad Gateway
     }
-    
+
     const twitchData = await twitchResponse.json();
-    
     if (!twitchData.data || twitchData.data.length === 0) {
-      console.error('[API] /api/twitch/user: пользователь не найден в Twitch API');
-      return NextResponse.json(
-        { error: 'Пользователь не найден' },
-        { status: 404 }
-      );
+      console.error(`[API] /api/twitch/user: Пользователь ${targetUserId} не найден в Twitch API.`);
+      return NextResponse.json({ error: 'Пользователь Twitch не найден' }, { status: 404 });
     }
-    
+
     const userData = twitchData.data[0];
-    
-    // Добавляем время кэширования и сохраняем в cookie
     userData._cacheTime = Date.now();
-    
-    // Устанавливаем cookie с данными пользователя (на 15 минут)
+
+    // Сохраняем в cookie кэш
     cookieStore.set(cachedDataKey, JSON.stringify(userData), {
-      maxAge: 15 * 60, // 15 минут
-      path: '/',
-      sameSite: 'lax',
-      secure: process.env.NODE_ENV === 'production',
+      maxAge: 15 * 60, path: '/', sameSite: 'lax', secure: process.env.NODE_ENV === 'production',
     });
-    
-    console.log(`[API] /api/twitch/user: успешно получены данные пользователя Twitch: ${userData.display_name} (${userData.id})`);
+
+    console.log(`[API] /api/twitch/user: Успешно получены данные для ${userData.display_name} (${targetUserId})`);
     return NextResponse.json(userData);
-    
+
   } catch (error) {
-    console.error('[API] /api/twitch/user: критическая ошибка:', error);
-    
-    // В случае критической ошибки используем резервные данные из cookie, если они есть
-    if (twitch_user_data) {
-      try {
-        const userData = JSON.parse(twitch_user_data);
-        console.log('[API] /api/twitch/user: возвращаем данные из резервной cookie после ошибки');
-        return NextResponse.json(userData);
-      } catch (e) {
-        console.error('[API] /api/twitch/user: ошибка при парсинге резервных данных:', e);
-      }
+    console.error('[API] /api/twitch/user: Критическая ошибка при получении данных Twitch:', error);
+    // Используем резервные данные, если они есть
+    if (twitch_user_data_cookie) {
+       try {
+          const parsedCookieData = JSON.parse(twitch_user_data_cookie);
+          console.log('[API] /api/twitch/user: Критическая ошибка, возвращаем данные из резервных cookie.');
+          return NextResponse.json(parsedCookieData);
+       } catch (e) { /* игнорируем ошибку парсинга здесь */ }
     }
-    
-    return NextResponse.json(
-      { error: 'Ошибка сервера при получении данных пользователя' },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: 'Внутренняя ошибка сервера' }, { status: 500 });
   }
 }
 
-// Делаем route динамическим, чтобы Vercel не кэшировал его
 export const dynamic = 'force-dynamic'; 

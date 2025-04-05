@@ -409,7 +409,7 @@ function Profile() {
   const renderSocialLinks = () => {
     const links = userProfile?.social_links;
     
-    if (loadingTwitchUser || loadingProfile) {
+    if (/* loadingTwitchUser || */ loadingProfile) {
       return <div className={styles.smallLoader}></div>;
     }
 
