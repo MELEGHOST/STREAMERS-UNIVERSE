@@ -43,7 +43,7 @@ export default function MenuPage() {
       setError('Критическая ошибка при выходе.');
       setIsLoggingOut(false);
     }
-  }, [isLoggingOut, supabase, router]); // Убрали setError из зависимостей, если он не нужен
+  }, [isLoggingOut, supabase]);
 
   // Данные для отображения
   const displayName = user?.user_metadata?.full_name || user?.email || 'Загрузка...';

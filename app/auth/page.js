@@ -1,27 +1,19 @@
 'use client';
 
-import React, { useEffect } from 'react';
+import React, { useEffect, Suspense } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useRouter, useSearchParams } from 'next/navigation';
 import styles from './auth.module.css'; // Используем стили из текущей папки
 
-export default function AuthPage() {
-  const { supabase, isAuthenticated, isLoading } = useAuth();
-  const router = useRouter();
+// Компонент, использующий useSearchParams
+function AuthContent() {
+  const { supabase } = useAuth();
   const searchParams = useSearchParams();
+  const router = useRouter();
 
   const error = searchParams.get('error');
   const errorDescription = searchParams.get('error_description');
   const message = searchParams.get('message');
-
-  // Перенаправляем, если пользователь уже авторизован
-  useEffect(() => {
-    if (!isLoading && isAuthenticated) {
-      console.log('[AuthPage] Пользователь уже авторизован, перенаправление на /menu');
-      const nextUrl = searchParams.get('next') || '/menu';
-      router.push(nextUrl);
-    }
-  }, [isLoading, isAuthenticated, router, searchParams]);
 
   const handleLogin = async () => {
     if (!supabase) {
@@ -50,21 +42,10 @@ export default function AuthPage() {
       console.error('[AuthPage] Ошибка при инициации входа через Twitch:', signInError.message);
       alert(`Ошибка входа: ${signInError.message}`);
     }
-    // Если ошибки нет, Supabase перенаправит на Twitch
   };
 
-  // Показываем индикатор загрузки, пока проверяется сессия
-  if (isLoading) {
-    return (
-        <div className={styles.authContainer}>
-            <div className="spinner"></div> {/* Используем глобальный спиннер */}
-            <p>Проверка статуса...</p>
-        </div>
-    );
-  }
-
   return (
-    <div className={styles.authContainer}>
+    <>
       <h1>Вход в Streamers Universe</h1>
       
       {/* Отображение ошибок или сообщений */} 
@@ -82,9 +63,41 @@ export default function AuthPage() {
 
       <p>Для доступа к функциям платформы войдите через Twitch.</p>
       <button onClick={handleLogin} className={styles.twitchButton}>
-        {/* Можно добавить иконку Twitch позже */}
         Войти через Twitch
       </button>
+    </>
+  );
+}
+
+// Основной компонент страницы
+export default function AuthPage() {
+  const { isAuthenticated, isLoading } = useAuth();
+  const router = useRouter();
+
+  // Перенаправляем, если пользователь уже авторизован
+  useEffect(() => {
+    if (!isLoading && isAuthenticated) {
+      console.log('[AuthPage] Пользователь уже авторизован, перенаправление на /menu');
+      router.push('/menu');
+    }
+  }, [isLoading, isAuthenticated, router]);
+
+  // Показываем индикатор загрузки, пока проверяется сессия
+  if (isLoading) {
+    return (
+        <div className={styles.authContainer}>
+            <div className="spinner"></div>
+            <p>Проверка статуса...</p>
+        </div>
+    );
+  }
+
+  // Если не авторизован, показываем контент внутри Suspense
+  return (
+    <div className={styles.authContainer}>
+      <Suspense fallback={<div className="spinner"></div>}>
+        <AuthContent />
+      </Suspense>
     </div>
   );
 } 
