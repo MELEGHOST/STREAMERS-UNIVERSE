@@ -9,7 +9,7 @@
 import React, { useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext'; // Импортируем useAuth
 import { useRouter, useSearchParams } from 'next/navigation';
-import styles from '../../styles/auth.module.css'; // Подключаем стили
+import styles from './auth.module.css'; // Подключаем стили
 
 // Компонент для отображения диагностической информации Twitch
 function TwitchErrorInfo({ errorType, errorDetails }) {
