@@ -14,7 +14,9 @@ function ProfilePage() {
   const [loadingProfile, setLoadingProfile] = useState(true);
   const [error, setError] = useState(null);
   
-  const userId = user?.id; 
+  // Извлекаем ID пользователя Supabase И Twitch ID из метаданных
+  const supabaseUserId = user?.id; 
+  const twitchUserId = user?.user_metadata?.provider_id;
 
   // Перенаправляем на /auth, если не аутентифицирован
   useEffect(() => {
@@ -26,13 +28,19 @@ function ProfilePage() {
 
   // Функция для загрузки данных с Twitch API
   const fetchTwitchUserData = useCallback(async (idToFetch) => {
-    if (!idToFetch) return;
-    console.log(`[ProfilePage] Загрузка данных Twitch для userId: ${idToFetch}...`);
+    // Убедимся, что ID - это числовой Twitch ID
+    if (!idToFetch || typeof idToFetch !== 'string' || !/^[0-9]+$/.test(idToFetch)) {
+        console.warn(`[ProfilePage] Неверный или отсутствующий Twitch ID для запроса: ${idToFetch}`);
+        setError('Не удалось определить Twitch ID пользователя для запроса данных.');
+        setLoadingProfile(false);
+        return;
+    }
+    console.log(`[ProfilePage] Загрузка данных Twitch для twitchUserId: ${idToFetch}...`);
     setError(null);
     setLoadingProfile(true);
 
     let cachedDisplayData = null;
-    const cachedKey = `twitch_user_${idToFetch}`;
+    const cachedKey = `twitch_user_${idToFetch}`; // Ключ кэша теперь по Twitch ID
     if (typeof window !== 'undefined') {
       const cachedStr = localStorage.getItem(cachedKey);
       if (cachedStr) {
@@ -48,7 +56,8 @@ function ProfilePage() {
     }
 
     try {
-      const apiUrl = `/api/twitch/user?userId=${idToFetch}`;
+      // Передаем Twitch ID в API
+      const apiUrl = `/api/twitch/user?userId=${idToFetch}`; 
       const response = await fetch(apiUrl);
 
       if (!response.ok) {
@@ -78,19 +87,32 @@ function ProfilePage() {
     } finally {
       setLoadingProfile(false); 
     }
-  }, []); // Зависимостей нет
+  }, []);
 
-  // Загружаем данные, когда появляется userId
+  // Загружаем данные, когда появляется Twitch ID
   useEffect(() => {
-    if (userId) {
-      fetchTwitchUserData(userId);
-    } else if (!isLoading) {
-      setLoadingProfile(false); // AuthContext загружен, userId нет
+    // Запускаем загрузку только если есть twitchUserId
+    if (twitchUserId) {
+      console.log(`[ProfilePage] Twitch ID (${twitchUserId}) доступен, запускаем fetchTwitchUserData.`);
+      fetchTwitchUserData(twitchUserId);
+    } else if (!isLoading && isAuthenticated) {
+        // Если аутентифицирован, но нет Twitch ID - это странно
+        console.error("[ProfilePage] Пользователь аутентифицирован, но Twitch ID (provider_id) отсутствует в user_metadata!");
+        setError("Не удалось получить Twitch ID из данных аутентификации.");
+        setLoadingProfile(false); 
+    } else if (!isLoading && !isAuthenticated) {
+         // Пользователь не аутентифицирован (уже обрабатывается другим useEffect)
+         setLoadingProfile(false);
     }
-  }, [userId, isLoading, fetchTwitchUserData]);
+  // Зависим от twitchUserId и isLoading (чтобы дождаться загрузки user)
+  }, [twitchUserId, isLoading, isAuthenticated, fetchTwitchUserData]);
 
-  // Определяем данные для отображения (с учетом кэша или данных из AuthContext)
+  // Определяем данные для отображения
+  // Используем twitchUserData?.display_name как основной источник, 
+  // user_metadata?.full_name как запасной
   const displayName = twitchUserData?.display_name || user?.user_metadata?.full_name || 'Загрузка...';
+  // Используем twitchUserData?.profile_image_url как основной источник,
+  // user_metadata?.avatar_url как запасной
   const avatarUrl = twitchUserData?.profile_image_url || user?.user_metadata?.avatar_url || '/images/default_avatar.png';
   const description = twitchUserData?.description || '';
   const viewCount = twitchUserData?.view_count;
