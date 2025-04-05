@@ -28,8 +28,9 @@ const CyberAvatar = ({
   priority = false,
   onError
 }) => {
-  const containerRef = useRef(null);
-  const cardRef = useRef(null);
+  // Убираем неиспользуемые ref, если они не нужны для нового стиля
+  // const containerRef = useRef(null);
+  // const cardRef = useRef(null);
   
   const [error, setError] = useState(false);
   const [imageSrc, setImageSrc] = useState("/images/default_avatar.png");
@@ -204,16 +205,9 @@ const CyberAvatar = ({
         'xl': 5
       }[size] || 3;
 
-  // Формируем стиль контейнера
-  const containerStyle = {
-    width: layout !== 'fill' ? (width || sizeInPixels) : '100%',
-    height: layout !== 'fill' ? (height || sizeInPixels) : '100%',
-    '--border-size': `${borderSize}px`
-  };
-
   return (
     <div 
-      className={styles.profileAvatarContainer}
+      className={`${styles.profileAvatarContainer} ${className}`}
       style={{ '--avatar-size': `${width || sizeInPixels}px` }}
       data-size={size}
     >

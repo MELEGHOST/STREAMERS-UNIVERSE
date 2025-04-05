@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
 
-export async function GET(request) {
+export async function GET(/* request */) {
   console.log('[API] /api/auth/check-admin: Начало проверки прав администратора.');
   
   const cookieStore = cookies();

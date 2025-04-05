@@ -362,10 +362,7 @@ function Profile() {
           console.log("Profile: Отписались от onAuthStateChange");
       }
     };
-  // Убираем зависимости, которые вызывают цикл: twitchUserData, userProfile, fetchTwitchUserData, loadUserProfileDbData
-  // Оставляем только supabase, router, currentUser?.id (хотя id тоже может быть лишним, т.к. currentUser управляется внутри)
-  // Попробуем оставить только supabase и router, так как currentUser обновляется внутри эффекта.
-  }, [supabase, router]);
+  }, [supabase, router, currentUser?.id]);
 
   // Эффект для загрузки данных при изменении userId (который зависит от currentUser)
   useEffect(() => {
