@@ -101,7 +101,6 @@ export async function GET(request) {
   
   let session = null;
   let authUser = null;
-  let providerToken = null;
   let sessionError = null;
   
   try {
@@ -116,7 +115,6 @@ export async function GET(request) {
     } else if (session) {
       console.log('[API] /api/twitch/user: Сессия Supabase найдена, user ID:', session.user.id);
       authUser = session.user; // Сохраняем пользователя из сессии
-      providerToken = session.provider_token;
     } else {
       console.log('[API] /api/twitch/user: Сессия Supabase НЕ найдена через getSession().');
     }
