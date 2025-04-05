@@ -146,7 +146,7 @@ export async function GET(request) {
           const parsedCookieData = JSON.parse(twitch_user_data_cookie);
           console.log('[API] /api/twitch/user: targetUserId не определен, возвращаем данные из резервных cookie.');
           return NextResponse.json(parsedCookieData);
-       } catch (e) { /* игнорируем ошибку парсинга здесь */ }
+       } catch (_error) { /* игнорируем ошибку парсинга здесь */ }
     }
     return NextResponse.json({ error: 'Не указан ID пользователя для запроса' }, { status: 400 });
   }
@@ -164,8 +164,8 @@ export async function GET(request) {
           console.log(`[API] /api/twitch/user: Возвращаем кэшированные данные для targetUserId: ${targetUserId}`);
           return NextResponse.json(parsedData);
         }
-      } catch (e) {
-        console.error('[API] /api/twitch/user: Ошибка парсинга кэша:', e);
+      } catch (_error) {
+        console.error('[API] /api/twitch/user: Ошибка парсинга кэша:', _error);
       }
     }
 
@@ -194,7 +194,7 @@ export async function GET(request) {
            const parsedData = JSON.parse(cachedDataCookie);
            console.log('[API] /api/twitch/user: Ошибка Twitch API, возвращаем устаревшие кэшированные данные');
            return NextResponse.json(parsedData);
-         } catch (e) {/* игнор */} 
+         } catch (_error) {/* игнор */} 
       }
       return NextResponse.json({ error: `Ошибка Twitch API: ${twitchResponse.status}` }, { status: 502 }); // Bad Gateway
     }
@@ -224,7 +224,7 @@ export async function GET(request) {
           const parsedCookieData = JSON.parse(twitch_user_data_cookie);
           console.log('[API] /api/twitch/user: Критическая ошибка, возвращаем данные из резервных cookie.');
           return NextResponse.json(parsedCookieData);
-       } catch (e) { /* игнорируем ошибку парсинга здесь */ }
+       } catch (_error) { /* игнорируем ошибку парсинга здесь */ }
     }
     return NextResponse.json({ error: 'Внутренняя ошибка сервера' }, { status: 500 });
   }
