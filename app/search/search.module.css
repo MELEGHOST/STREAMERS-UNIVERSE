@@ -68,7 +68,8 @@
 }
 
 .input::placeholder {
-  color: #c0b9c0;
+  color: rgba(192, 185, 192, 0.7);
+  opacity: 1;
 }
 
 .input:focus {
@@ -650,4 +651,46 @@
   .filterActions {
     flex-direction: column;
   }
+}
+
+/* Контейнер для поля ввода и кнопки фильтров */
+.searchInputContainer {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 15px;
+  margin-bottom: 30px;
+  width: 100%;
+  max-width: 600px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+/* Стили для кнопки фильтров */
+.filtersButton {
+  background: linear-gradient(145deg, rgba(40, 40, 80, 0.8), rgba(60, 60, 100, 0.8));
+  border: 1px solid rgba(123, 65, 201, 0.5);
+  border-radius: 10px;
+  padding: 10px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.filtersButton svg {
+  stroke: #d6d6e6;
+  transition: stroke 0.3s ease;
+}
+
+.filtersButton:hover {
+  background: linear-gradient(145deg, rgba(60, 60, 100, 0.9), rgba(80, 80, 120, 0.9));
+  border-color: rgba(123, 65, 201, 0.8);
+  box-shadow: 0 0 15px rgba(123, 65, 201, 0.4);
+}
+
+.filtersButton:hover svg {
+  stroke: #fff;
 } 

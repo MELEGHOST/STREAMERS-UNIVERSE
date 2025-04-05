@@ -280,16 +280,18 @@ function Profile() {
       }
   }, []);
 
+  // Обработка изменений состояния аутентификации
   useEffect(() => {
     setAuthLoading(true);
     console.log("Profile: useEffect onAuthStateChange Сработал");
 
+    // Получаем начальную сессию
     supabase.auth.getSession().then(({ data: { session } }) => {
         if (session) {
             console.log("Profile: Начальная сессия найдена", session.user.id);
             setCurrentUser(session.user);
-            fetchTwitchUserData(session.user.id);
-            loadUserProfileDbData(session.user.id);
+            // Загружаем данные, если их еще нет или userId изменился
+            // (Убрали прямой вызов fetch/load отсюда, полагаемся на currentUser)
         } else {
             console.log("Profile: Начальная сессия НЕ найдена");
             setCurrentUser(null);
@@ -303,49 +305,89 @@ function Profile() {
         setGlobalError("Ошибка проверки сессии при загрузке.");
     });
 
+    // Подписываемся на изменения состояния аутентификации
     const { data: authListener } = supabase.auth.onAuthStateChange((event, session) => {
-      console.log(`Profile: Событие AuthStateChange: ${event}`);
-      if (event === 'SIGNED_IN' && session) {
-        console.log('Profile: Пользователь вошел (SIGNED_IN)', session.user.id);
-        setCurrentUser(session.user);
-         setAuthLoading(false);
-         if (!twitchUserData || twitchUserData.id !== session.user.id) {
-             fetchTwitchUserData(session.user.id);
-         }
-         if (!userProfile || currentUser?.id !== session.user.id) {
-             loadUserProfileDbData(session.user.id);
-         }
-      } else if (event === 'SIGNED_OUT') {
-        console.log('Profile: Пользователь вышел (SIGNED_OUT)');
-        setCurrentUser(null);
-        setTwitchUserData(null);
-        setUserProfile(null);
-        DataStorage.clearAll().catch(e => console.warn("Failed to clear user cache on logout", e));
-         setAuthLoading(false);
-        router.push('/auth?reason=signed_out');
-      } else if (event === 'INITIAL_SESSION') {
-         console.log("Profile: Событие INITIAL_SESSION получено");
-         if(session) {
+      console.log(`Profile: Событие AuthStateChange: ${event}, Session: ${!!session}`);
+      
+      switch (event) {
+        case 'SIGNED_IN':
+          if (session) {
+            console.log('Profile: Пользователь вошел (SIGNED_IN)', session.user.id);
             setCurrentUser(session.user);
-         } else {
-            setCurrentUser(null);
-            router.push('/auth?reason=initial_session_null'); 
-         }
-         setAuthLoading(false);
-      }
-       else if (event === 'TOKEN_REFRESHED' && session) {
+            // Загрузка данных инициируется изменением currentUser -> userId
+          } else {
+             console.warn('Profile: Событие SIGNED_IN без сессии?');
+          }
+          setAuthLoading(false);
+          break;
+        case 'SIGNED_OUT':
+          console.log('Profile: Пользователь вышел (SIGNED_OUT)');
+          setCurrentUser(null);
+          setTwitchUserData(null);
+          setUserProfile(null);
+          setUserId(null); // Сбрасываем userId
+          DataStorage.clearAll().catch(e => console.warn("Failed to clear user cache on logout", e));
+          setAuthLoading(false);
+          router.push('/auth?reason=signed_out');
+          break;
+        case 'INITIAL_SESSION':
+           console.log("Profile: Событие INITIAL_SESSION обработано ранее в getSession()");
+           // Дополнительная логика здесь не нужна, так как getSession() уже отработал
+           setAuthLoading(false);
+           break;
+        case 'TOKEN_REFRESHED':
            console.log('Profile: Токен обновлен (TOKEN_REFRESHED)');
-           setCurrentUser(session.user);
-       }
+           if (session) {
+               // Обновляем пользователя, если он изменился (маловероятно, но возможно)
+               if (currentUser?.id !== session.user.id) {
+                  setCurrentUser(session.user);
+               }
+               console.log('Profile: Provider token мог обновиться в сессии.');
+           } else {
+               console.warn('Profile: Событие TOKEN_REFRESHED без сессии?');
+               // Если токен обновлен, но сессии нет - пользователь вышел
+               setCurrentUser(null);
+               router.push('/auth?reason=refresh_failed');
+           }
+           break;
+         case 'USER_UPDATED':
+            console.log('Profile: Данные пользователя обновлены (USER_UPDATED)');
+            if (session) {
+               setCurrentUser(session.user);
+            } else {
+               console.warn('Profile: Событие USER_UPDATED без сессии?');
+            }
+            break;
+         default:
+           console.log(`Profile: Неизвестное событие AuthStateChange: ${event}`);
+      }
     });
 
+    // Отписка при размонтировании компонента
     return () => {
       if (authListener && authListener.subscription) {
           authListener.subscription.unsubscribe();
           console.log("Profile: Отписались от onAuthStateChange");
       }
     };
-  }, [supabase, router, fetchTwitchUserData, loadUserProfileDbData, currentUser?.id, twitchUserData, userProfile]);
+  // Убираем зависимости, которые вызывают цикл: twitchUserData, userProfile, fetchTwitchUserData, loadUserProfileDbData
+  // Оставляем только supabase, router, currentUser?.id (хотя id тоже может быть лишним, т.к. currentUser управляется внутри)
+  // Попробуем оставить только supabase и router, так как currentUser обновляется внутри эффекта.
+  }, [supabase, router]);
+
+  // Эффект для загрузки данных при изменении userId (который зависит от currentUser)
+  useEffect(() => {
+    if (userId) {
+        console.log(`Profile: UserId изменился на ${userId}, запускаем загрузку данных...`);
+        fetchTwitchUserData();
+        loadUserProfileDbData(userId);
+    } else {
+        console.log("Profile: UserId сброшен или отсутствует, данные не загружаем.");
+        // Опционально: сбросить состояния twitchUserData и userProfile
+        // setTwitchUserData(null);
+        // setUserProfile(null);
+    }
+  }, [userId, fetchTwitchUserData, loadUserProfileDbData]); // Добавляем функции в зависимости
 
   const { isBirthday, daysToBirthday } = useMemo(() => {
       if (!userProfile?.birthday) {
