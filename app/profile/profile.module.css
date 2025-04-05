@@ -1,0 +1,149 @@
+.container {
+  display: flex;
+  flex-direction: column;
+  padding: 1rem;
+  max-width: var(--max-width);
+  margin: 0 auto;
+}
+
+.loadingContainer {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 300px;
+  color: var(--foreground-secondary);
+}
+
+.loadingContainer p {
+  margin-top: 1rem;
+}
+
+.errorMessage {
+  padding: 1rem;
+  margin: 1.5rem 0;
+  border-radius: var(--border-radius);
+  background-color: hsla(from var(--error-color) h s l / 0.15);
+  border: 1px solid var(--error-color);
+  color: var(--error-color);
+  text-align: center;
+}
+
+.profileHeader {
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+  margin-bottom: 2rem;
+  padding: 1.5rem;
+  background-color: var(--background-secondary);
+  border-radius: var(--border-radius);
+  border: 1px solid var(--border-secondary);
+}
+
+.profileAvatar {
+  /* Стили для CyberAvatar будут в его собственном модуле */
+  /* Но здесь можно задать размер контейнера */
+  width: 120px; /* Пример размера */
+  height: 120px;
+  flex-shrink: 0;
+}
+
+.profileDetails h1 {
+  font-size: 2rem;
+  margin-bottom: 0.5rem;
+  color: var(--foreground-primary);
+}
+
+.profileDetails .description {
+  color: var(--foreground-secondary);
+  margin-bottom: 1rem;
+  font-style: italic;
+}
+
+.profileStats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  font-size: 0.9rem;
+  color: var(--foreground-tertiary);
+}
+
+.statItem {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+
+/* Скелет загрузки */
+.skeleton {
+  background-color: var(--background-tertiary);
+  border-radius: 4px;
+  animation: skeleton-loading 1.5s infinite ease-in-out;
+}
+
+@keyframes skeleton-loading {
+  0% { background-color: var(--background-tertiary); }
+  50% { background-color: var(--border-primary); }
+  100% { background-color: var(--background-tertiary); }
+}
+
+.skeletonHeader {
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+  width: 100%;
+}
+
+.skeletonAvatar {
+  width: 120px;
+  height: 120px;
+  border-radius: 0; /* Квадратный для CyberAvatar */
+}
+
+.skeletonTextLarge {
+  width: 40%;
+  height: 2rem;
+  margin-bottom: 0.5rem;
+}
+
+.skeletonText {
+  width: 70%;
+  height: 1rem;
+  margin-bottom: 0.5rem;
+}
+
+.skeletonText.short {
+  width: 50%;
+}
+
+.profileContent {
+  padding: 1.5rem;
+  background-color: var(--background-secondary);
+  border-radius: var(--border-radius);
+  border: 1px solid var(--border-secondary);
+  margin-bottom: 2rem;
+}
+
+.profileContent h2 {
+  margin-bottom: 1rem;
+  border-bottom: 1px solid var(--border-primary);
+  padding-bottom: 0.5rem;
+}
+
+.backButton {
+  display: inline-block;
+  padding: 0.7em 1.2em;
+  font-size: 0.9rem;
+  color: var(--foreground-secondary);
+  background-color: transparent;
+  border: 1px solid var(--border-primary);
+  border-radius: var(--border-radius);
+  cursor: pointer;
+  transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease;
+}
+
+.backButton:hover {
+  background-color: var(--background-tertiary);
+  border-color: var(--foreground-secondary);
+  color: var(--foreground-primary);
+} 

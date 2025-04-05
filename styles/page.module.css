@@ -1,0 +1,51 @@
+.container {
+    display: flex;
+    flex-direction: column;
+    padding: 1rem;
+    max-width: var(--max-width);
+    margin: 0 auto;
+    text-align: center;
+  }
+  
+  .container h1 {
+      font-size: 2rem;
+      margin-bottom: 1rem;
+      color: var(--foreground-primary);
+  }
+
+  .container p {
+      color: var(--foreground-secondary);
+      margin-bottom: 2rem;
+  }
+  
+  .loadingContainer {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 300px;
+    color: var(--foreground-secondary);
+  }
+  
+  .loadingContainer p {
+    margin-top: 1rem;
+  }
+
+  .backButton {
+    display: inline-block;
+    padding: 0.7em 1.2em;
+    font-size: 0.9rem;
+    color: var(--foreground-secondary);
+    background-color: transparent;
+    border: 1px solid var(--border-primary);
+    border-radius: var(--border-radius);
+    cursor: pointer;
+    transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease;
+  }
+  
+  .backButton:hover {
+    background-color: var(--background-tertiary);
+    border-color: var(--foreground-secondary);
+    color: var(--foreground-primary);
+  }
+  
