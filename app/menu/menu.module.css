@@ -1,0 +1,121 @@
+.container {
+  display: flex;
+  flex-direction: column;
+  padding: 1rem;
+  max-width: var(--max-width);
+  margin: 0 auto;
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem;
+  background-color: var(--background-secondary);
+  border-radius: var(--border-radius);
+  margin-bottom: 2rem;
+}
+
+.userInfo {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  cursor: pointer;
+  padding: 0.5rem;
+  border-radius: var(--border-radius);
+  transition: background-color 0.2s ease;
+}
+
+.userInfo:hover {
+  background-color: var(--background-tertiary);
+}
+
+.avatar {
+  border-radius: 50%;
+  border: 2px solid var(--accent-primary);
+}
+
+.userName {
+  font-size: 1.2rem;
+  font-weight: 600;
+}
+
+.navigation ul {
+  list-style: none;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 1rem;
+}
+
+.navigation li a {
+  display: block;
+  padding: 1.5rem 1rem;
+  background-color: var(--background-secondary);
+  border-radius: var(--border-radius);
+  color: var(--foreground-primary);
+  text-decoration: none;
+  text-align: center;
+  font-size: 1.1rem;
+  font-weight: 500;
+  transition: background-color 0.2s ease, transform 0.1s ease;
+  border: 1px solid var(--border-secondary);
+}
+
+.navigation li a:hover {
+  background-color: var(--background-tertiary);
+  text-decoration: none;
+  transform: translateY(-2px);
+}
+
+.footer {
+  margin-top: 3rem;
+  text-align: center;
+}
+
+.logoutButton {
+  padding: 0.8em 1.5em;
+  font-size: 1rem;
+  color: var(--foreground-primary);
+  background-color: var(--background-tertiary);
+  border: 1px solid var(--border-primary);
+  border-radius: var(--border-radius);
+  cursor: pointer;
+  transition: background-color 0.2s ease, border-color 0.2s ease;
+}
+
+.logoutButton:hover {
+  background-color: var(--error-color);
+  border-color: var(--error-color);
+  color: #fff;
+}
+
+.logoutButton:disabled {
+  background-color: var(--background-secondary);
+  color: var(--foreground-tertiary);
+  cursor: not-allowed;
+  border-color: var(--border-secondary);
+}
+
+.loadingContainer {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 300px; /* Или другая подходящая высота */
+  color: var(--foreground-secondary);
+}
+
+.loadingContainer p {
+  margin-top: 1rem;
+}
+
+.errorMessage {
+  padding: 1rem;
+  margin-bottom: 1.5rem;
+  border-radius: var(--border-radius);
+  background-color: hsla(from var(--error-color) h s l / 0.15);
+  border: 1px solid var(--error-color);
+  color: var(--error-color);
+  text-align: center;
+} 
