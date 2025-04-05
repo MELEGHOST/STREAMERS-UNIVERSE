@@ -278,8 +278,10 @@ function Profile() {
 
   // Эффект для загрузки данных при изменении userId (который зависит от currentUser)
   useEffect(() => {
+    // Добавляем лог для проверки срабатывания и значения userId
+    console.log(`Profile: useEffect[userId] сработал. Текущий userId: ${userId}`); 
     if (userId) {
-      console.log(`Profile: UserId изменился на ${userId}, запускаем загрузку данных...`);
+      console.log(`Profile: UserId (${userId}) ЕСТЬ, запускаем загрузку данных...`);
       fetchTwitchUserData(); 
       loadUserProfileDbData(userId);
       loadTierlists(userId);

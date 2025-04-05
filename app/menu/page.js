@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 // import Link from 'next/link'; // Удаляем неиспользуемый импорт
 import Image from 'next/image';
@@ -10,6 +10,7 @@ import clientStorage from '../utils/clientStorage';
 import Cookies from 'js-cookie';
 import { DataStorage } from '../utils/dataStorage';
 import { checkAdminAccess } from '../utils/adminUtils'; // Добавляем импорт для проверки прав администратора
+import { createBrowserClient } from '@supabase/ssr';
 
 // Безопасные функции для работы с локальным хранилищем
 const safeGetFromStorage = (key) => {
@@ -35,7 +36,15 @@ export default function Menu() {
   const [isAdmin, setIsAdmin] = useState(false); // Добавляем состояние для проверки прав администратора
   const [adminRole, setAdminRole] = useState(null); // Добавляем состояние для хранения роли администратора
   const hasRedirectedRef = useRef(false);
-  
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
+
+  const supabase = useMemo(() => 
+    createBrowserClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+    ), 
+  []);
+
   // Выносим функции за пределы useEffect для оптимизации
   const loadStreamCoins = useCallback((userId) => {
     try {
@@ -309,6 +318,53 @@ export default function Menu() {
     router.push('/admin');
   };
   
+  // Добавляем функцию выхода (скопировано из Profile)
+  const handleLogout = useCallback(async () => {
+    if (isLoggingOut) return;
+
+    setIsLoggingOut(true);
+    console.log('Меню: Выполняем выход из аккаунта через Supabase...');
+    setError(null); // Сбрасываем ошибки меню
+
+    let signOutError = null;
+
+    try {
+      const { error } = await supabase.auth.signOut();
+      signOutError = error;
+
+      try {
+          console.log('Меню: Попытка очистки DataStorage...');
+          await DataStorage.clearAll();
+          console.log('Меню: DataStorage успешно очищен.');
+      } catch (storageError) {
+          console.error('Меню: Ошибка при очистке DataStorage:', storageError);
+          setError('Не удалось полностью очистить локальные данные, но выход выполнен.');
+      }
+
+      if (signOutError) {
+          console.error('Меню: Ошибка при выходе из Supabase:', signOutError);
+          setError(`Ошибка при выходе: ${signOutError.message}`);
+      } else {
+          console.log('Меню: Выход из Supabase успешен. Перенаправление на /auth');
+          // Сбрасываем состояние авторизации в контексте
+          setUserLogin(null);
+          setUserAvatar(null);
+          // Дополнительно чистим куки, если нужно
+          Cookies.remove('twitch_user_data');
+          Cookies.remove('has_local_storage_token');
+          Cookies.remove('auth_successful');
+          // Перенаправляем
+          router.push('/auth?action=logout');
+      }
+
+    } catch (criticalError) {
+      console.error('Меню: Критическая ошибка при выходе из аккаунта:', criticalError);
+      setError('Произошла критическая ошибка при выходе из аккаунта.');
+    } finally {
+      setIsLoggingOut(false);
+    }
+  }, [isLoggingOut, supabase, router, setError, setUserLogin, setUserAvatar]);
+  
   // Если идет загрузка, показываем индикатор
   if (isLoading) {
     return (
@@ -470,6 +526,14 @@ export default function Menu() {
           )}
         </div>
       </div>
+
+      <button 
+        onClick={handleLogout}
+        className={`${styles.logoutButton}`}
+        disabled={isLoggingOut}
+      >
+        {isLoggingOut ? 'Выход...' : 'Выйти из аккаунта'}
+      </button>
     </div>
   );
 } 
