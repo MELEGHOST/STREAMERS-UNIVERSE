@@ -2,7 +2,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '../contexts/AuthContext';
-import styles from '../styles/page.module.css'; // Общие стили
+import styles from '../../styles/page.module.css'; // Общие стили
 
 export default function AdminPage() {
   const { isLoading, isAuthenticated, user } = useAuth();
