@@ -159,26 +159,31 @@ export async function middleware(request) {
     response.headers.set('X-Frame-Options', 'DENY');
     response.headers.set('X-XSS-Protection', '1; mode=block');
     response.headers.set('Referrer-Policy', 'strict-origin-when-cross-origin');
-    // Уточненный CSP, разрешающий Vercel Analytics, Vercel Live и Supabase
-    const supabaseApiUrl = process.env.NEXT_PUBLIC_SUPABASE_URL?.replace('.co', '.co:443'); 
+
+    // Получаем URL Supabase из переменных окружения
+    const supabaseDomain = process.env.NEXT_PUBLIC_SUPABASE_URL ? new URL(process.env.NEXT_PUBLIC_SUPABASE_URL).hostname : null;
+    const supabaseConnectSrc = supabaseDomain ? `https://*.${supabaseDomain}` : 'https://*.supabase.co'; // Резервный вариант
+    
+    // Формируем CSP
     const cspValue = `default-src 'self'; \
-script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://va.vercel-scripts.com https://vercel.live; \
+script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net https://va.vercel-scripts.com https://vercel.live; \
 style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; \
 font-src 'self' https://fonts.gstatic.com; \
-img-src 'self' data: https://*.twitch.tv https://*.jtvnw.net; \
-connect-src 'self' https://api.twitch.tv https://id.twitch.tv https://www.twitch.tv https://*.twitch.tv https://*.supabase.co https://udogabnowepgxjhycddc.supabase.co https://va.vercel-scripts.com https://vercel.live; \
+img-src 'self' data: https://*.twitch.tv https://*.jtvnw.net ${supabaseConnectSrc}; \
+connect-src 'self' https://api.twitch.tv https://id.twitch.tv https://www.twitch.tv https://*.twitch.tv ${supabaseConnectSrc} https://va.vercel-scripts.com https://vercel.live; \
 frame-src 'self' https://vercel.live; \
 frame-ancestors 'none'; \
 form-action 'self'; \
 base-uri 'self'; \
 object-src 'none';`;
-    response.headers.set('Content-Security-Policy', cspValue.replace(/\s{2,}/g, ' ').trim());
+    
+    // Устанавливаем CSP и логируем его
+    const finalCsp = cspValue.replace(/\s{2,}/g, ' ').trim();
+    response.headers.set('Content-Security-Policy', finalCsp);
+    console.log(`[Middleware] CSP для ${pathname}:`, finalCsp);
 
-    // Логируем установленный CSP всегда для отладки
-    console.log('[Middleware] Установленный CSP:', response.headers.get('Content-Security-Policy'));
-
-     // Установка CORS заголовков
-     if (isAllowedOrigin) {
+    // Установка CORS заголовков
+    if (isAllowedOrigin) {
       response.headers.set('Access-Control-Allow-Credentials', 'true');
       response.headers.set('Access-Control-Allow-Origin', origin);
       response.headers.set('Access-Control-Allow-Methods', 'GET,OPTIONS,PATCH,DELETE,POST,PUT');

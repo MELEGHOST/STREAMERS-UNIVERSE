@@ -29,7 +29,7 @@
   display: flex;
   justify-content: center;
   align-items: center;
-  border-radius: 20px;
+  border-radius: 0;
   transition: transform 350ms ease, filter 350ms ease, box-shadow 350ms ease;
   background: linear-gradient(45deg, #1a1a1a, #262626);
   border: 2px solid rgba(255, 255, 255, 0.1);
@@ -53,7 +53,7 @@
 .avatarImage {
   width: 70%;
   height: 70%;
-  border-radius: 15px;
+  border-radius: 0;
   overflow: hidden;
   border: 2px solid rgba(92, 103, 255, 0.8);
   box-shadow: 0 0 15px rgba(92, 103, 255, 0.3);

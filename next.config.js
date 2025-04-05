@@ -43,43 +43,6 @@ const nextConfig = {
     // Добавляем серверные переменные окружения
     TWITCH_CLIENT_SECRET: process.env.TWITCH_CLIENT_SECRET,
   },
-  // Настройки Content Security Policy
-  async headers() {
-    return [
-      {
-        source: '/(.*)',
-        headers: [
-          {
-            key: 'Content-Security-Policy',
-            value: `
-              default-src 'self';
-              script-src 'self' 'unsafe-eval' 'unsafe-inline';
-              style-src 'self' 'unsafe-inline';
-              img-src 'self' data: https: blob:;
-              font-src 'self' data:;
-              connect-src 'self' https://api.twitch.tv https://id.twitch.tv https://www.twitch.tv https://*.twitch.tv https://*.supabase.co https://udogabnowepgxjhycddc.supabase.co;
-              frame-src 'self' https://id.twitch.tv https://www.twitch.tv https://vercel.live;
-              form-action 'self' https://id.twitch.tv https://www.twitch.tv;
-            `.replace(/\s+/g, ' ').trim()
-          },
-          {
-            key: 'Access-Control-Allow-Origin',
-            value: process.env.NODE_ENV === 'production' 
-              ? 'https://streamers-universe.vercel.app' 
-              : 'http://localhost:3000'
-          },
-          {
-            key: 'Access-Control-Allow-Methods',
-            value: 'GET, POST, PUT, DELETE, OPTIONS'
-          },
-          {
-            key: 'Access-Control-Allow-Headers',
-            value: 'X-Requested-With, Content-Type, Authorization'
-          }
-        ]
-      }
-    ]
-  }
 };
 
 module.exports = nextConfig;
