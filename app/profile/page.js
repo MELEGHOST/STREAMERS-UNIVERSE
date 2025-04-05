@@ -2,9 +2,20 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link'; // Добавляем Link для кнопки
 import CyberAvatar from '../components/CyberAvatar'; // Импортируем заглушку
 import styles from './profile.module.css';
 import { useAuth } from '../contexts/AuthContext';
+
+// Функция для перевода типа канала
+const translateBroadcasterType = (type) => {
+  switch (type) {
+    case 'affiliate': return 'Компаньон';
+    case 'partner': return 'Партнёр';
+    case '': return 'Обычный'; // Если тип пустой
+    default: return type || 'Неизвестно'; // Возвращаем как есть или 'Неизвестно'
+  }
+};
 
 function ProfilePage() {
   const router = useRouter();
@@ -108,15 +119,11 @@ function ProfilePage() {
   }, [twitchUserId, isLoading, isAuthenticated, fetchTwitchUserData]);
 
   // Определяем данные для отображения
-  // Используем twitchUserData?.display_name как основной источник, 
-  // user_metadata?.full_name как запасной
   const displayName = twitchUserData?.display_name || user?.user_metadata?.full_name || 'Загрузка...';
-  // Используем twitchUserData?.profile_image_url как основной источник,
-  // user_metadata?.avatar_url как запасной
   const avatarUrl = twitchUserData?.profile_image_url || user?.user_metadata?.avatar_url || '/images/default_avatar.png';
-  const description = twitchUserData?.description || '';
   const viewCount = twitchUserData?.view_count;
   const createdAt = twitchUserData?.created_at;
+  const broadcasterType = twitchUserData?.broadcaster_type;
 
   // Функция форматирования даты
   const formatDate = (dateString) => {
@@ -145,14 +152,19 @@ function ProfilePage() {
 
   return (
     <div className={styles.container}>
-      <button onClick={() => router.push('/menu')} className={styles.backButton}>
-        &larr; Назад в меню
-      </button>
+       <div className={styles.topBar}>
+         <button onClick={() => router.push('/menu')} className={styles.backButton}>
+           &larr; Назад в меню
+         </button>
+         {/* Кнопка редактирования */} 
+         <Link href="/edit-profile" className={styles.editButton}>
+            Редактировать профиль
+         </Link>
+       </div>
 
       {error && <div className={styles.errorMessage}>{error}</div>} 
 
       <div className={styles.profileHeader}>
-        {/* Скелет для шапки */} 
         {(loadingProfile && !twitchUserData) ? (
           <div className={styles.skeletonHeader}>
             <div className={`${styles.skeletonAvatar} ${styles.skeleton}`}></div>
@@ -173,7 +185,6 @@ function ProfilePage() {
             />
             <div className={styles.profileDetails}>
               <h1>{displayName}</h1>
-              {description && <p className={styles.description}>{description}</p>}
               <div className={styles.profileStats}>
                 {viewCount !== undefined && <span className={styles.statItem}>👁️ Просмотры: {viewCount.toLocaleString('ru-RU')}</span>}
                 {createdAt && <span className={styles.statItem}>📅 На Twitch с: {formatDate(createdAt)}</span>}
@@ -183,10 +194,9 @@ function ProfilePage() {
         )}
       </div>
 
-      {/* Основной контент профиля */} 
+      {/* Основной контент профиля (Информация) */} 
       <div className={styles.profileContent}>
         <h2>Информация</h2>
-        {/* Скелет для контента */} 
         {loadingProfile ? (
           <div className={styles.skeletonSection}>
              <div className={`${styles.skeletonText} ${styles.skeleton}`}></div>
@@ -194,16 +204,25 @@ function ProfilePage() {
              <div className={`${styles.skeletonText} ${styles.skeleton.short}`}></div>
           </div>
         ) : twitchUserData ? (
-          <div>
-            <p><strong>ID:</strong> {twitchUserData.id}</p>
-            <p><strong>Логин:</strong> {twitchUserData.login}</p>
-            <p><strong>Тип:</strong> {twitchUserData.broadcaster_type || '-'}</p>
-            {/* Здесь будет место для других секций */} 
+          <div className={styles.infoGrid}> {/* Используем grid для лучшего выравнивания */} 
+            <div className={styles.infoItem}>
+              <span className={styles.infoLabel}>Тип канала:</span>
+              <span className={styles.infoValue}>{translateBroadcasterType(broadcasterType)}</span>
+            </div>
           </div>
         ) : (
-          <p>Не удалось загрузить детальную информацию профиля.</p>
+          <p>Не удалось загрузить информацию профиля.</p>
         )}
       </div>
+
+      {/* Место для будущих секций (описание, соцсети и т.д.) */} 
+      <div className={styles.profileContentPlaceholder}>
+         {/* Например, здесь будет описание из БД */} 
+      </div>
+      <div className={styles.profileContentPlaceholder}>
+         {/* Например, здесь будут соцсети из БД */} 
+      </div>
+
     </div>
   );
 }

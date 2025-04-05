@@ -130,20 +130,87 @@
   padding-bottom: 0.5rem;
 }
 
-.backButton {
+/* Стили для верхней панели с кнопками */
+.topBar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.5rem; 
+  width: 100%;
+}
+
+.backButton, .editButton {
   display: inline-block;
   padding: 0.7em 1.2em;
   font-size: 0.9rem;
+  border-radius: var(--border-radius);
+  cursor: pointer;
+  text-decoration: none; /* Для Link */
+  transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease, transform 0.1s ease;
+}
+
+.backButton {
   color: var(--foreground-secondary);
   background-color: transparent;
   border: 1px solid var(--border-primary);
-  border-radius: var(--border-radius);
-  cursor: pointer;
-  transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease;
 }
 
 .backButton:hover {
   background-color: var(--background-tertiary);
   border-color: var(--foreground-secondary);
   color: var(--foreground-primary);
+}
+
+.editButton {
+  color: var(--foreground-primary);
+  background-color: var(--accent-secondary); /* Синий акцент */
+  border: 1px solid var(--accent-secondary);
+  font-weight: 500;
+}
+
+.editButton:hover {
+  background-color: hsl(from var(--accent-secondary) h s calc(l * 1.1));
+  border-color: hsl(from var(--accent-secondary) h s calc(l * 1.1));
+  color: #fff;
+}
+
+.backButton:active, .editButton:active {
+  transform: scale(0.98);
+}
+
+/* Стили для блока информации */
+.infoGrid {
+  display: grid;
+  grid-template-columns: auto 1fr; /* Метка | Значение */
+  gap: 0.5rem 1rem; /* Отступы между строками и колонками */
+  align-items: center;
+}
+
+.infoItem {
+  display: contents; /* Позволяет элементам внутри вести себя как прямым потомкам grid */
+}
+
+.infoLabel {
+  font-weight: 600;
+  color: var(--foreground-secondary);
+  text-align: right;
+}
+
+.infoValue {
+  color: var(--foreground-primary);
+}
+
+/* Стили для плейсхолдеров будущих секций */
+.profileContentPlaceholder {
+  padding: 1.5rem;
+  background-color: var(--background-secondary);
+  border-radius: var(--border-radius);
+  border: 1px dashed var(--border-primary); /* Пунктирная граница */
+  margin-bottom: 2rem;
+  text-align: center;
+  color: var(--foreground-tertiary);
+  min-height: 100px; /* Минимальная высота */
+  display: flex;
+  align-items: center;
+  justify-content: center;
 } 
