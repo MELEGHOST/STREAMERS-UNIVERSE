@@ -42,7 +42,7 @@
   width: 100%;
   height: 100%;
   overflow: hidden;
-  border-radius: 0; /* КВАДРАТНАЯ форма */
+  border-radius: 0 !important; /* КВАДРАТНАЯ форма */
   z-index: -1; 
 }
 
@@ -150,7 +150,7 @@
   width: calc(100% - 10px); /* Делаем чуть меньше рамки */
   height: calc(100% - 10px);
   overflow: hidden;
-  border-radius: 0; /* КВАДРАТНАЯ форма */
+  border-radius: 0 !important; /* КВАДРАТНАЯ форма */
   z-index: 1; /* Выше рамки */
   background-color: #010201; /* Фон подложки */
 }
@@ -161,7 +161,7 @@
   width: 100%;
   height: 100%;
   object-fit: cover; /* Масштабируем изображение с сохранением пропорций */
-  border-radius: 0; /* КВАДРАТНАЯ форма */
+  border-radius: 0 !important; /* КВАДРАТНАЯ форма */
 }
 
 /* Анимация вращения */
@@ -185,5 +185,5 @@
   color: #aaa;
   font-size: calc(var(--avatar-size, 150px) / 3); /* Размер шрифта зависит от размера аватара */
   font-weight: bold;
-  border-radius: 0;
+  border-radius: 0 !important;
 }

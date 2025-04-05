@@ -3,24 +3,25 @@ import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
 
 // --- Функция для получения токена приложения Twitch ---
-let appAccessToken = null;
-let tokenExpiry = 0;
 
 async function getTwitchAppAccessToken() {
-  // Если токен есть и не истек (с запасом в 1 минуту)
-  if (appAccessToken && Date.now() < tokenExpiry - 60 * 1000) {
-    console.log('[API] /api/twitch/user: Используем кэшированный токен приложения.');
-    return appAccessToken;
-  }
-
-  console.log('[API] /api/twitch/user: Запрос нового токена приложения Twitch...');
+  // Запрашиваем новый токен КАЖДЫЙ РАЗ
+  console.log('[API] /api/twitch/user: Запрос НОВОГО токена приложения Twitch...');
+  
   const clientId = process.env.TWITCH_CLIENT_ID;
   const clientSecret = process.env.TWITCH_CLIENT_SECRET;
 
-  if (!clientId || !clientSecret) {
-    console.error('[API] /api/twitch/user: Отсутствуют TWITCH_CLIENT_ID или TWITCH_CLIENT_SECRET!');
-    throw new Error('Ошибка конфигурации сервера: Отсутствуют учетные данные Twitch.');
+  // Добавляем ЯВНУЮ ПРОВЕРКУ переменных окружения
+  if (!clientId) {
+    console.error('[API] /api/twitch/user: КРИТИЧЕСКАЯ ОШИБКА: Переменная окружения TWITCH_CLIENT_ID не установлена!');
+    throw new Error('Ошибка конфигурации сервера (отсутствует TWITCH_CLIENT_ID).');
   }
+  if (!clientSecret) {
+    console.error('[API] /api/twitch/user: КРИТИЧЕСКАЯ ОШИБКА: Переменная окружения TWITCH_CLIENT_SECRET не установлена!');
+    throw new Error('Ошибка конфигурации сервера (отсутствует TWITCH_CLIENT_SECRET).');
+  }
+
+  console.log(`[API] /api/twitch/user: Используем Client ID: ${clientId.substring(0, 3)}...`); // Логируем только часть ID
 
   try {
     const response = await fetch('https://id.twitch.tv/oauth2/token', {
@@ -29,27 +30,39 @@ async function getTwitchAppAccessToken() {
         'Content-Type': 'application/x-www-form-urlencoded',
       },
       body: `client_id=${clientId}&client_secret=${clientSecret}&grant_type=client_credentials`,
+      // Добавляем cache: 'no-store', чтобы избежать кэширования fetch
+      cache: 'no-store' 
     });
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error(`[API] /api/twitch/user: Ошибка получения токена приложения Twitch (${response.status}): ${errorText}`);
-      throw new Error(`Ошибка получения токена Twitch: ${response.status}`);
+      const errorMsg = `[API] /api/twitch/user: Ошибка получения токена приложения Twitch (${response.status}): ${errorText}`;
+      console.error(errorMsg);
+      // Пробуем вернуть более понятную ошибку
+      if (response.status === 401 || response.status === 403) {
+         throw new Error('Ошибка авторизации Twitch: Неверный Client ID или Secret.');
+      } else if (response.status === 400) {
+          throw new Error('Ошибка запроса токена Twitch: Неверный формат запроса.');
+      } else {
+          throw new Error(`Ошибка получения токена Twitch: ${response.status}`);
+      }
     }
 
     const data = await response.json();
-    appAccessToken = data.access_token;
-    // Устанавливаем время истечения токена (expires_in в секундах)
-    tokenExpiry = Date.now() + (data.expires_in * 1000); 
+    if (!data.access_token) {
+        console.error('[API] /api/twitch/user: В ответе Twitch отсутствует access_token.', data);
+        throw new Error('Ошибка получения токена Twitch: Неверный ответ от сервера.');
+    }
+    
+    // Возвращаем ТОЛЬКО токен
     console.log('[API] /api/twitch/user: Новый токен приложения Twitch успешно получен.');
-    return appAccessToken;
+    return data.access_token;
 
   } catch (error) {
-    console.error('[API] /api/twitch/user: Критическая ошибка при получении токена приложения Twitch:', error);
-    // Сбрасываем кэш в случае ошибки
-    appAccessToken = null;
-    tokenExpiry = 0;
-    throw error; // Перебрасываем ошибку дальше
+    // Логируем ошибку перед перебросом
+    console.error('[API] /api/twitch/user: Критическая ошибка при запросе токена приложения Twitch:', error);
+    // Перебрасываем стандартизированную или оригинальную ошибку
+    throw new Error(error.message || 'Неизвестная ошибка при получении токена Twitch.'); 
   }
 }
 // --- Конец функции ---
@@ -216,42 +229,62 @@ export async function GET(request) {
       }
     }
 
-    // Получаем ТОКЕН ПРИЛОЖЕНИЯ
+    // Получаем ТОКЕН ПРИЛОЖЕНИЯ (теперь без внутреннего кэша)
     let currentAppAccessToken;
     try {
       currentAppAccessToken = await getTwitchAppAccessToken();
     } catch (tokenError) {
-      // Если не удалось получить токен, возвращаем ошибку 500
-      return NextResponse.json({ error: tokenError.message || 'Не удалось получить токен приложения Twitch' }, { status: 500 });
+      console.error("[API] /api/twitch/user: Не удалось получить токен приложения:", tokenError);
+      // Возвращаем ошибку 500 с сообщением от функции получения токена
+      return NextResponse.json({ error: `Ошибка конфигурации сервера: ${tokenError.message}` }, { status: 500 });
     }
     
     // Запрос к Twitch API с ТОКЕНОМ ПРИЛОЖЕНИЯ
     console.log(`[API] /api/twitch/user: Запрос к Twitch API.`);
     console.log(`  - Target User ID: ${targetUserId}`);
-    console.log(`  - Client ID: ${process.env.NEXT_PUBLIC_TWITCH_CLIENT_ID}`);
-    // Логируем только часть токена для безопасности
+    // Используем NEXT_PUBLIC_TWITCH_CLIENT_ID для заголовка Client-Id
+    const clientIdHeader = process.env.NEXT_PUBLIC_TWITCH_CLIENT_ID;
+    if (!clientIdHeader) {
+        console.error('[API] /api/twitch/user: Отсутствует NEXT_PUBLIC_TWITCH_CLIENT_ID для заголовка!');
+        // Можно вернуть ошибку или продолжить без него, если API Twitch позволяет
+    }
+    console.log(`  - Client ID Header: ${clientIdHeader ? clientIdHeader.substring(0,3)+'...' : 'НЕ НАЙДЕН'}`);
     console.log(`  - App Token Used (частично): ${currentAppAccessToken?.substring(0, 5)}...${currentAppAccessToken?.substring(currentAppAccessToken.length - 5)}`);
 
     const twitchResponse = await fetch(`https://api.twitch.tv/helix/users?id=${targetUserId}`, {
       headers: {
-        // Используем ТОКЕН ПРИЛОЖЕНИЯ
-        'Authorization': `Bearer ${currentAppAccessToken}`, 
-        'Client-Id': process.env.NEXT_PUBLIC_TWITCH_CLIENT_ID // Используем публичный ID здесь
-      }
+        'Authorization': `Bearer ${currentAppAccessToken}`,
+        // Убедимся, что используем правильную переменную для заголовка
+        'Client-Id': clientIdHeader || '' // Отправляем пустую строку, если ID не найден
+      },
+      cache: 'no-store' // Отключаем кэширование fetch и здесь
     });
 
     if (!twitchResponse.ok) {
       const errorText = await twitchResponse.text();
       console.error('[API] /api/twitch/user: Ошибка запроса к Twitch API:', twitchResponse.status, errorText);
-      // Возвращаем устаревший кэш, если он есть
+      
+      // Улучшаем обработку ошибок Twitch
+      let errorMessage = `Ошибка Twitch API: ${twitchResponse.status}`;
+      if (twitchResponse.status === 401) {
+          errorMessage = 'Ошибка авторизации Twitch: Используемый токен приложения недействителен.';
+          // Можно попробовать сбросить кэш токена (хотя мы его убрали)
+      } else if (twitchResponse.status === 429) {
+          errorMessage = 'Ошибка Twitch API: Превышен лимит запросов (429).';
+      } else if (twitchResponse.status === 400) {
+          errorMessage = `Ошибка запроса Twitch: Неверный ID пользователя (${targetUserId}) или другие параметры? (400)`;
+      }
+      
+      // Возвращаем устаревший кэш данных пользователя, если он есть
       if (cachedDataCookie) {
          try {
            const parsedData = JSON.parse(cachedDataCookie);
-           console.log('[API] /api/twitch/user: Ошибка Twitch API, возвращаем устаревшие кэшированные данные');
+           console.log('[API] /api/twitch/user: Ошибка Twitch API, возвращаем устаревшие кэшированные ДАННЫЕ пользователя');
            return NextResponse.json(parsedData);
          } catch {/* игнор */} 
       }
-      return NextResponse.json({ error: `Ошибка Twitch API: ${twitchResponse.status}` }, { status: 502 }); // Bad Gateway
+      // Если кэша нет, возвращаем ошибку 502 с понятным сообщением
+      return NextResponse.json({ error: errorMessage }, { status: 502 }); // Bad Gateway
     }
 
     const twitchData = await twitchResponse.json();
