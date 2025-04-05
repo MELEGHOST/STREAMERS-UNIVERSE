@@ -113,15 +113,17 @@ function Profile() {
 
     try {
       let cachedData = null;
-      try {
-        const storedData = localStorage.getItem('twitch_user');
-        if (storedData) {
-          cachedData = JSON.parse(storedData);
-          console.log('Профиль: найдены кэшированные данные в localStorage');
-          dataToSet = cachedData;
+      if (typeof window !== 'undefined') { 
+        try {
+          const storedData = localStorage.getItem('twitch_user');
+          if (storedData) {
+            cachedData = JSON.parse(storedData);
+            console.log('Профиль: найдены кэшированные данные в localStorage');
+            dataToSet = cachedData;
+          }
+        } catch (e) {
+          console.error('Ошибка при чтении из localStorage:', e);
         }
-      } catch (e) {
-        console.error('Ошибка при чтении из localStorage:', e);
       }
 
       const apiUrl = `/api/twitch/user?userId=${userId}`;
@@ -150,10 +152,12 @@ function Profile() {
           console.log('Профиль: получены СВЕЖИЕ данные пользователя Twitch:', data);
           if (data && data.id) {
             dataToSet = data;
-            try {
-              localStorage.setItem('twitch_user', JSON.stringify(data));
-            } catch (e) {
-              console.error('Ошибка при сохранении в localStorage:', e);
+            if (typeof window !== 'undefined') { 
+              try {
+                localStorage.setItem('twitch_user', JSON.stringify(data));
+              } catch (e) {
+                console.error('Ошибка при сохранении в localStorage:', e);
+              }
             }
           } else {
              console.warn('Профиль: получен пустой ответ или отсутствует ID пользователя от API');

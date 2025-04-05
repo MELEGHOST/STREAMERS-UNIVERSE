@@ -2,6 +2,58 @@ import { NextResponse } from 'next/server';
 import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
 
+// --- Функция для получения токена приложения Twitch ---
+let appAccessToken = null;
+let tokenExpiry = 0;
+
+async function getTwitchAppAccessToken() {
+  // Если токен есть и не истек (с запасом в 1 минуту)
+  if (appAccessToken && Date.now() < tokenExpiry - 60 * 1000) {
+    console.log('[API] /api/twitch/user: Используем кэшированный токен приложения.');
+    return appAccessToken;
+  }
+
+  console.log('[API] /api/twitch/user: Запрос нового токена приложения Twitch...');
+  const clientId = process.env.TWITCH_CLIENT_ID;
+  const clientSecret = process.env.TWITCH_CLIENT_SECRET;
+
+  if (!clientId || !clientSecret) {
+    console.error('[API] /api/twitch/user: Отсутствуют TWITCH_CLIENT_ID или TWITCH_CLIENT_SECRET!');
+    throw new Error('Ошибка конфигурации сервера: Отсутствуют учетные данные Twitch.');
+  }
+
+  try {
+    const response = await fetch('https://id.twitch.tv/oauth2/token', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+      },
+      body: `client_id=${clientId}&client_secret=${clientSecret}&grant_type=client_credentials`,
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error(`[API] /api/twitch/user: Ошибка получения токена приложения Twitch (${response.status}): ${errorText}`);
+      throw new Error(`Ошибка получения токена Twitch: ${response.status}`);
+    }
+
+    const data = await response.json();
+    appAccessToken = data.access_token;
+    // Устанавливаем время истечения токена (expires_in в секундах)
+    tokenExpiry = Date.now() + (data.expires_in * 1000); 
+    console.log('[API] /api/twitch/user: Новый токен приложения Twitch успешно получен.');
+    return appAccessToken;
+
+  } catch (error) {
+    console.error('[API] /api/twitch/user: Критическая ошибка при получении токена приложения Twitch:', error);
+    // Сбрасываем кэш в случае ошибки
+    appAccessToken = null;
+    tokenExpiry = 0;
+    throw error; // Перебрасываем ошибку дальше
+  }
+}
+// --- Конец функции ---
+
 export async function GET(request) {
   const { searchParams } = new URL(request.url);
   const userIdParam = searchParams.get('userId');
@@ -166,19 +218,23 @@ export async function GET(request) {
       }
     }
 
-    // Запрос к Twitch API
-    console.log(`[API] /api/twitch/user: Запрос к Twitch API для пользователя ${targetUserId}...`);
-    // ПРОВЕРЬТЕ, что переменная TWITCH_APP_ACCESS_TOKEN установлена!
-    const appAccessToken = process.env.TWITCH_APP_ACCESS_TOKEN;
-    if (!appAccessToken) {
-       console.error('[API] /api/twitch/user: Отсутствует TWITCH_APP_ACCESS_TOKEN!');
-       return NextResponse.json({ error: 'Ошибка конфигурации сервера (нет токена приложения)' }, { status: 500 });
+    // Получаем ТОКЕН ПРИЛОЖЕНИЯ
+    let currentAppAccessToken;
+    try {
+      currentAppAccessToken = await getTwitchAppAccessToken();
+    } catch (tokenError) {
+      // Если не удалось получить токен, возвращаем ошибку 500
+      return NextResponse.json({ error: tokenError.message || 'Не удалось получить токен приложения Twitch' }, { status: 500 });
     }
+    
+    // Запрос к Twitch API с ТОКЕНОМ ПРИЛОЖЕНИЯ
+    console.log(`[API] /api/twitch/user: Запрос к Twitch API для пользователя ${targetUserId} с токеном приложения...`);
     
     const twitchResponse = await fetch(`https://api.twitch.tv/helix/users?id=${targetUserId}`, {
       headers: {
-        'Authorization': `Bearer ${providerToken}`,
-        'Client-Id': process.env.NEXT_PUBLIC_TWITCH_CLIENT_ID
+        // Используем ТОКЕН ПРИЛОЖЕНИЯ
+        'Authorization': `Bearer ${currentAppAccessToken}`, 
+        'Client-Id': process.env.NEXT_PUBLIC_TWITCH_CLIENT_ID // Используем публичный ID здесь
       }
     });
 
