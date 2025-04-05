@@ -14,8 +14,8 @@ function ProfilePage() {
   const [loadingProfile, setLoadingProfile] = useState(true);
   const [error, setError] = useState(null);
   
-  // Извлекаем ID пользователя Supabase И Twitch ID из метаданных
-  const supabaseUserId = user?.id; 
+  // Удаляем неиспользуемый ID пользователя Supabase
+  // const supabaseUserId = user?.id; 
   const twitchUserId = user?.user_metadata?.provider_id;
 
   // Перенаправляем на /auth, если не аутентифицирован
