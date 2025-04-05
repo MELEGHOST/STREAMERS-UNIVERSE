@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useRef, useEffect, useState } from 'react';
 import Image from 'next/image';
 import styles from './CyberAvatar.module.css';
 
@@ -28,6 +28,9 @@ const CyberAvatar = ({
   priority = false,
   onError
 }) => {
+  const containerRef = useRef(null);
+  const cardRef = useRef(null);
+
   const [error, setError] = useState(false);
   const [imageSrc, setImageSrc] = useState("/images/default_avatar.png");
   
@@ -192,11 +195,12 @@ const CyberAvatar = ({
 
   return (
     <div 
+      ref={containerRef}
       className={`${styles.profileAvatarContainer} ${className}`}
       style={{ '--avatar-size': `${width || sizeInPixels}px` }} 
       data-size={size}
     >
-      <div className={styles.poda}>
+      <div ref={cardRef} className={styles.poda}>
         <div className={styles.glow} />
         <div className={styles.darkBorderBg} />
         <div className={styles.white} />
