@@ -2,7 +2,7 @@
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '../contexts/AuthContext';
-import styles from '../styles/page.module.css'; // Общие стили для заглушек
+import styles from '../../styles/page.module.css'; // Общие стили для заглушек
 
 export default function PlaceholderPage({ title }) {
   const { isLoading, isAuthenticated } = useAuth();
