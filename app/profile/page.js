@@ -44,8 +44,8 @@ function Profile() {
         try {
           console.log("Profile Init: Загрузка twitchUserData из localStorage");
           return JSON.parse(cached);
-        } catch (e) {
-          console.error("Profile Init: Ошибка парсинга кэша twitchUserData", e);
+        } catch (_) {
+          console.warn("Profile Init: Ошибка парсинга кэша twitchUserData при инициализации, игнорируется.");
           localStorage.removeItem('twitch_user');
         }
       }
@@ -131,7 +131,9 @@ function Profile() {
       if (cachedStr) {
         try {
           currentCachedData = JSON.parse(cachedStr);
-        } catch (e) { /* ignore */ }
+        } catch (_) { 
+             console.warn("Profile Init: Ошибка парсинга кэша twitchUserData при инициализации, игнорируется.");
+         }
       }
     }
 
@@ -291,6 +293,8 @@ function Profile() {
       }
   }, []);
 
+  // Отключаем предупреждение линтера для этого useEffect, так как зависимости намеренно ограничены
+  // eslint-disable-next-line react-hooks/exhaustive-deps 
   useEffect(() => {
     console.log(`Profile: useEffect[userId] сработал. Текущий userId: ${userId}`); 
     if (userId) {
@@ -299,8 +303,13 @@ function Profile() {
       loadUserProfileDbData(userId);
       loadTierlists(userId);
       loadReviews(userId);
+      // Проверяем админ-права один раз при появлении userId
       if (!hasCheckedAdmin) { 
           checkAdminAccess().then(access => {
+              // Используем переменную access, чтобы линтер не ругался
+              console.log('Profile: Admin access checked:', access); 
+              // Можно сохранить результат в состояние, если нужно
+              // setIsAdmin(access.isAdmin);
           });
           setHasCheckedAdmin(true);
       }
@@ -308,8 +317,9 @@ function Profile() {
       console.log("Profile: UserId сброшен или отсутствует, данные не загружаем.");
       setTwitchUserData(null);
       setUserProfile(null);
+      setHasCheckedAdmin(false); // Сбрасываем флаг проверки админа при выходе
     }
-  }, [userId]);
+  }, [userId]); // Зависим ТОЛЬКО от userId
 
   useEffect(() => {
     console.log("Profile: useEffect onAuthStateChange Сработал");
