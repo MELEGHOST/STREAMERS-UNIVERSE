@@ -40,7 +40,8 @@ function ProfilePage() {
           cachedDisplayData = JSON.parse(cachedStr);
           setTwitchUserData(cachedDisplayData); // Показываем кэш сразу
           console.log('[ProfilePage] Отображены предв. данные из localStorage.');
-        } catch (_) {
+        } catch (error) {
+           console.warn('[ProfilePage] Ошибка парсинга localStorage, удаляем битый ключ:', error.message);
            localStorage.removeItem(cachedKey); // Удаляем битый кэш
         }
       }
