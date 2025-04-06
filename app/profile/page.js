@@ -142,7 +142,8 @@ function ProfilePage() {
   const avatarUrl = twitchUserData?.profile_image_url || user?.user_metadata?.avatar_url || '/images/default_avatar.png';
   const viewCount = twitchUserData?.view_count;
   const createdAt = twitchUserData?.created_at;
-  const broadcasterType = twitchUserData?.broadcaster_type;
+  const profileDescription = profileData?.description;
+  const profileSocialLinks = profileData?.social_links; // Пока просто текст
 
   // Функция форматирования даты
   const formatDate = (dateString) => {
