@@ -4,13 +4,12 @@ import { useState, useRef, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { useAuth } from '../contexts/AuthContext';
-import Link from 'next/link';
 import styles from './search.module.css';
 import pageStyles from '../../styles/page.module.css';
 
 export default function SearchPage() {
   const router = useRouter();
-  const { user, isLoading: authLoading, isAuthenticated } = useAuth();
+  const { isLoading: authLoading, isAuthenticated } = useAuth();
   const [query, setQuery] = useState('');
   const [results, setResults] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -131,7 +130,7 @@ export default function SearchPage() {
         )}
         {isDropdownVisible && !isLoading && results.length === 0 && query.length >= 2 && (
              <div className={`${styles.searchResultsDropdown} ${styles.noResults}`}>
-                Ничего не найдено по запросу "{query}".
+                Ничего не найдено по запросу &quot;{query}&quot;.
              </div>
         )}
       </div>

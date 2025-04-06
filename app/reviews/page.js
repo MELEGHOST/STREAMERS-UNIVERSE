@@ -7,8 +7,7 @@ import pageStyles from '../../styles/page.module.css';
 import Image from 'next/image';
 
 // Компонент для отображения одного отзыва (можно вынести в отдельный файл)
-function ReviewCard({ review, isAdmin, onModerate }) {
-    const { user: authUser } = useAuth(); // Для проверки, является ли пользователь автором
+function ReviewCard({ review }) {
     const formatDate = (dateString) => {
         if (!dateString) return 'Неизвестно';
         try {

@@ -7,7 +7,7 @@ import Image from 'next/image';
 import { useAuth } from '../contexts/AuthContext';
 import styles from './menu.module.css';
 import pageStyles from '../../styles/page.module.css';
-import { FaUser, FaUsers, FaCog, FaPlusCircle, FaSignOutAlt, FaSearch, FaCommentDots } from 'react-icons/fa';
+import { FaUsers, FaCog, FaSignOutAlt, FaSearch, FaCommentDots } from 'react-icons/fa';
 
 export default function MenuPage() {
   const router = useRouter();

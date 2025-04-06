@@ -141,7 +141,7 @@ export default function CreateReviewPage() {
           const filePath = `public/${fileName}`; // Путь в бакете reviews-images
 
           const { data: uploadData, error: uploadError } = await supabase.storage
-              .from('reviews-images') // Указываем бакет для картинок
+              .from('reviews-images')
               .upload(filePath, imageFile);
 
           if (uploadError) {

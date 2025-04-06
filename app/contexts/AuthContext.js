@@ -115,7 +115,7 @@ export function AuthProvider({ children }) {
     isLoading: loading,
     supabase, // Предоставляем клиент Supabase для прямого использования при необходимости
     signInWithTwitch // <<< Добавляем функцию в контекст
-  }), [user, session, loading, supabase]);
+  }), [user, session, loading, supabase, signInWithTwitch]);
 
   // Добавляем проверку на случай, если supabase null
   if (!supabase) {
