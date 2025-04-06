@@ -83,4 +83,68 @@ export default function SearchPage() {
     setIsDropdownVisible(false);
     router.push(`/profile/${result.twitch_id}`);
   };
+
+  if (authLoading) {
+    return <div className={pageStyles.loadingContainer}><div className="spinner"></div></div>;
+  }
+
+  if (!isAuthenticated) {
+    router.replace('/');
+    return <div className={pageStyles.loadingContainer}><p>Требуется авторизация...</p></div>;
+  }
+
+  return (
+    <div className={pageStyles.container}>
+      <h1 className={pageStyles.title}>Поиск пользователей</h1>
+      
+      <div className={styles.searchContainer} ref={searchContainerRef}>
+        <input
+          type="text"
+          value={query}
+          onChange={handleInputChange}
+          onFocus={() => setIsDropdownVisible(results.length > 0)}
+          placeholder="Введите никнейм пользователя Twitch..."
+          className={styles.searchInput}
+          aria-label="Поиск пользователей"
+        />
+        {isLoading && <div className={`${styles.searchSpinner} spinner`}></div>}
+        
+        {isDropdownVisible && results.length > 0 && (
+          <div className={styles.searchResultsDropdown}>
+            {results.map((result) => (
+              <div 
+                key={result.twitch_id || result.login}
+                className={styles.searchResultItem}
+                onClick={() => handleResultClick(result)}
+              >
+                <Image 
+                  src={result.avatar_url || '/default_avatar.png'} 
+                  alt={result.display_name}
+                  width={40}
+                  height={40}
+                  className={styles.searchResultAvatar}
+                />
+                <div className={styles.searchResultInfo}>
+                  <span className={styles.searchResultName}>{result.display_name}</span>
+                  <span className={styles.searchResultLogin}>@{result.login}</span>
+                </div>
+                <span 
+                    className={`${styles.statusIndicator} ${result.registered ? styles.registered : styles.notRegistered}`}
+                    title={result.registered ? "Зарегистрирован в Streamers Universe" : "Не зарегистрирован в Streamers Universe"}
+                ></span>
+                {result.is_live && <span className={styles.liveBadge}>LIVE</span>}
+              </div>
+            ))}
+          </div>
+        )}
+        {isDropdownVisible && !isLoading && results.length === 0 && query.length >= 2 && (
+             <div className={`${styles.searchResultsDropdown} ${styles.noResults}`}>
+                Ничего не найдено по запросу &quot;{query}&quot;.
+             </div>
+        )}
+      </div>
+
+      {error && <p className={pageStyles.errorText}>Ошибка: {error}</p>}
+    </div>
+  );
 }

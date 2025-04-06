@@ -157,7 +157,7 @@ export default function UserProfilePage() {
              setIsRegistered(isRegisteredCheck);
         }
     }
-  }, [profileTwitchId, isAuthenticated, supabase]);
+  }, [profileTwitchId, isAuthenticated, supabase, isRegistered]);
 
   useEffect(() => {
       loadProfileData();
