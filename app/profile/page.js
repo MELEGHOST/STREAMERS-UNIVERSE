@@ -265,7 +265,8 @@ function ProfilePage() {
                <div className={styles.socialLinksContainer}> {/* Обертка для кнопок */} 
                  {/* Перебираем ключи объекта social_links и рендерим кнопки */} 
                  {Object.entries(profileSocialLinks)
-                   .filter(([_, url]) => url) // Показываем только если URL не пустой
+                   // Используем [, url], чтобы игнорировать первый элемент (ключ) без объявления переменной
+                   .filter(([, url]) => url) 
                    .map(([platform, url]) => (
                      <SocialLinkButton key={platform} platform={platform} url={url} />
                    ))}
