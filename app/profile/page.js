@@ -19,14 +19,13 @@ const translateBroadcasterType = (type) => {
 
 function ProfilePage() {
   const router = useRouter();
-  const { user, isLoading, isAuthenticated } = useAuth();
+  const { user, isLoading, isAuthenticated, supabase } = useAuth();
   
   const [twitchUserData, setTwitchUserData] = useState(null);
+  const [profileData, setProfileData] = useState(null); // Состояние для данных из таблицы profiles
   const [loadingProfile, setLoadingProfile] = useState(true);
   const [error, setError] = useState(null);
   
-  // Удаляем неиспользуемый ID пользователя Supabase
-  // const supabaseUserId = user?.id; 
   const twitchUserId = user?.user_metadata?.provider_id;
 
   // Перенаправляем на /auth, если не аутентифицирован
@@ -37,86 +36,106 @@ function ProfilePage() {
     }
   }, [isLoading, isAuthenticated, router]);
 
-  // Функция для загрузки данных с Twitch API
-  const fetchTwitchUserData = useCallback(async (idToFetch) => {
-    // Убедимся, что ID - это числовой Twitch ID
-    if (!idToFetch || typeof idToFetch !== 'string' || !/^[0-9]+$/.test(idToFetch)) {
-        console.warn(`[ProfilePage] Неверный или отсутствующий Twitch ID для запроса: ${idToFetch}`);
-        setError('Не удалось определить Twitch ID пользователя для запроса данных.');
-        setLoadingProfile(false);
-        return;
-    }
-    console.log(`[ProfilePage] Загрузка данных Twitch для twitchUserId: ${idToFetch}...`);
-    setError(null);
-    setLoadingProfile(true);
-
-    let cachedDisplayData = null;
-    const cachedKey = `twitch_user_${idToFetch}`; // Ключ кэша теперь по Twitch ID
-    if (typeof window !== 'undefined') {
-      const cachedStr = localStorage.getItem(cachedKey);
-      if (cachedStr) {
-        try {
-          cachedDisplayData = JSON.parse(cachedStr);
-          setTwitchUserData(cachedDisplayData); // Показываем кэш сразу
-          console.log('[ProfilePage] Отображены предв. данные из localStorage.');
-        } catch (error) {
-           console.warn('[ProfilePage] Ошибка парсинга localStorage, удаляем битый ключ:', error.message);
-           localStorage.removeItem(cachedKey); // Удаляем битый кэш
-        }
+  // Общая функция загрузки данных (Twitch + Профиль из БД)
+  const loadAllData = useCallback(async () => {
+      if (!user || !supabase || !twitchUserId) {
+          console.warn("[ProfilePage] Отсутствует user, supabase или twitchUserId, загрузка прервана.");
+          setLoadingProfile(false); // Останавливаем общую загрузку
+          if (!twitchUserId && isAuthenticated) {
+             setError("Не удалось получить Twitch ID для загрузки данных.");
+          }
+          return;
       }
-    }
+      
+      console.log(`[ProfilePage] Загрузка ВСЕХ данных для twitchUserId: ${twitchUserId}, userId: ${user.id}`);
+      setLoadingProfile(true);
+      setError(null);
+      let loadedTwitchData = null;
+      let loadedProfileData = null;
 
-    try {
-      // Передаем Twitch ID в API
-      const apiUrl = `/api/twitch/user?userId=${idToFetch}`; 
-      const response = await fetch(apiUrl);
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        const errorMsg = `[ProfilePage] Ошибка API /api/twitch/user (${response.status}): ${errorText}`;
-        console.error(errorMsg);
-        setError(`Не удалось загрузить данные (${response.status}). Используются кэшированные данные, если есть.`);
-        // Оставляем twitchUserData (кэш)
-      } else {
-        const data = await response.json();
-        console.log('[ProfilePage] Получены свежие данные от API:', data);
-        setTwitchUserData(data); // Устанавливаем свежие данные
-        // Сохраняем свежие данные в localStorage
-        if (typeof window !== 'undefined' && data) {
-            try {
-               localStorage.setItem(cachedKey, JSON.stringify(data));
-               console.log('[ProfilePage] Свежие данные сохранены в localStorage.');
-            } catch (storageError) {
-               console.error('[ProfilePage] Ошибка сохранения в localStorage:', storageError);
-            }
-        }
+      // Кэш для Twitch данных
+      const twitchCacheKey = `twitch_user_${twitchUserId}`;
+      if (typeof window !== 'undefined') {
+          const cachedStr = localStorage.getItem(twitchCacheKey);
+          if (cachedStr) {
+              try {
+                  loadedTwitchData = JSON.parse(cachedStr);
+                  setTwitchUserData(loadedTwitchData);
+                  console.log('[ProfilePage] Отображены предв. Twitch данные из localStorage.');
+              } catch { localStorage.removeItem(twitchCacheKey); }
+          }
       }
-    } catch (fetchError) {
-      console.error('[ProfilePage] Критическая ошибка при fetch Twitch data:', fetchError);
-      setError(`Критическая ошибка загрузки: ${fetchError.message}. Используются кэшированные данные, если есть.`);
-      // Оставляем кэшированные данные
-    } finally {
-      setLoadingProfile(false); 
-    }
-  }, []);
 
-  // Загружаем данные, когда появляется Twitch ID
+      try {
+          // Параллельно запускаем загрузку Twitch и данных профиля
+          const [twitchResponse, profileResponse] = await Promise.all([
+              // Запрос Twitch API
+              fetch(`/api/twitch/user?userId=${twitchUserId}`),
+              // Запрос данных профиля из БД
+              supabase
+                  .from('user_profiles')
+                  .select('birthday, social_links, description')
+                  .eq('user_id', user.id)
+                  .maybeSingle()
+          ]);
+
+          // Обработка ответа Twitch API
+          if (!twitchResponse.ok) {
+              const errorText = await twitchResponse.text();
+              console.error(`[ProfilePage] Ошибка API /api/twitch/user (${twitchResponse.status}): ${errorText}`);
+              // Не устанавливаем ошибку, если есть кэш
+              if (!loadedTwitchData) {
+                 setError(`Не удалось загрузить данные Twitch (${twitchResponse.status}).`);
+              } else {
+                  console.warn("[ProfilePage] Ошибка загрузки свежих данных Twitch, используем кэш.");
+              }
+          } else {
+              loadedTwitchData = await twitchResponse.json();
+              console.log('[ProfilePage] Получены свежие данные Twitch от API:', loadedTwitchData);
+              setTwitchUserData(loadedTwitchData);
+              if (typeof window !== 'undefined' && loadedTwitchData) {
+                  try { localStorage.setItem(twitchCacheKey, JSON.stringify(loadedTwitchData)); } catch (e) { console.error("LS set error", e);}
+              }
+          }
+
+          // Обработка ответа от Supabase (profiles)
+          if (profileResponse.error) {
+              console.error("[ProfilePage] Ошибка загрузки данных профиля из БД:", profileResponse.error);
+              setError((prevError) => prevError ? `${prevError} | Ошибка загрузки доп. данных профиля.` : 'Ошибка загрузки доп. данных профиля.');
+          } else {
+              loadedProfileData = profileResponse.data;
+              console.log('[ProfilePage] Получены данные профиля из БД:', loadedProfileData);
+              setProfileData(loadedProfileData); // Устанавливаем данные профиля (birthday, social_links, description)
+          }
+
+      } catch (fetchError) {
+          console.error('[ProfilePage] Критическая ошибка при fetch данных:', fetchError);
+          setError(`Критическая ошибка загрузки: ${fetchError.message}.`);
+          // Оставляем кэшированные данные, если они есть
+      } finally {
+          setLoadingProfile(false); 
+      }
+  }, [user, supabase, twitchUserId, isAuthenticated]); // Добавляем зависимость isAuthenticated
+
+  // Загружаем данные, когда все условия выполнены
   useEffect(() => {
-    // Запускаем загрузку только если есть twitchUserId
-    if (twitchUserId) {
-      console.log(`[ProfilePage] Twitch ID (${twitchUserId}) доступен, запускаем fetchTwitchUserData.`);
-      fetchTwitchUserData(twitchUserId);
-    } else if (!isLoading && isAuthenticated) {
-        // Если аутентифицирован, но нет Twitch ID - это странно
-        console.error("[ProfilePage] Пользователь аутентифицирован, но Twitch ID (provider_id) отсутствует в user_metadata!");
-        setError("Не удалось получить Twitch ID из данных аутентификации.");
-        setLoadingProfile(false); 
+    if (!isLoading && isAuthenticated && user && twitchUserId && supabase) {
+      loadAllData();
     } else if (!isLoading && !isAuthenticated) {
-         // Пользователь не аутентифицирован (уже обрабатывается другим useEffect)
+      console.log('[ProfilePage] Пользователь не аутентифицирован, редирект на /auth');
+      router.push('/auth?message=Session+expired+or+not+found&next=/profile');
+    }
+    // Добавляем проверки на случай отсутствия twitchUserId или user после аутентификации
+    else if (!isLoading && isAuthenticated && !user) {
+        console.error("[ProfilePage] Пользователь аутентифицирован, но объект user отсутствует!");
+        setError("Произошла ошибка аутентификации. Попробуйте перезайти.");
+        setLoadingProfile(false);
+    } else if (!isLoading && isAuthenticated && user && !twitchUserId) {
+         console.error("[ProfilePage] Пользователь аутентифицирован, но Twitch ID (provider_id) отсутствует в user_metadata!");
+         setError("Не удалось получить Twitch ID из данных аутентификации.");
          setLoadingProfile(false);
     }
-  // Зависим от twitchUserId и isLoading (чтобы дождаться загрузки user)
-  }, [twitchUserId, isLoading, isAuthenticated, fetchTwitchUserData]);
+  }, [isLoading, isAuthenticated, user, twitchUserId, supabase, loadAllData, router]);
 
   // Определяем данные для отображения
   const displayName = twitchUserData?.display_name || user?.user_metadata?.full_name || 'Загрузка...';
@@ -124,6 +143,8 @@ function ProfilePage() {
   const viewCount = twitchUserData?.view_count;
   const createdAt = twitchUserData?.created_at;
   const broadcasterType = twitchUserData?.broadcaster_type;
+  const profileDescription = profileData?.description;
+  const profileSocialLinks = profileData?.social_links; // Пока просто текст
 
   // Функция форматирования даты
   const formatDate = (dateString) => {
@@ -165,7 +186,7 @@ function ProfilePage() {
       {error && <div className={styles.errorMessage}>{error}</div>} 
 
       <div className={styles.profileHeader}>
-        {(loadingProfile && !twitchUserData) ? (
+        {(loadingProfile && !twitchUserData && !profileData) ? (
           <div className={styles.skeletonHeader}>
             <div className={`${styles.skeletonAvatar} ${styles.skeleton}`}></div>
             <div style={{ flexGrow: 1 }}>
@@ -194,34 +215,59 @@ function ProfilePage() {
         )}
       </div>
 
-      {/* Основной контент профиля (Информация) */} 
+      {/* Основной контент профиля (Информация Twitch + Описание) */} 
       <div className={styles.profileContent}>
         <h2>Информация</h2>
         {loadingProfile ? (
-          <div className={styles.skeletonSection}>
-             <div className={`${styles.skeletonText} ${styles.skeleton}`}></div>
-             <div className={`${styles.skeletonText} ${styles.skeleton}`}></div>
-             <div className={`${styles.skeletonText} ${styles.skeleton.short}`}></div>
-          </div>
-        ) : twitchUserData ? (
-          <div className={styles.infoGrid}> {/* Используем grid для лучшего выравнивания */} 
-            <div className={styles.infoItem}>
-              <span className={styles.infoLabel}>Тип канала:</span>
-              <span className={styles.infoValue}>{translateBroadcasterType(broadcasterType)}</span>
-            </div>
-          </div>
+           <div className={styles.skeletonSection}>
+              <div className={`${styles.skeletonText} ${styles.skeleton}`}></div>
+              <div className={`${styles.skeletonText} ${styles.skeleton}`}></div>
+              <div className={`${styles.skeletonText} ${styles.skeleton.short}`}></div>
+           </div>
         ) : (
-          <p>Не удалось загрузить информацию профиля.</p>
+          <div className={styles.infoGrid}> 
+            {/* Twitch Info */}
+            {twitchUserData && (
+               <div className={styles.infoItem}>
+                 <span className={styles.infoLabel}>Тип канала Twitch:</span>
+                 <span className={styles.infoValue}>{translateBroadcasterType(twitchUserData.broadcaster_type)}</span>
+               </div>
+            )}
+            {/* Profile Description */}
+            {profileDescription && (
+               <div className={styles.infoItem} style={{ gridColumn: '1 / -1' }}> {/* Растягиваем на обе колонки */} 
+                 <span className={styles.infoLabel}>О себе:</span>
+                 {/* Используем white-space: pre-wrap для сохранения переносов строк */}
+                 <span className={styles.infoValue} style={{ whiteSpace: 'pre-wrap' }}>
+                     {profileDescription}
+                 </span>
+               </div>
+            )}
+            {/* Если нет ни того, ни другого (и не загрузка) */} 
+            {!twitchUserData && !profileDescription && !loadingProfile && (
+                <p>Дополнительная информация отсутствует.</p>
+            )}
+          </div>
         )}
       </div>
 
-      {/* Место для будущих секций (описание, соцсети и т.д.) */} 
-      <div className={styles.profileContentPlaceholder}>
-         {/* Например, здесь будет описание из БД */} 
-      </div>
-      <div className={styles.profileContentPlaceholder}>
-         {/* Например, здесь будут соцсети из БД */} 
-      </div>
+      {/* Ссылки на соцсети */} 
+      {profileSocialLinks && (
+          <div className={styles.profileContent}>
+            <h2>Социальные сети</h2>
+            {loadingProfile ? (
+                <div className={styles.skeletonSection}>
+                   <div className={`${styles.skeletonText} ${styles.skeleton}`}></div>
+                </div>
+            ) : (
+               <div style={{ whiteSpace: 'pre-wrap', fontFamily: 'monospace' }}>
+                  {typeof profileSocialLinks === 'object' && profileSocialLinks !== null 
+                      ? JSON.stringify(profileSocialLinks, null, 2) 
+                      : profileSocialLinks /* Если не объект, показываем как строку (на случай если в базе текст) */}
+               </div>
+            )}
+          </div>
+      )}
 
     </div>
   );
