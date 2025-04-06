@@ -51,13 +51,15 @@ const SocialLinkButton = ({ platform, url, text: customText }) => {
 
   // Пытаемся сделать URL полным, если он не содержит http/https
   let finalUrl = url;
-  if (url && !url.startsWith('http') && !url.startsWith('//')) {
+  // Добавляем проверку, что url это строка
+  if (typeof url === 'string' && url && !url.startsWith('http') && !url.startsWith('//')) {
       // Для Discord может быть username#tag, не делаем префикс
       if (platform !== 'discord' || url.includes('discord.gg') || url.includes('.com')) {
           finalUrl = config.defaultUrlPrefix + url;
       }
-  } else if (!url) {
-     return null; // Не рендерим кнопку без URL
+  } else if (!url || typeof url !== 'string') { // Также проверяем, что url не пустой и строка
+     console.warn(`[SocialLinkButton] Invalid URL received for platform ${platform}:`, url);
+     return null; // Не рендерим кнопку без валидного URL
   }
 
   return (
