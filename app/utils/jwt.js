@@ -1,4 +1,4 @@
-import { SignJWT, jwtVerify } from 'jose';
+import { jwtVerify } from 'jose';
 // import { createPublicKey } from 'crypto'; // НЕ ИСПОЛЬЗУЕТСЯ
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;

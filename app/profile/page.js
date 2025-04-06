@@ -2,12 +2,13 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
-import Link from 'next/link'; // Добавляем Link для кнопки
-import CyberAvatar from '../components/CyberAvatar'; // Импортируем заглушку
+// import Link from 'next/link'; // НЕ ИСПОЛЬЗУЕТСЯ
+import CyberAvatar from '../components/CyberAvatar';
 import styles from './profile.module.css';
 import { useAuth } from '../contexts/AuthContext';
 // import SocialLinkButton from '../components/SocialLinkButton/SocialLinkButton'; // <<< Удаляем старый импорт
-import StyledSocialButton from '../components/StyledSocialButton/StyledSocialButton'; // <<< Импортируем новый
+import StyledSocialButton from '../components/StyledSocialButton/StyledSocialButton';
+import Image from 'next/image'; // <<< Добавляем Image
 
 // Функция для перевода типа канала
 const translateBroadcasterType = (type) => {
@@ -78,7 +79,6 @@ function ProfilePage() {
       setLoadingProfile(true);
       setError(null);
       let loadedTwitchData = null;
-      let loadedProfileData = null;
 
       // Кэш для Twitch данных
       const twitchCacheKey = `twitch_user_${twitchUserId}`;
@@ -321,10 +321,13 @@ function ProfilePage() {
                  <div className={styles.videosGrid}>
                      {videos.map(video => (
                          <a key={video.id} href={video.url} target="_blank" rel="noopener noreferrer" className={styles.videoCard}>
-                             <img 
-                                 src={video.thumbnail_url.replace('%{width}', '320').replace('%{height}', '180')} 
+                             <Image
+                                 src={video.thumbnail_url.replace('%{width}', '320').replace('%{height}', '180')}
                                  alt={`Превью видео ${video.title}`}
+                                 width={320}
+                                 height={180}
                                  className={styles.videoThumbnail}
+                                 unoptimized
                              />
                              <div className={styles.videoInfo}>
                                  <h3 className={styles.videoTitle} title={video.title}>{video.title}</h3>

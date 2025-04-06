@@ -50,7 +50,7 @@ export default function UserProfilePage() {
   const params = useParams();
   const profileTwitchId = params.twitchId;
 
-  const { user, isLoading: authLoading, isAuthenticated, supabase } = useAuth();
+  const { user, isAuthenticated, supabase } = useAuth();
   const currentUserTwitchId = user?.user_metadata?.provider_id;
   const isOwnProfile = currentUserTwitchId === profileTwitchId;
 
@@ -157,7 +157,7 @@ export default function UserProfilePage() {
              setIsRegistered(isRegisteredCheck);
         }
     }
-  }, [profileTwitchId, isAuthenticated, supabase]);
+  }, [profileTwitchId, isAuthenticated, supabase, isRegistered]);
 
   useEffect(() => {
       loadProfileData();

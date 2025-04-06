@@ -1,7 +1,6 @@
 'use client';
 import { useEffect, useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
-import Link from 'next/link';
 import { useAuth } from '../contexts/AuthContext';
 import styles from './reviews.module.css'; 
 import pageStyles from '../../styles/page.module.css';
@@ -40,8 +39,8 @@ function ReviewCard({ review }) {
 }
 
 export default function ReviewsPage() {
-  const { user, isLoading, isAuthenticated, supabase } = useAuth();
   const router = useRouter();
+  const { isLoading: authLoading, isAuthenticated } = useAuth();
   const title = "Отзывы";
 
   const [reviews, setReviews] = useState([]);
@@ -77,11 +76,11 @@ export default function ReviewsPage() {
 
   // useEffect для редиректа неавторизованных
   useEffect(() => {
-    if (!isLoading && !isAuthenticated) {
+    if (!authLoading && !isAuthenticated) {
       console.log(`[${title} Page] Not authenticated, redirecting to auth`);
       router.push(`/auth?next=/reviews`);
     }
-  }, [isLoading, isAuthenticated, router, title]);
+  }, [authLoading, isAuthenticated, router, title]);
 
   // useEffect для загрузки отзывов
   useEffect(() => {
@@ -90,7 +89,7 @@ export default function ReviewsPage() {
       }
   }, [isAuthenticated, supabase, fetchReviews]);
 
-  if (isLoading) {
+  if (authLoading) {
     return (
       <div className={pageStyles.loadingContainer}>
         <div className="spinner"></div><p>Загрузка страницы отзывов...</p>
