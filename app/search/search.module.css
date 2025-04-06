@@ -109,23 +109,34 @@
     flex-shrink: 0;
 }
 
+.statusIndicator {
+    width: 10px; /* Размер кружка */
+    height: 10px;
+    border-radius: 50%;
+    margin-left: auto; /* Прижимаем вправо */
+    margin-right: 8px; /* Отступ от края или LIVE значка */
+    flex-shrink: 0;
+    display: inline-block; /* Чтобы занимал место */
+}
+
+.statusIndicator.registered {
+    background-color: var(--success-color); /* Зеленый */
+}
+
+.statusIndicator.notRegistered {
+    background-color: var(--error-color); /* Красный */
+}
+
 .liveBadge {
+    /* Убираем margin-left: auto, т.к. теперь есть кружок */
+    /* margin-left: auto; */
+    flex-shrink: 0;
     background-color: var(--error-color); 
     color: white;
     font-size: 0.75rem;
     font-weight: bold;
     padding: 0.2rem 0.5rem;
     border-radius: var(--border-radius-sm);
-    margin-left: auto;
-    flex-shrink: 0;
-}
-
-.registeredBadge {
-    color: var(--success-color);
-    font-size: 1rem;
-    margin-left: 0.5rem;
-    flex-shrink: 0;
-    cursor: default;
 }
 
 .inviteButton {
