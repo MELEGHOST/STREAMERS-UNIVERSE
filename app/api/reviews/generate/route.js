@@ -4,7 +4,7 @@ import { verifyJwt } from '../../../utils/jwt';
 import OpenAI from 'openai'; // Используем openai SDK для OpenRouter
 import ytdl from 'ytdl-core'; // Добавляем импорт ytdl-core
 import { PassThrough } from 'stream'; // Для работы с потоками
-import { validateTwitchUser } from '../../../utils/twitchApi'; // <<< Импортируем утилиту
+import { validateTwitchUser } from '../../../utils/twitchApi.js'; // <<< Добавляем .js
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_KEY;

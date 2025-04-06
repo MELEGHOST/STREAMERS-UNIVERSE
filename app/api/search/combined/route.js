@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js'; // Используем обычный клиент для чтения
-import { searchTwitchChannels, getTwitchUsers } from '../../../utils/twitchApi'; // Импортируем утилиты Twitch
+import { searchTwitchChannels, getTwitchUsers } from '../../../utils/twitchApi.js'; // Импортируем утилиты Twitch
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
