@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
-import { verifyJwt } from 'utils/jwt'; // <<< Пробуем путь от корня
+import { verifyJwt } from '../../utils/jwt'; // <<< Путь к app/utils/jwt
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_KEY;
