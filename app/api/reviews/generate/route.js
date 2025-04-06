@@ -178,7 +178,7 @@ export async function POST(request) {
         }
 
         // 3. Ограничение на размер текста для промпта Gemini
-        const maxContentLength = 8000; // Увеличим лимит для Gemini, т.к. транскрипты могут быть большими
+        const maxContentLength = 50000; // <<< УВЕЛИЧИВАЕМ ЛИМИТ ЗНАЧИТЕЛЬНО
         const truncatedContent = fileContentText.length > maxContentLength 
             ? fileContentText.substring(0, maxContentLength) + "... [содержимое обрезано]"
             : fileContentText;

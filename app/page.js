@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from './contexts/AuthContext'; // Импортируем контекст
 import styles from '../styles/page.module.css'; // Используем общие стили
+import { FaTwitch } from 'react-icons/fa'; // Импортируем иконку
 
 export default function HomePage() {
   const { isLoading, isAuthenticated, signInWithTwitch } = useAuth();
@@ -57,15 +58,18 @@ export default function HomePage() {
 
         <button 
           onClick={handleLogin} 
-          className={styles.ctaButton} 
-          disabled={isLoggingIn} // Блокируем кнопку во время процесса
+          className={`${styles.ctaButton} ${styles.twitchButton}`}
+          disabled={isLoggingIn}
         >
           {isLoggingIn ? (
             <>
               <span className="spinner button-spinner"></span> Вход...
             </>
           ) : (
-            'Войти через Twitch'
+            <>
+              <FaTwitch className={styles.twitchIcon} />
+              <span>Войти через Twitch</span>
+            </>
           )}
         </button>
       </main>

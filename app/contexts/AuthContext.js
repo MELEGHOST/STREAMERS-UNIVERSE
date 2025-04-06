@@ -90,13 +90,31 @@ export function AuthProvider({ children }) {
     };
   }, [supabase, router]); // Добавляем router в зависимости
 
+  // Функция входа через Twitch
+  const signInWithTwitch = async () => {
+    if (!supabase) throw new Error("Supabase client not available");
+    console.log('[AuthContext] Attempting Twitch sign in...');
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: 'twitch',
+      options: {
+        // redirectTo: `${window.location.origin}/auth/callback`, // Vercel должен сам подхватить
+      },
+    });
+    if (error) {
+      console.error('[AuthContext] Twitch sign in error:', error);
+      throw error; // Пробрасываем ошибку дальше
+    }
+    // Редирект произойдет автоматически
+  };
+
   // Предоставляем значения через контекст
   const value = useMemo(() => ({
     user,
     session,
     isAuthenticated: !!user,
     isLoading: loading,
-    supabase // Предоставляем клиент Supabase для прямого использования при необходимости
+    supabase, // Предоставляем клиент Supabase для прямого использования при необходимости
+    signInWithTwitch // <<< Добавляем функцию в контекст
   }), [user, session, loading, supabase]);
 
   // Добавляем проверку на случай, если supabase null

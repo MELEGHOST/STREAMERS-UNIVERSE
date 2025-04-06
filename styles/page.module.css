@@ -48,4 +48,55 @@
     border-color: var(--foreground-secondary);
     color: var(--foreground-primary);
   }
+
+  /* Стили для кнопки входа */
+  .ctaButton {
+    display: inline-flex; /* Используем flex для выравнивания иконки и текста */
+    align-items: center;
+    justify-content: center;
+    padding: 12px 24px;
+    font-size: 1rem; /* Или 16px */
+    font-weight: 600;
+    color: #fff;
+    background-color: #6441a5; /* Фирменный цвет Twitch */
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: background-color 0.3s ease, transform 0.1s ease;
+    text-decoration: none;
+    white-space: nowrap; /* Предотвращаем перенос текста */
+  }
+
+  .ctaButton:hover {
+    background-color: #7d5bbe; /* Немного светлее при наведении */
+  }
+
+  .ctaButton:active {
+    transform: scale(0.98);
+  }
+
+  .ctaButton:disabled {
+    background-color: #b3a2d1; /* Бледный цвет для неактивной кнопки */
+    cursor: not-allowed;
+  }
+
+  /* Класс для Twitch кнопки (может и не нужен, но оставим для ясности) */
+  .twitchButton {
+    /* Здесь можно добавить специфичные для Twitch стили, если понадобятся */
+  }
+
+  /* Стили для иконки Twitch */
+  .twitchIcon {
+    margin-right: 8px; /* Отступ справа от иконки */
+    font-size: 1.2em; /* Чуть больше текста */
+    vertical-align: middle; /* Выравнивание по вертикали */
+  }
+
+  /* Стили для спиннера внутри кнопки */
+  .button-spinner {
+    width: 1em; /* Размер как у текста */
+    height: 1em;
+    border-width: 2px;
+    margin-right: 8px;
+  }
  
