@@ -43,7 +43,26 @@
 .form {
   display: flex;
   flex-direction: column;
-  gap: 1.5rem; /* Отступы между группами полей */
+  gap: 2rem; /* Увеличим отступ между fieldset */
+}
+
+.fieldset {
+  border: 1px solid var(--border-secondary);
+  border-radius: var(--border-radius-lg);
+  padding: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem; /* Отступы внутри fieldset */
+  margin: 0; /* Убираем стандартные отступы fieldset */
+}
+
+.legend {
+  font-size: 1.2rem;
+  font-weight: 600;
+  color: var(--foreground-primary);
+  margin-bottom: 0.5rem; /* Уменьшим нижний отступ */
+  padding: 0 0.5rem; /* Небольшой отступ по бокам */
+  /* Убираем float или другие позиционирования, если они были */
 }
 
 .formGroup {
@@ -58,15 +77,28 @@
   font-size: 0.9rem;
 }
 
+/* Стиль для визуального скрытия (например, для label у Yandex Music) */
+.srOnly {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border-width: 0;
+}
+
 .input,
 .textarea {
   padding: 0.8rem 1rem;
   border-radius: var(--border-radius);
   border: 1px solid var(--border-primary);
-  background-color: var(--background-primary); /* Чуть темнее фона контейнера */
+  background-color: var(--background-primary);
   color: var(--foreground-primary);
   font-size: 1rem;
-  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease;
 }
 
 .input:focus,
@@ -76,8 +108,15 @@
   box-shadow: 0 0 0 2px hsla(from var(--accent-primary) h s l / 0.3);
 }
 
+.input:disabled {
+   background-color: var(--background-disabled);
+   color: var(--foreground-tertiary);
+   cursor: not-allowed;
+   opacity: 0.7;
+}
+
 .textarea {
-  resize: vertical; /* Разрешаем изменять размер только по вертикали */
+  resize: vertical;
   min-height: 80px;
 }
 
@@ -85,6 +124,77 @@
   font-size: 0.8rem;
   color: var(--foreground-tertiary);
   margin-top: 0.3rem;
+}
+
+/* Стили для строки с чекбоксом и полем Яндекс Музыки */
+.formGroupRow {
+    display: flex;
+    align-items: center; /* Выравниваем элементы по центру */
+    gap: 1.5rem;
+    flex-wrap: wrap; /* Перенос на новую строку на маленьких экранах */
+}
+
+.checkboxGroup {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    cursor: pointer; /* Улучшение UX */
+}
+
+.checkbox {
+    /* Стилизуем чекбокс */
+    appearance: none; 
+    background-color: var(--background-primary);
+    border: 1px solid var(--border-primary);
+    padding: 0;
+    font: inherit;
+    color: currentColor;
+    width: 1.15em;
+    height: 1.15em;
+    border-radius: var(--border-radius-sm);
+    transform: translateY(-0.075em);
+    display: grid;
+    place-content: center;
+    cursor: pointer;
+    transition: background-color 0.2s ease, border-color 0.2s ease;
+}
+
+.checkbox::before {
+    content: "";
+    width: 0.65em;
+    height: 0.65em;
+    transform: scale(0);
+    transition: 120ms transform ease-in-out;
+    box-shadow: inset 1em 1em var(--accent-primary); /* Цвет галочки */
+    /* Используем clip-path для создания галочки */
+    clip-path: polygon(14% 44%, 0 65%, 50% 100%, 100% 16%, 80% 0%, 43% 62%);
+    transform-origin: center;
+}
+
+.checkbox:checked::before {
+    transform: scale(1);
+}
+
+.checkbox:focus {
+    outline: none;
+    box-shadow: 0 0 0 2px hsla(from var(--accent-primary) h s l / 0.3);
+}
+
+.checkbox:hover {
+    border-color: var(--accent-primary);
+}
+
+.checkboxLabel {
+    font-size: 0.95rem;
+    color: var(--foreground-primary);
+    user-select: none; /* Предотвращаем выделение текста */
+    cursor: pointer;
+}
+
+/* Группа для поля ввода Yandex Music, чтобы оно занимало оставшееся место */
+.yandexInputGroup {
+    flex-grow: 1;
+    min-width: 200px; /* Минимальная ширина для предотвращения сжатия */
 }
 
 /* Стили для кнопок */

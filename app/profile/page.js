@@ -6,6 +6,7 @@ import Link from 'next/link'; // Добавляем Link для кнопки
 import CyberAvatar from '../components/CyberAvatar'; // Импортируем заглушку
 import styles from './profile.module.css';
 import { useAuth } from '../contexts/AuthContext';
+import SocialLinkButton from '../components/SocialLinkButton/SocialLinkButton'; // <<< Импортируем новый компонент
 
 // Функция для перевода типа канала
 const translateBroadcasterType = (type) => {
@@ -143,7 +144,7 @@ function ProfilePage() {
   const viewCount = twitchUserData?.view_count;
   const createdAt = twitchUserData?.created_at;
   const profileDescription = profileData?.description;
-  const profileSocialLinks = profileData?.social_links; // Пока просто текст
+  const profileSocialLinks = profileData?.social_links; // Теперь это объект { vk: "...", twitch: "..." }
 
   // Функция форматирования даты
   const formatDate = (dateString) => {
@@ -250,19 +251,24 @@ function ProfilePage() {
         )}
       </div>
 
-      {/* Ссылки на соцсети */} 
-      {profileSocialLinks && (
+      {/* --- Ссылки на соцсети --- */}
+      {/* Проверяем, что profileSocialLinks существует и это не пустой объект */} 
+      {profileSocialLinks && typeof profileSocialLinks === 'object' && Object.keys(profileSocialLinks).length > 0 && (
           <div className={styles.profileContent}>
             <h2>Социальные сети</h2>
             {loadingProfile ? (
                 <div className={styles.skeletonSection}>
                    <div className={`${styles.skeletonText} ${styles.skeleton}`}></div>
+                   <div className={`${styles.skeletonText} ${styles.skeleton.short}`}></div>
                 </div>
             ) : (
-               <div style={{ whiteSpace: 'pre-wrap', fontFamily: 'monospace' }}>
-                  {typeof profileSocialLinks === 'object' && profileSocialLinks !== null 
-                      ? JSON.stringify(profileSocialLinks, null, 2) 
-                      : profileSocialLinks /* Если не объект, показываем как строку (на случай если в базе текст) */}
+               <div className={styles.socialLinksContainer}> {/* Обертка для кнопок */} 
+                 {/* Перебираем ключи объекта social_links и рендерим кнопки */} 
+                 {Object.entries(profileSocialLinks)
+                   .filter(([_, url]) => url) // Показываем только если URL не пустой
+                   .map(([platform, url]) => (
+                     <SocialLinkButton key={platform} platform={platform} url={url} />
+                   ))}
                </div>
             )}
           </div>

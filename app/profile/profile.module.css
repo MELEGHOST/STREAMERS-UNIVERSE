@@ -213,4 +213,12 @@
   display: flex;
   align-items: center;
   justify-content: center;
+}
+
+/* Контейнер для кнопок соцсетей */
+.socialLinksContainer {
+  display: flex;
+  flex-wrap: wrap; /* Позволяем кнопкам переноситься */
+  gap: 0.8rem; /* Отступы между кнопками */
+  margin-top: 0.5rem; /* Небольшой отступ сверху */
 } 
