@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
-import { verifyJwt } from '../../../utils/jwt.js'; // <<< Правильный путь (3 уровня вверх)
+import { verifyJwt } from '../../../utils/jwt'; // <<< Убираем .js
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_KEY;
