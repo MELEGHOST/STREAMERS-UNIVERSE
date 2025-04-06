@@ -1,6 +1,6 @@
 'use client';
 
-import React, { createContext, useState, useEffect, useContext, useMemo } from 'react';
+import React, { createContext, useState, useEffect, useContext, useMemo, useCallback } from 'react';
 import { createBrowserClient } from '@supabase/ssr';
 import { useRouter } from 'next/navigation'; // Импортируем useRouter
 
@@ -90,22 +90,21 @@ export function AuthProvider({ children }) {
     };
   }, [supabase, router]); // Добавляем router в зависимости
 
-  // Функция входа через Twitch
-  const signInWithTwitch = async () => {
+  // <<< Оборачиваем signInWithTwitch в useCallback >>>
+  const signInWithTwitch = useCallback(async () => {
     if (!supabase) throw new Error("Supabase client not available");
     console.log('[AuthContext] Attempting Twitch sign in...');
     const { error } = await supabase.auth.signInWithOAuth({
       provider: 'twitch',
       options: {
-        // redirectTo: `${window.location.origin}/auth/callback`, // Vercel должен сам подхватить
+        // redirectTo: `${window.location.origin}/auth/callback`,
       },
     });
     if (error) {
       console.error('[AuthContext] Twitch sign in error:', error);
-      throw error; // Пробрасываем ошибку дальше
+      throw error;
     }
-    // Редирект произойдет автоматически
-  };
+  }, [supabase]); // <<< Добавляем supabase в зависимости useCallback >>>
 
   // Предоставляем значения через контекст
   const value = useMemo(() => ({

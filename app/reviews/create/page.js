@@ -138,9 +138,9 @@ export default function CreateReviewPage() {
           console.log('[ReviewCreate] Загрузка изображения...');
           const fileExt = imageFile.name.split('.').pop();
           const fileName = `${user.id}_${Date.now()}.${fileExt}`;
-          const filePath = `public/${fileName}`; // Путь в бакете reviews-images
+          const filePath = `public/${fileName}`;
 
-          const { data: uploadData, error: uploadError } = await supabase.storage
+          const { error: uploadError } = await supabase.storage
               .from('reviews-images')
               .upload(filePath, imageFile);
 
