@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { verifyJwt } from '../../../utils/jwt'; // <<< Убираем .js
+import { verifyJwt } from 'utils/jwt'; // <<< Пробуем путь от корня
 // import { createClient } from '@supabase/supabase-js'; // Пока не нужно для заглушки
 
 // const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
