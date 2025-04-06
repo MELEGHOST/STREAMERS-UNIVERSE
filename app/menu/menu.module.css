@@ -132,4 +132,128 @@
   border: 1px solid var(--error-color);
   color: var(--error-color);
   text-align: center;
+}
+
+/* Стили для поиска */
+.searchContainer {
+  position: relative; /* Для позиционирования выпадающего списка */
+  flex-grow: 1; /* Занимает доступное место между лого и нав */
+  margin: 0 2rem; /* Отступы */
+  max-width: 500px; /* Ограничение ширины */
+}
+
+.searchInput {
+  width: 100%;
+  padding: 0.8rem 1rem;
+  padding-right: 3rem; /* Место для спиннера */
+  border: 1px solid var(--border-secondary);
+  border-radius: var(--border-radius-lg);
+  background-color: var(--background-secondary);
+  color: var(--foreground-primary);
+  font-size: 1rem;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.searchInput:focus {
+  outline: none;
+  border-color: var(--accent-primary);
+  box-shadow: 0 0 0 3px hsla(from var(--accent-primary) h s l / 0.2);
+}
+
+.searchSpinner {
+  position: absolute;
+  right: 1rem;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 20px; /* Размер спиннера */
+  height: 20px;
+  border-width: 2px;
+}
+
+.searchResultsDropdown {
+  position: absolute;
+  top: 100%; /* Появляется под инпутом */
+  left: 0;
+  right: 0;
+  background-color: var(--background-secondary);
+  border: 1px solid var(--border-primary);
+  border-top: none; /* Убираем верхнюю границу, т.к. она есть у инпута */
+  border-radius: 0 0 var(--border-radius-lg) var(--border-radius-lg);
+  box-shadow: 0 4px 10px hsla(from var(--shadow-color) h s l / 0.1);
+  max-height: 400px; /* Ограничение высоты списка */
+  overflow-y: auto;
+  z-index: 100; /* Поверх других элементов */
+  padding: 0.5rem 0;
+}
+
+.searchResultItem {
+  display: flex;
+  align-items: center;
+  padding: 0.7rem 1rem;
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+  gap: 0.8rem;
+}
+
+.searchResultItem:hover {
+  background-color: var(--background-tertiary);
+}
+
+.searchResultAvatar {
+  border-radius: 50%; /* Круглый аватар */
+  flex-shrink: 0;
+  background-color: var(--background-tertiary);
+}
+
+.searchResultInfo {
+  display: flex;
+  flex-direction: column;
+  flex-grow: 1;
+  overflow: hidden; /* Чтобы текст не вылезал */
+}
+
+.searchResultName {
+  font-weight: 600;
+  color: var(--foreground-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.searchResultLogin {
+  font-size: 0.85rem;
+  color: var(--foreground-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.liveBadge {
+  background-color: var(--error-color); /* Красный цвет для LIVE */
+  color: white;
+  font-size: 0.7rem;
+  font-weight: bold;
+  padding: 0.15rem 0.4rem;
+  border-radius: var(--border-radius-sm);
+  margin-left: auto; /* Прижимаем вправо */
+  flex-shrink: 0;
+}
+
+.inviteHint {
+  font-size: 0.8rem;
+  color: var(--accent-primary);
+  margin-left: auto;
+  font-style: italic;
+  flex-shrink: 0;
+}
+
+.searchError, .noResults {
+  padding: 0.7rem 1rem;
+  color: var(--foreground-secondary);
+  font-style: italic;
+  text-align: center;
+}
+
+.searchError {
+    color: var(--error-color);
 } 

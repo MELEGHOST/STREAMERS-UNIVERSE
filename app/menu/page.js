@@ -6,6 +6,36 @@ import Image from 'next/image';
 import Link from 'next/link'; // Используем Link для навигации
 import styles from './menu.module.css';
 import { useAuth } from '../contexts/AuthContext'; 
+import { debounce } from 'lodash'; // Импортируем debounce
+
+// Компонент для отображения результата поиска
+function SearchResultItem({ user }) {
+    const router = useRouter();
+    const handleClick = () => {
+        // Переход на динамический профиль по twitch_id
+        router.push(`/profile/${user.twitch_id}`); 
+    };
+
+    return (
+        <div className={styles.searchResultItem} onClick={handleClick}>
+             <Image 
+                 src={user.avatar_url || '/images/default_avatar.png'} 
+                 alt={`Аватар ${user.display_name}`}
+                 width={40}
+                 height={40}
+                 className={styles.searchResultAvatar}
+                 onError={(e) => { e.target.src = '/images/default_avatar.png'; }} 
+             />
+            <div className={styles.searchResultInfo}>
+                 <span className={styles.searchResultName}>{user.display_name}</span>
+                 <span className={styles.searchResultLogin}>@{user.login}</span>
+            </div>
+             {user.is_live && <span className={styles.liveBadge}>LIVE</span>}
+             {!user.is_registered && <span className={styles.inviteHint}>(Пригласить)</span>} 
+             {/* Можно заменить inviteHint на кнопку */} 
+        </div>
+    );
+}
 
 export default function MenuPage() {
   const router = useRouter();
@@ -13,6 +43,10 @@ export default function MenuPage() {
   
   const [error, setError] = useState(null);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [searchResults, setSearchResults] = useState([]);
+  const [isSearching, setIsSearching] = useState(false);
+  const [searchError, setSearchError] = useState(null);
 
   // Перенаправляем на /auth, если не аутентифицирован (дублируем логику из AuthContext на всякий случай)
   useEffect(() => {
@@ -44,6 +78,51 @@ export default function MenuPage() {
       setIsLoggingOut(false);
     }
   }, [isLoggingOut, supabase]);
+
+  // --- Функция поиска с Debounce ---
+  const fetchSearchResults = useCallback(async (query) => {
+      if (!query || query.trim().length < 2) {
+          setSearchResults([]);
+          setIsSearching(false);
+          setSearchError(null);
+          return;
+      }
+      console.log('[MenuPage] Searching for:', query);
+      setIsSearching(true);
+      setSearchError(null);
+      try {
+          const response = await fetch(`/api/search/users?query=${encodeURIComponent(query)}`, {
+               headers: {
+                  // Передаем токен, если пользователь авторизован
+                  ...(isAuthenticated && { 'Authorization': `Bearer ${await supabase.auth.getSession().then(s => s.data.session?.access_token)}` })
+               }
+          });
+          if (!response.ok) {
+               const errorData = await response.json();
+              throw new Error(errorData.error || `Ошибка поиска: ${response.status}`);
+          }
+          const data = await response.json();
+          setSearchResults(data);
+          console.log('[MenuPage] Search results:', data);
+      } catch (error) {
+          console.error('[MenuPage] Search error:', error);
+          setSearchError(error.message);
+          setSearchResults([]); // Очищаем результаты при ошибке
+      } finally {
+          setIsSearching(false);
+      }
+  }, [isAuthenticated, supabase]); // Зависимости useCallback
+
+  // Создаем debounce-версию функции поиска
+  const debouncedSearch = useCallback(debounce(fetchSearchResults, 500), [fetchSearchResults]); // 500ms задержка
+
+  // Обработчик изменения поля ввода
+  const handleSearchChange = (event) => {
+      const newSearchTerm = event.target.value;
+      setSearchTerm(newSearchTerm);
+      // Вызываем debounce-функцию
+      debouncedSearch(newSearchTerm);
+  };
 
   // Данные для отображения
   const displayName = user?.user_metadata?.full_name || user?.email || 'Загрузка...';
@@ -86,6 +165,31 @@ export default function MenuPage() {
           />
           <span className={styles.userName}>{displayName}</span>
         </Link>
+        {/* Поле поиска */} 
+        <div className={styles.searchContainer}>
+            <input 
+                type="text"
+                placeholder="Поиск стримеров на Twitch..."
+                value={searchTerm}
+                onChange={handleSearchChange}
+                className={styles.searchInput}
+            />
+             {/* Индикатор загрузки поиска */} 
+             {isSearching && <div className={`spinner ${styles.searchSpinner}`}></div>}
+             {/* Отображение результатов поиска */} 
+             {searchTerm.length >= 2 && !isSearching && (searchResults.length > 0 || searchError) && (
+                 <div className={styles.searchResultsDropdown}>
+                     {searchError && <div className={styles.searchError}>{searchError}</div>}
+                     {searchResults.length > 0 ? (
+                         searchResults.map(userResult => ( 
+                             <SearchResultItem key={userResult.twitch_id} user={userResult} />
+                         ))
+                     ) : (
+                         !searchError && <div className={styles.noResults}>Ничего не найдено.</div>
+                     )}
+                 </div>
+             )}
+        </div>
         {/* Место для доп. инфо (коины, админ-статус) */} 
       </header>
 

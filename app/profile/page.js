@@ -232,7 +232,17 @@ function ProfilePage() {
            &larr; Назад в меню
             </button>
          <div className={styles.actionButtons}> { /* Контейнер для кнопок действий */}
-            {/* Кнопка Достижения */}
+            {/* Кнопка Админ панель (только для админов) */}
+            {userRole === 'admin' && (
+                 <button 
+                     onClick={() => router.push('/admin/reviews')} 
+                     className={`${styles.actionButton} ${styles.adminButton}`} // Используем общие и админские стили
+                     title="Перейти в панель модерации отзывов"
+                 >
+                     🛡️ Админ панель
+                 </button>
+             )}
+             {/* Кнопка Достижения */}
             <button 
                 onClick={() => router.push('/achievements')} 
                 className={styles.actionButton} 
@@ -263,7 +273,11 @@ function ProfilePage() {
             <div className={styles.profileHeader}>
                 <CyberAvatar src={avatarUrl} alt={`Аватар ${displayName}`} size={100} />
                 <div className={styles.profileInfo}>
-                    <h1 className={styles.displayName}>{displayName}</h1>
+                    <h1 className={styles.displayName}>
+                        {/* Добавляем значок админа перед именем */} 
+                        {userRole === 'admin' && <span className={styles.adminBadge} title="Администратор">🛡️</span>}
+                        {displayName}
+                    </h1>
                     {/* Отображаем роль и тип канала */}
                     <p className={styles.metaInfo}>
                        {userRole && <span className={styles.roleBadge}>{userRole}</span>} 
