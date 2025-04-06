@@ -6,7 +6,8 @@ import Link from 'next/link'; // Добавляем Link для кнопки
 import CyberAvatar from '../components/CyberAvatar'; // Импортируем заглушку
 import styles from './profile.module.css';
 import { useAuth } from '../contexts/AuthContext';
-import SocialLinkButton from '../components/SocialLinkButton/SocialLinkButton'; // <<< Импортируем новый компонент
+// import SocialLinkButton from '../components/SocialLinkButton/SocialLinkButton'; // <<< Удаляем старый импорт
+import StyledSocialButton from '../components/StyledSocialButton/StyledSocialButton'; // <<< Импортируем новый
 
 // Функция для перевода типа канала
 const translateBroadcasterType = (type) => {
@@ -265,10 +266,10 @@ function ProfilePage() {
                <div className={styles.socialLinksContainer}> {/* Обертка для кнопок */} 
                  {/* Перебираем ключи объекта social_links и рендерим кнопки */} 
                  {Object.entries(profileSocialLinks)
-                   // Используем [, url], чтобы игнорировать первый элемент (ключ) без объявления переменной
-                   .filter(([, url]) => url) 
+                   .filter(([, url]) => url) // Показываем только если URL не пустой
                    .map(([platform, url]) => (
-                     <SocialLinkButton key={platform} platform={platform} url={url} />
+                     // Используем новый компонент
+                     <StyledSocialButton key={platform} platform={platform} url={url} />
                    ))}
                </div>
             )}
