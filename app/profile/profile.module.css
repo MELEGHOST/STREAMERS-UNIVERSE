@@ -63,9 +63,10 @@
 .profileStats {
   display: flex;
   flex-wrap: wrap;
-  gap: 1rem;
+  gap: 0.5rem 1.5rem; /* Отступы между статами */
+  margin-top: 0.8rem;
+  color: var(--foreground-secondary);
   font-size: 0.9rem;
-  color: var(--foreground-tertiary);
 }
 
 .statItem {
@@ -221,4 +222,137 @@
   flex-wrap: wrap; /* Позволяем кнопкам переноситься */
   gap: 0.8rem; /* Отступы между кнопками */
   margin-top: 0.5rem; /* Небольшой отступ сверху */
+}
+
+/* Контейнер для кнопок действий справа в шапке */
+.actionButtons {
+  display: flex;
+  gap: 0.8rem;
+}
+
+/* Кнопка "Достижения" и другие общие кнопки действий */
+.actionButton {
+  padding: 0.6em 1.2em;
+  font-size: 0.9rem;
+  border-radius: var(--border-radius);
+  cursor: pointer;
+  border: 1px solid var(--border-primary);
+  background-color: var(--background-tertiary);
+  color: var(--foreground-secondary);
+  font-weight: 500;
+  transition: background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease, transform 0.1s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.actionButton:hover {
+  background-color: var(--border-primary);
+  border-color: var(--border-secondary);
+  color: var(--foreground-primary);
+}
+
+.actionButton:active {
+  transform: scale(0.98);
+}
+
+/* Стиль для отображения роли */
+.userRole {
+    display: inline-block;
+    background-color: var(--accent-secondary);
+    color: var(--foreground-primary);
+    padding: 0.2em 0.6em;
+    border-radius: var(--border-radius-sm);
+    font-size: 0.8rem;
+    font-weight: 600;
+    margin-top: 0.5rem;
+    border: 1px solid var(--border-secondary);
+}
+
+/* --- Стили для секции VODs --- */
+.vodsContainer {
+    display: grid;
+    /* Адаптивная сетка: минимум 250px, максимум 1fr */
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); 
+    gap: 1.5rem;
+    margin-top: 1rem;
+}
+
+.vodCard {
+    display: block; /* Чтобы Link занимал всю карточку */
+    background-color: var(--background-secondary);
+    border-radius: var(--border-radius-lg);
+    overflow: hidden;
+    text-decoration: none;
+    color: inherit;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    border: 1px solid var(--border-secondary);
+}
+
+.vodCard:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 6px 12px hsla(from var(--shadow-color) h s l / 0.1);
+    border-color: var(--border-primary);
+}
+
+.vodThumbnail {
+    width: 100%;
+    height: auto; /* Сохраняем пропорции */
+    aspect-ratio: 16 / 9; /* Соотношение сторон для видео */
+    background-color: var(--background-tertiary); /* Фон для заглушки */
+    object-fit: cover; /* Масштабируем изображение */
+    display: block; /* Убираем лишние отступы */
+}
+
+.vodInfo {
+    padding: 0.8rem 1rem;
+}
+
+.vodTitle {
+    font-size: 1rem;
+    font-weight: 600;
+    margin: 0 0 0.5rem 0;
+    color: var(--foreground-primary);
+    /* Ограничение текста в 2 строки */
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;  
+    overflow: hidden;
+    text-overflow: ellipsis;
+    min-height: 2.4em; /* Высота для двух строк */
+}
+
+.vodMeta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem 1rem;
+    font-size: 0.85rem;
+    color: var(--foreground-secondary);
+}
+
+.vodMeta span {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+}
+
+/* Скелет для VODs */
+.skeletonVod {
+    background-color: var(--background-secondary);
+    border-radius: var(--border-radius-lg);
+    overflow: hidden;
+    border: 1px solid var(--border-secondary);
+}
+
+.skeletonVodThumbnail {
+    width: 100%;
+    aspect-ratio: 16 / 9;
+    background-color: var(--background-tertiary);
+}
+
+.skeletonVodInfo {
+    padding: 0.8rem 1rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
 } 

@@ -47,10 +47,8 @@ const platformData = {
     tooltipName: 'Яндекс Музыка',
     tooltipDetail: 'Профиль музыканта',
     // SVG Path для Яндекс.Музыки (треугольник)
-    svgPath: 'M119.413 82.493L45.264 128.838V36.147l74.149 46.346z'
-    // Оригинальный viewBox="0 0 165 165", нужно проверить масштабирование в кнопке
-    // Возможно, потребуется добавить transform="scale(0.1)" или настроить viewBox в SVG
-    // TODO: Проверить и скорректировать viewBox/transform, если иконка слишком большая
+    svgPath: 'M119.413 82.493L45.264 128.838V36.147l74.149 46.346z',
+    viewBox: '0 0 165 165' // Указываем оригинальный viewBox
   },
   default: {
     color: 'var(--foreground-secondary)',
@@ -107,9 +105,11 @@ const StyledSocialButton = ({ platform, url }) => {
               <span />
               <span className="svg">
                  {/* Динамический SVG */} 
-                 <svg fill={config.color} xmlnsXlink="http://www.w3.org/1999/xlink" xmlns="http://www.w3.org/2000/svg" version="1.1" viewBox="0 0 24 24">
+                 <svg fill="currentColor" xmlnsXlink="http://www.w3.org/1999/xlink" xmlns="http://www.w3.org/2000/svg" version="1.1" viewBox={config.viewBox || '0 0 24 24'}>
                    {config.svgPath ? (
-                      <path fill="currentColor" d={config.svgPath} />
+                      <path 
+                        d={config.svgPath} 
+                      />
                    ) : (
                       // Фоллбэк, если SVG нет - можно просто текст
                       <text x="50%" y="50%" dominantBaseline="middle" textAnchor="middle" fontSize="14" fill="currentColor">{config.iconLetter}</text>
@@ -276,12 +276,11 @@ const StyledWrapper = styled.div`
     left: 10px;
     width: 50px;
     height: 50px;
-    /* Устанавливаем цвет SVG через currentColor */
-    color: white; /* Белый цвет иконки внутри круга */ 
+    color: white; 
   }
 
   .svg path {
-     /* fill: var(--color); */ /* Убираем, используем fill="currentColor" в SVG */
+     fill: currentColor; /* Указываем явно, чтобы path наследовал цвет от .svg */
   }
   
   /* --- Стили тултипа --- */

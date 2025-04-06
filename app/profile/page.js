@@ -24,7 +24,9 @@ function ProfilePage() {
   const { user, isLoading, isAuthenticated, supabase } = useAuth();
   
   const [twitchUserData, setTwitchUserData] = useState(null);
-  const [profileData, setProfileData] = useState(null); // Состояние для данных из таблицы profiles
+  const [profileData, setProfileData] = useState(null);
+  const [followersCount, setFollowersCount] = useState(undefined); // undefined для начального состояния
+  const [videos, setVideos] = useState([]); // Массив для VODs
   const [loadingProfile, setLoadingProfile] = useState(true);
   const [error, setError] = useState(null);
   
@@ -37,6 +39,29 @@ function ProfilePage() {
       router.push('/auth?message=Session+expired+or+not+found&next=/profile');
     }
   }, [isLoading, isAuthenticated, router]);
+
+  // --- Функция форматирования длительности видео ---
+  const formatDuration = (durationString) => {
+    if (!durationString) return '0m';
+    let totalSeconds = 0;
+    const hoursMatch = durationString.match(/(\d+)h/);
+    const minutesMatch = durationString.match(/(\d+)m/);
+    const secondsMatch = durationString.match(/(\d+)s/);
+    if (hoursMatch) totalSeconds += parseInt(hoursMatch[1], 10) * 3600;
+    if (minutesMatch) totalSeconds += parseInt(minutesMatch[1], 10) * 60;
+    if (secondsMatch) totalSeconds += parseInt(secondsMatch[1], 10);
+
+    const hours = Math.floor(totalSeconds / 3600);
+    const minutes = Math.floor((totalSeconds % 3600) / 60);
+    const seconds = totalSeconds % 60;
+
+    let formatted = '';
+    if (hours > 0) formatted += `${hours}h `;
+    if (minutes > 0 || hours > 0) formatted += `${minutes}m `;
+    if (seconds > 0 || totalSeconds === 0) formatted += `${seconds}s`; // Показываем секунды, если есть, или если все 0
+    
+    return formatted.trim() || '0s'; // Гарантируем возврат хотя бы '0s'
+  };
 
   // Общая функция загрузки данных (Twitch + Профиль из БД)
   const loadAllData = useCallback(async () => {
@@ -61,63 +86,67 @@ function ProfilePage() {
           const cachedStr = localStorage.getItem(twitchCacheKey);
           if (cachedStr) {
               try {
-                  loadedTwitchData = JSON.parse(cachedStr);
-                  setTwitchUserData(loadedTwitchData);
-                  console.log('[ProfilePage] Отображены предв. Twitch данные из localStorage.');
+                   // Загружаем из кэша все, кроме видео и фолловеров
+                   const cached = JSON.parse(cachedStr);
+                   loadedTwitchData = { ...cached, videos: [], followers_count: undefined };
+                   setTwitchUserData(loadedTwitchData);
+                   // Устанавливаем фолловеров и видео из кэша, если они там есть (хотя их там не будет)
+                   setFollowersCount(cached.followers_count);
+                   setVideos(cached.videos || []); 
+                   console.log('[ProfilePage] Отображены предв. Twitch данные из localStorage.');
               } catch { localStorage.removeItem(twitchCacheKey); }
           }
       }
 
       try {
-          // Параллельно запускаем загрузку Twitch и данных профиля
-          const [twitchResponse, profileResponse] = await Promise.all([
-              // Запрос Twitch API
-              fetch(`/api/twitch/user?userId=${twitchUserId}`),
-              // Запрос данных профиля из БД
-              supabase
-                  .from('user_profiles')
-                  .select('birthday, social_links, description')
-                  .eq('user_id', user.id)
-                  .maybeSingle()
-          ]);
-
-          // Обработка ответа Twitch API
-          if (!twitchResponse.ok) {
-              const errorText = await twitchResponse.text();
-              console.error(`[ProfilePage] Ошибка API /api/twitch/user (${twitchResponse.status}): ${errorText}`);
-              // Не устанавливаем ошибку, если есть кэш
-              if (!loadedTwitchData) {
-                 setError(`Не удалось загрузить данные Twitch (${twitchResponse.status}).`);
-              } else {
-                  console.warn("[ProfilePage] Ошибка загрузки свежих данных Twitch, используем кэш.");
+          // Запрос к нашему обновленному API
+          const response = await fetch(`/api/twitch/user?userId=${twitchUserId}`, {
+              headers: {
+                  // Передаем JWT для авторизации
+                  'Authorization': `Bearer ${await supabase.auth.getSession().then(s => s.data.session?.access_token)}`
               }
+          });
+
+          if (!response.ok) {
+              const errorText = await response.text();
+              const errorMsg = `Ошибка API /api/twitch/user (${response.status}): ${errorText}`; 
+              console.error(`[ProfilePage] ${errorMsg}`);
+              setError(`Не удалось загрузить данные Twitch (${response.status}).`);
+              // Оставляем кэш, если он был
           } else {
-              loadedTwitchData = await twitchResponse.json();
-              console.log('[ProfilePage] Получены свежие данные Twitch от API:', loadedTwitchData);
-              setTwitchUserData(loadedTwitchData);
-              if (typeof window !== 'undefined' && loadedTwitchData) {
-                  try { localStorage.setItem(twitchCacheKey, JSON.stringify(loadedTwitchData)); } catch (e) { console.error("LS set error", e);}
+              const data = await response.json();
+              console.log('[ProfilePage] Получены свежие данные от API:', data);
+              setTwitchUserData(data);
+              setFollowersCount(data.followers_count); // Устанавливаем фолловеров
+              setVideos(data.videos || []); // Устанавливаем видео
+              // Сохраняем все данные в localStorage
+              if (typeof window !== 'undefined') {
+                 try { localStorage.setItem(twitchCacheKey, JSON.stringify(data)); } catch (e) { console.error("LS set error", e);}
               }
           }
+          
+          // Запрос данных профиля из БД (можно оставить параллельным или сделать последовательным)
+          const { data: profileResponseData, error: profileError } = await supabase
+              .from('user_profiles')
+              .select('birthday, social_links, description, role') // Запрашиваем роль
+              .eq('user_id', user.id)
+              .maybeSingle();
 
-          // Обработка ответа от Supabase (profiles)
-          if (profileResponse.error) {
-              console.error("[ProfilePage] Ошибка загрузки данных профиля из БД:", profileResponse.error);
+          if (profileError) {
+              console.error("[ProfilePage] Ошибка загрузки данных профиля из БД:", profileError);
               setError((prevError) => prevError ? `${prevError} | Ошибка загрузки доп. данных профиля.` : 'Ошибка загрузки доп. данных профиля.');
           } else {
-              loadedProfileData = profileResponse.data;
-              console.log('[ProfilePage] Получены данные профиля из БД:', loadedProfileData);
-              setProfileData(loadedProfileData); // Устанавливаем данные профиля (birthday, social_links, description)
+              console.log('[ProfilePage] Получены данные профиля из БД:', profileResponseData);
+              setProfileData(profileResponseData);
           }
 
       } catch (fetchError) {
           console.error('[ProfilePage] Критическая ошибка при fetch данных:', fetchError);
           setError(`Критическая ошибка загрузки: ${fetchError.message}.`);
-          // Оставляем кэшированные данные, если они есть
       } finally {
           setLoadingProfile(false); 
       }
-  }, [user, supabase, twitchUserId, isAuthenticated]); // Добавляем зависимость isAuthenticated
+  }, [user, supabase, twitchUserId, isAuthenticated]);
 
   // Загружаем данные, когда все условия выполнены
   useEffect(() => {
@@ -146,6 +175,7 @@ function ProfilePage() {
   const createdAt = twitchUserData?.created_at;
   const profileDescription = profileData?.description;
   const profileSocialLinks = profileData?.social_links; // Теперь это объект { vk: "...", twitch: "..." }
+  const userRole = profileData?.role; // Получаем роль из данных профиля
 
   // Функция форматирования даты
   const formatDate = (dateString) => {
@@ -178,10 +208,20 @@ function ProfilePage() {
          <button onClick={() => router.push('/menu')} className={styles.backButton}>
            &larr; Назад в меню
          </button>
-         {/* Кнопка редактирования */} 
-         <Link href="/edit-profile" className={styles.editButton}>
-            Редактировать профиль
-         </Link>
+         <div className={styles.actionButtons}> { /* Контейнер для кнопок действий */}
+            {/* Кнопка Достижения */}
+            <button 
+                onClick={() => router.push('/achievements')} 
+                className={styles.actionButton} 
+                title="Посмотреть достижения"
+            >
+                 🏆 Достижения
+            </button>
+             {/* Кнопка Редактировать профиль */}
+            <button onClick={() => router.push('/edit-profile')} className={styles.editButton}>
+               Редактировать профиль
+            </button>
+         </div>
        </div>
 
       {error && <div className={styles.errorMessage}>{error}</div>} 
@@ -207,7 +247,10 @@ function ProfilePage() {
             />
             <div className={styles.profileDetails}>
               <h1>{displayName}</h1>
+              {/* Роль пользователя */} 
+              {userRole && <span className={styles.userRole}>{userRole === 'streamer' ? 'Стример' : 'Зритель'}</span>}
               <div className={styles.profileStats}>
+                {followersCount !== undefined && <span className={styles.statItem}>👥 Фолловеры: {followersCount.toLocaleString('ru-RU')}</span>}
                 {viewCount !== undefined && <span className={styles.statItem}>👁️ Просмотры: {viewCount.toLocaleString('ru-RU')}</span>}
                 {createdAt && <span className={styles.statItem}>📅 На Twitch с: {formatDate(createdAt)}</span>}
               </div>
@@ -275,6 +318,50 @@ function ProfilePage() {
             )}
           </div>
       )}
+
+      {/* --- Записи трансляций (VODs) --- */}
+       {(videos && videos.length > 0) || loadingProfile ? (
+          <div className={styles.profileContent}>
+            <h2>Записи трансляций</h2>
+            {loadingProfile ? (
+                 <div className={styles.skeletonSection}>
+                    {/* Скелет для видео */} 
+                    {[...Array(2)].map((_, i) => (
+                        <div key={i} className={styles.skeletonVod}>
+                             <div className={`${styles.skeletonVodThumbnail} ${styles.skeleton}`}></div>
+                             <div className={styles.skeletonVodInfo}>
+                                 <div className={`${styles.skeletonText} ${styles.skeleton}`}></div>
+                                 <div className={`${styles.skeletonText} ${styles.skeleton.short}`}></div>
+                             </div>
+                        </div>
+                    ))}
+                 </div>
+            ) : (
+               <div className={styles.vodsContainer}> 
+                 {videos.map((video) => (
+                   <Link key={video.id} href={video.url} target="_blank" rel="noopener noreferrer" className={styles.vodCard}>
+                     <img 
+                       src={video.thumbnail_url?.replace('%{width}', '320').replace('%{height}', '180') || '/images/default_thumbnail.png'} 
+                       alt={video.title} 
+                       className={styles.vodThumbnail}
+                       width={320} // Указываем размеры для оптимизации
+                       height={180}
+                       loading="lazy" // Ленивая загрузка для превью
+                     />
+                     <div className={styles.vodInfo}>
+                       <h4 className={styles.vodTitle}>{video.title}</h4>
+                       <div className={styles.vodMeta}>
+                          <span title={`Просмотры: ${video.view_count.toLocaleString('ru-RU')}`}>👁️ {video.view_count.toLocaleString('ru-RU')}</span>
+                          <span>🕒 {formatDuration(video.duration)}</span>
+                          <span>📅 {formatDate(video.created_at)}</span>
+                       </div>
+                     </div>
+                   </Link>
+                 ))}
+               </div>
+            )}
+          </div>
+       ) : null /* Не показываем секцию, если нет видео и не идет загрузка */}
 
     </div>
   );
