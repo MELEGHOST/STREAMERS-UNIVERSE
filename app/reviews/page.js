@@ -2,9 +2,9 @@
 import { useEffect, useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { useAuth } from '../../contexts/AuthContext';
+import { useAuth } from '../contexts/AuthContext';
 import styles from './reviews.module.css'; 
-import pageStyles from '../../../styles/page.module.css';
+import pageStyles from '../../styles/page.module.css';
 
 // Компонент для отображения одного отзыва (можно вынести в отдельный файл)
 function ReviewCard({ review }) {

@@ -1,9 +1,10 @@
 'use client';
 import { useEffect, useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
-import { useAuth } from '../../../contexts/AuthContext';
+import { useAuth } from '../../contexts/AuthContext';
 import styles from './admin-reviews.module.css';
-import pageStyles from '../../../../styles/page.module.css';
+import pageStyles from '../../../styles/page.module.css';
+import { createClient } from '@supabase/supabase-js';
 
 export default function AdminReviewsPage() {
   const { user, isLoading, isAuthenticated, supabase } = useAuth();

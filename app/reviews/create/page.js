@@ -1,9 +1,9 @@
 'use client';
 import { useEffect, useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
-import { useAuth } from '../../../contexts/AuthContext';
+import { useAuth } from '../../contexts/AuthContext';
 import styles from './create-review.module.css';
-import pageStyles from '../../../../styles/page.module.css';
+import pageStyles from '../../../styles/page.module.css';
 
 // Компонент для выбора рейтинга (звездочки)
 const RatingInput = ({ rating, setRating }) => {
