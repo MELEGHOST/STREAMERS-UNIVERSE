@@ -1,13 +1,13 @@
-import { jwtVerify } from 'jose';
-import { createPublicKey } from 'crypto';
+import { SignJWT, jwtVerify } from 'jose';
+// import { createPublicKey } from 'crypto'; // НЕ ИСПОЛЬЗУЕТСЯ
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-const jwtSecret = process.env.JWT_SECRET; // Секрет из переменных окружения
+const JWT_SECRET = process.env.JWT_SECRET;
 
 if (!supabaseUrl) {
     console.error("[Utils/jwt] Critical Error: Supabase URL is missing!");
 }
-if (!jwtSecret) {
+if (!JWT_SECRET) {
     console.error("[Utils/jwt] Critical Error: JWT_SECRET is missing!");
 }
 
@@ -15,11 +15,11 @@ if (!jwtSecret) {
 // Supabase использует HS256, поэтому нам нужен сам секрет, а не публичный ключ.
 // Оставляем асинхронную структуру на случай, если Supabase перейдет на асимметричные алгоритмы.
 async function getPublicKey() {
-    if (!jwtSecret) {
+    if (!JWT_SECRET) {
         throw new Error('JWT_SECRET не установлен в переменных окружения.');
     }
     // Для HS256 используем TextEncoder для преобразования секрета в Uint8Array
-    return new TextEncoder().encode(jwtSecret);
+    return new TextEncoder().encode(JWT_SECRET);
 }
 
 export async function verifyJwt(token) {
@@ -27,7 +27,7 @@ export async function verifyJwt(token) {
         console.warn('[verifyJwt] Токен не предоставлен.');
         return null;
     }
-    if (!jwtSecret) {
+    if (!JWT_SECRET) {
         console.error('[verifyJwt] JWT_SECRET не установлен, верификация невозможна.');
         return null; // Не можем верифицировать без секрета
     }

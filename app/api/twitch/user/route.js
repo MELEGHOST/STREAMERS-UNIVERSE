@@ -16,8 +16,9 @@ const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey, {
     auth: { persistSession: false } // Не сохраняем сессию для админ клиента
 });
 
-let appAccessToken = null;
-let tokenExpiry = 0;
+// // Переменные для кэширования App Access Token (НЕ ИСПОЛЬЗУЮТСЯ ЗДЕСЬ)
+// let appAccessToken = null;
+// let tokenExpiry = 0;
 
 // // Функция для получения App Access Token от Twitch (НЕ ИСПОЛЬЗУЕТСЯ ЗДЕСЬ)
 // async function getTwitchAppAccessToken() { 

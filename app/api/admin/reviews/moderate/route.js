@@ -21,7 +21,9 @@ async function isAdmin(userId) {
             .single();
         if (error || !data) return false;
         return data.role === 'admin'; 
-    } catch (e) { return false; }
+    } catch {
+        return false; 
+    }
 }
 
 // POST - Одобрение или отклонение отзыва
