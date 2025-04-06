@@ -305,7 +305,9 @@ export default function UserProfilePage() {
                               <p className={styles.videoMeta}>
                                   <span>{formatDate(video.created_at)}</span>
                                   <span> | {formatDuration(video.duration)}</span>
-                                  <span> | 👁️ {video.view_count.toLocaleString('ru-RU')}</span>
+                                  {typeof video.view_count === 'number' && 
+                                     <span> | 👁️ {video.view_count.toLocaleString('ru-RU')}</span>
+                                  }
                               </p>
                           </div>
                       </a>

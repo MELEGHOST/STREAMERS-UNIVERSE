@@ -18,8 +18,15 @@ function ReviewCard({ review }) {
 
     return (
         <div className={styles.reviewCard}>
-            <h3 className={styles.reviewItemName}>{review.item_name} <span className={styles.reviewCategory}>({review.category})</span></h3>
-            <div className={styles.reviewRating}>Рейтинг: {'★'.repeat(review.rating)}{'☆'.repeat(5 - review.rating)}</div>
+            <div className={styles.reviewHeader}>
+                <span className={styles.reviewItemName}>{review.item_name}</span>
+                <span className={styles.reviewCategory}>
+                    {review.category}{review.subcategory ? ` / ${review.subcategory}` : ''}
+                </span>
+                {typeof review.rating === 'number' && (
+                    <span className={styles.reviewRating}>Рейтинг: {'★'.repeat(review.rating)}{'☆'.repeat(5 - review.rating)}</span>
+                )}
+            </div>
             {review.text_content && <p className={styles.reviewText}>{review.text_content}</p>}
             {review.generated_content && (
                 <div className={styles.generatedContent}>

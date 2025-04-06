@@ -218,11 +218,14 @@ function ProfilePage() {
       );
   }
   if (!isAuthenticated) {
-    return (
-      <div className={styles.loadingContainer}>
-        <p>Перенаправление на страницу входа...</p>
-        </div>
-    );
+    // Если не авторизован, отправляем на ГЛАВНУЮ страницу
+    console.log('[OldProfileRedirect] Not authenticated, redirecting to /');
+    router.replace('/?message=Please+login+to+view+your+profile&next=/profile');
+  } else if (user?.user_metadata?.provider_id) {
+    // ...
+  } else {
+    // ...
+    router.replace('/menu?error=missing_twitch_id'); 
   }
 
   return (

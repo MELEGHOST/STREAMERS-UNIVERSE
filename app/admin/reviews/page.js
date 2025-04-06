@@ -144,6 +144,7 @@ export default function AdminReviewsPage() {
                         <tr>
                             <th>Дата</th>
                             <th>Категория</th>
+                            <th>Подкатегория</th>
                             <th>Объект</th>
                             <th>Контент (AI)</th>
                             <th>Источник</th>
@@ -155,6 +156,7 @@ export default function AdminReviewsPage() {
                             <tr key={review.id}>
                                 <td>{new Date(review.created_at).toLocaleDateString('ru-RU')}</td>
                                 <td>{review.category}</td>
+                                <td>{review.subcategory || '-'}</td>
                                 <td>{review.item_name}</td>
                                 <td>
                                     {review.generated_content ? (

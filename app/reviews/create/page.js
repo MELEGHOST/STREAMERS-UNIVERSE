@@ -4,6 +4,7 @@ import { useRouter } from 'next/navigation';
 import { useAuth } from '../../contexts/AuthContext';
 import styles from './create-review.module.css';
 import pageStyles from '../../../styles/page.module.css';
+import { reviewCategories } from '../categories';
 
 // Компонент для выбора рейтинга (звездочки)
 const RatingInput = ({ rating, setRating }) => {
@@ -23,12 +24,13 @@ const RatingInput = ({ rating, setRating }) => {
 };
 
 export default function CreateReviewPage() {
-  const { user, isLoading, isAuthenticated, supabase } = useAuth();
   const router = useRouter();
+  const { user, isLoading, isAuthenticated, supabase } = useAuth();
   const title = "Создать отзыв";
 
   // Состояния формы
   const [category, setCategory] = useState('');
+  const [subcategory, setSubcategory] = useState('');
   const [itemName, setItemName] = useState('');
   const [rating, setRating] = useState(0); // 0 - не выбрано
   const [textContent, setTextContent] = useState('');
@@ -38,20 +40,44 @@ export default function CreateReviewPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState(null);
   const [successMessage, setSuccessMessage] = useState(null);
+  const [authorTwitchId, setAuthorTwitchId] = useState('');
+
+  // Получаем список основных категорий
+  const mainCategories = Object.keys(reviewCategories);
+  // Получаем список подкатегорий для выбранной основной
+  const subcategories = category ? reviewCategories[category] || {} : {};
+  const subcategoryNames = Object.keys(subcategories);
+
+  // Сброс подкатегории при смене основной категории
+  useEffect(() => {
+     setSubcategory(''); 
+  }, [category]);
 
   // Обработчик выбора файла
   const handleFileChange = (event) => {
       if (event.target.files && event.target.files[0]) {
           const selectedFile = event.target.files[0];
-          // Ограничение на TXT файлы
-          if (selectedFile.type === 'text/plain') {
-             setFile(selectedFile);
-             setError(null); // Сбрасываем ошибку типа файла
-          } else {
-              setFile(null);
-              event.target.value = null; // Сбрасываем input
-              setError('Пожалуйста, выберите файл в формате .txt');
+          // Проверяем тип файла на клиенте для быстрой обратной связи
+          const allowedTypes = ['text/plain', 'audio/mpeg', 'audio/mp4', 'video/mp4', 'audio/wav', 'audio/ogg'];
+          // Добавляем больше MIME типов при необходимости
+          const maxFileSize = 50 * 1024 * 1024; // Лимит 50 MB (примерный)
+
+          if (!allowedTypes.includes(selectedFile.type) && !selectedFile.type.startsWith('audio/') && !selectedFile.type.startsWith('video/')) {
+               setFile(null);
+               event.target.value = null;
+               setError(`Неподдерживаемый тип файла: ${selectedFile.type}. Разрешены .txt, .mp3, .mp4 и другие аудио/видео.`);
+               return;
           }
+          
+          if (selectedFile.size > maxFileSize) {
+               setFile(null);
+               event.target.value = null;
+               setError(`Файл слишком большой (${(selectedFile.size / 1024 / 1024).toFixed(1)} MB). Максимальный размер: 50 MB.`);
+               return;
+          }
+
+          setFile(selectedFile);
+          setError(null);
       }
   };
 
@@ -72,27 +98,36 @@ export default function CreateReviewPage() {
       setSuccessMessage(null);
 
       try {
-          const { error: insertError } = await supabase
-              .from('reviews')
-              .insert({
-                  user_id: user.id,
+          const token = await supabase.auth.getSession().then(s => s.data.session?.access_token);
+          const response = await fetch('/api/reviews', {
+              method: 'POST',
+              headers: {
+                  'Content-Type': 'application/json',
+                  'Authorization': `Bearer ${token}`,
+              },
+              body: JSON.stringify({
                   category,
-                  item_name: itemName,
+                  subcategory,
+                  itemName,
                   rating,
-                  text_content: textContent,
-                  status: 'approved' // Ручные отзывы сразу одобрены
-              });
-          
-          if (insertError) throw insertError;
+                  textContent,
+              }),
+          });
 
-          setSuccessMessage('Ваш отзыв успешно опубликован!');
+          if (!response.ok) {
+              const errorData = await response.json();
+              throw new Error(errorData.error || `Ошибка сервера: ${response.status}`);
+          }
+
+          const newReview = await response.json();
+          setSuccessMessage(`Отзыв успешно создан! ID: ${newReview.id}`);
           // Очищаем форму и перенаправляем
-          setCategory(''); setItemName(''); setRating(0); setTextContent('');
+          setCategory(''); setSubcategory(''); setItemName(''); setRating(0); setTextContent('');
           setTimeout(() => router.push('/reviews'), 1500);
 
       } catch (err) {
-          console.error('Ошибка сохранения ручного отзыва:', err);
-          setError('Не удалось сохранить отзыв: ' + err.message);
+          console.error('Submit review error:', err);
+          setError(err.message || 'Не удалось отправить отзыв.');
       } finally {
           setIsSubmitting(false);
       }
@@ -100,11 +135,11 @@ export default function CreateReviewPage() {
 
   // Обработчик загрузки файла и генерации ИИ отзыва
   const handleAiSubmit = async () => {
-      if (!category || !itemName) {
-          setError('Пожалуйста, укажите Категорию и Название объекта отзыва перед загрузкой файла.');
+      if (!category || !itemName || !authorTwitchId) {
+          setError('Пожалуйста, укажите Категорию, Название объекта и Twitch ID автора перед загрузкой файла.');
           return;
       }
-       if (!file) {
+      if (!file) {
           setError('Пожалуйста, выберите .txt файл для генерации отзыва.');
           return;
       }
@@ -140,8 +175,10 @@ export default function CreateReviewPage() {
               },
               body: JSON.stringify({ 
                   category, 
+                  subcategory,
                   itemName, 
-                  sourceFilePath: uploadData.path // Передаем путь к файлу
+                  sourceFilePath: uploadData.path,
+                  authorTwitchId
               }),
           });
 
@@ -152,7 +189,7 @@ export default function CreateReviewPage() {
 
           setSuccessMessage('Файл загружен, отзыв генерируется и отправлен на модерацию!');
            // Очищаем форму и перенаправляем
-          setCategory(''); setItemName(''); setRating(0); setFile(null);
+          setCategory(''); setSubcategory(''); setItemName(''); setFile(null); setAuthorTwitchId('');
           setTimeout(() => router.push('/reviews'), 2000);
 
       } catch (err) {
@@ -167,7 +204,7 @@ export default function CreateReviewPage() {
   // useEffect для редиректа
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
-      router.push(`/auth?next=/reviews/create`);
+      router.push('/auth?next=/reviews/create');
     }
   }, [isLoading, isAuthenticated, router]);
 
@@ -193,7 +230,32 @@ export default function CreateReviewPage() {
              <div className={styles.formGrid}> {/* Grid для полей */} 
                 <div className={styles.formGroup}>
                   <label htmlFor="category" className={styles.label}>Категория*:</label>
-                  <input type="text" id="category" value={category} onChange={(e) => setCategory(e.target.value)} className={styles.input} placeholder="Фильм, Игра, Книга..." required />
+                  <select 
+                     id="category"
+                     value={category}
+                     onChange={(e) => setCategory(e.target.value)}
+                     required
+                     className={styles.selectInput}
+                  >
+                     <option value="" disabled>-- Выберите категорию --</option>
+                     {mainCategories.map(cat => (
+                        <option key={cat} value={cat}>{cat}</option>
+                     ))}
+                  </select>
+                </div>
+                <div className={styles.formGroup}>
+                  <label htmlFor="subcategory" className={styles.label}>Подкатегория:</label>
+                  <select 
+                     id="subcategory"
+                     value={subcategory}
+                     onChange={(e) => setSubcategory(e.target.value)}
+                     className={styles.selectInput}
+                  >
+                     <option value="">-- Выберите подкатегорию --</option>
+                     {subcategoryNames.map(subcat => (
+                        <option key={subcat} value={subcat}>{subcat}</option>
+                     ))}
+                  </select>
                 </div>
                 <div className={styles.formGroup}>
                   <label htmlFor="itemName" className={styles.label}>Название объекта*:</label>
@@ -221,19 +283,31 @@ export default function CreateReviewPage() {
 
         {/* --- Форма для AI отзыва --- */} 
         <div className={styles.form}>
-            <h2>Сгенерировать отзыв с помощью AI (из .txt файла)</h2>
-            <p className={styles.aiDisclaimer}>Загрузите текстовый файл (например, ваше эссе, заметки), и AI попытается написать отзыв на его основе. Сгенерированный отзыв будет отправлен на модерацию.</p>
+            <h2>Сгенерировать отзыв с помощью AI</h2>
+            <p className={styles.aiDisclaimer}>Загрузите файл (.txt, .mp3, .mp4), и AI попытается написать отзыв на его основе (требуется модерация).</p>
+            <div className={styles.formGroup} style={{ gridColumn: '1 / -1' }}>
+                <label htmlFor="authorTwitchId" className={styles.label}>Twitch ID автора контента*:</label>
+                <input 
+                    type="text" 
+                    id="authorTwitchId" 
+                    value={authorTwitchId} 
+                    onChange={(e) => setAuthorTwitchId(e.target.value)} 
+                    className={styles.input} 
+                    placeholder="Введите ID канала автора на Twitch"
+                    required
+                    disabled={isUploading || isGenerating || isSubmitting}
+                />
+            </div>
             <div className={styles.formGrid}>
-                {/* Поля Категория и Название используются из ручной формы */} 
                 <div className={styles.formGroup} style={{ gridColumn: '1 / -1' }}>
-                    <label htmlFor="fileInput" className={styles.label}>TXT Файл*:</label>
+                    <label htmlFor="fileInput" className={styles.label}>Файл (.txt, .mp3, .mp4)*:</label>
                     <input 
                         type="file" 
                         id="fileInput" 
                         onChange={handleFileChange} 
-                        accept=".txt" 
+                        accept=".txt,.mp3,.mp4,audio/*,video/*"
                         className={styles.fileInput} 
-                        disabled={isUploading || isGenerating}
+                        disabled={isUploading || isGenerating || isSubmitting}
                     />
                      {file && <span className={styles.fileName}>Выбран файл: {file.name}</span>}
                 </div>
@@ -241,7 +315,7 @@ export default function CreateReviewPage() {
             <button 
                 onClick={handleAiSubmit} 
                 className={styles.submitButton} 
-                disabled={!file || isUploading || isGenerating || isSubmitting || !category || !itemName} // Блокируем, если нет файла, категории, названия или идет процесс
+                disabled={!file || isUploading || isGenerating || isSubmitting || !category || !itemName || !authorTwitchId}
             >
                 {isUploading ? 'Загрузка файла...' : (isGenerating ? 'Генерация отзыва...' : 'Загрузить и сгенерировать')}
             </button>

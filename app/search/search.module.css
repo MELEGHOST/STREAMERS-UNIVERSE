@@ -1,0 +1,152 @@
+/* Стили для страницы поиска /app/search/page.js */
+
+.title {
+    text-align: center;
+    margin-bottom: 2rem;
+    font-size: 1.8rem;
+    color: var(--foreground-primary);
+}
+
+.searchBarContainer {
+    position: relative;
+    margin-bottom: 2rem;
+    max-width: 600px;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+.searchInput {
+    width: 100%;
+    padding: 1rem 1.5rem; /* Крупнее поле */
+    padding-right: 3.5rem; /* Место для спиннера */
+    border: 1px solid var(--border-secondary);
+    border-radius: var(--border-radius-xl); /* Более скругленное */
+    background-color: var(--background-secondary);
+    color: var(--foreground-primary);
+    font-size: 1.1rem;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.searchInput:focus {
+    outline: none;
+    border-color: var(--accent-primary);
+    box-shadow: 0 0 0 3px hsla(from var(--accent-primary) h s l / 0.2);
+}
+
+.searchSpinner {
+    position: absolute;
+    right: 1.2rem;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 24px; 
+    height: 24px;
+    border-width: 2px;
+}
+
+.resultsContainer {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    max-width: 700px; /* Шире для результатов */
+    margin-left: auto;
+    margin-right: auto;
+}
+
+.searchResultItem {
+    display: flex;
+    align-items: center;
+    padding: 1rem;
+    background-color: var(--background-secondary);
+    border: 1px solid var(--border-secondary);
+    border-radius: var(--border-radius-lg);
+    cursor: pointer;
+    transition: background-color 0.15s ease, border-color 0.15s ease, transform 0.15s ease;
+    gap: 1rem;
+}
+
+.searchResultItem:hover {
+    background-color: var(--background-tertiary);
+    border-color: var(--border-tertiary);
+    transform: translateY(-2px);
+}
+
+.searchResultAvatar {
+    border-radius: 50%;
+    flex-shrink: 0;
+    background-color: var(--background-tertiary);
+}
+
+.searchResultInfo {
+    display: flex;
+    flex-direction: column;
+    flex-grow: 1;
+    overflow: hidden;
+}
+
+.searchResultName {
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: var(--foreground-primary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.searchResultLogin {
+    font-size: 0.9rem;
+    color: var(--foreground-secondary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* Статус пользователя в результатах */
+.searchResultStatus {
+    display: flex;
+    align-items: center;
+    gap: 0.8rem;
+    margin-left: auto;
+    flex-shrink: 0;
+}
+
+.liveBadge {
+    background-color: var(--error-color); 
+    color: white;
+    font-size: 0.75rem;
+    font-weight: bold;
+    padding: 0.2rem 0.5rem;
+    border-radius: var(--border-radius-sm);
+}
+
+.registeredBadge {
+    color: var(--success-color); 
+    font-size: 0.8rem;
+    font-weight: 500;
+    display: flex;
+    align-items: center;
+    gap: 0.3rem;
+}
+
+.inviteButton {
+    font-size: 0.85rem;
+    color: var(--accent-primary);
+    background-color: var(--accent-primary-muted);
+    padding: 0.3rem 0.6rem;
+    border-radius: var(--border-radius);
+    text-decoration: none;
+    transition: background-color 0.2s ease, color 0.2s ease;
+    border: 1px solid var(--accent-primary-muted);
+}
+
+.inviteButton:hover {
+    background-color: var(--accent-primary);
+    color: white;
+    border-color: var(--accent-primary);
+}
+
+.noResults {
+  padding: 1rem;
+  color: var(--foreground-secondary);
+  font-style: italic;
+  text-align: center;
+} 

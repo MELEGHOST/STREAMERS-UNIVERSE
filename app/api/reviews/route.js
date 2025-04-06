@@ -48,7 +48,7 @@ export async function POST(request) {
 
     try {
         const body = await request.json();
-        const { category, itemName, rating, textContent } = body;
+        const { category, subcategory, itemName, rating, textContent } = body;
 
         // Валидация входных данных
         if (!category || !itemName || !rating || !textContent || rating < 1 || rating > 5) {
@@ -62,9 +62,9 @@ export async function POST(request) {
             .insert({
                 user_id: userId,
                 category,
+                subcategory: subcategory || null,
                 item_name: itemName,
-                rating,
-                text_content: textContent,
+                review_text: textContent,
                 status: 'approved' // Ручные сразу одобрены
             })
             .select(); // Возвращаем созданную запись
