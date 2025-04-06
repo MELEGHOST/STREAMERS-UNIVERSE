@@ -1,0 +1,134 @@
+/* Стили для страницы отзывов */
+.header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1.5rem;
+    flex-wrap: wrap; /* Перенос кнопки на маленьких экранах */
+    gap: 1rem;
+}
+
+.title {
+    margin: 0; /* Убираем лишние отступы у заголовка */
+    font-size: 1.8rem;
+    color: var(--foreground-primary);
+}
+
+.createButton {
+    padding: 0.7em 1.3em;
+    font-size: 0.95rem;
+    border-radius: var(--border-radius);
+    cursor: pointer;
+    border: none;
+    background-color: var(--accent-primary);
+    color: var(--background-primary);
+    font-weight: 500;
+    transition: background-color 0.2s ease, transform 0.1s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.createButton:hover {
+    background-color: hsl(from var(--accent-primary) h s calc(l * 1.1));
+}
+
+.createButton:active {
+    transform: scale(0.98);
+}
+
+.noReviews {
+    text-align: center;
+    color: var(--foreground-secondary);
+    margin-top: 2rem;
+    font-style: italic;
+}
+
+.reviewsList {
+    display: grid;
+    gap: 1.5rem;
+    /* Можно сделать несколько колонок на больших экранах */
+    /* grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); */
+}
+
+/* Стили для карточки отзыва */
+.reviewCard {
+    background-color: var(--background-secondary);
+    border: 1px solid var(--border-secondary);
+    border-radius: var(--border-radius-lg);
+    padding: 1.2rem 1.5rem;
+    box-shadow: 0 2px 8px hsla(from var(--shadow-color) h s l / 0.05);
+}
+
+.reviewItemName {
+    margin: 0 0 0.5rem 0;
+    font-size: 1.2rem;
+    color: var(--foreground-primary);
+}
+
+.reviewCategory {
+    font-size: 0.9em;
+    color: var(--foreground-tertiary);
+    font-weight: 400;
+    margin-left: 0.5rem;
+}
+
+.reviewRating {
+    margin-bottom: 0.8rem;
+    color: var(--accent-yellow); /* Цвет для звезд */
+    font-size: 1.1rem;
+}
+
+.reviewText {
+    margin-bottom: 1rem;
+    color: var(--foreground-secondary);
+    line-height: 1.6;
+    white-space: pre-wrap; /* Сохраняем переносы строк */
+}
+
+.generatedContent {
+    background-color: var(--background-tertiary);
+    border: 1px solid var(--border-primary);
+    border-radius: var(--border-radius);
+    padding: 0.8rem 1rem;
+    margin-top: 1rem;
+    margin-bottom: 1rem;
+}
+
+.generatedContent h4 {
+    margin: 0 0 0.5rem 0;
+    font-size: 0.9rem;
+    color: var(--foreground-primary);
+    font-weight: 600;
+}
+
+.generatedContent p {
+    margin: 0 0 0.3rem 0;
+    font-size: 0.95rem;
+    color: var(--foreground-secondary);
+    font-style: italic;
+}
+
+.generatedContent small {
+    font-size: 0.8rem;
+    color: var(--foreground-tertiary);
+}
+
+.generatedContent small a {
+    color: var(--accent-secondary);
+    text-decoration: none;
+}
+.generatedContent small a:hover {
+    text-decoration: underline;
+}
+
+
+.reviewMeta {
+    margin-top: 1rem;
+    font-size: 0.85rem;
+    color: var(--foreground-tertiary);
+    border-top: 1px solid var(--border-primary);
+    padding-top: 0.8rem;
+    display: flex;
+    justify-content: space-between;
+} 

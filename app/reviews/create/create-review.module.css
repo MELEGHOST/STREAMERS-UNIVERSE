@@ -1,0 +1,166 @@
+/* Стили для страницы создания отзыва */
+.title {
+    text-align: center;
+    margin-bottom: 2rem;
+    font-size: 1.8rem;
+    color: var(--foreground-primary);
+}
+
+.form {
+    background-color: var(--background-secondary);
+    padding: 2rem;
+    border-radius: var(--border-radius-lg);
+    border: 1px solid var(--border-secondary);
+    margin-bottom: 2rem;
+}
+
+.form h2 {
+    margin-top: 0;
+    margin-bottom: 1.5rem;
+    font-size: 1.4rem;
+    color: var(--foreground-primary);
+    border-bottom: 1px solid var(--border-primary);
+    padding-bottom: 0.5rem;
+}
+
+.formGrid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 1.5rem;
+    margin-bottom: 1.5rem;
+}
+
+.formGroup {
+  display: flex;
+  flex-direction: column;
+}
+
+.label {
+  margin-bottom: 0.5rem;
+  font-weight: 600;
+  color: var(--foreground-secondary);
+  font-size: 0.9rem;
+}
+
+.input,
+.textarea,
+.fileInput {
+  padding: 0.8rem 1rem;
+  border-radius: var(--border-radius);
+  border: 1px solid var(--border-primary);
+  background-color: var(--background-primary);
+  color: var(--foreground-primary);
+  font-size: 1rem;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.input:focus,
+.textarea:focus {
+  outline: none;
+  border-color: var(--accent-primary);
+  box-shadow: 0 0 0 2px hsla(from var(--accent-primary) h s l / 0.3);
+}
+
+.textarea {
+  resize: vertical;
+  min-height: 100px;
+}
+
+/* Стили для выбора рейтинга */
+.ratingInput {
+    display: flex;
+    gap: 0.3rem;
+    font-size: 1.8rem; /* Размер звезд */
+}
+
+.starEmpty,
+.starFilled {
+    cursor: pointer;
+    color: var(--foreground-tertiary); /* Цвет пустой звезды */
+    transition: color 0.2s ease;
+}
+
+.starFilled {
+    color: var(--accent-yellow); /* Цвет заполненной звезды */
+}
+
+/* Стили для input type=file */
+.fileInput {
+    padding: 0.5rem; /* Уменьшаем паддинг для инпута файла */
+    cursor: pointer;
+}
+
+.fileInput::file-selector-button {
+    font-weight: 500;
+    padding: 0.6em 1em;
+    border-radius: var(--border-radius-sm);
+    border: none;
+    background-color: var(--background-tertiary);
+    color: var(--foreground-secondary);
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+    margin-right: 1rem;
+}
+
+.fileInput::file-selector-button:hover {
+    background-color: var(--border-primary);
+}
+
+.fileName {
+    display: inline-block;
+    margin-left: 1rem;
+    font-size: 0.9rem;
+    color: var(--foreground-secondary);
+    font-style: italic;
+}
+
+/* Кнопка отправки */
+.submitButton {
+    padding: 0.8em 1.5em;
+    font-size: 1rem;
+    border-radius: var(--border-radius);
+    cursor: pointer;
+    border: none;
+    background-color: var(--accent-primary);
+    color: var(--background-primary);
+    font-weight: 500;
+    transition: background-color 0.2s ease, opacity 0.2s ease, transform 0.1s ease;
+    display: block; /* Делаем блочной */
+    width: fit-content; /* Ширина по контенту */
+    margin-top: 1rem;
+    margin-left: auto; /* Сдвигаем вправо */
+    margin-right: 0;
+}
+
+.submitButton:hover:not(:disabled) {
+    background-color: hsl(from var(--accent-primary) h s calc(l * 1.1));
+}
+
+.submitButton:disabled {
+  background-color: var(--background-tertiary);
+  color: var(--foreground-tertiary);
+  cursor: not-allowed;
+  opacity: 0.7;
+}
+
+.submitButton:active:not(:disabled) {
+    transform: scale(0.98);
+}
+
+/* Разделитель */
+.divider {
+    border: none;
+    border-top: 1px solid var(--border-secondary);
+    margin: 3rem 0;
+}
+
+/* Дисклеймер для AI */
+.aiDisclaimer {
+    font-size: 0.9rem;
+    color: var(--foreground-tertiary);
+    background-color: var(--background-tertiary);
+    padding: 0.8rem 1rem;
+    border-radius: var(--border-radius);
+    border: 1px solid var(--border-primary);
+    margin-bottom: 1.5rem;
+} 

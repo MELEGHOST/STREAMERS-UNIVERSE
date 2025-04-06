@@ -1,0 +1,115 @@
+/* Стили для страницы модерации */
+.title {
+    text-align: center;
+    margin-bottom: 2rem;
+    font-size: 1.8rem;
+    color: var(--foreground-primary);
+}
+
+.reviewsTableContainer {
+    overflow-x: auto; /* Добавляем горизонтальный скролл для таблицы */
+    background-color: var(--background-secondary);
+    border: 1px solid var(--border-secondary);
+    border-radius: var(--border-radius-lg);
+    padding: 0.5rem;
+}
+
+.reviewsTable {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.9rem;
+}
+
+.reviewsTable th,
+.reviewsTable td {
+    padding: 0.8rem 1rem;
+    text-align: left;
+    border-bottom: 1px solid var(--border-primary);
+    vertical-align: top; /* Выравниваем по верху */
+}
+
+.reviewsTable th {
+    color: var(--foreground-secondary);
+    font-weight: 600;
+    white-space: nowrap; /* Запрещаем перенос заголовков */
+}
+
+.reviewsTable tbody tr:last-child td {
+    border-bottom: none;
+}
+
+.reviewsTable td a {
+    color: var(--accent-secondary);
+    text-decoration: none;
+}
+
+.reviewsTable td a:hover {
+    text-decoration: underline;
+}
+
+/* Стили для просмотра сгенерированного текста */
+.reviewsTable details {
+    cursor: pointer;
+}
+.reviewsTable details summary {
+    color: var(--foreground-secondary);
+    font-style: italic;
+    font-size: 0.85rem;
+}
+.generatedTextPreview {
+    margin-top: 0.5rem;
+    padding: 0.5rem;
+    background-color: var(--background-tertiary);
+    border-radius: var(--border-radius-sm);
+    max-height: 150px; /* Ограничиваем высоту */
+    overflow-y: auto; /* Добавляем скролл, если текст длинный */
+    font-size: 0.85rem;
+    white-space: pre-wrap;
+    line-height: 1.5;
+    color: var(--foreground-secondary);
+}
+
+/* Кнопки действий в таблице */
+.actionButtons {
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap; /* Перенос кнопок */
+}
+
+.actionButton {
+    padding: 0.4em 0.8em;
+    font-size: 0.85rem;
+    border-radius: var(--border-radius-sm);
+    cursor: pointer;
+    border: 1px solid var(--border-primary);
+    background-color: var(--background-tertiary);
+    color: var(--foreground-secondary);
+    font-weight: 500;
+    transition: all 0.2s ease;
+}
+
+.actionButton:hover {
+    background-color: var(--border-primary);
+    border-color: var(--border-secondary);
+    color: var(--foreground-primary);
+}
+
+.approveButton {
+    border-color: hsla(from var(--success-color) h s l / 0.5);
+    color: var(--success-color);
+}
+.approveButton:hover {
+    background-color: hsla(from var(--success-color) h s l / 0.1);
+    border-color: var(--success-color);
+    color: var(--success-color);
+}
+
+.rejectButton {
+    border-color: hsla(from var(--error-color) h s l / 0.5);
+    color: var(--error-color);
+}
+.rejectButton:hover {
+    background-color: hsla(from var(--error-color) h s l / 0.1);
+    border-color: var(--error-color);
+    color: var(--error-color);
+} 
