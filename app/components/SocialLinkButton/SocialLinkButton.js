@@ -47,7 +47,7 @@ const platformConfig = {
 const SocialLinkButton = ({ platform, url, text: customText }) => {
   const config = platformConfig[platform] || platformConfig.default;
   const buttonText = customText || config.text;
-  // const IconComponent = config.icon; // Раскомментировать, если используем иконки
+  // const IconComponent = config.icon; // Иконки пока не используем
 
   // Пытаемся сделать URL полным, если он не содержит http/https
   let finalUrl = url;
@@ -62,10 +62,12 @@ const SocialLinkButton = ({ platform, url, text: customText }) => {
      return null; // Не рендерим кнопку без валидного URL
   }
 
+  // Структура JSX адаптирована под стиль new-duck-76
   return (
     <Link href={finalUrl || '#'} target="_blank" rel="noopener noreferrer" className={`${styles.button} ${config.className}`}>
       {/* IconComponent && <IconComponent className={styles.icon} /> */}
-      <span className={styles.text}>{buttonText}</span>
+      {/* Текст обернут в span для стилизации эффекта */} 
+      <span>{buttonText}</span> 
     </Link>
   );
 };

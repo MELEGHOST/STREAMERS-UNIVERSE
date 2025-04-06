@@ -1,126 +1,127 @@
-/* Базовый стиль кнопки - адаптируем первый пример uiverse.io */
+/* Базовый стиль кнопки - адаптируем new-duck-76 */
 .button {
-  display: inline-flex; /* Используем inline-flex для выравнивания иконки и текста */
-  align-items: center;
-  justify-content: center;
-  padding: 0.7em 1.4em;
+  font-family: inherit;
   font-size: 0.95rem;
   font-weight: 500;
-  border: none;
-  border-radius: var(--border-radius-lg);
-  cursor: pointer;
-  position: relative;
-  overflow: hidden;
-  text-decoration: none; /* Убираем подчеркивание у ссылки */
-  transition: transform 0.1s ease, box-shadow 0.2s ease;
-  background-color: var(--background-tertiary); /* Цвет по умолчанию */
+  background: var(--background-tertiary); /* Цвет фона по умолчанию */
   color: var(--foreground-secondary);
+  fill: var(--foreground-secondary);
+  padding: 0.7em 1.4em;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   border: 1px solid var(--border-primary);
-  gap: 0.5rem; /* Пространство между иконкой и текстом */
+  border-radius: var(--border-radius-lg);
+  box-shadow: 0px 5px 10px rgba(0, 0, 0, 0.1);
+  transition: all 0.3s;
+  cursor: pointer;
+  text-decoration: none;
+  overflow: hidden; /* Важно для эффекта */
+  position: relative; /* Важно для псевдоэлементов */
+  gap: 0.5rem;
 }
 
-/* Эффект при наведении - пульсация */
+/* Эффект при наведении */
+.button:hover {
+  border: 1px solid transparent; /* Скрываем рамку */
+  box-shadow: 0px 5px 10px rgba(0, 0, 0, 0.2);
+  transform: translateY(-2px);
+}
+
+/* Адаптируем псевдоэлемент для создания "волны" или фона */
 .button::before {
-  content: '';
+  content: "";
+  width: 0;
+  height: 300%; /* Делаем высоким для эффекта скольжения */
   position: absolute;
-  left: 0;
-  top: 0;
-  width: 100%;
-  height: 100%;
-  background-color: currentColor; /* Используем цвет текста для пульсации */
-  border-radius: inherit;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%) rotate(45deg);
+  /* Цвет берем из переменных ниже */
+  background: var(--hover-bg-color, var(--accent-primary)); 
+  transition: .5s ease;
+  display: block;
   z-index: 0;
-  opacity: 0.1;
-  transform: scaleX(0);
-  transform-origin: left;
-  transition: transform 0.4s ease-in-out;
 }
 
 .button:hover::before {
-  transform: scaleX(1);
-  transform-origin: left;
+  width: 110%; /* Увеличиваем ширину для полного покрытия */
 }
 
-.button:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 8px hsla(from var(--shadow-color) h s l / 0.1);
-  color: var(--foreground-primary);
+/* Стилизация текста внутри (чтобы был поверх псевдоэлемента) */
+.button span {
+  position: relative;
+  z-index: 1;
+  transition: color 0.4s ease; /* Плавная смена цвета текста */
+}
+
+.button:hover span {
+   color: var(--hover-text-color, white); /* Цвет текста при наведении */
 }
 
 .button:active {
-   transform: scale(0.98) translateY(0);
-   box-shadow: none;
-}
-
-/* Стили для текста и иконки внутри кнопки */
-.text,
-.icon {
-  position: relative;
-  z-index: 1;
-}
-
-.icon {
-  font-size: 1.2em;
+  transform: scale(0.97) translateY(0);
+  box-shadow: 0px 2px 5px rgba(0, 0, 0, 0.15);
 }
 
 /* --- Стили для конкретных платформ --- */
 
 /* VK */
 .vk {
-  background-color: #4a76a8; /* Цвет VK */
-  color: white;
-  border-color: #4a76a8;
+  --hover-bg-color: #4a76a8;
+  --hover-text-color: white;
 }
 .vk:hover {
-  background-color: #5081b8;
-  color: white;
+   color: white; /* Цвет иконки при наведении (если будет) */
+   fill: white;
 }
 
 /* Twitch */
 .twitch {
-  background-color: #9146ff; /* Цвет Twitch */
-  color: white;
-  border-color: #9146ff;
+  --hover-bg-color: #9146ff;
+  --hover-text-color: white;
 }
 .twitch:hover {
-  background-color: #a05eff;
-  color: white;
+   color: white;
+   fill: white;
 }
 
 /* Discord */
 .discord {
-  background-color: #5865f2; /* Цвет Discord */
-  color: white;
-  border-color: #5865f2;
+  --hover-bg-color: #5865f2;
+  --hover-text-color: white;
 }
 .discord:hover {
-  background-color: #6a75f3;
-  color: white;
+   color: white;
+   fill: white;
 }
 
 /* YouTube */
 .youtube {
-  background-color: #ff0000; /* Цвет YouTube */
-  color: white;
-  border-color: #ff0000;
+  --hover-bg-color: #ff0000;
+  --hover-text-color: white;
 }
 .youtube:hover {
-  background-color: #ff3333;
-  color: white;
+   color: white;
+   fill: white;
 }
 
 /* Yandex Music */
 .yandexMusic {
-  background-color: #ffdb4d; /* Цвет Яндекс Музыки */
-  color: #333;
-  border-color: #ffdb4d;
+  --hover-bg-color: #ffdb4d;
+  --hover-text-color: #333; /* Темный текст для желтого фона */
 }
 .yandexMusic:hover {
-  background-color: #ffe476;
-  color: #222;
+   color: #333;
+   fill: #333;
 }
 
 /* Default (если платформа неизвестна) */
+.default {
+  --hover-bg-color: var(--accent-secondary);
+  --hover-text-color: var(--foreground-primary);
+}
 .default:hover {
-  border-color: var(--foreground-secondary);
+   color: var(--foreground-primary);
+   fill: var(--foreground-primary);
 } 
