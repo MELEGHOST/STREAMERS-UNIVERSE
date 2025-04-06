@@ -6,15 +6,15 @@ import styles from './achievements.module.css';
 import pageStyles from '../../styles/page.module.css';
 
 // Пример структуры данных достижения
-const exampleAchievement = {
-  id: 'first_stream',
-  name: 'Первый стрим',
-  description: 'Провести первую трансляцию.',
-  icon: '🏆', // Можно заменить на URL иконки
-  unlocked: true, // или false
-  condition: 'Провести хотя бы одну трансляцию', // Описание условия
-  progress: null, // { current: 1, target: 1 } или null
-};
+// const exampleAchievement = {
+//   id: 'first_stream',
+//   name: 'Первый стрим',
+//   description: 'Провести первую трансляцию.',
+//   icon: '🏆', // Можно заменить на URL иконки
+//   unlocked: true, // или false
+//   condition: 'Провести хотя бы одну трансляцию', // Описание условия
+//   progress: null, // { current: 1, target: 1 } или null
+// };
 
 const exampleAllAchievements = [
    { id: 'first_stream', name: 'Первый стрим', description: 'Провести первую трансляцию.', icon: '🚀', condition: 'Провести трансляцию' },
@@ -45,7 +45,7 @@ export default function AchievementsPage() {
   const router = useRouter();
   const [activeTab, setActiveTab] = useState('my'); // 'my' или 'all'
   const [myAchievements, setMyAchievements] = useState([]);
-  const [allAchievements, setAllAchievements] = useState(exampleAllAchievements); // Пока используем заглушку
+  const [allAchievements] = useState(exampleAllAchievements); 
   const [loadingAch, setLoadingAch] = useState(true);
   const [error, setError] = useState(null);
 
@@ -67,7 +67,7 @@ export default function AchievementsPage() {
             setLoadingAch(false);
        }, 500);
     }
-  }, [isLoading, isAuthenticated, user, supabase, router]);
+  }, [isLoading, isAuthenticated, user, supabase, router, allAchievements]);
 
    if (isLoading) {
        return (

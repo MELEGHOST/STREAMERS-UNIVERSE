@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import Link from 'next/link'; // Используем Link для навигации
@@ -79,8 +79,8 @@ export default function MenuPage() {
     }
   }, [isLoggingOut, supabase]);
 
-  // --- Функция поиска с Debounce ---
-  const fetchSearchResults = useCallback(async (query) => {
+  // --- Функция поиска (без useCallback здесь) ---
+  const fetchSearchResults = async (query) => {
       if (!query || query.trim().length < 2) {
           setSearchResults([]);
           setIsSearching(false);
@@ -111,17 +111,22 @@ export default function MenuPage() {
       } finally {
           setIsSearching(false);
       }
-  }, [isAuthenticated, supabase]); // Зависимости useCallback
-
-  // Создаем debounce-версию функции поиска
-  const debouncedSearch = useCallback(debounce(fetchSearchResults, 500), [fetchSearchResults]); // 500ms задержка
+  };
+  
+  // Используем useRef для хранения debounce-функции
+  const debouncedSearchRef = useRef(
+     debounce((query) => {
+       // Вызываем fetchSearchResults внутри debounce
+       fetchSearchResults(query);
+     }, 500) // 500ms задержка
+  );
 
   // Обработчик изменения поля ввода
   const handleSearchChange = (event) => {
       const newSearchTerm = event.target.value;
       setSearchTerm(newSearchTerm);
-      // Вызываем debounce-функцию
-      debouncedSearch(newSearchTerm);
+      // Вызываем debounce-функцию из ref
+      debouncedSearchRef.current(newSearchTerm);
   };
 
   // Данные для отображения

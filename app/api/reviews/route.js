@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { verifyJwt } from '../../../utils/jwt.js'; // <<< Правильный путь (3 уровня вверх)
 
@@ -15,7 +15,7 @@ const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey, {
 });
 
 // GET - Получение одобренных отзывов
-export async function GET(request) {
+export async function GET() {
     // TODO: Добавить пагинацию (limit, offset)
     try {
         console.log("[API /api/reviews] Fetching approved reviews...");

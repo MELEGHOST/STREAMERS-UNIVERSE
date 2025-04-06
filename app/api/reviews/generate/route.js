@@ -1,6 +1,6 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
-import { verifyJwt } from '../../../../utils/jwt';
+import { verifyJwt } from '../../../utils/jwt.js';
 import OpenAI from 'openai'; // Используем openai SDK для OpenRouter
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;

@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { verifyJwt } from '../../../utils/jwt.js'; // <<< Правильный путь (3 уровня вверх)
 // import { createClient } from '@supabase/supabase-js'; // Пока не нужно для заглушки
 

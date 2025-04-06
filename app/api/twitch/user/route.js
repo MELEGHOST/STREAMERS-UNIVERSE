@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { getTwitchClient } from '../../../../utils/twitchClient';
 import { createClient } from '@supabase/supabase-js';
 import { verifyJwt } from '../../../../utils/jwt'; // Для проверки JWT
@@ -16,52 +16,13 @@ const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey, {
     auth: { persistSession: false } // Не сохраняем сессию для админ клиента
 });
 
-// --- Функция для получения токена приложения Twitch ---
-async function getTwitchAppAccessToken() {
-  console.log('[API /twitch/user] Запрос НОВОГО токена приложения Twitch...');
-  const clientId = process.env.TWITCH_CLIENT_ID;
-  const clientSecret = process.env.TWITCH_CLIENT_SECRET;
+let appAccessToken = null;
+let tokenExpiry = 0;
 
-  if (!clientId) {
-    console.error('[API /twitch/user] ОШИБКА: Отсутствует TWITCH_CLIENT_ID!');
-    throw new Error('Конфигурация сервера: отсутствует TWITCH_CLIENT_ID.');
-  }
-  if (!clientSecret) {
-    console.error('[API /twitch/user] ОШИБКА: Отсутствует TWITCH_CLIENT_SECRET!');
-    throw new Error('Конфигурация сервера: отсутствует TWITCH_CLIENT_SECRET.');
-  }
-
-  try {
-    const response = await fetch('https://id.twitch.tv/oauth2/token', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-      body: `client_id=${clientId}&client_secret=${clientSecret}&grant_type=client_credentials`,
-      cache: 'no-store' // Не кэшируем запрос токена
-    });
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error(`[API /twitch/user] Ошибка получения токена Twitch (${response.status}): ${errorText}`);
-      if (response.status === 401 || response.status === 403) {
-         throw new Error('Ошибка авторизации Twitch: Неверный Client ID/Secret.');
-      } else {
-          throw new Error(`Ошибка сервера Twitch при получении токена: ${response.status}`);
-      }
-    }
-    const data = await response.json();
-    if (!data.access_token) {
-        console.error('[API /twitch/user] В ответе Twitch отсутствует access_token.', data);
-        throw new Error('Ошибка ответа Twitch: отсутствует access_token.');
-    }
-    console.log('[API /twitch/user] Новый токен приложения Twitch успешно получен.');
-    return data.access_token;
-  } catch (error) {
-    console.error('[API /twitch/user] Критическая ошибка при запросе токена Twitch:', error);
-    // Перебрасываем ошибку, чтобы ее можно было поймать выше
-    throw new Error(error.message || 'Неизвестная ошибка при получении токена Twitch.');
-  }
-}
-// --- Конец функции ---
+// // Функция для получения App Access Token от Twitch (НЕ ИСПОЛЬЗУЕТСЯ ЗДЕСЬ)
+// async function getTwitchAppAccessToken() { 
+// ...
+// }
 
 export async function GET(request) {
   const userId = request.nextUrl.searchParams.get('userId');
