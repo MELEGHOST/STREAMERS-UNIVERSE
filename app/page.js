@@ -6,7 +6,7 @@ import { useAuth } from './contexts/AuthContext'; // Импортируем ко
 import styles from '../styles/page.module.css'; // Используем общие стили
 
 export default function HomePage() {
-  const { user, isLoading, isAuthenticated, signInWithTwitch } = useAuth();
+  const { isLoading, isAuthenticated, signInWithTwitch } = useAuth();
   const router = useRouter();
   const [isLoggingIn, setIsLoggingIn] = useState(false); // Состояние для кнопки
 

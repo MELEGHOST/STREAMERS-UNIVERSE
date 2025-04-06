@@ -71,11 +71,7 @@ export async function POST(request) {
         } else if (fileType.startsWith('audio/') || fileType.startsWith('video/')) {
             console.log(`[API /generate] Sending audio/video to Whisper for transcription...`);
             try {
-                // Используем Buffer для передачи в API
-                const fileBuffer = Buffer.from(await fileBlob.arrayBuffer());
-                
                 // Создаем ReadableStream из буфера, чтобы имитировать файл для SDK
-                // Важно: Передаем буфер напрямую, т.к. SDK может его обработать.
                 // Необходимо передать имя файла.
                 const transcriptionResponse = await openrouter.audio.transcriptions.create({
                     model: "openai/whisper-1", // Модель Whisper на OpenRouter
