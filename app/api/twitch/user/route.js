@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
-import { getTwitchClient } from '../../utils/twitchClient';
+import { getTwitchClient } from '../../../utils/twitchClient';
 import { createClient } from '@supabase/supabase-js';
-import { verifyJwt } from '../../utils/jwt';
+import { verifyJwt } from '../../../utils/jwt';
 
 // Инициализация Supabase Admin Client (используем сервисный ключ)
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
