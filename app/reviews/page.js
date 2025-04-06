@@ -60,7 +60,7 @@ function ReviewCard({ review }) {
 
 export default function ReviewsPage() {
   const router = useRouter();
-  const { isLoading: authLoading, isAuthenticated } = useAuth();
+  const { isLoading: authLoading, isAuthenticated, supabase } = useAuth();
   const title = "Отзывы";
 
   const [reviews, setReviews] = useState([]);
@@ -91,7 +91,7 @@ export default function ReviewsPage() {
       } finally {
           setLoadingReviews(false);
       }
-  }, [title]);
+  }, [title, supabase]);
 
   // useEffect для редиректа неавторизованных
   useEffect(() => {

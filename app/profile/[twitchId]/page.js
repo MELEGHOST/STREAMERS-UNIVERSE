@@ -75,10 +75,10 @@ export default function UserProfilePage() {
     setLoadingProfile(true);
     setError(null);
     let isRegisteredCheck = false;
+    let cachedData = null;
 
     try {
         const cacheKey = `profile_data_${profileTwitchId}`;
-        let cachedData = null;
         if (typeof window !== 'undefined') {
             const cachedStr = localStorage.getItem(cacheKey);
             if (cachedStr) {
@@ -157,7 +157,7 @@ export default function UserProfilePage() {
              setIsRegistered(isRegisteredCheck);
         }
     }
-  }, [profileTwitchId, isAuthenticated, supabase, isRegistered]);
+  }, [profileTwitchId, isAuthenticated, supabase]);
 
   useEffect(() => {
       loadProfileData();
