@@ -176,6 +176,7 @@ function ProfilePage() {
   const profileDescription = profileData?.description;
   const profileSocialLinks = profileData?.social_links; // Теперь это объект { vk: "...", twitch: "..." }
   const userRole = profileData?.role; // Получаем роль из данных профиля
+  const broadcasterType = twitchUserData?.broadcaster_type;
 
   // Функция форматирования даты
   const formatDate = (dateString) => {
@@ -254,144 +255,76 @@ function ProfilePage() {
           </div>
         </div>
         
-      {error && <div className={styles.errorMessage}>{error}</div>} 
+      {error && <p className={styles.errorMessage}>{error}</p>}
 
-      <div className={styles.profileHeader}>
-        {(loadingProfile && !twitchUserData && !profileData) ? (
-          <div className={styles.skeletonHeader}>
-            <div className={`${styles.skeletonAvatar} ${styles.skeleton}`}></div>
-            <div style={{ flexGrow: 1 }}>
-                <div className={`${styles.skeletonTextLarge} ${styles.skeleton}`}></div>
-                <div className={`${styles.skeletonText} ${styles.skeleton}`}></div>
-            </div>
-          </div>
-        ) : (
-          <>
-            <CyberAvatar 
-              src={avatarUrl}
-              alt={`Аватар ${displayName}`}
-              size="lg" // Увеличим размер аватара
-              className={styles.profileAvatar} 
-              priority={true}
-              onError={(e) => { e.target.src = '/images/default_avatar.png'; }} 
-            />
-            <div className={styles.profileDetails}>
-              <h1>{displayName}</h1>
-              {/* Роль пользователя */} 
-              {userRole && <span className={styles.userRole}>{userRole === 'streamer' ? 'Стример' : 'Зритель'}</span>}
-              <div className={styles.profileStats}>
-                {followersCount !== undefined && <span className={styles.statItem}>👥 Фолловеры: {followersCount.toLocaleString('ru-RU')}</span>}
-                {viewCount !== undefined && <span className={styles.statItem}>👁️ Просмотры: {viewCount.toLocaleString('ru-RU')}</span>}
-                {createdAt && <span className={styles.statItem}>📅 На Twitch с: {formatDate(createdAt)}</span>}
-              </div>
-            </div>
-          </>
-        )}
-      </div>
-
-      {/* Основной контент профиля (Информация Twitch + Описание) */} 
-      <div className={styles.profileContent}>
-        <h2>Информация</h2>
-                {loadingProfile ? (
-           <div className={styles.skeletonSection}>
-              <div className={`${styles.skeletonText} ${styles.skeleton}`}></div>
-              <div className={`${styles.skeletonText} ${styles.skeleton}`}></div>
-              <div className={`${styles.skeletonText} ${styles.skeleton.short}`}></div>
-                  </div>
-        ) : (
-          <div className={styles.infoGrid}> 
-            {/* Twitch Info */}
-            {twitchUserData && (
-               <div className={styles.infoItem}>
-                 <span className={styles.infoLabel}>Тип канала Twitch:</span>
-                 <span className={styles.infoValue}>{translateBroadcasterType(twitchUserData.broadcaster_type)}</span>
-               </div>
-            )}
-            {/* Profile Description */}
-            {profileDescription && (
-               <div className={styles.infoItem} style={{ gridColumn: '1 / -1' }}> {/* Растягиваем на обе колонки */} 
-                 <span className={styles.infoLabel}>О себе:</span>
-                 {/* Используем white-space: pre-wrap для сохранения переносов строк */}
-                 <span className={styles.infoValue} style={{ whiteSpace: 'pre-wrap' }}>
-                     {profileDescription}
-                 </span>
-               </div>
-            )}
-            {/* Если нет ни того, ни другого (и не загрузка) */} 
-            {!twitchUserData && !profileDescription && !loadingProfile && (
-                <p>Дополнительная информация отсутствует.</p>
+      {loadingProfile && !twitchUserData ? (
+             <div className={styles.loadingContainer}><div className="spinner"></div><p>Загрузка...</p></div>
+         ) : (
+            <div className={styles.profileHeader}>
+                <CyberAvatar src={avatarUrl} alt={`Аватар ${displayName}`} size={100} />
+                <div className={styles.profileInfo}>
+                    <h1 className={styles.displayName}>{displayName}</h1>
+                    {/* Отображаем роль и тип канала */}
+                    <p className={styles.metaInfo}>
+                       {userRole && <span className={styles.roleBadge}>{userRole}</span>} 
+                       <span>{translateBroadcasterType(broadcasterType)}</span>
+                       {createdAt && <span> | На Twitch с {formatDate(createdAt)}</span>}
+                    </p>
+                     {/* Отображаем просмотры и фолловеров */}
+                     {(typeof viewCount !== 'undefined' || typeof followersCount !== 'undefined') && (
+                         <p className={styles.stats}>
+                            {typeof viewCount !== 'undefined' && 
+                                <span>👁️ Просмотры: {viewCount.toLocaleString('ru-RU')}</span>
+                             }
+                             {typeof followersCount !== 'undefined' && 
+                                <span> | ❤️ Фолловеры: {followersCount.toLocaleString('ru-RU')}</span>
+                             }
+                        </p>
                      )}
-                  </div>
+                 </div>
+             </div>
+         )}
+
+        {/* Отображение Дополнительной информации (описание, соцсети) */} 
+         {(profileDescription || profileSocialLinks) && !loadingProfile && (
+            <div className={styles.additionalInfo}>
+                {profileDescription && <p className={styles.description}>{profileDescription}</p>}
+                {profileSocialLinks && (
+                    <div className={styles.socialLinksContainer}>
+                         {/* Используем Object.entries для динамического рендера кнопок */} 
+                        {Object.entries(profileSocialLinks).map(([platform, url]) => (
+                          url && <StyledSocialButton key={platform} platform={platform} url={url} />
+                        ))}
+                    </div>
                 )}
-              </div>
-
-      {/* --- Ссылки на соцсети --- */}
-      {/* Проверяем, что profileSocialLinks существует и это не пустой объект */} 
-      {profileSocialLinks && typeof profileSocialLinks === 'object' && Object.keys(profileSocialLinks).length > 0 && (
-          <div className={styles.profileContent}>
-            <h2>Социальные сети</h2>
-            {loadingProfile ? (
-                <div className={styles.skeletonSection}>
-                   <div className={`${styles.skeletonText} ${styles.skeleton}`}></div>
-                   <div className={`${styles.skeletonText} ${styles.skeleton.short}`}></div>
-                </div>
-            ) : (
-               <div className={styles.socialLinksContainer}> {/* Обертка для кнопок */} 
-                 {/* Перебираем ключи объекта social_links и рендерим кнопки */} 
-                 {Object.entries(profileSocialLinks)
-                   .filter(([, url]) => url) // Показываем только если URL не пустой
-                   .map(([platform, url]) => (
-                     // Используем новый компонент
-                     <StyledSocialButton key={platform} platform={platform} url={url} />
-                   ))}
-               </div>
-            )}
-          </div>
-      )}
-
-      {/* --- Записи трансляций (VODs) --- */}
-       {(videos && videos.length > 0) || loadingProfile ? (
-          <div className={styles.profileContent}>
-            <h2>Записи трансляций</h2>
-            {loadingProfile ? (
-                 <div className={styles.skeletonSection}>
-                    {/* Скелет для видео */} 
-                    {[...Array(2)].map((_, i) => (
-                        <div key={i} className={styles.skeletonVod}>
-                             <div className={`${styles.skeletonVodThumbnail} ${styles.skeleton}`}></div>
-                             <div className={styles.skeletonVodInfo}>
-                                 <div className={`${styles.skeletonText} ${styles.skeleton}`}></div>
-                                 <div className={`${styles.skeletonText} ${styles.skeleton.short}`}></div>
-              </div>
             </div>
-                    ))}
+        )}
+
+       {/* Секция с последними видео (VODs) */} 
+        {videos && videos.length > 0 && !loadingProfile && (
+             <div className={styles.videosSection}>
+                 <h2 className={styles.sectionTitle}>Последние видео (VODs)</h2>
+                 <div className={styles.videosGrid}>
+                     {videos.map(video => (
+                         <a key={video.id} href={video.url} target="_blank" rel="noopener noreferrer" className={styles.videoCard}>
+                             <img 
+                                 src={video.thumbnail_url.replace('%{width}', '320').replace('%{height}', '180')} 
+                                 alt={`Превью видео ${video.title}`}
+                                 className={styles.videoThumbnail}
+                             />
+                             <div className={styles.videoInfo}>
+                                 <h3 className={styles.videoTitle} title={video.title}>{video.title}</h3>
+                                 <p className={styles.videoMeta}>
+                                     <span>{formatDate(video.created_at)}</span>
+                                     <span> | {formatDuration(video.duration)}</span>
+                                     <span> | 👁️ {video.view_count.toLocaleString('ru-RU')}</span>
+                                 </p>
+                             </div>
+                         </a>
+                     ))}
+                 </div>
             </div>
-            ) : (
-               <div className={styles.vodsContainer}> 
-                 {videos.map((video) => (
-                   <Link key={video.id} href={video.url} target="_blank" rel="noopener noreferrer" className={styles.vodCard}>
-                     <img 
-                       src={video.thumbnail_url?.replace('%{width}', '320').replace('%{height}', '180') || '/images/default_thumbnail.png'} 
-                       alt={video.title} 
-                       className={styles.vodThumbnail}
-                       width={320} // Указываем размеры для оптимизации
-                       height={180}
-                       loading="lazy" // Ленивая загрузка для превью
-                     />
-                     <div className={styles.vodInfo}>
-                       <h4 className={styles.vodTitle}>{video.title}</h4>
-                       <div className={styles.vodMeta}>
-                          <span title={`Просмотры: ${video.view_count.toLocaleString('ru-RU')}`}>👁️ {video.view_count.toLocaleString('ru-RU')}</span>
-                          <span>🕒 {formatDuration(video.duration)}</span>
-                          <span>📅 {formatDate(video.created_at)}</span>
-        </div>
-      </div>
-                   </Link>
-                 ))}
-               </div>
-            )}
-          </div>
-       ) : null /* Не показываем секцию, если нет видео и не идет загрузка */}
+         )}
 
     </div>
   );
