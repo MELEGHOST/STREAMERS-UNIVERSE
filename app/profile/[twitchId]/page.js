@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter, useParams } from 'next/navigation';
-import Link from 'next/link';
+// import Link from 'next/link'; // НЕ ИСПОЛЬЗУЕТСЯ
 import Image from 'next/image';
 import CyberAvatar from '../../components/CyberAvatar';
 import styles from '../profile.module.css';

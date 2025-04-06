@@ -49,7 +49,6 @@ export default function ReviewsPage() {
 
   // Загрузка отзывов
   const fetchReviews = useCallback(async () => {
-      if (!supabase) return;
       setLoadingReviews(true);
       setError(null);
       console.log(`[${title}] Загрузка одобренных отзывов...`);
@@ -72,7 +71,7 @@ export default function ReviewsPage() {
       } finally {
           setLoadingReviews(false);
       }
-  }, [supabase, title]);
+  }, [title]);
 
   // useEffect для редиректа неавторизованных
   useEffect(() => {
@@ -84,10 +83,10 @@ export default function ReviewsPage() {
 
   // useEffect для загрузки отзывов
   useEffect(() => {
-      if (isAuthenticated && supabase) {
+      if (isAuthenticated) {
           fetchReviews();
       }
-  }, [isAuthenticated, supabase, fetchReviews]);
+  }, [isAuthenticated, fetchReviews]);
 
   if (authLoading) {
     return (
