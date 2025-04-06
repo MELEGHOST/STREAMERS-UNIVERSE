@@ -4,9 +4,11 @@ import { useRouter } from 'next/navigation';
 import { useAuth } from '../contexts/AuthContext';
 import styles from './reviews.module.css'; 
 import pageStyles from '../../styles/page.module.css';
+import Image from 'next/image';
 
 // Компонент для отображения одного отзыва (можно вынести в отдельный файл)
-function ReviewCard({ review }) {
+function ReviewCard({ review, isAdmin, onModerate }) {
+    const { user: authUser } = useAuth(); // Для проверки, является ли пользователь автором
     const formatDate = (dateString) => {
         if (!dateString) return 'Неизвестно';
         try {
@@ -17,7 +19,7 @@ function ReviewCard({ review }) {
     };
 
     return (
-        <div className={styles.reviewCard}>
+        <div className={`${styles.reviewCard} ${styles[review.status] || ''}`}>
             <div className={styles.reviewHeader}>
                 <span className={styles.reviewItemName}>{review.item_name}</span>
                 <span className={styles.reviewCategory}>
@@ -27,6 +29,18 @@ function ReviewCard({ review }) {
                     <span className={styles.reviewRating}>Рейтинг: {'★'.repeat(review.rating)}{'☆'.repeat(5 - review.rating)}</span>
                 )}
             </div>
+            {review.image_url && (
+                <div className={styles.reviewImageContainer}>
+                    <Image 
+                        src={review.image_url} 
+                        alt={`Изображение к отзыву на ${review.item_name}`}
+                        width={400}
+                        height={300}
+                        className={styles.reviewImage} 
+                        style={{ objectFit: 'cover' }}
+                    />
+                </div>
+            )}
             {review.text_content && <p className={styles.reviewText}>{review.text_content}</p>}
             {review.generated_content && (
                 <div className={styles.generatedContent}>

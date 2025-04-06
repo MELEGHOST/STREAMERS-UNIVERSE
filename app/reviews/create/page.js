@@ -33,9 +33,9 @@ export default function CreateReviewPage() {
   const [subcategory, setSubcategory] = useState('');
   const [itemName, setItemName] = useState('');
   const [rating, setRating] = useState(0); // 0 - не выбрано
-  const [textContent, setTextContent] = useState('');
-  const [file, setFile] = useState(null);
-  const [isUploading, setIsUploading] = useState(false);
+  const [reviewText, setReviewText] = useState('');
+  const [imageFile, setImageFile] = useState(null);
+  const [isUploadingImage, setIsUploadingImage] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState(null);
@@ -87,56 +87,125 @@ export default function CreateReviewPage() {
       setError(null);
   };
 
+  // Обработчик выбора файла картинки
+  const handleImageFileChange = (event) => {
+    if (event.target.files && event.target.files[0]) {
+        const file = event.target.files[0];
+        // Проверка типа файла (опционально, но полезно)
+        if (!file.type.startsWith('image/')) {
+            setError('Пожалуйста, выберите файл изображения (JPEG, PNG, GIF, WEBP и т.д.).');
+            setImageFile(null);
+            event.target.value = null; // Сбросить инпут
+            return;
+        }
+        // Проверка размера (опционально)
+        const maxSize = 5 * 1024 * 1024; // 5 MB
+        if (file.size > maxSize) {
+             setError(`Файл слишком большой (${(file.size / 1024 / 1024).toFixed(1)} MB). Максимальный размер: 5 MB.`);
+             setImageFile(null);
+             event.target.value = null;
+             return;
+        }
+        setImageFile(file);
+        setError(null);
+    } else {
+        setImageFile(null); // Сбросить, если файл не выбран
+    }
+  };
+
   // Обработчик отправки ручного отзыва
-  const handleManualSubmit = async (e) => {
-      e.preventDefault();
-      if (!category || !itemName || rating === 0 || !textContent) {
-          setError('Пожалуйста, заполните все обязательные поля: Категория, Название, Рейтинг и Текст отзыва.');
-          return;
-      }
-      if (!user || !supabase) {
-          setError('Ошибка аутентификации.');
-          return;
-      }
+  const handleSubmit = async (event) => {
+    event.preventDefault();
+    if (!category || !itemName || rating < 1 || !reviewText) {
+      setError('Пожалуйста, заполните все обязательные поля (Категория, Название, Рейтинг, Текст отзыва).');
+      return;
+    }
+    if (!user || !supabase) {
+        setError('Ошибка аутентификации. Попробуйте перезайти.');
+        return;
+    }
 
-      setIsSubmitting(true);
-      setError(null);
-      setSuccessMessage(null);
+    setIsSubmitting(true);
+    setIsUploadingImage(!!imageFile); // Устанавливаем флаг загрузки, если есть файл
+    setError(null);
+    setSuccessMessage(null);
 
-      try {
-          const token = await supabase.auth.getSession().then(s => s.data.session?.access_token);
-          const response = await fetch('/api/reviews', {
-              method: 'POST',
-              headers: {
-                  'Content-Type': 'application/json',
-                  'Authorization': `Bearer ${token}`,
-              },
-              body: JSON.stringify({
-                  category,
-                  subcategory,
-                  itemName,
-                  rating,
-                  textContent,
-              }),
-          });
+    let uploadedImageUrl = null;
 
-          if (!response.ok) {
-              const errorData = await response.json();
-              throw new Error(errorData.error || `Ошибка сервера: ${response.status}`);
+    try {
+      // Загрузка картинки, если она есть
+      if (imageFile) {
+          console.log('[ReviewCreate] Загрузка изображения...');
+          const fileExt = imageFile.name.split('.').pop();
+          const fileName = `${user.id}_${Date.now()}.${fileExt}`;
+          const filePath = `public/${fileName}`; // Путь в бакете reviews-images
+
+          const { data: uploadData, error: uploadError } = await supabase.storage
+              .from('reviews-images') // Указываем бакет для картинок
+              .upload(filePath, imageFile);
+
+          if (uploadError) {
+              throw new Error(`Ошибка загрузки изображения: ${uploadError.message}`);
           }
-
-          const newReview = await response.json();
-          setSuccessMessage(`Отзыв успешно создан! ID: ${newReview.id}`);
-          // Очищаем форму и перенаправляем
-          setCategory(''); setSubcategory(''); setItemName(''); setRating(0); setTextContent('');
-          setTimeout(() => router.push('/reviews'), 1500);
-
-      } catch (err) {
-          console.error('Submit review error:', err);
-          setError(err.message || 'Не удалось отправить отзыв.');
-      } finally {
-          setIsSubmitting(false);
+          
+          // Получаем публичный URL загруженного файла
+          const { data: publicUrlData } = supabase.storage
+              .from('reviews-images')
+              .getPublicUrl(filePath);
+              
+          if (!publicUrlData?.publicUrl) {
+              console.warn('[ReviewCreate] Не удалось получить public URL для изображения, но загрузка прошла.');
+              // Можно попробовать сохранить просто path, но лучше URL
+              // uploadedImageUrl = filePath; 
+          } else {
+                uploadedImageUrl = publicUrlData.publicUrl;
+                console.log('[ReviewCreate] Изображение загружено: ', uploadedImageUrl);
+          }
+          setIsUploadingImage(false); // Загрузка картинки завершена
       }
+      
+      // Отправка данных отзыва на API
+      const session = await supabase.auth.getSession();
+      const token = session.data.session?.access_token;
+
+      const response = await fetch('/api/reviews', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          category,
+          subcategory,
+          itemName,
+          rating,
+          reviewText,
+          imageUrl: uploadedImageUrl, // Передаем URL картинки
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Не удалось создать отзыв.');
+      }
+
+      setSuccessMessage('Отзыв успешно создан и отправлен на модерацию!');
+      // Очистка формы
+      setCategory(''); setSubcategory(''); setItemName(''); setRating(0); setReviewText(''); setImageFile(null); // Сбрасываем imageFile
+      // Опционально сбросить инпут файла картинки
+      const imageInput = document.getElementById('imageFile');
+      if (imageInput) imageInput.value = null; 
+      
+      // Можно перенаправить пользователя или обновить список отзывов
+      setTimeout(() => router.push('/reviews'), 2000); // Пример редиректа
+
+    } catch (err) {
+      console.error('Ошибка создания отзыва:', err);
+      setError(err.message || 'Произошла ошибка.');
+    } finally {
+      setIsSubmitting(false);
+      setIsUploadingImage(false);
+    }
   };
 
   // Обработчик загрузки файла ИЛИ ИСПОЛЬЗОВАНИЯ ССЫЛКИ и генерации ИИ отзыва
@@ -241,7 +310,7 @@ export default function CreateReviewPage() {
         {successMessage && <div className={pageStyles.successMessage} style={{ marginBottom: '1rem' }}>{successMessage}</div>}
 
         {/* --- Форма для ручного отзыва --- */} 
-        <form onSubmit={handleManualSubmit} className={styles.form}>
+        <form onSubmit={handleSubmit} className={styles.form}>
              <h2>Написать отзыв вручную</h2>
              <div className={styles.formGrid}> {/* Grid для полей */} 
                 <div className={styles.formGroup}>
@@ -282,16 +351,28 @@ export default function CreateReviewPage() {
                    <RatingInput rating={rating} setRating={setRating} />
                  </div>
                 <div className={styles.formGroup} style={{ gridColumn: '1 / -1' }}> {/* Текст на всю ширину */} 
-                  <label htmlFor="textContent" className={styles.label}>Ваш отзыв*:</label>
-                  <textarea id="textContent" value={textContent} onChange={(e) => setTextContent(e.target.value)} className={styles.textarea} rows="6" placeholder="Поделитесь вашим мнением..." required />
+                  <label htmlFor="reviewText" className={styles.label}>Ваш отзыв*:</label>
+                  <textarea id="reviewText" value={reviewText} onChange={(e) => setReviewText(e.target.value)} className={styles.textarea} rows="6" placeholder="Поделитесь вашим мнением..." required />
+                </div>
+                <div className={styles.formGroup}>
+                    <label htmlFor="imageFile" className={styles.label}>Изображение (необязательно, макс. 5MB):</label>
+                    <input 
+                        type="file"
+                        id="imageFile"
+                        accept="image/png, image/jpeg, image/gif, image/webp"
+                        onChange={handleImageFileChange}
+                        className={styles.fileInput}
+                        disabled={isSubmitting || isUploadingImage}
+                    />
+                    {imageFile && <span className={styles.fileName}>Выбрано: {imageFile.name}</span>}
                 </div>
              </div>
              <button 
                  type="submit" 
                  className={styles.submitButton} 
-                 disabled={isSubmitting || isGenerating} // Блокируем при любой отправке
+                 disabled={isSubmitting || isUploadingImage}
              >
-                 {isSubmitting ? 'Публикация...' : 'Опубликовать отзыв'}
+                 {isUploadingImage ? 'Загрузка фото...' : (isSubmitting ? 'Отправка...' : 'Отправить отзыв')}
              </button>
         </form>
 

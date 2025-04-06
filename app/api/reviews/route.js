@@ -44,15 +44,18 @@ export async function POST(request) {
     if (!verifiedToken) {
         return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
-    const userId = verifiedToken.sub; // Получаем ID пользователя из токена
+    const userId = verifiedToken.sub;
 
     try {
         const body = await request.json();
-        const { category, subcategory, itemName, rating, textContent } = body;
+        const { category, subcategory, itemName, rating, reviewText, imageUrl } = body;
 
-        // Валидация входных данных
-        if (!category || !itemName || !rating || !textContent || rating < 1 || rating > 5) {
-            return NextResponse.json({ error: 'Missing or invalid required fields (category, itemName, rating(1-5), textContent)' }, { status: 400 });
+        // Простая валидация
+        if (!category || !itemName || !rating || !reviewText) {
+            return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
+        }
+        if (typeof rating !== 'number' || rating < 1 || rating > 5) {
+             return NextResponse.json({ error: 'Invalid rating value' }, { status: 400 });
         }
 
         console.log(`[API /api/reviews] Creating manual review for user ${userId}...`);
@@ -64,19 +67,24 @@ export async function POST(request) {
                 category,
                 subcategory: subcategory || null,
                 item_name: itemName,
-                review_text: textContent,
-                status: 'approved' // Ручные сразу одобрены
+                rating,
+                review_text: reviewText,
+                image_url: imageUrl || null,
+                status: 'pending' // По умолчанию новые отзывы ожидают модерации
             })
-            .select(); // Возвращаем созданную запись
+            .select('id') // Возвращаем ID созданного отзыва
+            .single(); // Ожидаем одну строку
 
-        if (error) throw error;
+        if (error) {
+            console.error('Error inserting review:', error);
+            return NextResponse.json({ error: 'Failed to create review', details: error.message }, { status: 500 });
+        }
 
-        console.log(`[API /api/reviews] Manual review created successfully with ID: ${data?.[0]?.id}`);
-        return NextResponse.json(data[0], { status: 201 }); // Возвращаем созданный отзыв
+        console.log(`[API /api/reviews] Manual review created by user ${userId} with ID: ${data.id}`);
+        return NextResponse.json({ id: data.id, message: 'Review created successfully, pending moderation.' }, { status: 201 });
 
     } catch (error) {
-        console.error(`[API /api/reviews] Error creating manual review for user ${userId}:`, error);
-         // Обработка специфических ошибок БД (уникальность и т.д.) может быть здесь
-        return NextResponse.json({ error: `Internal Server Error: ${error.message}` }, { status: 500 });
+        console.error('Error processing POST /api/reviews:', error);
+        return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
     }
 } 

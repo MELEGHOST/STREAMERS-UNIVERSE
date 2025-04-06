@@ -131,4 +131,30 @@
     padding-top: 0.8rem;
     display: flex;
     justify-content: space-between;
-} 
+}
+
+/* <<< Стили для контейнера и самой картинки >>> */
+.reviewImageContainer {
+  margin-top: 1rem; /* Отступ сверху */
+  margin-bottom: 1rem; /* Отступ снизу */
+  overflow: hidden; /* Скрыть части изображения, выходящие за рамки */
+  border-radius: var(--border-radius); /* Скруглить углы контейнера */
+  /* Можно задать максимальную высоту или соотношение сторон */
+  max-height: 400px; 
+  display: flex; /* Чтобы Image занимал место */
+}
+
+.reviewImage {
+  display: block; /* Убрать лишние отступы под картинкой */
+  width: 100%; /* Занять всю ширину контейнера */
+  height: auto; /* Высота автоматически подстроится */
+  max-height: 400px; /* Ограничение высоты самой картинки */
+  object-fit: cover; /* Масштабировать с сохранением пропорций и обрезкой */
+}
+
+.reviewText {
+  margin-top: 1rem; /* Отступ сверху, если нет картинки */
+  /* ... остальные стили ... */
+}
+
+/* ... стили reviewFooter ... */ 
