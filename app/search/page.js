@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { useSearchParams, useRouter } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { useAuth } from '../contexts/AuthContext'; // Путь к контексту
 import styles from './search.module.css'; // Стили для этой страницы

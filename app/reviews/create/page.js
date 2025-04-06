@@ -41,6 +41,7 @@ export default function CreateReviewPage() {
   const [error, setError] = useState(null);
   const [successMessage, setSuccessMessage] = useState(null);
   const [authorTwitchId, setAuthorTwitchId] = useState('');
+  const [sourceUrl, setSourceUrl] = useState('');
 
   // Получаем список основных категорий
   const mainCategories = Object.keys(reviewCategories);
@@ -60,7 +61,6 @@ export default function CreateReviewPage() {
           // Проверяем тип файла на клиенте для быстрой обратной связи
           const allowedTypes = ['text/plain', 'audio/mpeg', 'audio/mp4', 'video/mp4', 'audio/wav', 'audio/ogg'];
           // Добавляем больше MIME типов при необходимости
-          const maxFileSize = 50 * 1024 * 1024; // Лимит 50 MB (примерный)
 
           if (!allowedTypes.includes(selectedFile.type) && !selectedFile.type.startsWith('audio/') && !selectedFile.type.startsWith('video/')) {
                setFile(null);
@@ -68,17 +68,23 @@ export default function CreateReviewPage() {
                setError(`Неподдерживаемый тип файла: ${selectedFile.type}. Разрешены .txt, .mp3, .mp4 и другие аудио/видео.`);
                return;
           }
-          
-          if (selectedFile.size > maxFileSize) {
-               setFile(null);
-               event.target.value = null;
-               setError(`Файл слишком большой (${(selectedFile.size / 1024 / 1024).toFixed(1)} MB). Максимальный размер: 50 MB.`);
-               return;
-          }
 
           setFile(selectedFile);
           setError(null);
       }
+  };
+
+  // Обработчик изменения URL
+  const handleUrlChange = (event) => {
+      const url = event.target.value;
+      setSourceUrl(url);
+      if (url) { // Если ввели URL, сбрасываем файл
+          setFile(null);
+          // Опционально: сбросить значение input[type=file]
+          const fileInput = document.getElementById('fileInput');
+          if (fileInput) fileInput.value = '';
+      }
+      setError(null);
   };
 
   // Обработчик отправки ручного отзыва
@@ -133,51 +139,59 @@ export default function CreateReviewPage() {
       }
   };
 
-  // Обработчик загрузки файла и генерации ИИ отзыва
+  // Обработчик загрузки файла ИЛИ ИСПОЛЬЗОВАНИЯ ССЫЛКИ и генерации ИИ отзыва
   const handleAiSubmit = async () => {
       if (!category || !itemName || !authorTwitchId) {
-          setError('Пожалуйста, укажите Категорию, Название объекта и Twitch ID автора перед загрузкой файла.');
+          setError('Пожалуйста, укажите Категорию, Название объекта и Twitch ID автора.');
           return;
       }
-      if (!file) {
-          setError('Пожалуйста, выберите .txt файл для генерации отзыва.');
+      // Проверка: должен быть либо файл, либо URL
+      if (!file && !sourceUrl) {
+          setError('Пожалуйста, выберите файл ИЛИ укажите URL для генерации отзыва.');
           return;
       }
-      if (!user || !supabase) {
-          setError('Ошибка аутентификации.');
+      // Проверка, чтобы не было и файла, и URL одновременно
+      if (file && sourceUrl) {
+          setError('Пожалуйста, используйте что-то одно: либо файл, либо URL.');
           return;
       }
 
-      setIsUploading(true);
+      setIsUploading(!!file); // Ставим uploading только если есть файл
       setIsGenerating(true);
       setError(null);
       setSuccessMessage(null);
 
       try {
-          // 1. Загрузка файла в Supabase Storage
-          const filePath = `review_sources/${user.id}/${Date.now()}_${file.name}`;
-          const { data: uploadData, error: uploadError } = await supabase.storage
-              .from('reviews-sources') // Название бакета (нужно создать)
-              .upload(filePath, file);
-          
-          if (uploadError) throw new Error(`Ошибка загрузки файла: ${uploadError.message}`);
-          if (!uploadData?.path) throw new Error('Не удалось получить путь к загруженному файлу.');
+          let sourceFilePath = null; // Теперь может быть null
+          if (file) { // Если есть файл, грузим его
+              const filePath = `public/${user.id}/${Date.now()}_${file.name}`;
+              const { data: uploadData, error: uploadError } = await supabase.storage
+                  .from('reviews-sources')
+                  .upload(filePath, file);
 
-          console.log('Файл успешно загружен:', uploadData.path);
-          setIsUploading(false); // Загрузка завершена
+              if (uploadError) throw new Error(`Ошибка загрузки файла: ${uploadError.message}`);
+              sourceFilePath = uploadData.path;
+              console.log('[ReviewCreate] Файл успешно загружен:', sourceFilePath);
+              setIsUploading(false); 
+          }
 
-          // 2. Вызов API для генерации отзыва
+          // Отправляем запрос на генерацию
+          const session = await supabase.auth.getSession();
+          const token = session.data.session?.access_token;
+
           const response = await fetch('/api/reviews/generate', {
               method: 'POST',
               headers: {
                   'Content-Type': 'application/json',
-                  'Authorization': `Bearer ${await supabase.auth.getSession().then(s => s.data.session?.access_token)}`
+                  'Authorization': `Bearer ${token}`,
               },
               body: JSON.stringify({ 
-                  category, 
+                  category,
                   subcategory,
-                  itemName, 
-                  sourceFilePath: uploadData.path,
+                  itemName,
+                  // Передаем либо путь к файлу, либо URL
+                  sourceFilePath: sourceFilePath, 
+                  sourceUrl: sourceUrl || null, // Передаем URL, если он есть
                   authorTwitchId
               }),
           });
@@ -189,7 +203,9 @@ export default function CreateReviewPage() {
 
           setSuccessMessage('Файл загружен, отзыв генерируется и отправлен на модерацию!');
            // Очищаем форму и перенаправляем
-          setCategory(''); setSubcategory(''); setItemName(''); setFile(null); setAuthorTwitchId('');
+          setCategory(''); setSubcategory(''); setItemName(''); setFile(null); setAuthorTwitchId(''); setSourceUrl(''); // Сбрасываем URL
+          const fileInput = document.getElementById('fileInput');
+          if (fileInput) fileInput.value = ''; // Сбрасываем инпут файла
           setTimeout(() => router.push('/reviews'), 2000);
 
       } catch (err) {
@@ -284,7 +300,10 @@ export default function CreateReviewPage() {
         {/* --- Форма для AI отзыва --- */} 
         <div className={styles.form}>
             <h2>Сгенерировать отзыв с помощью AI</h2>
-            <p className={styles.aiDisclaimer}>Загрузите файл (.txt, .mp3, .mp4), и AI попытается написать отзыв на его основе (требуется модерация).</p>
+            <p className={styles.aiDisclaimer}>
+                Загрузите файл (.txt, аудио, видео) ИЛИ укажите ссылку (YouTube, Twitch Clip), 
+                и AI попытается написать отзыв (требуется модерация).
+            </p>
             <div className={styles.formGroup} style={{ gridColumn: '1 / -1' }}>
                 <label htmlFor="authorTwitchId" className={styles.label}>Twitch ID автора контента*:</label>
                 <input 
@@ -295,27 +314,40 @@ export default function CreateReviewPage() {
                     className={styles.input} 
                     placeholder="Введите ID канала автора на Twitch"
                     required
-                    disabled={isUploading || isGenerating || isSubmitting}
+                    disabled={isUploading || isGenerating || isSubmitting || !!sourceUrl}
                 />
             </div>
             <div className={styles.formGrid}>
                 <div className={styles.formGroup} style={{ gridColumn: '1 / -1' }}>
-                    <label htmlFor="fileInput" className={styles.label}>Файл (.txt, .mp3, .mp4)*:</label>
+                    <label htmlFor="fileInput" className={styles.label}>Файл ИЛИ Ссылка*:</label>
                     <input 
                         type="file" 
                         id="fileInput" 
                         onChange={handleFileChange} 
                         accept=".txt,.mp3,.mp4,audio/*,video/*"
                         className={styles.fileInput} 
-                        disabled={isUploading || isGenerating || isSubmitting}
+                        disabled={isUploading || isGenerating || isSubmitting || !!sourceUrl}
                     />
-                     {file && <span className={styles.fileName}>Выбран файл: {file.name}</span>}
+                    {file && <span className={styles.fileName}>Выбран файл: {file.name}</span>}
+                    
+                    <span className={styles.orSeparator}>ИЛИ</span>
+                    
+                    <input 
+                        type="url"
+                        id="sourceUrl" 
+                        value={sourceUrl} 
+                        onChange={handleUrlChange} 
+                        placeholder="Вставьте ссылку на YouTube видео или Twitch клип"
+                        className={styles.input} 
+                        style={{ marginTop: '10px' }}
+                        disabled={isUploading || isGenerating || isSubmitting || !!file}
+                    />
                 </div>
             </div>
             <button 
                 onClick={handleAiSubmit} 
                 className={styles.submitButton} 
-                disabled={!file || isUploading || isGenerating || isSubmitting || !category || !itemName || !authorTwitchId}
+                disabled={(!file && !sourceUrl) || isUploading || isGenerating || isSubmitting || !category || !itemName || !authorTwitchId || (!!file && !!sourceUrl)}
             >
                 {isUploading ? 'Загрузка файла...' : (isGenerating ? 'Генерация отзыва...' : 'Загрузить и сгенерировать')}
             </button>
