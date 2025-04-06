@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { verifyJwt } from '../../utils/jwt.js'; // Указываем расширение .js
+import { verifyJwt } from '../../../utils/jwt.js'; // <<< Правильный путь (3 уровня вверх)
 // import { createClient } from '@supabase/supabase-js'; // Пока не нужно для заглушки
 
 // const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
