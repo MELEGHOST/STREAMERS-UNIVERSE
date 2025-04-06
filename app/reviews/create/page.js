@@ -40,7 +40,7 @@ export default function CreateReviewPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState(null);
   const [successMessage, setSuccessMessage] = useState(null);
-  const [authorTwitchId, setAuthorTwitchId] = useState('');
+  const [authorTwitchNickname, setAuthorTwitchNickname] = useState('');
   const [sourceUrl, setSourceUrl] = useState('');
 
   // Получаем список основных категорий
@@ -141,8 +141,8 @@ export default function CreateReviewPage() {
 
   // Обработчик загрузки файла ИЛИ ИСПОЛЬЗОВАНИЯ ССЫЛКИ и генерации ИИ отзыва
   const handleAiSubmit = async () => {
-      if (!category || !itemName || !authorTwitchId) {
-          setError('Пожалуйста, укажите Категорию, Название объекта и Twitch ID автора.');
+      if (!category || !itemName || !authorTwitchNickname) {
+          setError('Пожалуйста, укажите Категорию, Название объекта и Twitch Никнейм автора.');
           return;
       }
       // Проверка: должен быть либо файл, либо URL
@@ -192,7 +192,7 @@ export default function CreateReviewPage() {
                   // Передаем либо путь к файлу, либо URL
                   sourceFilePath: sourceFilePath, 
                   sourceUrl: sourceUrl || null, // Передаем URL, если он есть
-                  authorTwitchId
+                  authorTwitchNickname: authorTwitchNickname
               }),
           });
 
@@ -203,7 +203,7 @@ export default function CreateReviewPage() {
 
           setSuccessMessage('Файл загружен, отзыв генерируется и отправлен на модерацию!');
            // Очищаем форму и перенаправляем
-          setCategory(''); setSubcategory(''); setItemName(''); setFile(null); setAuthorTwitchId(''); setSourceUrl(''); // Сбрасываем URL
+          setCategory(''); setSubcategory(''); setItemName(''); setFile(null); setAuthorTwitchNickname(''); setSourceUrl(''); // Сбрасываем никнейм
           const fileInput = document.getElementById('fileInput');
           if (fileInput) fileInput.value = ''; // Сбрасываем инпут файла
           setTimeout(() => router.push('/reviews'), 2000);
@@ -301,20 +301,20 @@ export default function CreateReviewPage() {
         <div className={styles.form}>
             <h2>Сгенерировать отзыв с помощью AI</h2>
             <p className={styles.aiDisclaimer}>
-                Загрузите файл (.txt, аудио, видео) ИЛИ укажите ссылку (YouTube, Twitch Clip), 
+                Загрузите файл (.txt, аудио, видео) ИЛИ укажите ссылку (YouTube), 
                 и AI попытается написать отзыв (требуется модерация).
             </p>
             <div className={styles.formGroup} style={{ gridColumn: '1 / -1' }}>
-                <label htmlFor="authorTwitchId" className={styles.label}>Twitch ID автора контента*:</label>
+                <label htmlFor="authorTwitchNickname" className={styles.label}>Twitch Никнейм автора контента*:</label>
                 <input 
                     type="text" 
-                    id="authorTwitchId" 
-                    value={authorTwitchId} 
-                    onChange={(e) => setAuthorTwitchId(e.target.value)} 
+                    id="authorTwitchNickname" 
+                    value={authorTwitchNickname} 
+                    onChange={(e) => setAuthorTwitchNickname(e.target.value.toLowerCase())}
                     className={styles.input} 
-                    placeholder="Введите ID канала автора на Twitch"
+                    placeholder="Введите никнейм автора на Twitch"
                     required
-                    disabled={isUploading || isGenerating || isSubmitting || !!sourceUrl}
+                    disabled={isUploading || isGenerating || isSubmitting}
                 />
             </div>
             <div className={styles.formGrid}>
@@ -326,7 +326,7 @@ export default function CreateReviewPage() {
                         onChange={handleFileChange} 
                         accept=".txt,.mp3,.mp4,audio/*,video/*"
                         className={styles.fileInput} 
-                        disabled={isUploading || isGenerating || isSubmitting || !!sourceUrl}
+                        disabled={isUploading || isGenerating || isSubmitting}
                     />
                     {file && <span className={styles.fileName}>Выбран файл: {file.name}</span>}
                     
@@ -347,7 +347,7 @@ export default function CreateReviewPage() {
             <button 
                 onClick={handleAiSubmit} 
                 className={styles.submitButton} 
-                disabled={(!file && !sourceUrl) || isUploading || isGenerating || isSubmitting || !category || !itemName || !authorTwitchId || (!!file && !!sourceUrl)}
+                disabled={(!file && !sourceUrl) || isUploading || isGenerating || isSubmitting || !category || !itemName || !authorTwitchNickname || (!!file && !!sourceUrl)}
             >
                 {isUploading ? 'Загрузка файла...' : (isGenerating ? 'Генерация отзыва...' : 'Загрузить и сгенерировать')}
             </button>

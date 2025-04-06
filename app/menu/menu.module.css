@@ -1,137 +1,162 @@
-.container {
-  display: flex;
-  flex-direction: column;
-  padding: 1rem;
-  max-width: var(--max-width);
-  margin: 0 auto;
-}
+/* Общие стили контейнера, загрузки и ошибок - могут быть в page.module.css */
 
+/* --- Хедер --- */
 .header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 1rem;
+  padding: 0.8rem 1.5rem; /* Немного меньше паддинги */
   background-color: var(--background-secondary);
-  border-radius: var(--border-radius);
+  border-radius: var(--border-radius-lg);
   margin-bottom: 2rem;
+  box-shadow: var(--shadow-elevation-low);
 }
 
-.userInfo {
+.logoLink {
   display: flex;
   align-items: center;
-  gap: 1rem;
-  cursor: pointer;
-  padding: 0.5rem;
-  border-radius: var(--border-radius);
-  transition: background-color 0.2s ease;
+  gap: 0.8rem;
+  text-decoration: none;
+  color: var(--foreground-primary);
 }
 
-.userInfo:hover {
+.logoText {
+  font-weight: 600;
+  font-size: 1.1rem;
+}
+
+.userNav {
+  display: flex;
+  align-items: center;
+  gap: 0.8rem; /* Отступ между профилем и кнопкой выхода */
+}
+
+.userLink {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem; /* Отступ между авой и ником */
+  padding: 0.4rem 0.8rem;
+  border-radius: var(--border-radius);
+  transition: background-color 0.2s ease;
+  text-decoration: none;
+}
+
+.userLink:hover {
   background-color: var(--background-tertiary);
 }
 
-.avatar {
-  width: 50px;
-  height: 50px;
+.userAvatar {
   border-radius: 50%;
-  border: 2px solid var(--accent-primary);
-  overflow: hidden;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  flex-shrink: 0;
+  border: 2px solid transparent; /* Убираем рамку по умолчанию */
+  transition: border-color 0.2s ease;
 }
 
-.avatar img {
-  display: block;
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
+.userLink:hover .userAvatar {
+  border-color: var(--accent-primary); /* Показываем рамку при наведении */
 }
 
 .userName {
-  font-size: 1.2rem;
-  font-weight: 600;
-}
-
-.navigation ul {
-  list-style: none;
-  padding: 0;
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-  gap: 1rem;
-}
-
-.navigation li a {
-  display: block;
-  padding: 1.5rem 1rem;
-  background-color: var(--background-secondary);
-  border-radius: var(--border-radius);
-  color: var(--foreground-primary);
-  text-decoration: none;
-  text-align: center;
-  font-size: 1.1rem;
+  font-size: 0.95rem;
   font-weight: 500;
-  transition: background-color 0.2s ease, transform 0.1s ease;
-  border: 1px solid var(--border-secondary);
-}
-
-.navigation li a:hover {
-  background-color: var(--background-tertiary);
-  text-decoration: none;
-  transform: translateY(-2px);
-}
-
-.footer {
-  margin-top: 3rem;
-  text-align: center;
+  color: var(--foreground-primary);
 }
 
 .logoutButton {
-  padding: 0.8em 1.5em;
-  font-size: 1rem;
-  color: var(--foreground-primary);
-  background-color: var(--background-tertiary);
-  border: 1px solid var(--border-primary);
+  background: none;
+  border: none;
+  color: var(--foreground-secondary);
+  font-size: 1.4rem; /* Размер иконки */
+  padding: 0.5rem;
   border-radius: var(--border-radius);
   cursor: pointer;
-  transition: background-color 0.2s ease, border-color 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background-color 0.2s ease, color 0.2s ease;
 }
 
 .logoutButton:hover {
-  background-color: var(--error-color);
-  border-color: var(--error-color);
-  color: #fff;
+  background-color: var(--background-tertiary);
+  color: var(--error-color); /* Красный при наведении */
 }
 
-.logoutButton:disabled {
-  background-color: var(--background-secondary);
-  color: var(--foreground-tertiary);
-  cursor: not-allowed;
-  border-color: var(--border-secondary);
+/* --- Основной контент меню --- */
+.mainContent {
+  padding: 0 1rem; /* Добавим небольшие отступы по бокам */
 }
 
-.loadingContainer {
+.mainTitle {
+  text-align: center;
+  margin-bottom: 2rem;
+  font-size: 1.8rem;
+  color: var(--foreground-primary);
+}
+
+/* Сетка для карточек меню */
+.mainNavGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); /* Адаптивные колонки */
+  gap: 1.5rem; /* Увеличим отступ */
+  list-style: none;
+  padding: 0;
+}
+
+/* Стиль карточки меню */
+.navCard {
   display: flex;
-  flex-direction: column;
+  flex-direction: column; /* Иконка над текстом */
   align-items: center;
   justify-content: center;
-  min-height: 300px; /* Или другая подходящая высота */
-  color: var(--foreground-secondary);
-}
-
-.loadingContainer p {
-  margin-top: 1rem;
-}
-
-.errorMessage {
-  padding: 1rem;
-  margin-bottom: 1.5rem;
-  border-radius: var(--border-radius);
-  background-color: hsla(from var(--error-color) h s l / 0.15);
-  border: 1px solid var(--error-color);
-  color: var(--error-color);
+  padding: 2rem 1rem;
+  background-color: var(--background-secondary);
+  border-radius: var(--border-radius-lg);
+  border: 1px solid var(--border-secondary);
+  color: var(--foreground-primary);
+  text-decoration: none;
   text-align: center;
+  transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+  min-height: 150px; /* Минимальная высота карточки */
+}
+
+.navCard:hover {
+  transform: translateY(-5px); /* Эффект подъема */
+  box-shadow: var(--shadow-elevation-medium);
+  border-color: var(--accent-primary);
+  color: var(--accent-primary);
+}
+
+.navCardIcon {
+  font-size: 2.5rem; /* Крупная иконка */
+  margin-bottom: 1rem;
+}
+
+.navCardLabel {
+  font-size: 1.1rem;
+  font-weight: 500;
+}
+
+/* Особый стиль для админской карточки */
+.adminCard {
+  /* Можно добавить границу или фон, если нужно выделить */
+  /* border-left: 4px solid var(--accent-secondary); */
+}
+
+/* --- Футер (стили могут быть в page.module.css) --- */
+/* Убедимся, что старые стили для .navigation, .navButton и т.д. удалены или не конфликтуют */
+
+/* Удаляем или комментируем старые стили, если они больше не нужны */
+/*
+.navigation ul { ... }
+.navigation li a { ... }
+.navButton { ... }
+*/
+
+/* Стили для спиннера и сообщений (если не в page.module.css) */
+.loadingContainer {
+    /* ... стили ... */
+}
+.errorMessage {
+    /* ... стили ... */
 }
 
 /* Стили для поиска */

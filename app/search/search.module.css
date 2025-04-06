@@ -116,15 +116,16 @@
     font-weight: bold;
     padding: 0.2rem 0.5rem;
     border-radius: var(--border-radius-sm);
+    margin-left: auto;
+    flex-shrink: 0;
 }
 
 .registeredBadge {
-    color: var(--success-color); 
-    font-size: 0.8rem;
-    font-weight: 500;
-    display: flex;
-    align-items: center;
-    gap: 0.3rem;
+    color: var(--success-color);
+    font-size: 1rem;
+    margin-left: 0.5rem;
+    flex-shrink: 0;
+    cursor: default;
 }
 
 .inviteButton {
@@ -144,9 +145,12 @@
     border-color: var(--accent-primary);
 }
 
-.noResults {
-  padding: 1rem;
-  color: var(--foreground-secondary);
-  font-style: italic;
-  text-align: center;
+.inviteHint {
+    /* ... стили ... */
+}
+
+.searchError, .noResults {
+    padding: 1rem;
+    text-align: center;
+    color: var(--foreground-secondary);
 } 

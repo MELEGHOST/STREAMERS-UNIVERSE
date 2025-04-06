@@ -4,6 +4,7 @@ import { verifyJwt } from '../../../utils/jwt';
 import OpenAI from 'openai'; // Используем openai SDK для OpenRouter
 import ytdl from 'ytdl-core'; // Добавляем импорт ytdl-core
 import { PassThrough } from 'stream'; // Для работы с потоками
+import { validateTwitchUser } from '../../../utils/twitchApi'; // <<< Импортируем утилиту
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_KEY;
@@ -76,16 +77,16 @@ export async function POST(request) {
 
     try {
         const body = await request.json();
-        const { category, subcategory, itemName, sourceFilePath, sourceUrl, authorTwitchId } = body;
+        const { category, subcategory, itemName, sourceFilePath, sourceUrl, authorTwitchNickname } = body;
 
-        if (!category || !itemName || !authorTwitchId || (!sourceFilePath && !sourceUrl)) {
-            return NextResponse.json({ error: 'Missing required fields (category, itemName, authorTwitchId, and either sourceFilePath or sourceUrl)' }, { status: 400 });
+        if (!category || !itemName || !authorTwitchNickname || (!sourceFilePath && !sourceUrl)) {
+            return NextResponse.json({ error: 'Missing required fields (category, itemName, authorTwitchNickname, and either sourceFilePath or sourceUrl)' }, { status: 400 });
         }
         if (sourceFilePath && sourceUrl) {
              return NextResponse.json({ error: 'Provide either sourceFilePath or sourceUrl, not both.' }, { status: 400 });
         }
 
-        console.log(`[API /generate] Processing request for ${itemName}. Category: ${category}. Author: ${authorTwitchId}`);
+        console.log(`[API /generate] Processing request for ${itemName}. Category: ${category}. Author Nickname: ${authorTwitchNickname}`);
 
         let fileContentText = '';
         let processingSource = '';
@@ -183,29 +184,71 @@ export async function POST(request) {
             ? fileContentText.substring(0, maxContentLength) + "... [содержимое обрезано]"
             : fileContentText;
             
-        // --- Поиск User ID автора по Twitch ID --- 
+        // --- Поиск User ID автора или валидация ника через Twitch API --- 
         let authorUserId = null;
+        let foundInDb = false;
+        let validatedTwitchUser = null;
+
         try {
+            const nicknameLower = authorTwitchNickname.toLowerCase();
+            console.log(`[API Generate Review] Ищем автора в БД по нику: ${nicknameLower}`);
+            
+            // Сначала ищем в нашей базе
             const { data: profileData, error: profileError } = await supabaseAdmin
                 .from('user_profiles')
                 .select('user_id')
-                .eq('user_metadata->>provider_id', authorTwitchId)
+                .eq('raw_user_meta_data->>login', nicknameLower)
                 .maybeSingle();
-            if (profileError) throw new Error('Database error while searching for author profile.');
-            if (!profileData) {
-                return NextResponse.json({ error: `Автор с Twitch ID ${authorTwitchId} не зарегистрирован в Streamers Universe.` }, { status: 404 });
+
+            if (profileError) throw new Error(`Database error (login): ${profileError.message}`);
+            
+            if (profileData) {
+                 authorUserId = profileData.user_id;
+                 foundInDb = true;
+                 console.log(`[API Generate Review] Автор ${nicknameLower} найден в БД. User ID: ${authorUserId}`);
+            } else {
+                 // Пробуем по user_name
+                 const { data: profileData2, error: profileError2 } = await supabaseAdmin
+                    .from('user_profiles')
+                    .select('user_id')
+                    .eq('user_metadata->>user_name', nicknameLower)
+                    .maybeSingle();
+                if (profileError2) throw new Error(`Database error (user_name): ${profileError2.message}`);
+                
+                if (profileData2) {
+                    authorUserId = profileData2.user_id;
+                    foundInDb = true;
+                    console.log(`[API Generate Review] Автор ${nicknameLower} найден в БД (по user_name). User ID: ${authorUserId}`);
+                }
             }
-            authorUserId = profileData.user_id;
-            console.log(`[API Generate Review] Найден User ID автора: ${authorUserId} для Twitch ID: ${authorTwitchId}`);
+
+            // Если НЕ нашли в БД, ИЛИ если хотим всегда валидировать на Twitch (реши сам)
+            // Сейчас: валидируем на твиче, только если НЕ нашли в БД
+            if (!foundInDb) {
+                console.log(`[API Generate Review] Автор ${nicknameLower} не найден в БД. Проверяем на Twitch...`);
+                validatedTwitchUser = await validateTwitchUser(nicknameLower); 
+                if (!validatedTwitchUser) {
+                    console.warn(`[API Generate Review] Автор с ником ${authorTwitchNickname} не найден и на Twitch.`);
+                    // Возвращаем 404, но указываем, что не найден на Twitch
+                    return NextResponse.json({ error: `Пользователь Twitch с никнеймом '${authorTwitchNickname}' не найден.` }, { status: 404 });
+                } else {
+                    console.log(`[API Generate Review] Автор ${authorTwitchNickname} найден на Twitch. ID: ${validatedTwitchUser.id}, Display Name: ${validatedTwitchUser.display_name}`);
+                    // authorUserId остается null, но мы знаем, что юзер валиден
+                }
+            }
+            
         } catch (dbLookupError) {
-             console.error(`[API Generate Review] Ошибка поиска автора ${authorTwitchId}:`, dbLookupError);
-             // Перехватываем конкретную ошибку 404
-            if (dbLookupError.status === 404) throw dbLookupError; 
-            throw new Error(`Failed to find author: ${dbLookupError.message}`);
+             console.error(`[API Generate Review] Ошибка поиска/валидации автора ${authorTwitchNickname}:`, dbLookupError);
+             // Обрабатываем возможные ошибки от Twitch API или БД
+             let statusCode = 500;
+             let message = `Ошибка поиска автора: ${dbLookupError.message || dbLookupError}`;
+             if (dbLookupError.message?.includes('Twitch API request failed')) statusCode = 503; // Service Unavailable (Twitch API down?)
+             // Ошибку 404 пробросим из блока try
+             return NextResponse.json({ error: message }, { status: statusCode });
         }
         // -------------------------------------------
 
-        console.log(`[API Generate Review] User ${userId} requested generation for author ${authorUserId}. Item: ${itemName}, Source: ${processingSource}`);
+        console.log(`[API Generate Review] User ${userId} requested generation. Author: ${authorTwitchNickname} (User ID: ${authorUserId ?? 'N/A'}), Item: ${itemName}, Source: ${processingSource}`);
 
         // 4. Формируем промпт для Gemini
         const prompt = `Ты - опытный критик и обозреватель. Проанализируй следующий текст (это может быть транскрипт видео, статьи и т.д.) и напиши краткий, но содержательный отзыв (~100-200 слов) на русском языке. Сосредоточься на ключевых моментах, плюсах и минусах, общем впечатлении. Не используй фразы вроде "На основе текста...". Пиши так, будто это твое собственное мнение об объекте '${itemName}'.
@@ -235,32 +278,32 @@ ${truncatedContent}
         console.log(`[API /generate] Gemini generated text (${generatedText.length} chars).`);
 
         // 6. Сохраняем результат в БД
-        // В source_file_path теперь записываем либо путь к файлу, либо URL
         const finalSourceIdentifier = sourceFilePath || sourceUrl;
         const { data: reviewData, error: insertError } = await supabaseAdmin
             .from('reviews')
             .insert({
-                user_id: authorUserId,
+                user_id: authorUserId, // Будет null, если автор не зареган у нас
                 category,
                 subcategory: subcategory || null,
                 item_name: itemName,
                 review_text: generatedText, 
-                source_file_path: finalSourceIdentifier, // Сохраняем исходный идентификатор
-                status: 'pending'
+                source_file_path: finalSourceIdentifier,
+                status: 'pending',
+                author_twitch_nickname: authorTwitchNickname // <<< Всегда сохраняем никнейм
             })
             .select('id') 
             .single();
 
         if (insertError) throw insertError;
 
-        console.log(`[API /generate] Generated review saved with ID: ${reviewData?.id} for source: ${finalSourceIdentifier}`);
+        console.log(`[API /generate] Generated review saved with ID: ${reviewData?.id} for author: ${authorTwitchNickname} (User ID: ${authorUserId ?? 'N/A'})`);
         return NextResponse.json({ message: 'Review generated and submitted for moderation.', reviewId: reviewData?.id }, { status: 201 });
 
     } catch (error) {
-        console.error(`[API /generate] Error processing request for user ${userId}. Source: ${processingSource || 'unknown'}:`, error);
+        console.error(`[API /generate] Error processing request:`, error);
         let statusCode = 500;
         const errorMessage = error.message || 'Internal Server Error';
-        // Определяем статус код более точно
+        if (errorMessage.includes('не найден')) statusCode = 404; // Включая "не найден на Twitch"
         if (errorMessage.includes('download') || errorMessage.includes('YouTube')) statusCode = 502; // Bad Gateway
         if (errorMessage.includes('transcription')) statusCode = 500; 
         if (errorMessage.includes('Unsupported file type')) statusCode = 415;
