@@ -150,12 +150,7 @@ export default function UserProfilePage() {
         console.error('[UserProfilePage] Критическая ошибка при fetch данных:', fetchError);
         setError(`Критическая ошибка загрузки: ${fetchError.message}. ${cachedData ? 'Используются кэшированные.': ''}`);
     } finally {
-         if (!cachedData) {
-             setLoadingProfile(false);
-         }
-        if (typeof isRegistered === 'undefined') {
-             setIsRegistered(isRegisteredCheck);
-        }
+        setLoadingProfile(false);
     }
   }, [profileTwitchId, isAuthenticated, supabase, isRegistered]);
 
