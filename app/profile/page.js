@@ -22,7 +22,7 @@ const translateBroadcasterType = (type) => {
 function ProfilePage() {
   const router = useRouter();
   const { user, isLoading, isAuthenticated, supabase } = useAuth();
-  
+
   const [twitchUserData, setTwitchUserData] = useState(null);
   const [profileData, setProfileData] = useState(null);
   const [followersCount, setFollowersCount] = useState(undefined); // undefined для начального состояния
@@ -113,7 +113,7 @@ function ProfilePage() {
               console.error(`[ProfilePage] ${errorMsg}`);
               setError(`Не удалось загрузить данные Twitch (${response.status}).`);
               // Оставляем кэш, если он был
-          } else {
+        } else {
               const data = await response.json();
               console.log('[ProfilePage] Получены свежие данные от API:', data);
               setTwitchUserData(data);
@@ -164,8 +164,8 @@ function ProfilePage() {
     } else if (!isLoading && isAuthenticated && user && !twitchUserId) {
          console.error("[ProfilePage] Пользователь аутентифицирован, но Twitch ID (provider_id) отсутствует в user_metadata!");
          setError("Не удалось получить Twitch ID из данных аутентификации.");
-         setLoadingProfile(false);
-    }
+              setLoadingProfile(false);
+          }
   }, [isLoading, isAuthenticated, user, twitchUserId, supabase, loadAllData, router]);
 
   // Определяем данные для отображения
@@ -185,20 +185,42 @@ function ProfilePage() {
     } catch { return 'Неверная дата'; }
   };
 
+  // --- Функция выхода ---
+  const handleLogout = async () => {
+      if (!supabase) {
+          console.error("[ProfilePage] Supabase client не доступен для выхода.");
+          alert("Ошибка: Не удалось выполнить выход.");
+          return;
+      }
+      console.log("[ProfilePage] Выполнение выхода...");
+      try {
+      const { error } = await supabase.auth.signOut();
+      if (error) {
+              throw error;
+          }
+          console.log("[ProfilePage] Выход выполнен успешно. Редирект должен произойти через AuthContext.");
+          // Редирект не нужен здесь, т.к. onAuthStateChange в AuthContext должен сработать
+          // router.push('/auth?message=Вы+успешно+вышли'); 
+      } catch (error) {
+          console.error("[ProfilePage] Ошибка при выходе:", error);
+          alert(`Ошибка при выходе: ${error.message}`);
+      }
+  };
+
   // --- Отображение --- 
   if (isLoading) {
-    return (
+      return (
       <div className={styles.loadingContainer}>
         <div className="spinner"></div>
         <p>Загрузка профиля...</p>
-      </div>
-    );
+        </div>
+      );
   }
   if (!isAuthenticated) {
-     return (
+    return (
       <div className={styles.loadingContainer}>
         <p>Перенаправление на страницу входа...</p>
-      </div>
+        </div>
     );
   }
 
@@ -207,7 +229,7 @@ function ProfilePage() {
        <div className={styles.topBar}>
          <button onClick={() => router.push('/menu')} className={styles.backButton}>
            &larr; Назад в меню
-         </button>
+            </button>
          <div className={styles.actionButtons}> { /* Контейнер для кнопок действий */}
             {/* Кнопка Достижения */}
             <button 
@@ -221,9 +243,17 @@ function ProfilePage() {
             <button onClick={() => router.push('/edit-profile')} className={styles.editButton}>
                Редактировать профиль
             </button>
-         </div>
-       </div>
-
+            {/* Кнопка Выйти */} 
+             <button 
+                 onClick={handleLogout} 
+                 className={`${styles.actionButton} ${styles.logoutButton}`} /* Добавляем класс для возможных стилей */
+                 title="Выйти из аккаунта"
+             >
+                 🚪 Выйти
+            </button>
+          </div>
+        </div>
+        
       {error && <div className={styles.errorMessage}>{error}</div>} 
 
       <div className={styles.profileHeader}>
@@ -262,12 +292,12 @@ function ProfilePage() {
       {/* Основной контент профиля (Информация Twitch + Описание) */} 
       <div className={styles.profileContent}>
         <h2>Информация</h2>
-        {loadingProfile ? (
+                {loadingProfile ? (
            <div className={styles.skeletonSection}>
               <div className={`${styles.skeletonText} ${styles.skeleton}`}></div>
               <div className={`${styles.skeletonText} ${styles.skeleton}`}></div>
               <div className={`${styles.skeletonText} ${styles.skeleton.short}`}></div>
-           </div>
+                  </div>
         ) : (
           <div className={styles.infoGrid}> 
             {/* Twitch Info */}
@@ -290,10 +320,10 @@ function ProfilePage() {
             {/* Если нет ни того, ни другого (и не загрузка) */} 
             {!twitchUserData && !profileDescription && !loadingProfile && (
                 <p>Дополнительная информация отсутствует.</p>
-            )}
-          </div>
-        )}
-      </div>
+                     )}
+                  </div>
+                )}
+              </div>
 
       {/* --- Ссылки на соцсети --- */}
       {/* Проверяем, что profileSocialLinks существует и это не пустой объект */} 
@@ -332,10 +362,10 @@ function ProfilePage() {
                              <div className={styles.skeletonVodInfo}>
                                  <div className={`${styles.skeletonText} ${styles.skeleton}`}></div>
                                  <div className={`${styles.skeletonText} ${styles.skeleton.short}`}></div>
-                             </div>
-                        </div>
+              </div>
+            </div>
                     ))}
-                 </div>
+            </div>
             ) : (
                <div className={styles.vodsContainer}> 
                  {videos.map((video) => (
@@ -354,8 +384,8 @@ function ProfilePage() {
                           <span title={`Просмотры: ${video.view_count.toLocaleString('ru-RU')}`}>👁️ {video.view_count.toLocaleString('ru-RU')}</span>
                           <span>🕒 {formatDuration(video.duration)}</span>
                           <span>📅 {formatDate(video.created_at)}</span>
-                       </div>
-                     </div>
+        </div>
+      </div>
                    </Link>
                  ))}
                </div>
@@ -365,6 +395,6 @@ function ProfilePage() {
 
     </div>
   );
-}
+} 
 
 export default ProfilePage; 

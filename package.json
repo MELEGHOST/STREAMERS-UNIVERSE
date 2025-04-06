@@ -11,6 +11,9 @@
   "dependencies": {
     "@supabase/ssr": "^0.5.0",
     "@supabase/supabase-js": "^2.44.4",
+    "@twurple/api": "^7.2.1",
+    "@twurple/auth": "^7.2.1",
+    "jose": "^6.0.10",
     "next": "15.2.1",
     "react": "^19.0.0-rc",
     "react-dom": "^19.0.0-rc",

@@ -355,4 +355,18 @@
     display: flex;
     flex-direction: column;
     gap: 0.5rem;
-} 
+}
+
+/* Стили для кнопки Выйти (пока наследуются от actionButton) */
+.logoutButton {
+  /* Можно добавить специфичные стили, например:
+  background-color: var(--error-bg-secondary);
+  border-color: var(--error-border);
+  color: var(--error-color);
+  */
+}
+
+/* .logoutButton:hover {
+  background-color: var(--error-bg-tertiary);
+  border-color: var(--error-border-hover);
+} */ 
