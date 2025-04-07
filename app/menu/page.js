@@ -6,7 +6,7 @@ import Image from 'next/image';
 import { useAuth } from '../contexts/AuthContext';
 import styles from './menu.module.css';
 import pageStyles from '../../styles/page.module.css';
-import { FaSignOutAlt, FaUserFriends, FaSearch, FaHome, FaCog, FaPlusSquare, FaThList, FaShieldAlt } from 'react-icons/fa';
+import { FaSignOutAlt, FaUserFriends, FaSearch, FaHome, FaCog, FaThList, FaShieldAlt, FaCommentDots } from 'react-icons/fa';
 
 export default function MenuPage() {
   const router = useRouter();
@@ -27,12 +27,8 @@ export default function MenuPage() {
   const menuItems = [
     { href: '/home', label: 'Главная', icon: <FaHome /> },
     { href: '/search', label: 'Поиск', icon: <FaSearch /> },
-    { href: '/reviews/create', label: 'Создать Отзыв', icon: <FaPlusSquare /> },
-    { href: '/reviews', label: 'Читать Отзывы', icon: <FaThList /> },
+    { href: '/reviews', label: 'Отзывы', icon: <FaCommentDots /> },
     { href: '/streamers', label: 'Стримеры', icon: <FaUserFriends /> },
-    // { href: '/ratings', label: 'Рейтинги', icon: <FaStar /> }, // Скрыто пока
-    // { href: '/games', label: 'Игры', icon: <FaGamepad /> }, // Скрыто пока
-    // { href: '/community', label: 'Сообщество', icon: <FaComments /> }, // Скрыто пока
     { href: '/settings', label: 'Настройки', icon: <FaCog /> },
   ];
 

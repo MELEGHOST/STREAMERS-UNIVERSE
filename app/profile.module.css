@@ -1,0 +1,73 @@
+.descriptionSection {
+    margin-top: 2rem;
+    padding: 1.5rem;
+    background-color: var(--card-bg-color); /* Используем цвет фона карточки */
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+}
+
+.descriptionSection h2 {
+    margin-top: 0;
+    margin-bottom: 1rem;
+    color: var(--primary-color);
+    font-size: 1.4rem;
+}
+
+.descriptionSection p {
+    line-height: 1.6;
+    margin: 0;
+}
+
+.socialLinksSection {
+    margin-top: 2rem;
+    padding: 1.5rem;
+    background-color: var(--card-bg-color);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+}
+
+.socialLinksSection h2 {
+    margin-top: 0;
+    margin-bottom: 1rem;
+    color: var(--primary-color);
+    font-size: 1.4rem;
+}
+
+.socialIconsContainer {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
+    align-items: center;
+}
+
+.socialIconsContainer a,
+.socialIconWrapper {
+    color: var(--secondary-text-color);
+    text-decoration: none;
+    transition: color 0.2s ease, transform 0.2s ease;
+    display: inline-block; /* Для применения transform */
+}
+
+.socialIconsContainer a:hover,
+.socialIconWrapper:hover {
+    color: var(--primary-color);
+    transform: scale(1.1);
+}
+
+.socialIcon {
+    font-size: 2rem; /* Размер иконок */
+}
+
+/* Стили для текстовой иконки Яндекс Музыки */
+.socialIconsContainer a span.socialIcon {
+    font-size: 1.5rem;
+    font-weight: bold;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 2rem; /* Фиксируем размер */
+    height: 2rem;
+    border: 2px solid currentColor; /* Рамка цветом текста */
+    border-radius: 50%;
+    line-height: 1;
+} 
