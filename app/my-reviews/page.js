@@ -18,7 +18,7 @@ const formatDate = (dateString) => {
 
 export default function MyReviewsPage() {
     const router = useRouter();
-    const { supabase, user, isAuthenticated } = useAuth(); // Получаем нужные данные из контекста
+    const { supabase, isAuthenticated } = useAuth(); // Получаем нужные данные из контекста
     const [reviews, setReviews] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
