@@ -248,10 +248,11 @@ export default function UserProfilePage() {
                   <span>{translateBroadcasterType(broadcasterType)}</span>
                   {createdAt && <span> | На Twitch с {formatDate(createdAt)}</span>}
               </p>
-              {(typeof viewCount !== 'undefined' || typeof followersCount !== 'undefined') && (
+              {(typeof viewCount === 'number' || typeof followersCount === 'number') && (
                   <p className={styles.stats}>
-                      {typeof viewCount !== 'undefined' && <span>👁️ Просмотры: {viewCount.toLocaleString('ru-RU')}</span>}
-                      {typeof followersCount !== 'undefined' && <span> | ❤️ Фолловеры: {followersCount.toLocaleString('ru-RU')}</span>}
+                      {typeof viewCount === 'number' && <span>👁️ Просмотры: {viewCount.toLocaleString('ru-RU')}</span>}
+                      {(typeof viewCount === 'number' && typeof followersCount === 'number') && ' | '}
+                      {typeof followersCount === 'number' && <span>❤️ Фолловеры: {followersCount.toLocaleString('ru-RU')}</span>}
                   </p>
               )}
                {isRegistered === false && <p className={styles.notRegisteredHint}>Этот пользователь еще не присоединился к Streamers Universe.</p>}
