@@ -58,7 +58,7 @@ export default function MenuPage() {
     <div className={pageStyles.container}>
       <header className={styles.header}>
          <Link href="/menu" passHref className={styles.logoLink}>
-            <Image src="/Logo.png" alt="Streamers Universe Logo" width={40} height={40} priority /> 
+            <Image src="/logo.png" alt="Streamers Universe Logo" width={40} height={40} priority /> 
             <span className={styles.logoText}>Streamers Universe</span>
          </Link>
 

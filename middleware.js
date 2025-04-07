@@ -85,7 +85,7 @@ export const config = {
     /*
      * Сопоставляем все пути запросов, кроме служебных:
      */
-    // Исключаем api, статику, _next/image, ЛЮБОЙ favicon и папку images
-    '/((?!api|_next/static|_next/image|favicon\.(ico|png)|images/).*)',
+    // Используем незахватывающую группу (?:...) для расширений favicon
+    '/((?!api|_next/static|_next/image|favicon\.(?:ico|png)|images/).*)',
   ],
 }; 
