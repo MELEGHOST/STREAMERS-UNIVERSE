@@ -1,13 +1,12 @@
 'use client';
 
-import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
 import { useAuth } from '../contexts/AuthContext';
 import styles from './menu.module.css';
 import pageStyles from '../../styles/page.module.css';
-import { FaSignOutAlt, FaUserFriends, FaSearch, FaHome, FaCog, FaPlusSquare, FaThList, FaStar, FaGamepad, FaComments, FaShieldAlt } from 'react-icons/fa';
+import { FaSignOutAlt, FaUserFriends, FaSearch, FaHome, FaCog, FaPlusSquare, FaThList, FaShieldAlt } from 'react-icons/fa';
 
 export default function MenuPage() {
   const router = useRouter();
