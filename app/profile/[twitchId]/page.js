@@ -126,6 +126,15 @@ export default function UserProfilePage() {
               setError(null);
           }
           setLoadingProfile(false);
+          
+          console.log('[UserProfilePage] States after update:', {
+              loadingProfile: false,
+              profileExists: result.exists,
+              isRegistered: !!result.data?.profile,
+              twitchUserData: result.data?.twitch_user,
+              profileData: result.data?.profile,
+              error: result.error
+          });
       });
       
       return () => { isMounted = false; };
@@ -191,15 +200,16 @@ export default function UserProfilePage() {
        );
   }
 
-  const displayName = twitchUserData?.display_name || 'Неизвестно';
-  const avatarUrl = twitchUserData?.profile_image_url;
+  const displayName = twitchUserData?.display_name || profileData?.twitch_display_name || 'Неизвестно';
+  const avatarUrl = twitchUserData?.profile_image_url || profileData?.twitch_profile_image_url;
   const viewCount = twitchUserData?.view_count;
-  const followersCount = twitchUserData?.followers_count;
+  const followersCount = profileData?.twitch_follower_count ?? twitchUserData?.followers_count;
   const createdAt = twitchUserData?.created_at;
-  const broadcasterType = twitchUserData?.broadcaster_type;
+  const broadcasterType = twitchUserData?.broadcaster_type || profileData?.twitch_broadcaster_type;
   const profileDescription = profileData?.description;
   const profileSocialLinks = profileData?.social_links;
   const userRole = profileData?.role;
+  const formattedDate = createdAt ? formatDate(createdAt) : 'Неизвестно';
 
   return (
     <div className={styles.container}> 
@@ -244,14 +254,14 @@ export default function UserProfilePage() {
               <p className={styles.metaInfo}>
                   {isRegistered && userRole && <span className={styles.roleBadge}>{userRole}</span>} 
                   <span>{translateBroadcasterType(broadcasterType)}</span>
-                  {createdAt && <span> | На Twitch с {formatDate(createdAt)}</span>}
+                  {createdAt && <span> | На Twitch с {formattedDate}</span>}
               </p>
               <p className={styles.stats}>
                   {typeof viewCount === 'number' && 
                       <span>👁️ Просмотры: {viewCount.toLocaleString('ru-RU')}</span>
                   }
-                  {(typeof viewCount === 'number' && typeof followersCount === 'number' && followersCount > 0) && ' | '}
-                  {(typeof followersCount === 'number' && followersCount > 0) && 
+                  {(typeof viewCount === 'number' && typeof followersCount === 'number' && followersCount >= 0) && ' | '}
+                  {(typeof followersCount === 'number' && followersCount >= 0) && 
                       <span>❤️ Фолловеры: {followersCount.toLocaleString('ru-RU')}</span>
                   }
               </p>

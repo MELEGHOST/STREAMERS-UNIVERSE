@@ -36,6 +36,7 @@ export default function CreateReviewPage() {
   const [reviewText, setReviewText] = useState('');
   const [imageFile, setImageFile] = useState(null);
   const [isUploadingImage, setIsUploadingImage] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState(null);
