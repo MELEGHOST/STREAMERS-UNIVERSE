@@ -299,7 +299,7 @@ function ProfilePage() {
                         </p>
                      )}
                  </div>
-             </div>
+          </div>
          )}
 
         {/* Отображение Дополнительной информации (описание, соцсети) */} 
@@ -338,11 +338,11 @@ function ProfilePage() {
                                      <span>{formatDate(video.created_at)}</span>
                                      <span> | {formatDuration(video.duration)}</span>
                                      <span> | 👁️ {video.view_count.toLocaleString('ru-RU')}</span>
-                                 </p>
-                             </div>
+                  </p>
+                </div>
                          </a>
                      ))}
-                 </div>
+              </div>
             </div>
          )}
 

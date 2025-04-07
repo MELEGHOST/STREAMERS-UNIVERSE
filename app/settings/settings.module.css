@@ -1,0 +1,97 @@
+/* --- Общие стили страницы настроек --- */
+
+.header {
+  display: flex;
+  align-items: center;
+  margin-bottom: 2rem;
+  gap: 1rem;
+}
+
+.backButton {
+  background: none;
+  border: 1px solid var(--border-secondary);
+  color: var(--foreground-secondary);
+  padding: 0.6rem 1rem;
+  border-radius: var(--border-radius);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.9rem;
+  transition: background-color 0.2s ease, border-color 0.2s ease;
+}
+
+.backButton:hover {
+  background-color: var(--background-secondary);
+  border-color: var(--border-primary);
+  color: var(--foreground-primary);
+}
+
+.title {
+  font-size: 1.8rem;
+  font-weight: 600;
+  margin: 0; /* Убираем отступы по умолчанию у h1 */
+}
+
+.settingsList {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  max-width: 600px; /* Ограничим ширину списка */
+  margin: 0 auto; /* Центрируем */
+}
+
+.settingItem {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem 1.5rem;
+  background-color: var(--background-secondary);
+  border-radius: var(--border-radius-lg);
+  border: 1px solid var(--border-secondary);
+}
+
+.settingInfo {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.settingIcon {
+  font-size: 1.3rem;
+  color: var(--foreground-secondary);
+}
+
+.settingLabel {
+  font-size: 1rem;
+  font-weight: 500;
+}
+
+.themeToggleButton {
+  padding: 0.5rem 1rem;
+  font-size: 0.9rem;
+  font-weight: 500;
+  border-radius: var(--border-radius);
+  border: 1px solid var(--border-primary);
+  background-color: var(--background-tertiary);
+  color: var(--foreground-primary);
+  cursor: pointer;
+  transition: background-color 0.2s ease, border-color 0.2s ease;
+}
+
+.themeToggleButton:hover {
+  background-color: var(--accent-primary-faded);
+  border-color: var(--accent-primary);
+}
+
+/* Стили для неактивных/будущих настроек */
+.disabledSetting {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.settingValue {
+  color: var(--foreground-secondary);
+  font-style: italic;
+  font-size: 0.9rem;
+} 

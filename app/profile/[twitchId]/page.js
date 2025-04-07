@@ -74,30 +74,8 @@ export default function UserProfilePage() {
     console.log(`[UserProfilePage] Загрузка данных для twitchId: ${profileTwitchId}`);
     setLoadingProfile(true);
     setError(null);
-    let cachedData = null;
 
     try {
-        const cacheKey = `profile_data_${profileTwitchId}`;
-        if (typeof window !== 'undefined') {
-            const cachedStr = localStorage.getItem(cacheKey);
-            if (cachedStr) {
-                try {
-                    cachedData = JSON.parse(cachedStr);
-                    console.log('[UserProfilePage] Используются кэшированные данные', cachedData);
-                    setTwitchUserData(cachedData.twitch_user);
-                    setFollowersCount(cachedData.twitch_user.followers_count);
-                    setVideos(cachedData.twitch_user.videos || []);
-                    setProfileData(cachedData.profile);
-                    setIsRegistered(!!cachedData.profile);
-                    setProfileExists(true);
-                    setLoadingProfile(false);
-                 } catch (err) {
-                     console.warn('[UserProfilePage] Ошибка парсинга кэша, удаляем:', err.message);
-                     localStorage.removeItem(cacheKey);
-                 }
-            }
-        }
-
         const response = await fetch(`/api/twitch/user?userId=${profileTwitchId}&fetchProfile=true`, {
             headers: {
                 ...(isAuthenticated && { 'Authorization': `Bearer ${await supabase.auth.getSession().then(s => s.data.session?.access_token)}` })
@@ -108,13 +86,13 @@ export default function UserProfilePage() {
              if (response.status === 404) {
                   setError("Пользователь Twitch не найден.");
                   setProfileExists(false);
-                  if (typeof window !== 'undefined') localStorage.removeItem(cacheKey);
              } else {
                  const errorText = await response.text();
                  const errorMsg = `Ошибка API /api/twitch/user (${response.status}): ${errorText}`;
                  console.error(`[UserProfilePage] ${errorMsg}`);
-                 setError(`Не удалось загрузить свежие данные (${response.status}). ${cachedData ? 'Используются кэшированные.': 'Попробуйте позже.'}`);
+                 setError(`Не удалось загрузить свежие данные (${response.status}). Попробуйте позже.`);
              }
+             setLoadingProfile(false);
         } else {
             const data = await response.json();
             console.log('[UserProfilePage] Получены свежие данные от API:', data);
@@ -126,21 +104,12 @@ export default function UserProfilePage() {
             setIsRegistered(!!data.profile);
             setProfileExists(true);
             setError(null);
-
-            if (typeof window !== 'undefined') {
-                 try {
-                      localStorage.setItem(cacheKey, JSON.stringify(data));
-                      console.log('[UserProfilePage] Кэш обновлен.');
-                 } catch (e) {
-                      console.error('[UserProfilePage] Ошибка сохранения кэша:', e);
-                 }
-             }
+            setLoadingProfile(false);
         }
 
     } catch (fetchError) {
         console.error('[UserProfilePage] Критическая ошибка при fetch данных:', fetchError);
-        setError(`Критическая ошибка загрузки: ${fetchError.message}. ${cachedData ? 'Используются кэшированные.': ''}`);
-    } finally {
+        setError(`Критическая ошибка загрузки: ${fetchError.message}.`);
         setLoadingProfile(false);
     }
   }, [profileTwitchId, isAuthenticated, supabase]);
@@ -187,7 +156,17 @@ export default function UserProfilePage() {
       return null; 
   };
 
+  console.log('[UserProfilePage] Rendering with states:', {
+      loadingProfile,
+      profileExists,
+      isRegistered,
+      twitchUserData: !!twitchUserData,
+      profileData: !!profileData,
+      error
+  });
+
   if (loadingProfile) {
+      console.log('[UserProfilePage] Rendering loading state...');
       return (
           <div className={pageStyles.loadingContainer}> 
               <div className="spinner"></div>
