@@ -8,9 +8,11 @@ import CyberAvatar from '../../components/CyberAvatar';
 import styles from '../profile.module.css';
 import pageStyles from '../../../styles/page.module.css';
 import { useAuth } from '../../contexts/AuthContext';
-import StyledSocialButton from '../../components/StyledSocialButton/StyledSocialButton';
+// Убираем неиспользуемый StyledSocialButton
+// import StyledSocialButton from '../../components/StyledSocialButton/StyledSocialButton';
 // Импортируем иконки для соцсетей
-import { FaVk, FaTwitch, FaDiscord, FaYoutube, FaYandex } from 'react-icons/fa';
+// Убираем неиспользуемую FaYandex
+import { FaVk, FaTwitch, FaDiscord, FaYoutube } from 'react-icons/fa';
 
 const translateBroadcasterType = (type) => {
   switch (type) {
@@ -315,7 +317,7 @@ export default function UserProfilePage() {
                   )}
                   {profileSocialLinks.yandex_music && (
                       <a href={profileSocialLinks.yandex_music} target="_blank" rel="noopener noreferrer" title="Яндекс Музыка">
-                          {/* У FaYandex нет стандартной иконки, можно использовать текстовый символ или свою svg */}
+                          {/* Используем текстовый символ */}
                           <span className={styles.socialIcon}>YM</span> 
                       </a>
                   )}
