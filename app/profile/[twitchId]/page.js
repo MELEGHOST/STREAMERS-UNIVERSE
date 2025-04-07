@@ -119,18 +119,10 @@ export default function UserProfilePage() {
             const data = await response.json();
             console.log('[UserProfilePage] Получены свежие данные от API:', data);
 
-            if (!data || !data.twitch_user) { 
-                 setError("Не удалось получить данные от Twitch.");
-                 setProfileExists(false);
-                 if (typeof window !== 'undefined') localStorage.removeItem(cacheKey);
-                 setLoadingProfile(false);
-                 return;
-            }
-            
-            setTwitchUserData(data.twitch_user);
-            setFollowersCount(data.twitch_user.followers_count);
-            setVideos(data.twitch_user.videos || []);
-            setProfileData(data.profile);
+            setTwitchUserData(data.twitch_user || null);
+            setFollowersCount(data.twitch_user?.followers_count);
+            setVideos(data.twitch_user?.videos || []);
+            setProfileData(data.profile || null);
             setIsRegistered(!!data.profile);
             setProfileExists(true);
             setError(null);
