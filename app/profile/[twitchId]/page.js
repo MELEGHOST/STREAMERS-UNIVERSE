@@ -69,13 +69,27 @@ export default function UserProfilePage() {
     setError(null);
 
     try {
-        // Убедимся, что чтение из localStorage закомментировано
-        /* const cacheKey = ... localStorage.getItem ... */
-
-        const response = await fetch(`/api/twitch/user?userId=${profileTwitchId}&fetchProfile=true`, {
-            headers: {
-                ...(isAuthenticated && { 'Authorization': `Bearer ${await supabase.auth.getSession().then(s => s.data.session?.access_token)}` })
+        // <<< Получаем токен ДО запроса fetch >>>
+        let authToken = null;
+        if (isAuthenticated && supabase) { // Проверяем и isAuthenticated, и наличие supabase
+            try {
+                const session = await supabase.auth.getSession();
+                authToken = session.data.session?.access_token;
+            } catch (sessionError) {
+                console.error("[UserProfilePage] Ошибка получения сессии:", sessionError);
+                // Не прерываем, попробуем загрузить публичные данные
             }
+        }
+
+        // <<< Формируем заголовки >>>
+        const headers = {};
+        if (authToken) {
+            headers['Authorization'] = `Bearer ${authToken}`;
+        }
+
+        // <<< Выполняем fetch с новыми заголовками >>>
+        const response = await fetch(`/api/twitch/user?userId=${profileTwitchId}&fetchProfile=true`, {
+            headers: headers // Передаем собранные заголовки
         });
 
         if (!response.ok) {

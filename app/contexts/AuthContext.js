@@ -89,9 +89,9 @@ export function AuthProvider({ children }) {
 
         if (event === 'SIGNED_OUT') {
           console.log('[AuthContext] Пользователь вышел. Очистка состояния.');
-           if (typeof window !== 'undefined' && window.location.pathname !== '/auth') { 
-              console.log('[AuthContext] Перенаправление на /auth после выхода.');
-              router.push('/auth?action=context_sign_out');
+          if (typeof window !== 'undefined' && window.location.pathname !== '/') { 
+              console.log('[AuthContext] Перенаправление на / после выхода.');
+              router.push('/');
            }
         }
         if (event === 'SIGNED_IN' && currentSession) {
