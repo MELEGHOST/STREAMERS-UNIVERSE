@@ -74,7 +74,6 @@ export default function UserProfilePage() {
     console.log(`[UserProfilePage] Загрузка данных для twitchId: ${profileTwitchId}`);
     setLoadingProfile(true);
     setError(null);
-    let isRegisteredCheck = false;
     let cachedData = null;
 
     try {
@@ -152,7 +151,7 @@ export default function UserProfilePage() {
     } finally {
         setLoadingProfile(false);
     }
-  }, [profileTwitchId, isAuthenticated, supabase, isRegistered]);
+  }, [profileTwitchId, isAuthenticated, supabase]);
 
   useEffect(() => {
       loadProfileData();
