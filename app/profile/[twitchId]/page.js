@@ -69,6 +69,9 @@ export default function UserProfilePage() {
     setError(null);
 
     try {
+        // Убедимся, что чтение из localStorage закомментировано
+        /* const cacheKey = ... localStorage.getItem ... */
+
         const response = await fetch(`/api/twitch/user?userId=${profileTwitchId}&fetchProfile=true`, {
             headers: {
                 ...(isAuthenticated && { 'Authorization': `Bearer ${await supabase.auth.getSession().then(s => s.data.session?.access_token)}` })
@@ -98,6 +101,9 @@ export default function UserProfilePage() {
             setProfileExists(true);
             setError(null);
             setLoadingProfile(false);
+
+            // Убедимся, что запись в localStorage закомментирована
+            /* localStorage.setItem ... */
         }
 
     } catch (fetchError) {
@@ -119,7 +125,7 @@ export default function UserProfilePage() {
    };
 
   const displayName = twitchUserData?.display_name || 'Неизвестно';
-  const avatarUrl = twitchUserData?.profile_image_url || '/images/default_avatar.png';
+  const avatarUrl = twitchUserData?.profile_image_url;
   const viewCount = twitchUserData?.view_count;
   const createdAt = twitchUserData?.created_at;
   const profileDescription = profileData?.description;
