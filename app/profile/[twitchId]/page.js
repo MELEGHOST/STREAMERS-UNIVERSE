@@ -58,77 +58,77 @@ export default function UserProfilePage() {
   const [isRegistered, setIsRegistered] = useState(undefined);
   const [twitchUserData, setTwitchUserData] = useState(null);
   const [profileData, setProfileData] = useState(null);
-  const [followersCount, setFollowersCount] = useState(undefined);
   const [videos, setVideos] = useState([]);
   const [loadingProfile, setLoadingProfile] = useState(true);
   const [error, setError] = useState(null);
 
   const loadProfileData = useCallback(async () => {
     console.log(`[UserProfilePage] Загрузка данных для twitchId: ${profileTwitchId}`);
-    setLoadingProfile(true);
-    setError(null);
+    let result = { data: null, error: null, exists: true };
 
     try {
-        // <<< Получаем токен ДО запроса fetch >>>
         let authToken = null;
-        if (isAuthenticated && supabase) { // Проверяем и isAuthenticated, и наличие supabase
+        if (isAuthenticated && supabase) {
             try {
                 const session = await supabase.auth.getSession();
                 authToken = session.data.session?.access_token;
             } catch (sessionError) {
                 console.error("[UserProfilePage] Ошибка получения сессии:", sessionError);
-                // Не прерываем, попробуем загрузить публичные данные
             }
         }
 
-        // <<< Формируем заголовки >>>
         const headers = {};
         if (authToken) {
             headers['Authorization'] = `Bearer ${authToken}`;
         }
 
-        // <<< Выполняем fetch с новыми заголовками >>>
-        const response = await fetch(`/api/twitch/user?userId=${profileTwitchId}&fetchProfile=true`, {
-            headers: headers // Передаем собранные заголовки
-        });
+        const response = await fetch(`/api/twitch/user?userId=${profileTwitchId}&fetchProfile=true`, { headers });
 
         if (!response.ok) {
-             if (response.status === 404) {
-                  setError("Пользователь Twitch не найден.");
-                  setProfileExists(false);
-             } else {
-                 const errorText = await response.text();
-                 const errorMsg = `Ошибка API /api/twitch/user (${response.status}): ${errorText}`;
-                 console.error(`[UserProfilePage] ${errorMsg}`);
-                 setError(`Не удалось загрузить свежие данные (${response.status}). Попробуйте позже.`);
-             }
-             setLoadingProfile(false);
+            result.exists = response.status !== 404;
+            const errorText = await response.text();
+            const errorMsg = `Ошибка API /api/twitch/user (${response.status}): ${errorText || response.statusText}`;
+            console.error(`[UserProfilePage] ${errorMsg}`);
+            result.error = `Не удалось загрузить данные (${response.status}). Попробуйте позже.`;
         } else {
-            const data = await response.json();
-            console.log('[UserProfilePage] Получены свежие данные от API:', data);
-
-            setTwitchUserData(data.twitch_user || null);
-            setFollowersCount(data.twitch_user?.followers_count);
-            setVideos(data.twitch_user?.videos || []);
-            setProfileData(data.profile || null);
-            setIsRegistered(!!data.profile);
-            setProfileExists(true);
-            setError(null);
-            setLoadingProfile(false);
-
-            // Убедимся, что запись в localStorage закомментирована
-            /* localStorage.setItem ... */
+            result.data = await response.json();
+            console.log('[UserProfilePage] Получены свежие данные от API:', result.data);
+            result.exists = !!result.data?.twitch_user;
         }
 
     } catch (fetchError) {
         console.error('[UserProfilePage] Критическая ошибка при fetch данных:', fetchError);
-        setError(`Критическая ошибка загрузки: ${fetchError.message}.`);
-        setLoadingProfile(false);
+        result.error = `Критическая ошибка загрузки: ${fetchError.message}.`;
+        result.exists = false;
     }
+    return result;
   }, [profileTwitchId, isAuthenticated, supabase]);
 
   useEffect(() => {
-      loadProfileData();
+      let isMounted = true;
+      setLoadingProfile(true);
+      
+      loadProfileData().then(result => {
+          if (!isMounted) return;
+          console.log('[UserProfilePage] Обработка результата loadProfileData', result);
+          
+          if (result.error) {
+              setError(result.error);
+          }
+          if (!result.exists) {
+              setProfileExists(false);
+          } else if (result.data) {
+              setTwitchUserData(result.data.twitch_user || null);
+              setVideos(result.data.twitch_user?.videos || []);
+              setProfileData(result.data.profile || null);
+              setIsRegistered(!!result.data.profile);
+              setProfileExists(true);
+              setError(null);
+          }
+          setLoadingProfile(false);
+      });
+      
+      return () => { isMounted = false; };
   }, [loadProfileData]);
 
   const handleLogout = async () => {
@@ -194,6 +194,7 @@ export default function UserProfilePage() {
   const displayName = twitchUserData?.display_name || 'Неизвестно';
   const avatarUrl = twitchUserData?.profile_image_url;
   const viewCount = twitchUserData?.view_count;
+  const followersCount = twitchUserData?.followers_count;
   const createdAt = twitchUserData?.created_at;
   const broadcasterType = twitchUserData?.broadcaster_type;
   const profileDescription = profileData?.description;
@@ -210,6 +211,11 @@ export default function UserProfilePage() {
               {isOwnProfile && userRole === 'admin' && (
                    <button onClick={() => router.push('/admin/reviews')} className={`${styles.actionButton} ${styles.adminButton}`} title="Модерация">
                        🛡️ Админ панель
+                   </button>
+               )}
+              {isOwnProfile && (
+                   <button onClick={() => router.push('/my-reviews')} className={`${styles.actionButton} ${styles.myReviewsButton}`} title="Мои отзывы">
+                       📝 Мои отзывы
                    </button>
                )}
               {isOwnProfile && (
@@ -240,13 +246,15 @@ export default function UserProfilePage() {
                   <span>{translateBroadcasterType(broadcasterType)}</span>
                   {createdAt && <span> | На Twitch с {formatDate(createdAt)}</span>}
               </p>
-              {(typeof viewCount === 'number' || typeof followersCount === 'number') && (
-                  <p className={styles.stats}>
-                      {typeof viewCount === 'number' && <span>👁️ Просмотры: {viewCount.toLocaleString('ru-RU')}</span>}
-                      {(typeof viewCount === 'number' && typeof followersCount === 'number') && ' | '}
-                      {typeof followersCount === 'number' && <span>❤️ Фолловеры: {followersCount.toLocaleString('ru-RU')}</span>}
-                  </p>
-              )}
+              <p className={styles.stats}>
+                  {typeof viewCount === 'number' && 
+                      <span>👁️ Просмотры: {viewCount.toLocaleString('ru-RU')}</span>
+                  }
+                  {(typeof viewCount === 'number' && typeof followersCount === 'number' && followersCount > 0) && ' | '}
+                  {(typeof followersCount === 'number' && followersCount > 0) && 
+                      <span>❤️ Фолловеры: {followersCount.toLocaleString('ru-RU')}</span>
+                  }
+              </p>
                {isRegistered === false && <p className={styles.notRegisteredHint}>Этот пользователь еще не присоединился к Streamers Universe.</p>}
           </div>
       </div>

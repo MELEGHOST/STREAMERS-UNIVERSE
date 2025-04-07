@@ -38,16 +38,44 @@ export async function GET(request) {
       return NextResponse.json({ error: 'Invalid Twitch User ID format' }, { status: 400 });
   }
 
-  // Проверка JWT токена (обязательно для защиты API)
-  const verifiedToken = await verifyJwt(token);
-  if (!verifiedToken) {
-      console.warn(`[API /api/twitch/user] Unauthorized access attempt for userId ${userId}`);
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  // --- Проверка JWT токена (опционально, для получения profileData) ---
+  let supabaseUserId = null;
+  let profileData = null; 
+  
+  if (token) {
+      const verifiedToken = await verifyJwt(token);
+      if (verifiedToken) {
+          supabaseUserId = verifiedToken.sub; // ID пользователя из токена
+          console.log(`[API /api/twitch/user] Authenticated request for Twitch ID ${userId} by Supabase User ${supabaseUserId}`);
+          
+          // --- Пытаемся получить profileData из user_profiles, если токен валидный ---
+          try {
+              const { data: profile, error: profileError } = await supabaseAdmin
+                  .from('user_profiles')
+                  .select('*') // Запрашиваем все поля
+                  .eq('user_id', supabaseUserId)
+                  .single();
+                  
+              if (profileError && profileError.code !== 'PGRST116') { // Игнорируем ошибку "not found"
+                  console.error(`[API /api/twitch/user] Error fetching profile for ${supabaseUserId}:`, profileError);
+              } else if (profile) {
+                  profileData = profile; // Сохраняем найденный профиль
+                  console.log(`[API /api/twitch/user] User profile found in Supabase for ${supabaseUserId}`);
+              } else {
+                  console.log(`[API /api/twitch/user] User profile NOT found in Supabase for ${supabaseUserId}`);
+              }
+          } catch (e) {
+               console.error("[API /api/twitch/user] Unexpected error during Supabase profile fetch:", e);
+          }
+          
+      } else {
+          console.warn(`[API /api/twitch/user] Invalid or expired token provided for userId ${userId}. Proceeding without profile data.`);
+      }
+  } else {
+       console.log(`[API /api/twitch/user] No token provided for userId ${userId}. Fetching public data only.`);
   }
-  const supabaseUserId = verifiedToken.sub; // ID пользователя из токена
 
-  console.log(`[API /api/twitch/user] Processing request for Twitch User ID: ${userId}, initiated by Supabase User: ${supabaseUserId}`);
-
+  // --- Получаем данные с Twitch (независимо от токена) ---
   try {
     const twitchClient = await getTwitchClient();
     if (!twitchClient) {
@@ -55,32 +83,20 @@ export async function GET(request) {
       return NextResponse.json({ error: 'Failed to initialize Twitch client' }, { status: 500 });
     }
 
-    console.log(`[API /api/twitch/user] Fetching data for user ${userId} from Twitch API...`);
+    console.log(`[API /api/twitch/user] Fetching public data for user ${userId} from Twitch API...`);
     
-    // --- Получаем данные пользователя (Users) ---
     const userResponse = await twitchClient.users.getUserById(userId);
     if (!userResponse) {
       console.warn(`[API /api/twitch/user] Twitch user with ID ${userId} not found.`);
       return NextResponse.json({ error: 'Twitch user not found' }, { status: 404 });
     }
-    console.log(`[API /api/twitch/user] User data fetched successfully.`);
+    console.log(`[API /api/twitch/user] Twitch user data fetched successfully.`);
 
-    // --- Получаем количество фолловеров (Follows) ---
-    let followersCount = 0;
-    try {
-        const followsResponse = await twitchClient.channels.getChannelFollowers(userId, userId, undefined, 1); // Запрашиваем только 1 для получения total
-        followersCount = followsResponse?.total ?? 0;
-        console.log(`[API /api/twitch/user] Followers count fetched: ${followersCount}`);
-    } catch (followError) {
-        // Ошибки получения фолловеров не должны блокировать основной ответ
-        console.error(`[API /api/twitch/user] Error fetching followers for user ${userId}:`, followError);
-        // Не возвращаем ошибку, просто будет 0 фолловеров
-    }
-
-    // --- Получаем последние видео (VODs) ---
+    // --- Получаем последние видео (VODs) --- 
+    // (Остается без изменений, это публичные данные)
     let videos = [];
     try {
-        const videosResponse = await twitchClient.videos.getVideosByUser(userId, { limit: 5, type: 'archive' }); // Запрашиваем последние 5 архивов
+        const videosResponse = await twitchClient.videos.getVideosByUser(userId, { limit: 5, type: 'archive' });
         videos = videosResponse.data.map(v => ({
             id: v.id,
             title: v.title,
@@ -92,84 +108,37 @@ export async function GET(request) {
         }));
         console.log(`[API /api/twitch/user] Fetched ${videos.length} VODs.`);
     } catch (videoError) {
-        // Ошибки получения видео не должны блокировать основной ответ
         console.error(`[API /api/twitch/user] Error fetching videos for user ${userId}:`, videoError);
-        // Не возвращаем ошибку, просто будет пустой массив видео
     }
 
     // --- Собираем все данные для ответа --- 
-    const responseData = {
+    const twitchUserData = {
       id: userResponse.id,
       login: userResponse.name,
       display_name: userResponse.displayName,
-      type: userResponse.type, // '', 'staff', 'admin', 'global_mod'
-      broadcaster_type: userResponse.broadcasterType, // '', 'affiliate', 'partner'
+      type: userResponse.type, 
+      broadcaster_type: userResponse.broadcasterType,
       description: userResponse.description,
       profile_image_url: userResponse.profilePictureUrl,
       offline_image_url: userResponse.offlinePlaceholderUrl,
-      view_count: userResponse.views, // Это просмотры канала, а не конкретного стрима
+      view_count: userResponse.views,
       created_at: userResponse.creationDate,
-      // Новые данные:
-      followers_count: followersCount,
+      // ВОЗВРАЩАЕМ ПОЛЕ, НО С null, ТАК КАК НЕ МОЖЕМ ПОЛУЧИТЬ ДАННЫЕ
+      followers_count: null, 
       videos: videos,
     };
-
-    // --- Обновляем user_profiles в Supabase (кэш фолловеров и возможная смена роли) ---
-    // Делаем это асинхронно, не дожидаясь ответа, чтобы не замедлять API
-    (async () => {
-        try {
-             console.log(`[API /api/twitch/user] Updating profile cache in Supabase for user ${supabaseUserId}...`);
-             // Определяем новую роль
-             const newRole = followersCount >= 275 ? 'streamer' : 'viewer'; 
-             
-             const { data: updateData, error: updateError } = await supabaseAdmin
-                .from('user_profiles')
-                .update({ 
-                    twitch_follower_count: followersCount,
-                    role: newRole, // Обновляем роль
-                    updated_at: new Date().toISOString()
-                 })
-                .eq('user_id', supabaseUserId)
-                .select('role') // Выбираем роль, чтобы проверить, изменилась ли она
-                .single(); // Ожидаем одну запись или null
-
-            if (updateError) {
-                // Если профиль еще не создан, пытаемся создать его (upsert не всегда работает без PK)
-                if (updateError.code === 'PGRST116') { // code for "JSON object requested, multiple (or no) rows returned" 
-                    console.warn(`[API /api/twitch/user] Profile for ${supabaseUserId} not found, creating...`);
-                    const { error: insertError } = await supabaseAdmin
-                        .from('user_profiles')
-                        .insert({
-                            user_id: supabaseUserId,
-                            twitch_follower_count: followersCount,
-                            role: newRole,
-                            updated_at: new Date().toISOString()
-                        });
-                     if (insertError) {
-                         console.error(`[API /api/twitch/user] Error creating profile for ${supabaseUserId}:`, insertError);
-                     } else {
-                         console.log(`[API /api/twitch/user] Profile created for ${supabaseUserId} with role ${newRole}.`);
-                     }
-                } else {
-                    console.error(`[API /api/twitch/user] Error updating profile for ${supabaseUserId}:`, updateError);
-                }
-            } else if (updateData) {
-                 console.log(`[API /api/twitch/user] Profile updated for ${supabaseUserId}. Current role: ${updateData.role}, New potential role: ${newRole}`);
-                 if (updateData.role !== newRole) {
-                     console.log(`[API /api/twitch/user] Role changed for ${supabaseUserId} to ${newRole}`);
-                 }
-            }
-        } catch(e) {
-            console.error("[API /api/twitch/user] Unexpected error during Supabase profile update:", e);
-        }
-    })(); // Самовызывающаяся асинхронная функция
+    
+    // --- Возвращаем и Twitch данные, и profileData (если есть) ---
+    const responsePayload = {
+        twitch_user: twitchUserData,
+        profile: profileData // Будет null, если токен невалидный или профиль не найден
+    };
 
     console.log(`[API /api/twitch/user] Successfully processed request for Twitch User ID: ${userId}`);
-    return NextResponse.json(responseData, { status: 200 });
+    return NextResponse.json(responsePayload, { status: 200 });
 
   } catch (error) {
     console.error(`[API /api/twitch/user] General Error processing request for ${userId}:`, error);
-    // Проверяем тип ошибки от Twitch клиента (может быть ApiBadResponseError и т.д.)
     if (error.statusCode) {
         return NextResponse.json({ error: `Twitch API Error: ${error.message}` }, { status: error.statusCode });
     }
