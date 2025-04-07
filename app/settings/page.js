@@ -9,24 +9,7 @@ import { FaArrowLeft, FaPalette, FaLanguage, FaFont, FaClock } from 'react-icons
 
 export default function SettingsPage() {
   const router = useRouter();
-  const { isLoading: authLoading, isAuthenticated } = useAuth();
-  const [currentTheme, setCurrentTheme] = useState('dark'); // По умолчанию темная
-
-  // Загрузка темы при монтировании
-  useEffect(() => {
-    const savedTheme = localStorage.getItem('theme') || 'dark';
-    setCurrentTheme(savedTheme);
-    document.body.className = savedTheme + '-theme'; // Применяем класс к body
-  }, []);
-
-  // Функция смены темы
-  const toggleTheme = () => {
-    const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
-    setCurrentTheme(newTheme);
-    localStorage.setItem('theme', newTheme);
-    document.body.className = newTheme + '-theme';
-    console.log(`[SettingsPage] Тема изменена на: ${newTheme}`);
-  };
+  const { isLoading: authLoading, isAuthenticated, currentTheme, toggleTheme } = useAuth();
 
   // Редирект, если не авторизован
   useEffect(() => {

@@ -64,13 +64,6 @@ export default function UserProfilePage() {
   const [error, setError] = useState(null);
 
   const loadProfileData = useCallback(async () => {
-    if (!profileTwitchId) {
-      setError("Не указан Twitch ID пользователя.");
-      setLoadingProfile(false);
-      setProfileExists(false);
-      return;
-    }
-
     console.log(`[UserProfilePage] Загрузка данных для twitchId: ${profileTwitchId}`);
     setLoadingProfile(true);
     setError(null);
@@ -125,7 +118,7 @@ export default function UserProfilePage() {
        } catch (error) { console.error('Logout error:', error); }
    };
 
-  const displayName = twitchUserData?.display_name || 'Загрузка...';
+  const displayName = twitchUserData?.display_name || 'Неизвестно';
   const avatarUrl = twitchUserData?.profile_image_url || '/images/default_avatar.png';
   const viewCount = twitchUserData?.view_count;
   const createdAt = twitchUserData?.created_at;

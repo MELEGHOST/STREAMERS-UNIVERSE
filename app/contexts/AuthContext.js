@@ -11,6 +11,7 @@ export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
   const [session, setSession] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [currentTheme, setCurrentTheme] = useState('dark'); // <<< Стейт темы
   const router = useRouter(); // Получаем router
 
   // Создаем Supabase клиент один раз
@@ -24,6 +25,25 @@ export function AuthProvider({ children }) {
     }
     return createBrowserClient(url, key);
   }, []);
+
+  // <<< useEffect для загрузки темы на клиенте >>>
+  useEffect(() => {
+    const savedTheme = localStorage.getItem('theme') || 'dark';
+    setCurrentTheme(savedTheme);
+    document.body.className = savedTheme + '-theme';
+    console.log(`[AuthContext] Initial theme set to: ${savedTheme}`);
+  }, []);
+
+  // <<< Функция смены темы >>>
+  const toggleTheme = useCallback(() => {
+    setCurrentTheme((prevTheme) => {
+      const newTheme = prevTheme === 'dark' ? 'light' : 'dark';
+      localStorage.setItem('theme', newTheme);
+      document.body.className = newTheme + '-theme';
+      console.log(`[AuthContext] Theme changed to: ${newTheme}`);
+      return newTheme;
+    });
+  }, []); // Зависимостей нет, т.к. работает с localStorage и body
 
   useEffect(() => {
     // Не инициализируем, если клиент не создан (из-за отсутствия ключей)
@@ -106,6 +126,19 @@ export function AuthProvider({ children }) {
     }
   }, [supabase]); // <<< Добавляем supabase в зависимости useCallback >>>
 
+  // <<< Добавляем signOut (если еще не было) >>>
+  const signOut = useCallback(async () => {
+      if (!supabase) return;
+      console.log('[AuthContext] Signing out...');
+      try {
+          const { error } = await supabase.auth.signOut();
+          if (error) throw error;
+          // Редирект будет обработан в onAuthStateChange
+      } catch (error) {
+          console.error('[AuthContext] Sign out error:', error);
+      }
+  }, [supabase]);
+
   // Предоставляем значения через контекст
   const value = useMemo(() => ({
     user,
@@ -113,8 +146,11 @@ export function AuthProvider({ children }) {
     isAuthenticated: !!user,
     isLoading: loading,
     supabase, // Предоставляем клиент Supabase для прямого использования при необходимости
-    signInWithTwitch // <<< Добавляем функцию в контекст
-  }), [user, session, loading, supabase, signInWithTwitch]);
+    signInWithTwitch, // <<< Добавляем функцию в контекст
+    signOut, // <<< Передаем signOut
+    currentTheme, // <<< Передаем тему
+    toggleTheme // <<< Передаем функцию смены темы
+  }), [user, session, loading, supabase, signInWithTwitch, signOut, currentTheme, toggleTheme]);
 
   // Добавляем проверку на случай, если supabase null
   if (!supabase) {
