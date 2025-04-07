@@ -138,15 +138,6 @@ export default function UserProfilePage() {
        } catch (error) { console.error('Logout error:', error); }
    };
 
-  const displayName = twitchUserData?.display_name || 'Неизвестно';
-  const avatarUrl = twitchUserData?.profile_image_url;
-  const viewCount = twitchUserData?.view_count;
-  const createdAt = twitchUserData?.created_at;
-  const profileDescription = profileData?.description;
-  const profileSocialLinks = profileData?.social_links;
-  const userRole = profileData?.role;
-  const broadcasterType = twitchUserData?.broadcaster_type;
-
   const renderProfileActionButton = () => {
       if (isOwnProfile) {
           return (
@@ -199,6 +190,15 @@ export default function UserProfilePage() {
            </div>
        );
   }
+
+  const displayName = twitchUserData?.display_name || 'Неизвестно';
+  const avatarUrl = twitchUserData?.profile_image_url;
+  const viewCount = twitchUserData?.view_count;
+  const createdAt = twitchUserData?.created_at;
+  const broadcasterType = twitchUserData?.broadcaster_type;
+  const profileDescription = profileData?.description;
+  const profileSocialLinks = profileData?.social_links;
+  const userRole = profileData?.role;
 
   return (
     <div className={styles.container}> 
