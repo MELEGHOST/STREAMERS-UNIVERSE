@@ -6,11 +6,11 @@ import Image from 'next/image';
 import { useAuth } from '../contexts/AuthContext';
 import styles from './menu.module.css';
 import pageStyles from '../../styles/page.module.css';
-import { FaSignOutAlt, FaUserFriends, FaSearch, FaHome, FaCog, FaShieldAlt, FaCommentDots } from 'react-icons/fa';
+import { FaUserFriends, FaSearch, FaCog, FaShieldAlt, FaCommentDots } from 'react-icons/fa';
 
 export default function MenuPage() {
   const router = useRouter();
-  const { user, isLoading, isAuthenticated, supabase, userRole } = useAuth();
+  const { user, isLoading, isAuthenticated, userRole } = useAuth();
 
   const userTwitchProviderId = user?.user_metadata?.provider_id;
 
