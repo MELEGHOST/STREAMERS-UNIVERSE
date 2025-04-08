@@ -8,11 +8,10 @@ import CyberAvatar from '../../components/CyberAvatar';
 import styles from '../profile.module.css';
 import pageStyles from '../../../styles/page.module.css';
 import { useAuth } from '../../contexts/AuthContext';
-// Убираем неиспользуемый StyledSocialButton
-// import StyledSocialButton from '../../components/StyledSocialButton/StyledSocialButton';
-// Импортируем иконки для соцсетей
-// Убираем неиспользуемую FaYandex
-import { FaVk, FaTwitch, FaDiscord, FaYoutube } from 'react-icons/fa';
+// Возвращаем StyledSocialButton
+import StyledSocialButton from '../../components/StyledSocialButton/StyledSocialButton';
+// Убираем импорты Fa-иконок
+// import { FaVk, FaTwitch, FaDiscord, FaYoutube } from 'react-icons/fa';
 
 const translateBroadcasterType = (type) => {
   switch (type) {
@@ -281,46 +280,14 @@ export default function UserProfilePage() {
           </div>
       )}
 
-      {/* Блок социальных сетей */} 
-      {profileSocialLinks && Object.keys(profileSocialLinks).length > 0 && (
-          <div className={styles.socialLinksSection}>
+      {/* Блок социальных сетей - ВОЗВРАЩАЕМ КАК БЫЛО, с StyledSocialButton */}
+      {isRegistered && profileSocialLinks && Object.keys(profileSocialLinks).length > 0 && (
+          <div className={styles.socialLinksSection}> 
               <h2>Социальные сети</h2>
-              <div className={styles.socialIconsContainer}>
-                  {profileSocialLinks.vk && (
-                      <a href={profileSocialLinks.vk} target="_blank" rel="noopener noreferrer" title="VK">
-                          <FaVk className={styles.socialIcon} />
-                      </a>
-                  )}
-                  {profileSocialLinks.twitch && (
-                      <a href={profileSocialLinks.twitch} target="_blank" rel="noopener noreferrer" title="Twitch">
-                          <FaTwitch className={styles.socialIcon} />
-                      </a>
-                  )}
-                  {profileSocialLinks.discord && (
-                      // Для дискорда может быть username#tag или ссылка, делаем просто отображение иконки без ссылки
-                      <span title={`Discord: ${profileSocialLinks.discord}`} className={styles.socialIconWrapper}>
-                         <FaDiscord className={styles.socialIcon} />
-                      </span>
-                      /* // Если хотим делать ссылку (рискованно из-за формата)
-                      <a href={profileSocialLinks.discord.startsWith('http') ? profileSocialLinks.discord : '#'} 
-                         target="_blank" 
-                         rel="noopener noreferrer" 
-                         title={`Discord: ${profileSocialLinks.discord}`}>
-                          <FaDiscord className={styles.socialIcon} />
-                      </a>
-                      */
-                  )}
-                  {profileSocialLinks.youtube && (
-                      <a href={profileSocialLinks.youtube} target="_blank" rel="noopener noreferrer" title="YouTube">
-                          <FaYoutube className={styles.socialIcon} />
-                      </a>
-                  )}
-                  {profileSocialLinks.yandex_music && (
-                      <a href={profileSocialLinks.yandex_music} target="_blank" rel="noopener noreferrer" title="Яндекс Музыка">
-                          {/* Используем текстовый символ */}
-                          <span className={styles.socialIcon}>YM</span> 
-                      </a>
-                  )}
+              <div className={styles.socialIconsContainer}> 
+                  {Object.entries(profileSocialLinks).map(([platform, url]) => (
+                      url && <StyledSocialButton key={platform} platform={platform} url={url} />
+                  ))}
               </div>
           </div>
       )}

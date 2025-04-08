@@ -132,29 +132,30 @@ export async function GET(request) {
               } else if (profile) {
                   profileData = profile; 
                   console.log(`[API /api/twitch/user] User profile found in Supabase for ${supabaseUserId}`);
-                  // Проверяем, является ли текущий пользователь владельцем просматриваемого профиля
-                  // Сравниваем Supabase ID из токена с Twitch ID из профиля Supabase и с Twitch ID из запроса
-                  if (profileData.user_id === supabaseUserId && profileData.twitch_user_id === userId) {
-                      isOwnerViewing = true;
-                      console.log(`[API /api/twitch/user] Owner ${supabaseUserId} is viewing their own profile (${userId}). Attempting to refresh data...`);
+                  // Проверяем, принадлежит ли найденный профиль авторизованному пользователю
+                  if (profileData.user_id === supabaseUserId) {
+                      isOwnerViewing = true; // Устанавливаем флаг, что владелец смотрит (даже если twitch_id еще не совпал)
+                      console.log(`[API /api/twitch/user] Logged-in user ${supabaseUserId} matches owner of the fetched profile. Will attempt to refresh data.`);
+                  } else {
+                       console.log(`[API /api/twitch/user] Logged-in user ${supabaseUserId} does not match owner (${profileData.user_id}) of the fetched profile.`);
                   }
               } else {
                   console.log(`[API /api/twitch/user] User profile NOT found in Supabase for ${supabaseUserId}`);
-                  // Если профиля нет, но пользователь авторизован и смотрит свой Twitch ID,
-                  // возможно, это его первый визит после регистрации через Twitch.
-                  // Мы можем попытаться создать профиль ниже после получения данных.
-                  if (verifiedToken.app_metadata?.provider === 'twitch' && verifiedToken.app_metadata?.providers?.includes('twitch')){
-                      // Попытаемся сопоставить по Twitch ID, если он есть в токене (может не быть)
-                      // Это сложная логика, пока пропустим явное создание здесь, 
-                      // положимся на обновление/upsert ниже.
+                  // Если профиля нет, НО пользователь авторизован, он может смотреть свой профиль первый раз
+                  // Мы всё равно попытаемся сделать upsert ниже, если isOwnerViewing будет установлен по twitch id в токене
+                  // Добавим проверку Twitch ID из токена, если он там есть
+                  const twitchIdFromToken = verifiedToken.user_metadata?.provider_id; 
+                  if (twitchIdFromToken && twitchIdFromToken === userId) {
+                       console.log(`[API /api/twitch/user] Logged-in user ${supabaseUserId} matches the requested Twitch ID ${userId} from token. Will attempt to upsert profile.`);
+                       isOwnerViewing = true; // Ставим флаг для попытки upsert
                   }
               }
           } catch (e) {
                console.error("[API /api/twitch/user] Unexpected error during Supabase profile fetch:", e);
           }
           
-          // 2. Если владелец смотрит свой профиль, пытаемся обновить данные
-          if (isOwnerViewing) {
+          // 2. Если АВТОРИЗОВАННЫЙ ПОЛЬЗОВАТЕЛЬ смотрит свой профиль (проверка по supabaseUserId или twitchId из токена), пытаемся обновить данные
+          if (isOwnerViewing) { // Теперь isOwnerViewing ставится, если user_id совпал или если профиля нет, но twitchId из токена совпал
               try {
                   // Используем JWT токен пользователя для запроса к Twitch
                   const userTwitchClient = await getTwitchClientWithToken(token);
@@ -183,8 +184,8 @@ export async function GET(request) {
                   const { data: upsertData, error: upsertError } = await supabaseAdmin
                       .from('user_profiles')
                       .upsert({
-                          user_id: supabaseUserId,
-                          twitch_user_id: userId,
+                          user_id: supabaseUserId, // ID пользователя Supabase
+                          twitch_user_id: userId,   // ID канала Twitch ИЗ ЗАПРОСА
                           twitch_display_name: twitchUserData.display_name,
                           twitch_profile_image_url: twitchUserData.profile_image_url,
                           twitch_follower_count: currentFollowersCount, 
@@ -192,8 +193,8 @@ export async function GET(request) {
                           role: currentRole,
                           updated_at: new Date().toISOString()
                       })
-                      .select() // Чтобы получить обновленные данные
-                      .single(); // Ожидаем одну запись
+                      .select() 
+                      .single();
 
                   if (upsertError) {
                        console.error(`[API /api/twitch/user] Error upserting profile for ${supabaseUserId}:`, upsertError);
@@ -207,6 +208,8 @@ export async function GET(request) {
                     console.error(`[API /api/twitch/user] Error during owner data refresh for ${userId}:`, refreshError);
                     // Не удалось обновить, profileData останется старым (если был) или null
               }
+          } else {
+                console.log(`[API /api/twitch/user] Not owner viewing or owner check failed, skipping data refresh and upsert for profile ${userId}.`);
           }
           
       } else {

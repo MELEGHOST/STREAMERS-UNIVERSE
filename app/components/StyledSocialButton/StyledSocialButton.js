@@ -207,7 +207,7 @@ const StyledWrapper = styled.div`
     width: 100%;
     /* Устанавливаем цвет рамки и фона через переменную */
     border: 2px solid var(--color); 
-    border-radius: 50%;
+    border-radius: 50%; /* ДЕЛАЕМ КРУГЛЫМ */
     transition: all 0.3s;
     padding: 13px;
     background: var(--color); /* Фон слоя берем из переменной */
@@ -219,7 +219,7 @@ const StyledWrapper = styled.div`
   }
 
   .tooltip-container:hover .layer span {
-    border-radius: 10px;
+    /* border-radius: 10px; */ /* УБИРАЕМ ИЗМЕНЕНИЕ ПРИ ХОВЕРЕ */
     /* background: var(--color); */ /* Уже установлено */
   }
 
