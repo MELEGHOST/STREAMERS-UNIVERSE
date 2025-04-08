@@ -42,6 +42,7 @@ export default function CreateReviewPage() {
   const [error, setError] = useState(null);
   const [successMessage, setSuccessMessage] = useState(null);
   const [authorTwitchNickname, setAuthorTwitchNickname] = useState('');
+  const [file, setFile] = useState(null);
   const [sourceUrl, setSourceUrl] = useState('');
 
   // Получаем список основных категорий

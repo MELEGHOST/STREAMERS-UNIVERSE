@@ -41,8 +41,8 @@ const platformData = {
     tooltipName: 'YouTube',
     tooltipDetail: 'Канал на YouTube',
     // SVG Path для YouTube (ViewBox="0 0 24 24")
-    svgPath: 'M23.498 6.186a3.016 3.016 0 00-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 00.502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 002.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 002.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z',
-    viewBox: '0 0 24 24' // Стандартный viewBox
+    svgPath: 'M219.044,391.269916 L219.0425,377.687742 L232.0115,384.502244 L219.044,391.269916 Z M247.52,375.334163 C247.52,375.334163 247.0505,372.003199 245.612,370.536366 C243.7865,368.610299 241.7405,368.601235 240.803,368.489448 C234.086,368 224.0105,368 224.0105,368 L223.9895,368 C223.9895,368 213.914,368 207.197,368.489448 C206.258,368.601235 204.2135,368.610299 202.3865,370.536366 C200.948,372.003199 200.48,375.334163 200.48,375.334163 C200.48,375.334163 200,379.246723 200,383.157773 L200,386.82561 C200,390.73817 200.48,394.64922 200.48,394.64922 C200.48,394.64922 200.948,397.980184 202.3865,399.447016 C204.2135,401.373084 206.612,401.312658 207.68,401.513574 C211.52,401.885191 224,402 224,402 C224,402 234.086,401.984894 240.803,401.495446 C241.7405,401.382148 243.7865,401.373084 245.612,399.447016 C247.0505,397.980184 247.52,394.64922 247.52,394.64922 C247.52,394.64922 248,390.73817 248,386.82561 L248,383.157773 C248,379.246723 247.52,375.334163 247.52,375.334163 L247.52,375.334163 Z',
+    viewBox: '200 -7 48 48' // viewBox из твоего примера
   },
   yandex_music: {
     color: '#ffdb4d',
@@ -60,6 +60,8 @@ const platformData = {
     iconLetter: 'L',
     tooltipName: 'Ссылка',
     tooltipDetail: 'Внешний ресурс',
+    svgPath: 'M12 0c-6.627 0-12 5.373-12 12s5.373 12 12 12 12-5.373 12-12-5.373-12-12-12zm0 22c-5.514 0-10-4.486-10-10s4.486-10 10-10 10 4.486 10 10-4.486 10-10 10zm5-10h-4v-4h-2v4h-4v2h4v4h2v-4h4v-2z', // Пример иконки ссылки
+    viewBox: '0 0 24 24'
   }
 };
 // --------------------------------
@@ -71,83 +73,89 @@ const StyledSocialButton = ({ platform, url }) => {
   let finalUrl = url;
   if (typeof url === 'string' && url && !url.startsWith('http') && !url.startsWith('//')) {
       if (platform !== 'discord' || url.includes('discord.gg') || url.includes('.com')) {
-          const prefix = platformData[platform]?.defaultUrlPrefix || ''; // Нужен префикс
-          finalUrl = prefix + url;
+          // Для дискорда без http добавлять не будем
+      } else {
+          finalUrl = '#'; // Если дискорд без http, делаем ссылку-заглушку
       }
   } else if (!url || typeof url !== 'string') {
      console.warn(`[StyledSocialButton] Invalid URL for ${platform}:`, url);
      return null;
   }
 
+  // Определяем, нужно ли делать ссылку активной
+  const isLinkActive = platform !== 'discord' || (typeof finalUrl === 'string' && finalUrl.startsWith('http'));
+
   return (
-    // Передаем цвет через style для CSS переменной --color
     <StyledWrapper style={{ '--color': config.color }}>
       <div className="tooltip-container">
-        {/* --- Тултип --- */}
         <div className="tooltip">
           <div className="profile">
             <div className="user">
-              {/* Динамическая "иконка" в тултипе */} 
-              <div className="img">{config.iconLetter}</div> 
+              <div className="img">{config.iconLetter}</div>
               <div className="details">
-                {/* Динамическое имя и описание в тултипе */} 
                 <div className="name">{config.tooltipName}</div>
                 <div className="username">{config.label}</div>
               </div>
             </div>
-             {/* Динамический about в тултипе */} 
             <div className="about">{config.tooltipDetail}</div>
           </div>
         </div>
-        {/* --- Основная кнопка --- */}
-        <div className="text"> { /* У Link нет className в Next.js < 13, используем обертку */}
-          <Link href={finalUrl} target="_blank" rel="noopener noreferrer" className="icon">
-            <div className="layer">
-              <span />
-              <span />
-              <span />
-              <span />
-              <span className="svg">
-                 {/* Динамический SVG */} 
-                 <svg 
-                    xmlnsXlink="http://www.w3.org/1999/xlink" 
-                    xmlns="http://www.w3.org/2000/svg" 
-                    version="1.1" 
-                    viewBox={config.viewBox || '0 0 24 24'} 
-                    // Не устанавливаем fill здесь, пусть CSS управляет
-                 >
-                   {config.svgPath ? (
-                      <path d={config.svgPath} /> // Убираем все атрибуты отсюда
-                   ) : (
-                      // Фоллбэк текст
-                      <text x="50%" y="50%" dominantBaseline="middle" textAnchor="middle" fontSize="14" fill="currentColor">{config.iconLetter}</text>
-                   )}
-                 </svg>
-              </span>
-            </div>
-             {/* Динамический текст под иконкой */} 
-            <div className="text">{config.label}</div>
-          </Link>
+        <div className="text-wrapper"> { /* Переименовал обертку для ясности */}
+          {/* Используем Link или span в зависимости от isLinkActive */}
+          {isLinkActive ? (
+            <Link href={finalUrl} target="_blank" rel="noopener noreferrer" className="icon">
+              <ButtonContent config={config} />
+            </Link>
+          ) : (
+            <span className="icon" title={`Discord: ${url}`}>
+              <ButtonContent config={config} />
+            </span>
+          )}
         </div>
       </div>
     </StyledWrapper>
   );
 }
 
+// Выносим повторяющееся содержимое кнопки в отдельный компонент
+const ButtonContent = ({ config }) => (
+  <>
+    <div className="layer">
+      <span />
+      <span />
+      <span />
+      <span />
+      <span className="svg-container">
+        <svg
+          xmlnsXlink="http://www.w3.org/1999/xlink"
+          xmlns="http://www.w3.org/2000/svg"
+          version="1.1"
+          viewBox={config.viewBox || '0 0 24 24'}
+          className="svg-icon"
+        >
+          {config.svgPath ? (
+             <path d={config.svgPath} />
+          ) : (
+             <text x="50%" y="50%" dominantBaseline="middle" textAnchor="middle" fontSize="14" fill="currentColor">{config.iconLetter}</text>
+          )}
+        </svg>
+      </span>
+    </div>
+    <div className="text-label">{config.label}</div> { /* Класс для текста под иконкой */}
+  </>
+);
+
 // --- Стили styled-components --- 
-// Копируем твои стили сюда
 const StyledWrapper = styled.div`
-  /* ... твои стили .tooltip-container, .tooltip, .profile, .icon, .layer, .svg, .user, .img, .name, .details, .about ... */
-  
+  /* Базовые стили контейнера и тултипа (как в примерах) */
   .tooltip-container {
-    /* Используем переменную --color, переданную через style */
-    /* --color: rgb(145, 70, 255); */ 
-    --border: hsla(from var(--color) h s l / 0.25); /* Делаем border зависимым от основного цвета */
+    --color: ${props => props.style?.['--color'] || '#ccc'}; /* Берем цвет из inline style */
+    --border: hsla(from var(--color) h s l / 0.25);
     position: relative;
     cursor: pointer;
     transition: all 0.2s;
     font-size: 17px;
-    border-radius: 10px;
+    border-radius: 10px; /* У тултипа */
   }
 
   .tooltip {
@@ -160,150 +168,145 @@ const StyledWrapper = styled.div`
     pointer-events: none;
     transition: all 0.3s;
     border-radius: 15px;
-    /* Используем цвет из переменной для фона */
-    background: hsla(from var(--color) h s l / 0.1); 
+    background: rgba(40, 40, 40, 0.85); /* Полупрозрачный темный фон тултипа */
+    backdrop-filter: blur(5px);
     box-shadow:
-      inset 5px 5px 5px rgba(0, 0, 0, 0.2),
-      inset -5px -5px 15px rgba(255, 255, 255, 0.1),
-      5px 5px 15px rgba(0, 0, 0, 0.3),
-      -5px -5px 15px rgba(255, 255, 255, 0.1);
-    width: max-content; /* Чтобы тултип подстраивался под контент */
-    min-width: 180px; /* Минимальная ширина тултипа */
+      0 5px 15px rgba(0, 0, 0, 0.3);
+    width: max-content;
+    min-width: 180px;
+    z-index: 10; /* Чтобы тултип был поверх */
   }
 
   .profile {
-    /* background: rgba(204, 124, 132, 0.1); */ /* Убираем старый фон */
     border-radius: 10px 15px;
     padding: 10px;
     border: 1px solid var(--border);
+    background: transparent; /* Убираем фон */
   }
 
   .tooltip-container:hover .tooltip {
-    top: -150px; /* Поднимаем чуть выше */
+    top: -135px; /* Позиция тултипа */
     opacity: 1;
     visibility: visible;
     pointer-events: auto;
   }
-
+  
+  /* Стили самой иконки-ссылки */
   .icon {
     text-decoration: none;
-    color: #fff; /* Цвет по умолчанию для обертки иконки, не должен быть виден */
+    color: inherit; /* Наследуем цвет */
     display: block;
     position: relative;
   }
+  
+  /* Стили слоя анимации */
   .layer {
-    width: 70px;
-    height: 70px;
+    width: 55px; /* Фиксированный размер кнопки */
+    height: 55px;
     transition: transform 0.3s;
+    position: relative; /* Для позиционирования svg-container */
   }
   .icon:hover .layer {
     transform: rotate(-35deg) skew(20deg);
   }
+  
+  /* Стили каждого слоя span (для эффекта) */
   .layer span {
     position: absolute;
     top: 0;
     left: 0;
     height: 100%;
     width: 100%;
-    /* Устанавливаем цвет рамки и фона через переменную */
-    border: 2px solid var(--color); 
-    border-radius: 50%; /* ДЕЛАЕМ КРУГЛЫМ */
+    border: 1px solid var(--color); /* Тонкая цветная рамка */
+    border-radius: 50%; /* Всегда круглые */
     transition: all 0.3s;
-    padding: 13px;
-    background: var(--color); /* Фон слоя берем из переменной */
+    background: #fff; /* Белый фон кнопки */
+  }
+  
+  /* Эффект слоев при наведении */
+  .icon:hover .layer span:not(.svg-container) {
+     box-shadow: -1px 1px 3px hsla(from var(--color) h s l / 0.5); 
+  }
+  .icon:hover .layer span:nth-child(1) {
+    opacity: 0.15;
+  }
+  .icon:hover .layer span:nth-child(2) {
+    opacity: 0.3;
+    transform: translate(3px, -3px);
+  }
+  .icon:hover .layer span:nth-child(3) {
+    opacity: 0.45;
+    transform: translate(6px, -6px);
+  }
+  .icon:hover .layer span:nth-child(4) {
+    opacity: 0.6;
+    transform: translate(9px, -9px);
+  }
+  .icon:hover .layer span.svg-container {
+    opacity: 1;
+    transform: translate(12px, -12px); /* Пятый слой (иконка) смещается больше всех */
+    box-shadow: 
+      inset 2px 2px 3px rgba(255, 255, 255, 0.6),
+      inset -2px -2px 3px rgba(0, 0, 0, 0.2),
+      2px 2px 5px rgba(0, 0, 0, 0.2);
+  }
+  
+  /* Контейнер для SVG внутри последнего слоя */
+  .layer span.svg-container {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 10px; /* Отступы внутри кнопки */
+    overflow: hidden; /* Обрезаем SVG, если он больше */
     box-shadow:
-      inset 5px 5px 5px rgba(0, 0, 0, 0.2),
-      inset -5px -5px 15px rgba(255, 255, 255, 0.1),
-      5px 5px 15px rgba(0, 0, 0, 0.2),
-      -5px -5px 10px rgba(255, 255, 255, 0.05);
+      inset 3px 3px 5px rgba(0, 0, 0, 0.1),
+      inset -3px -3px 5px rgba(255, 255, 255, 0.7);
+  }
+  
+  /* Стили самого SVG */
+  .svg-icon {
+     width: 100%;
+     height: 100%;
+     transition: fill 0.2s ease;
+  }
+  .svg-icon path {
+      fill: var(--color); /* Заливка цветом платформы */
+      transition: fill 0.2s ease;
+  }
+  
+  .icon:hover .svg-icon path {
+      fill: #fff; /* При наведении делаем иконку белой */
+  }
+  .icon:hover .layer span.svg-container {
+      background: var(--color); /* Фон кнопки при наведении меняется на цвет платформы */
+      border-color: transparent; /* Убираем рамку при наведении */
   }
 
-  .tooltip-container:hover .layer span {
-    /* border-radius: 10px; */ /* УБИРАЕМ ИЗМЕНЕНИЕ ПРИ ХОВЕРЕ */
-    /* background: var(--color); */ /* Уже установлено */
-  }
-
-  /* Путь SVG теперь должен быть currentColor, чтобы брать цвет из fill="currentColor" */
-  /* .tooltip-container:hover .svg path {
-    fill: #fff; 
-  } */
-
-  /* Цвет текста под иконкой и рамки слоя */
-  .layer span,
-  .icon > .text { /* Обращаемся к тексту под иконкой */
-    color: var(--color);
-    border-color: var(--color);
-  }
-
-  .icon:hover .layer span {
-    /* Тень делаем цветом из переменной */
-    box-shadow: -1px 1px 3px var(--color); 
-  }
-  .icon > .text { /* Обращаемся к тексту под иконкой */
+  /* Стили текста под иконкой */
+  .text-label {
     position: absolute;
     left: 50%;
-    bottom: -5px;
+    bottom: -10px; /* Немного ниже */
     opacity: 0;
-    font-weight: 700;
+    font-weight: 500;
+    font-size: 12px; /* Мельче */
+    color: var(--secondary-text-color); /* Используем переменную темы */
     transform: translateX(-50%);
     transition:
       bottom 0.3s ease,
       opacity 0.3s ease;
-    /* Цвет текста под иконкой */
-    color: var(--color); 
+    white-space: nowrap;
+    pointer-events: none; /* Чтобы не мешал */
   }
-  .icon:hover > .text { /* Обращаемся к тексту под иконкой */
-    bottom: -35px;
+  .icon:hover .text-label {
+    bottom: -25px;
     opacity: 1;
   }
 
-  /* ... стили для nth-child ... */
-   .icon:hover .layer span:nth-child(1) {
-    opacity: 0.2;
-  }
-  .icon:hover .layer span:nth-child(2) {
-    opacity: 0.4;
-    transform: translate(5px, -5px);
-  }
-  .icon:hover .layer span:nth-child(3) {
-    opacity: 0.6;
-    transform: translate(10px, -10px);
-  }
-  .icon:hover .layer span:nth-child(4) {
-    opacity: 0.8;
-    transform: translate(15px, -15px);
-  }
-  .icon:hover .layer span:nth-child(5) {
-    opacity: 1;
-    transform: translate(20px, -20px);
-  }
-
-  .svg {
-    position: absolute;
-    top: 10px;
-    left: 10px;
-    width: 50px;
-    height: 50px;
-    /* Цвет иконки (белый на цветном фоне слоя) */
-    color: white; 
-    /* Важно: pointer-events: none, чтобы клики проходили на Link */
-    pointer-events: none;
-  }
-
-  .svg path {
-     /* fill path цветом родителя (.svg), который белый */
-     fill: currentColor; 
-  }
-  /* Добавляем отдельный стиль для текста-фоллбэка */
-  .svg text {
-     fill: currentColor;
-  }
-  
-  /* --- Стили тултипа --- */
+  /* Стили тултипа (как в примерах) */
   .user {
     display: flex;
     gap: 10px;
-    align-items: center; /* Выравниваем иконку и текст */
   }
   .img {
     width: 50px;
@@ -315,28 +318,28 @@ const StyledWrapper = styled.div`
     display: flex;
     align-items: center;
     justify-content: center;
-    /* Фон и цвет текста иконки в тултипе */
-    background: var(--color); 
-    color: white; 
+    background: #fff;
+    color: var(--color);
   }
   .name {
     font-size: 17px;
     font-weight: 700;
-    color: #ffffff; /* Белый цвет имени */
+    color: #fff; /* Белый цвет имени */
   }
   .details {
     display: flex;
     flex-direction: column;
     gap: 0;
-    color: var(--color); /* Цвет лейбла платформы */
+    color: var(--color);
   }
-   .username {
-     font-size: 0.9em; /* Уменьшим лейбл */
-   }
+  .username {
+      font-size: 14px;
+      color: #aaa; /* Серый цвет юзернейма */
+  }
   .about {
-    color: rgba(255, 255, 255, 0.7); /* Цвет детализации */
+    color: #ccc;
     padding-top: 5px;
-    font-size: 0.85em;
+    font-size: 13px;
   }
 `;
 

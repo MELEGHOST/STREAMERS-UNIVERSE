@@ -14,18 +14,10 @@ export default function MenuPage() {
 
   const userTwitchProviderId = user?.user_metadata?.provider_id;
 
-  const handleLogout = async () => {
-    // AuthContext сам обработает редирект при событии SIGNED_OUT
-    if (supabase) {
-      await supabase.auth.signOut();
-    } else {
-      console.error("[MenuPage] Не удалось выполнить выход: клиент Supabase недоступен.");
-    }
-  };
-
   // --- Формирование пунктов меню --- 
   const menuItems = [
-    { href: '/home', label: 'Главная', icon: <FaHome /> },
+    // Убираем "Главная"
+    // { href: '/home', label: 'Главная', icon: <FaHome /> }, 
     { href: '/search', label: 'Поиск', icon: <FaSearch /> },
     { href: '/reviews', label: 'Отзывы', icon: <FaCommentDots /> },
     { href: '/streamers', label: 'Стримеры', icon: <FaUserFriends /> },
@@ -80,9 +72,12 @@ export default function MenuPage() {
                       <span className={styles.userName}>{user?.user_metadata?.name || user?.user_metadata?.user_name || 'Профиль'}</span>
                   </Link>
               )}
+              {/* Убираем кнопку выхода */}
+              {/* 
               <button onClick={handleLogout} className={styles.logoutButton} title="Выйти">
                   <FaSignOutAlt />
               </button> 
+              */}
           </nav>
       </header>
 
