@@ -41,8 +41,8 @@ const platformData = {
     tooltipName: 'YouTube',
     tooltipDetail: 'Канал на YouTube',
     // SVG Path для YouTube (ViewBox="0 0 24 24")
-    svgPath: 'M219.044,391.269916 L219.0425,377.687742 L232.0115,384.502244 L219.044,391.269916 Z M247.52,375.334163 C247.52,375.334163 247.0505,372.003199 245.612,370.536366 C243.7865,368.610299 241.7405,368.601235 240.803,368.489448 C234.086,368 224.0105,368 224.0105,368 L223.9895,368 C223.9895,368 213.914,368 207.197,368.489448 C206.258,368.601235 204.2135,368.610299 202.3865,370.536366 C200.948,372.003199 200.48,375.334163 200.48,375.334163 C200.48,375.334163 200,379.246723 200,383.157773 L200,386.82561 C200,390.73817 200.48,394.64922 200.48,394.64922 C200.48,394.64922 200.948,397.980184 202.3865,399.447016 C204.2135,401.373084 206.612,401.312658 207.68,401.513574 C211.52,401.885191 224,402 224,402 C224,402 234.086,401.984894 240.803,401.495446 C241.7405,401.382148 243.7865,401.373084 245.612,399.447016 C247.0505,397.980184 247.52,394.64922 247.52,394.64922 C247.52,394.64922 248,390.73817 248,386.82561 L248,383.157773 C248,379.246723 247.52,375.334163 247.52,375.334163 L247.52,375.334163 Z',
-    viewBox: '200 -7 48 48' // viewBox из твоего примера
+    svgPath: 'M23.498 6.186a3.016 3.016 0 00-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 00.502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 002.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 002.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z',
+    viewBox: '0 0 24 24' // viewBox из твоего примера
   },
   yandex_music: {
     color: '#ffdb4d',
@@ -168,10 +168,12 @@ const StyledWrapper = styled.div`
     pointer-events: none;
     transition: all 0.3s;
     border-radius: 15px;
-    background: rgba(40, 40, 40, 0.85); /* Полупрозрачный темный фон тултипа */
-    backdrop-filter: blur(5px);
+    background: hsla(from var(--color) h s l / 0.1);
     box-shadow:
-      0 5px 15px rgba(0, 0, 0, 0.3);
+      inset 5px 5px 5px rgba(0, 0, 0, 0.2),
+      inset -5px -5px 15px rgba(255, 255, 255, 0.1),
+      5px 5px 15px rgba(0, 0, 0, 0.3),
+      -5px -5px 15px rgba(255, 255, 255, 0.1);
     width: max-content;
     min-width: 180px;
     z-index: 10; /* Чтобы тултип был поверх */
@@ -181,11 +183,10 @@ const StyledWrapper = styled.div`
     border-radius: 10px 15px;
     padding: 10px;
     border: 1px solid var(--border);
-    background: transparent; /* Убираем фон */
   }
 
   .tooltip-container:hover .tooltip {
-    top: -135px; /* Позиция тултипа */
+    top: -150px; /* Позиция тултипа */
     opacity: 1;
     visibility: visible;
     pointer-events: auto;
@@ -194,17 +195,16 @@ const StyledWrapper = styled.div`
   /* Стили самой иконки-ссылки */
   .icon {
     text-decoration: none;
-    color: inherit; /* Наследуем цвет */
+    color: #fff;
     display: block;
     position: relative;
   }
   
   /* Стили слоя анимации */
   .layer {
-    width: 55px; /* Фиксированный размер кнопки */
-    height: 55px;
+    width: 70px; /* Фиксированный размер кнопки */
+    height: 70px;
     transition: transform 0.3s;
-    position: relative; /* Для позиционирования svg-container */
   }
   .icon:hover .layer {
     transform: rotate(-35deg) skew(20deg);
@@ -217,30 +217,40 @@ const StyledWrapper = styled.div`
     left: 0;
     height: 100%;
     width: 100%;
-    border: 1px solid var(--color); /* Тонкая цветная рамка */
+    border: 2px solid var(--color); /* Тонкая цветная рамка */
     border-radius: 50%; /* Всегда круглые */
     transition: all 0.3s;
-    background: #fff; /* Белый фон кнопки */
+    padding: 13px; /* Добавляем padding обратно */
+    background: var(--color); /* Белый фон кнопки */
+    box-shadow:
+      inset 5px 5px 5px rgba(0, 0, 0, 0.2),
+      inset -5px -5px 15px rgba(255, 255, 255, 0.1),
+      5px 5px 15px rgba(0, 0, 0, 0.2),
+      -5px -5px 10px rgba(255, 255, 255, 0.05);
   }
   
   /* Эффект слоев при наведении */
-  .icon:hover .layer span:not(.svg-container) {
-     box-shadow: -1px 1px 3px hsla(from var(--color) h s l / 0.5); 
+  .icon:hover .layer span {
+    border-radius: 10px; /* БЫЛО С ИЗМЕНЕНИЕМ */
   }
   .icon:hover .layer span:nth-child(1) {
-    opacity: 0.15;
+    opacity: 0.2;
   }
   .icon:hover .layer span:nth-child(2) {
-    opacity: 0.3;
-    transform: translate(3px, -3px);
+    opacity: 0.4;
+    transform: translate(5px, -5px);
   }
   .icon:hover .layer span:nth-child(3) {
-    opacity: 0.45;
-    transform: translate(6px, -6px);
+    opacity: 0.6;
+    transform: translate(10px, -10px);
   }
   .icon:hover .layer span:nth-child(4) {
-    opacity: 0.6;
-    transform: translate(9px, -9px);
+    opacity: 0.8;
+    transform: translate(15px, -15px);
+  }
+  .icon:hover .layer span:nth-child(5) {
+    opacity: 1;
+    transform: translate(20px, -20px);
   }
   .icon:hover .layer span.svg-container {
     opacity: 1;
@@ -265,12 +275,12 @@ const StyledWrapper = styled.div`
   
   /* Стили самого SVG */
   .svg-icon {
-     width: 100%;
-     height: 100%;
+     width: 70%; /* Размер иконки внутри */
+     height: 70%;
      transition: fill 0.2s ease;
   }
   .svg-icon path {
-      fill: var(--color); /* Заливка цветом платформы */
+      fill: white; /* Иконка белая */
       transition: fill 0.2s ease;
   }
   
@@ -286,11 +296,11 @@ const StyledWrapper = styled.div`
   .text-label {
     position: absolute;
     left: 50%;
-    bottom: -10px; /* Немного ниже */
+    bottom: -5px; /* Немного ниже */
     opacity: 0;
-    font-weight: 500;
-    font-size: 12px; /* Мельче */
-    color: var(--secondary-text-color); /* Используем переменную темы */
+    font-weight: 700;
+    font-size: 14px; /* Мельче */
+    color: var(--color); /* Используем переменную темы */
     transform: translateX(-50%);
     transition:
       bottom 0.3s ease,
@@ -299,7 +309,7 @@ const StyledWrapper = styled.div`
     pointer-events: none; /* Чтобы не мешал */
   }
   .icon:hover .text-label {
-    bottom: -25px;
+    bottom: -35px;
     opacity: 1;
   }
 
@@ -307,6 +317,7 @@ const StyledWrapper = styled.div`
   .user {
     display: flex;
     gap: 10px;
+    align-items: center;
   }
   .img {
     width: 50px;
@@ -318,13 +329,13 @@ const StyledWrapper = styled.div`
     display: flex;
     align-items: center;
     justify-content: center;
-    background: #fff;
-    color: var(--color);
+    background: var(--color);
+    color: white;
   }
   .name {
     font-size: 17px;
     font-weight: 700;
-    color: #fff; /* Белый цвет имени */
+    color: #ffffff;
   }
   .details {
     display: flex;
@@ -333,13 +344,13 @@ const StyledWrapper = styled.div`
     color: var(--color);
   }
   .username {
-      font-size: 14px;
+      font-size: 0.9em;
       color: #aaa; /* Серый цвет юзернейма */
   }
   .about {
-    color: #ccc;
+    color: rgba(255, 255, 255, 0.7);
     padding-top: 5px;
-    font-size: 13px;
+    font-size: 0.85em;
   }
 `;
 
