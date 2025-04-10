@@ -174,7 +174,15 @@ export default function AdminReviewsPage() {
                              </div>
 
                             {review.image_url && (
-                                 <img src={review.image_url} alt={`Изображение для ${review.item_name}`} className={styles.reviewImage} />
+                                 <Image 
+                                    src={review.image_url}
+                                    alt={`Изображение для ${review.item_name}`}
+                                    width={100}
+                                    height={100}
+                                    className={styles.reviewImage}
+                                    style={{ objectFit: 'contain' }}
+                                    unoptimized
+                                />
                              )}
 
                             <p className={styles.reviewText}>{review.review_text}</p>

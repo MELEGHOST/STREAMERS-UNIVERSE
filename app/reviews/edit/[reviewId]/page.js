@@ -28,7 +28,7 @@ export default function EditReviewPage() {
     const router = useRouter();
     const params = useParams();
     const { reviewId } = params;
-    const { supabase, isAuthenticated, user } = useAuth();
+    const { supabase, isAuthenticated } = useAuth();
 
     const [reviewData, setReviewData] = useState(null);
     const [editText, setEditText] = useState('');
