@@ -6,7 +6,7 @@ import Image from 'next/image';
 import { useAuth } from '../contexts/AuthContext';
 import styles from './menu.module.css';
 import pageStyles from '../../styles/page.module.css';
-import { FaUserFriends, FaSearch, FaCog, FaShieldAlt, FaCommentDots } from 'react-icons/fa';
+import { FaUserFriends, FaSearch, FaCog, FaShieldAlt, FaCommentDots, FaUserCheck, FaUsers } from 'react-icons/fa';
 
 export default function MenuPage() {
   const router = useRouter();
@@ -20,7 +20,8 @@ export default function MenuPage() {
     // { href: '/home', label: 'Главная', icon: <FaHome /> }, 
     { href: '/search', label: 'Поиск', icon: <FaSearch /> },
     { href: '/reviews', label: 'Отзывы', icon: <FaCommentDots /> },
-    { href: '/streamers', label: 'Стримеры', icon: <FaUserFriends /> },
+    { href: '/followings', label: 'Вдохновители', icon: <FaUserCheck /> },
+    { href: '/followers', label: 'Последователи', icon: <FaUsers /> },
     { href: '/settings', label: 'Настройки', icon: <FaCog /> },
   ];
 

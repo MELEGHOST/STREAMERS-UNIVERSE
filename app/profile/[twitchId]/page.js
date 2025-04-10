@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter, useParams } from 'next/navigation';
+import useSWR from 'swr';
 // import Link from 'next/link'; // НЕ ИСПОЛЬЗУЕТСЯ
 import Image from 'next/image';
 import CyberAvatar from '../../components/CyberAvatar';
@@ -10,7 +11,7 @@ import pageStyles from '../../../styles/page.module.css';
 import { useAuth } from '../../contexts/AuthContext';
 // Возвращаем StyledSocialButton
 import StyledSocialButton from '../../components/StyledSocialButton/StyledSocialButton';
-import { FaVk, FaYoutube, FaTiktok } from 'react-icons/fa'; // Убрали Twitch, Discord
+import { FaYoutube, FaTiktok } from 'react-icons/fa'; // Убрали Twitch, Discord
 import { SiBoosty } from "react-icons/si"; // Иконка для Boosty
 import DiscordButton from '../../components/SocialButtons/DiscordButton'; // Импорт новой кнопки Discord
 import TelegramButton from '../../components/SocialButtons/TelegramButton'; // Импорт новой кнопки Telegram
@@ -50,100 +51,94 @@ const formatDate = (dateString) => {
   } catch { return 'Неверная дата'; }
 };
 
+// --- Фетчер для SWR ---
+const fetcher = async (url, token) => {
+    const headers = {};
+    if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
+    }
+    const res = await fetch(url, { headers });
+
+    if (!res.ok) {
+        const errorInfo = {
+            status: res.status,
+            message: `Ошибка API (${res.status}): ${await res.text() || res.statusText}`,
+            exists: res.status !== 404
+        };
+        console.error(`[SWR fetcher] ${errorInfo.message}`);
+        throw errorInfo; // SWR будет ловить это в error
+    }
+    return res.json(); // Возвращаем данные
+};
+
 export default function UserProfilePage() {
   const router = useRouter();
   const params = useParams();
   const profileTwitchId = params.twitchId;
 
-  const { user, isAuthenticated, supabase } = useAuth();
+  const { user, isAuthenticated, supabase, isLoading: authIsLoading } = useAuth();
   const currentUserTwitchId = user?.user_metadata?.provider_id;
   const isOwnProfile = currentUserTwitchId === profileTwitchId;
 
-  const [profileExists, setProfileExists] = useState(true);
-  const [isRegistered, setIsRegistered] = useState(undefined);
-  const [twitchUserData, setTwitchUserData] = useState(null);
-  const [profileData, setProfileData] = useState(null);
-  const [videos, setVideos] = useState([]);
-  const [loadingProfile, setLoadingProfile] = useState(true);
-  const [error, setError] = useState(null);
-
-  const loadProfileData = useCallback(async () => {
-    console.log(`[UserProfilePage] Загрузка данных для twitchId: ${profileTwitchId}`);
-    let result = { data: null, error: null, exists: true };
-
-    try {
-        let authToken = null;
-        if (isAuthenticated && supabase) {
-            try {
-                const session = await supabase.auth.getSession();
-                authToken = session.data.session?.access_token;
-            } catch (sessionError) {
-                console.error("[UserProfilePage] Ошибка получения сессии:", sessionError);
-            }
-        }
-
-        const headers = {};
-        if (authToken) {
-            headers['Authorization'] = `Bearer ${authToken}`;
-        }
-
-        const response = await fetch(`/api/twitch/user?userId=${profileTwitchId}&fetchProfile=true`, { headers });
-
-        if (!response.ok) {
-            result.exists = response.status !== 404;
-            const errorText = await response.text();
-            const errorMsg = `Ошибка API /api/twitch/user (${response.status}): ${errorText || response.statusText}`;
-            console.error(`[UserProfilePage] ${errorMsg}`);
-            result.error = `Не удалось загрузить данные (${response.status}). Попробуйте позже.`;
-        } else {
-            result.data = await response.json();
-            console.log('[UserProfilePage] Получены свежие данные от API:', result.data);
-            result.exists = !!result.data?.twitch_user;
-        }
-
-    } catch (fetchError) {
-        console.error('[UserProfilePage] Критическая ошибка при fetch данных:', fetchError);
-        result.error = `Критическая ошибка загрузки: ${fetchError.message}.`;
-        result.exists = false;
-    }
-    return result;
-  }, [profileTwitchId, isAuthenticated, supabase]);
-
+  // --- Получаем токен для запроса --- 
+  const [authToken, setAuthToken] = useState(null);
   useEffect(() => {
-      let isMounted = true;
-      setLoadingProfile(true);
-      
-      loadProfileData().then(result => {
-          if (!isMounted) return;
-          console.log('[UserProfilePage] Обработка результата loadProfileData', result);
-          
-          if (result.error) {
-              setError(result.error);
+      const getToken = async () => {
+          if (isAuthenticated && supabase) {
+              try {
+                  const session = await supabase.auth.getSession();
+                  setAuthToken(session.data.session?.access_token || null);
+              } catch (sessionError) {
+                  console.error("[UserProfilePage] Ошибка получения сессии для SWR:", sessionError);
+                  setAuthToken(null);
+              }
+          } else {
+              setAuthToken(null);
           }
-          if (!result.exists) {
-              setProfileExists(false);
-          } else if (result.data) {
-              setTwitchUserData(result.data.twitch_user || null);
-              setVideos(result.data.twitch_user?.videos || []);
-              setProfileData(result.data.profile || null);
-              setIsRegistered(!!result.data.profile);
-              setProfileExists(true);
-              setError(null);
+      };
+      if (!authIsLoading) {
+         getToken();
+      }
+  }, [isAuthenticated, supabase, authIsLoading]);
+
+  // --- Запрос данных через SWR ---
+  const apiUrl = `/api/twitch/user?userId=${profileTwitchId}&fetchProfile=true`;
+  const { data: apiData, error: apiError, isLoading: dataIsLoading } = useSWR(
+      // Ключ SWR: сам URL. Запрос будет выполняться только если profileTwitchId есть.
+      profileTwitchId ? [apiUrl, authToken] : null, 
+      ([url, token]) => fetcher(url, token), // Используем наш фетчер
+      {
+          revalidateOnFocus: true, // <<< Магия! Авто-обновление при фокусе окна
+          revalidateOnReconnect: true, // Авто-обновление при реконнекте
+          shouldRetryOnError: false, // Не повторять при ошибке (чтобы не спамить запросами)
+          onError: (err) => {
+              console.error('[useSWR onError]', err);
+          },
+          onSuccess: (data) => {
+              console.log('[useSWR onSuccess] Data received:', data);
           }
-          setLoadingProfile(false);
-          
-          console.log('[UserProfilePage] States after update:', {
-              loadingProfile: false,
-              profileExists: result.exists,
-              isRegistered: !!result.data?.profile,
-              twitchUserData: result.data?.twitch_user,
-              profileData: result.data?.profile,
-              error: result.error
-          });
-      });
-      
-      return () => { isMounted = false; };
-  }, [loadProfileData]);
+      }
+  );
+  
+  // --- Обработка состояния загрузки и ошибок SWR ---
+  const loadingProfile = authIsLoading || dataIsLoading;
+  const error = apiError ? (apiError.message || "Неизвестная ошибка загрузки данных") : null;
+  const profileExists = apiError ? apiError.exists !== false : !!apiData?.twitch_user;
+  
+  // --- Извлекаем данные из ответа SWR ---
+  const twitchUserData = apiData?.twitch_user || null;
+  const profileData = apiData?.profile || null;
+  const videos = apiData?.twitch_user?.videos || [];
+  const isRegistered = !!profileData; // Определяем регистрацию по наличию профиля из нашей БД
+
+  console.log('[UserProfilePage] Rendering with SWR states:', {
+      loadingProfile,
+      profileExists,
+      isRegistered,
+      twitchUserData: !!twitchUserData,
+      profileData: !!profileData,
+      error: error
+  });
 
   const handleLogout = async () => {
        if (!supabase) return;
@@ -174,15 +169,6 @@ export default function UserProfilePage() {
       return null; 
   };
 
-  console.log('[UserProfilePage] Rendering with states:', {
-      loadingProfile,
-      profileExists,
-      isRegistered,
-      twitchUserData: !!twitchUserData,
-      profileData: !!profileData,
-      error
-  });
-
   if (loadingProfile) {
       console.log('[UserProfilePage] Rendering loading state...');
       return (
@@ -208,13 +194,29 @@ export default function UserProfilePage() {
   const displayName = twitchUserData?.display_name || profileData?.twitch_display_name || 'Неизвестно';
   const avatarUrl = twitchUserData?.profile_image_url || profileData?.twitch_profile_image_url;
   const viewCount = twitchUserData?.view_count;
-  const followersCount = profileData?.twitch_follower_count ?? twitchUserData?.followers_count;
+  const followersCount = twitchUserData?.followers_count ?? profileData?.twitch_follower_count;
   const createdAt = twitchUserData?.created_at;
   const broadcasterType = twitchUserData?.broadcaster_type || profileData?.twitch_broadcaster_type;
-  const profileDescription = profileData?.description;
-  const profileSocialLinks = profileData?.social_links;
-  const userRole = profileData?.role;
+  const profileDescription = isRegistered ? profileData?.description : twitchUserData?.description;
+  const profileSocialLinks = isRegistered ? profileData?.social_links : null;
+  const userRole = isRegistered ? profileData?.role : null;
   const formattedDate = createdAt ? formatDate(createdAt) : 'Неизвестно';
+
+  const handleInvite = async () => {
+    if (!currentUserTwitchId) {
+        alert('Не удалось получить ваш Twitch ID для создания ссылки-приглашения.');
+        return;
+    }
+    const inviteUrl = `${window.location.origin}/auth?ref=${currentUserTwitchId}`;
+    try {
+      await navigator.clipboard.writeText(inviteUrl);
+      alert(`Ссылка-приглашение для ${displayName} скопирована в буфер обмена!\n${inviteUrl}`);
+    } catch (err) {
+      console.error('Ошибка копирования в буфер обмена:', err);
+      alert('Не удалось скопировать ссылку. Попробуйте скопировать ее вручную из консоли.');
+      console.log('Ссылка для приглашения:', inviteUrl);
+    }
+  };
 
   return (
     <div className={styles.container}> 
@@ -223,23 +225,31 @@ export default function UserProfilePage() {
               &larr; Назад
           </button>
           <div className={styles.actionButtons}>
-              {isOwnProfile && userRole === 'admin' && (
+              {isOwnProfile && isRegistered && userRole === 'admin' && (
                    <button onClick={() => router.push('/admin/reviews')} className={`${styles.actionButton} ${styles.adminButton}`} title="Модерация">
                        🛡️ Админ панель
                    </button>
                )}
-              {isOwnProfile && (
+              {isOwnProfile && isRegistered && (
                    <button onClick={() => router.push('/my-reviews')} className={`${styles.actionButton} ${styles.myReviewsButton}`} title="Мои отзывы">
                        📝 Мои отзывы
                    </button>
                )}
-              {isOwnProfile && (
+              {isOwnProfile && isRegistered && (
                    <button onClick={() => router.push('/achievements')} className={styles.actionButton} title="Достижения">
                        🏆 Достижения
                    </button>
                )}
-              {renderProfileActionButton()}
-              {isOwnProfile && (
+               {isOwnProfile && isRegistered ? (
+                    <button onClick={() => router.push('/edit-profile')} className={styles.editButton}>
+                       Редактировать профиль
+                    </button>
+               ) : !isOwnProfile && isRegistered === false ? (
+                    <button onClick={handleInvite} className={`${styles.actionButton} ${styles.inviteButton}`}>
+                         <span className={styles.icon}>👋</span> Пригласить в Universe
+                    </button>
+               ) : null}
+               {isOwnProfile && isRegistered && (
                    <button onClick={handleLogout} className={`${styles.actionButton} ${styles.logoutButton}`} title="Выйти">
                        🚪 Выйти
                    </button>
@@ -274,32 +284,42 @@ export default function UserProfilePage() {
           </div>
       </div>
 
-      {/* Описание профиля */}
-      {profileDescription && (
+      {(profileDescription || (isRegistered === false && twitchUserData?.description)) && (
           <div className={styles.descriptionSection}>
               <h2>Описание</h2>
-              <p>{profileDescription}</p>
+              <p>{isRegistered ? profileDescription : twitchUserData?.description}</p>
           </div>
       )}
 
-      {/* --- Блок Социальные сети --- */}
-      {profileSocialLinks && Object.keys(profileSocialLinks).length > 0 && (
+      {isRegistered && profileSocialLinks && Object.keys(profileSocialLinks).length > 0 && (
         <div className={styles.section}>
           <h2 className={styles.sectionTitle}>Социальные сети</h2>
-          <div className={styles.socialLinksContainer}> {/* Новый контейнер для кнопок */} 
+          <div className={styles.socialLinksContainer}>
             {Object.entries(profileSocialLinks).map(([key, value]) => {
-              if (!value) return null; // Пропускаем пустые ссылки
+              if (!value) return null;
               
-              // Определение компонента иконки/кнопки
               let SocialComponent = null;
-              let iconProps = { size: 28 }; // Базовый размер для react-icons
-              let specificClassName = styles.socialIconGeneric; // Общий класс
+              let iconProps = { size: 28 };
+              let specificClassName = styles.socialIconGeneric;
 
               switch (key.toLowerCase()) {
                 case 'vk':
-                  SocialComponent = FaVk;
-                  specificClassName = styles.socialIconVk;
-                  break;
+                  // Заменяем FaVk на SVG
+                  // SocialComponent = FaVk; // Убрали
+                  // specificClassName = styles.socialIconVk; // Убрали, стили будут внутри SVG или общие
+                  return (
+                      <StyledSocialButton
+                          key={key}
+                          href={value}
+                          network={key}
+                          aria-label={`Профиль в ${key}`}
+                          className={`${styles.socialIconLink} ${styles.socialIconVk}`}
+                      >
+                          <svg fill="currentColor" width="28px" height="28px" viewBox="0 0 32 32" version="1.1" xmlns="http://www.w3.org/2000/svg">
+                              <path d="M0.094 7.75c0-1.188 0.813-1.656 1.813-1.719l4.656 0.031c0.281 0 0.531 0.188 0.625 0.469 1.063 3.438 2.375 5.563 3.938 7.969 0.094 0.188 0.25 0.281 0.406 0.281 0.125 0 0.25-0.063 0.344-0.219l0.094-0.344 0.031-5.406c0-0.781-0.375-0.906-1.25-1.031-0.344-0.063-0.563-0.375-0.563-0.688 0-0.063 0-0.125 0.031-0.188 0.438-1.344 1.813-2.031 3.75-2.031l1.75-0.031c1.438 0 2.75 0.625 2.75 2.469v7.094c0.125 0.094 0.25 0.156 0.406 0.156 0.25 0 0.563-0.156 0.813-0.563 1.625-2.281 3.469-5 3.719-6.438 0-0.063 0.031-0.094 0.063-0.156 0.344-0.688 1.219-1.156 1.594-1.281 0.063-0.031 0.156-0.063 0.281-0.063h4.844l0.313 0.031c0.469 0 0.813 0.313 0.969 0.594 0.281 0.438 0.219 0.906 0.25 1.094v0.219c-0.469 2.844-3.719 6.031-5.094 8.094-0.188 0.25-0.281 0.469-0.281 0.688 0 0.188 0.094 0.375 0.25 0.563l4.563 5.75c0.25 0.344 0.375 0.75 0.375 1.094 0 1.031-0.969 1.625-1.906 1.719l-0.531 0.031h-4.75c-0.094 0-0.156 0.031-0.25 0.031-0.531 0-0.969-0.281-1.281-0.594-1-1.219-1.969-2.469-2.938-3.688-0.188-0.25-0.25-0.281-0.438-0.406-0.219 0.906-0.406 1.844-0.625 2.781l-0.094 0.531c-0.156 0.563-0.563 1.156-1.313 1.313l-0.438 0.031h-3.063c-5.406 0-10.25-7.688-13.656-17.281-0.094-0.25-0.156-0.594-0.156-0.906zM18.875 15.844c-0.813 0-1.719-0.469-1.719-1.344v-7.188c0-0.844-0.375-1.156-1.406-1.156l-1.781 0.063c-1 0-1.563 0.156-2.031 0.469 0.719 0.344 1.375 0.813 1.375 2.125v5.5c-0.094 1.094-1 1.813-1.875 1.813-0.594 0-1.125-0.344-1.438-0.906-1.406-2.125-2.594-4.125-3.625-7l-0.281-0.813-4.156-0.031c-0.563 0-0.5 0.031-0.5 0.313 0 0.188 0.031 0.438 0.063 0.594l0.656 1.75c3.406 8.813 7.688 14.594 11.75 14.594h3.125c0.438 0 0.406-0.531 0.5-0.844l0.594-2.75c0.125-0.281 0.219-0.531 0.438-0.75 0.25-0.25 0.531-0.344 0.813-0.344 0.594 0 1.156 0.469 1.531 0.906l2.656 3.375c0.219 0.344 0.406 0.406 0.531 0.406h5.156c0.5 0 0.938-0.156 0.938-0.469 0-0.094-0.031-0.219-0.094-0.313l-4.531-5.656c-0.375-0.469-0.531-0.938-0.531-1.406 0-0.5 0.188-1 0.5-1.438 1.313-1.969 4.125-4.781 4.781-7.094l0.094-0.406c-0.031-0.156-0.031-0.281-0.063-0.438h-4.906c-0.313 0.125-0.563 0.313-0.75 0.563l-0.188 0.594c-0.719 2-2.688 4.75-4.094 6.656-0.469 0.438-1 0.625-1.531 0.625z"></path>
+                          </svg>
+                      </StyledSocialButton>
+                  );
                 case 'youtube':
                   SocialComponent = FaYoutube;
                    specificClassName = styles.socialIconYoutube;
@@ -309,25 +329,20 @@ export default function UserProfilePage() {
                    specificClassName = styles.socialIconTiktok;
                    break;
                  case 'discord':
-                   // Используем новый компонент DiscordButton
                    return <DiscordButton key={key} url={value} />;
                  case 'telegram':
-                     // Используем новый компонент TelegramButton
                      return <TelegramButton key={key} url={value} />;
                  case 'boosty':
                     SocialComponent = SiBoosty;
                     specificClassName = styles.socialIconBoosty;
-                    iconProps = { size: 24 }; // Иконка Boosty может быть меньше
+                    iconProps = { size: 24 };
                     break;
-                // Добавить другие кейсы по необходимости
                 default:
-                  // Можно вернуть заглушку или просто пропустить
                   console.warn(`[UserProfilePage] Unknown social link key: ${key}`);
                   return null; 
               }
               
-              // Рендерим старый StyledSocialButton для остальных иконок
-               if (SocialComponent) {
+              if (SocialComponent) {
                    return (
                        <StyledSocialButton
                            key={key}
@@ -345,7 +360,6 @@ export default function UserProfilePage() {
           </div>
         </div>
       )}
-      {/* --- Конец блока Социальные сети --- */}
 
       {videos && videos.length > 0 && (
           <div className={styles.videosSection}>

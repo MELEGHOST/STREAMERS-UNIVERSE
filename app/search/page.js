@@ -95,6 +95,15 @@ export default function SearchPage() {
 
   return (
     <div className={pageStyles.container}>
+      {/* --- Кнопка Назад --- */}
+      <button 
+        onClick={() => router.push('/menu')}
+        className={pageStyles.backButton}
+        style={{ position: 'absolute', top: '2rem', left: '2rem' }}
+      >
+        &larr; Назад в меню
+      </button>
+      {/* --- --- */}
       <h1 className={pageStyles.title}>Поиск пользователей</h1>
       
       <div className={styles.searchContainer} ref={searchContainerRef}>
