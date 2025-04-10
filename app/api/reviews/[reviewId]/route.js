@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
-import { supabaseAdmin } from '../../../../utils/supabase/admin'; // Путь уже был исправлен, оставляем
-import { verifyJwt } from '../../../../utils/jwt'; // Путь уже был исправлен, оставляем
+import { supabaseAdmin } from '../../../utils/supabase/admin'; // ИСПРАВЛЕННЫЙ ПУТЬ и раскомментировано
+import { verifyJwt } from '../../../utils/jwt'; 
 
 // DELETE - Удаление отзыва
 export async function DELETE(request, { params }) {
@@ -18,14 +18,21 @@ export async function DELETE(request, { params }) {
     if (!reviewId) {
         return NextResponse.json({ error: 'Review ID is required' }, { status: 400 });
     }
+    
+    // Проверяем, инициализирован ли админский клиент
+    if (!supabaseAdmin) {
+         console.error(`[API /api/reviews/${reviewId}] Supabase admin client is not initialized! Check environment variables.`);
+        return NextResponse.json({ error: 'Server configuration error: Supabase admin client failed to initialize.' }, { status: 500 });
+    }
 
+    // --- ВОССТАНОВЛЕННАЯ ЛОГИКА ---
     try {
         // Сначала проверим, существует ли отзыв и принадлежит ли он этому пользователю
         const { data: review, error: findError } = await supabaseAdmin
             .from('reviews')
             .select('id, user_id')
             .eq('id', reviewId)
-            .maybeSingle(); // Используем maybeSingle, чтобы не было ошибки, если отзыв не найден
+            .maybeSingle(); 
 
         if (findError) {
             console.error(`[API /api/reviews/${reviewId}] Error finding review:`, findError);
@@ -47,7 +54,7 @@ export async function DELETE(request, { params }) {
             .from('reviews')
             .delete()
             .eq('id', reviewId)
-            .eq('user_id', userId); // Дополнительная проверка на user_id для безопасности
+            .eq('user_id', userId); 
 
         if (deleteError) {
             console.error(`[API /api/reviews/${reviewId}] Error deleting review:`, deleteError);
@@ -61,11 +68,12 @@ export async function DELETE(request, { params }) {
         console.error(`[API /api/reviews/${reviewId}] Unexpected error processing DELETE request:`, error);
         return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
     }
+    // --- КОНЕЦ ВОССТАНОВЛЕННОЙ ЛОГИКИ ---
 }
 
 // GET - Получение одного отзыва для редактирования
 export async function GET(request, { params }) {
-    const token = request.headers.get('Authorization')?.split(' ')[1];
+     const token = request.headers.get('Authorization')?.split(' ')[1];
     const verifiedToken = await verifyJwt(token);
 
     if (!verifiedToken) {
@@ -80,10 +88,17 @@ export async function GET(request, { params }) {
         return NextResponse.json({ error: 'Review ID is required' }, { status: 400 });
     }
 
+    // Проверяем, инициализирован ли админский клиент
+    if (!supabaseAdmin) {
+         console.error(`[API /api/reviews/${reviewId}] Supabase admin client is not initialized! Check environment variables.`);
+        return NextResponse.json({ error: 'Server configuration error: Supabase admin client failed to initialize.' }, { status: 500 });
+    }
+    
+    // --- ВОССТАНОВЛЕННАЯ ЛОГИКА ---
     try {
         const { data: review, error: findError } = await supabaseAdmin
             .from('reviews')
-            .select('id, user_id, category, item_name, rating, review_text, image_url') // Выбираем нужные поля
+            .select('id, user_id, category, item_name, rating, review_text, image_url') 
             .eq('id', reviewId)
             .maybeSingle();
 
@@ -97,7 +112,6 @@ export async function GET(request, { params }) {
             return NextResponse.json({ error: 'Review not found' }, { status: 404 });
         }
 
-        // *** ВАЖНЕЙШАЯ ПРОВЕРКА: Пользователь может запрашивать только свой отзыв ***
         if (review.user_id !== userId) {
              console.warn(`[API /api/reviews/${reviewId}] User ${userId} attempted to GET review belonging to user ${review.user_id}.`);
             return NextResponse.json({ error: 'Forbidden: You can only fetch your own reviews for editing' }, { status: 403 });
@@ -110,11 +124,12 @@ export async function GET(request, { params }) {
          console.error(`[API /api/reviews/${reviewId}] Unexpected error processing GET request:`, error);
         return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
     }
+    // --- КОНЕЦ ВОССТАНОВЛЕННОЙ ЛОГИКИ ---
 }
 
 // PATCH - Обновление отзыва
 export async function PATCH(request, { params }) {
-     const token = request.headers.get('Authorization')?.split(' ')[1];
+      const token = request.headers.get('Authorization')?.split(' ')[1];
     const verifiedToken = await verifyJwt(token);
 
     if (!verifiedToken) {
@@ -129,6 +144,13 @@ export async function PATCH(request, { params }) {
         return NextResponse.json({ error: 'Review ID is required' }, { status: 400 });
     }
 
+     // Проверяем, инициализирован ли админский клиент
+    if (!supabaseAdmin) {
+         console.error(`[API /api/reviews/${reviewId}] Supabase admin client is not initialized! Check environment variables.`);
+        return NextResponse.json({ error: 'Server configuration error: Supabase admin client failed to initialize.' }, { status: 500 });
+    }
+
+    // --- ВОССТАНОВЛЕННАЯ ЛОГИКА ---
     try {
         const body = await request.json();
         const { review_text, rating } = body;
@@ -141,8 +163,6 @@ export async function PATCH(request, { params }) {
             return NextResponse.json({ error: 'Invalid rating value (must be 1-5)' }, { status: 400 });
         }
 
-        // Сначала проверим, существует ли отзыв и принадлежит ли он этому пользователю
-        // (Повторная проверка на случай, если кто-то попытается обновить чужой отзыв)
         const { data: existingReview, error: findError } = await supabaseAdmin
             .from('reviews')
             .select('id, user_id')
@@ -168,14 +188,12 @@ export async function PATCH(request, { params }) {
         const { data: updatedReview, error: updateError } = await supabaseAdmin
             .from('reviews')
             .update({
-                review_text: review_text.trim(), // Обрезаем пробелы
+                review_text: review_text.trim(), 
                 rating: rating,
-                // Можно добавить поле updated_at, если оно есть в схеме
-                // updated_at: new Date().toISOString()
              })
             .eq('id', reviewId)
-            .eq('user_id', userId) // Дополнительная проверка
-            .select('id, review_text, rating, updated_at') // Возвращаем обновленные данные
+            .eq('user_id', userId) 
+            .select('id, review_text, rating, updated_at') 
             .single();
 
         if (updateError) {
@@ -195,4 +213,5 @@ export async function PATCH(request, { params }) {
         console.error(`[API /api/reviews/${reviewId}] Unexpected error processing PATCH request:`, error);
         return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
     }
+     // --- КОНЕЦ ВОССТАНОВЛЕННОЙ ЛОГИКИ ---
 } 
