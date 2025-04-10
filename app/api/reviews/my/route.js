@@ -31,37 +31,31 @@ export async function GET(request) {
     console.log(`[API /api/reviews/my] Fetching reviews for author_id: ${authorId}`);
 
     try {
-        // Запрашиваем отзывы пользователя, джойним с таблицей streamers для получения display_name
+        // Запрашиваем отзывы пользователя
+        // Убираем JOIN с streamer_id, т.к. он вызывает ошибку и, возможно, не нужен
+        // Если информация об объекте отзыва нужна, ее надо получать иначе (например, по item_name)
         const { data: reviews, error } = await supabaseAdmin
             .from('reviews')
-            .select(`
-                *,
-                streamer:streamer_id (
-                    twitch_user_id,
-                    display_name,
-                    profile_image_url
-                )
-            `)
-            .eq('author_id', authorId)
-            .order('created_at', { ascending: false }); // Сортируем по дате создания (сначала новые)
+            .select('*') // Выбираем все поля самого отзыва
+            // .select(`*, streamer:streamer_id (*)`) // <<< УБИРАЕМ JOIN
+            .eq('user_id', authorId) // <<< Ищем по user_id, а не author_id
+            .order('created_at', { ascending: false }); 
 
         if (error) {
             console.error('[API /api/reviews/my] Error fetching reviews:', error);
+            // Уточняем сообщение об ошибке, если оно связано с колонкой
+            if (error.message.includes('column') && error.message.includes('does not exist')){
+                 return NextResponse.json({ error: `Database error: ${error.message}` }, { status: 500 });
+            }
             return NextResponse.json({ error: 'Failed to fetch reviews', details: error.message }, { status: 500 });
         }
 
         console.log(`[API /api/reviews/my] Found ${reviews.length} reviews for author ${authorId}.`);
 
-        // Преобразуем данные, чтобы streamer был внутри объекта отзыва
-        const formattedReviews = reviews.map(review => ({
-            ...review,
-            streamer_twitch_id: review.streamer?.twitch_user_id,
-            streamer_display_name: review.streamer?.display_name,
-            streamer_profile_image_url: review.streamer?.profile_image_url,
-            streamer: undefined // Удаляем вложенный объект streamer
-        }));
+        // Удаляем лишнее форматирование, т.к. JOIN убран
+        // const formattedReviews = reviews.map(review => ({ ... }));
 
-        return NextResponse.json(formattedReviews, { status: 200 });
+        return NextResponse.json(reviews, { status: 200 }); // Возвращаем чистые отзывы
 
     } catch (e) {
         console.error('[API /api/reviews/my] Unexpected server error:', e);

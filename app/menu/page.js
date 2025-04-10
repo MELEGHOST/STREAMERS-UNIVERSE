@@ -19,7 +19,7 @@ export default function MenuPage() {
     // Убираем "Главная"
     // { href: '/home', label: 'Главная', icon: <FaHome /> }, 
     { href: '/search', label: 'Поиск', icon: <FaSearch /> },
-    { href: '/reviews', label: 'Отзывы', icon: <FaCommentDots /> },
+    { href: '/reviews/create', label: 'Отзывы', icon: <FaCommentDots /> },
     { href: '/followings', label: 'Вдохновители', icon: <FaUserCheck /> },
     { href: '/followers', label: 'Последователи', icon: <FaUsers /> },
     { href: '/settings', label: 'Настройки', icon: <FaCog /> },

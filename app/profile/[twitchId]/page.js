@@ -264,7 +264,10 @@ export default function UserProfilePage() {
                       <span>❤️ Фолловеры: {followersCount.toLocaleString('ru-RU')}</span>
                   }
               </p>
-               {isRegistered === false && <p className={styles.notRegisteredHint}>Этот пользователь еще не присоединился к Streamers Universe.</p>}
+               {/* Плашка "не зареган" показывается ТОЛЬКО для ЧУЖИХ профилей */}
+               {!isOwnProfile && isRegistered === false && 
+                   <p className={styles.notRegisteredHint}>Этот пользователь еще не присоединился к Streamers Universe.</p>
+               }
           </div>
       </div>
 

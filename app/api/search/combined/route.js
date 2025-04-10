@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js'; // Используем обычный клиент для чтения
-import { searchTwitchChannels, getTwitchUsers } from '../../../../utils/twitchApi.js'; // <<< Уточненный относительный путь
+import { searchTwitchChannels, getTwitchUsers } from '../../../utils/twitchApiUtils'; // Убедимся, что пути верные
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
@@ -10,30 +10,37 @@ const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
 export async function GET(request) {
-  const { searchParams } = new URL(request.url);
-  const query = searchParams.get('query');
-
+  const query = request.nextUrl.searchParams.get('query');
   if (!query) {
-    return NextResponse.json({ error: 'Search query is required' }, { status: 400 });
+    return NextResponse.json({ error: 'Query parameter is required' }, { status: 400 });
   }
 
   console.log(`[API /search/combined] Received search query: "${query}"`);
 
   try {
-    // --- Поиск в Supabase --- 
+    // --- Поиск в нашей базе (Supabase Auth + user_profiles) --- 
     let supabaseUsers = [];
     try {
-      console.log('[API /search/combined] Searching in Supabase...');
-      const { data, error } = await supabase
+        console.log('[API /search/combined] Searching in Supabase...');
+        const { data, error } = await supabase
         .from('user_profiles')
-        .select('user_id, user_metadata, raw_user_meta_data') // Выбираем нужные поля
-        // Ищем по user_name или login (могут быть в разных местах)
-        .or(`user_metadata->>user_name.ilike.%${query}%, raw_user_meta_data->>login.ilike.%${query}%`)
-        .limit(10); // Ограничим результаты из базы
+        // Выбираем только нужные поля, убираем user_metadata
+        .select(`
+            user_id,
+            description,
+            role,
+            social_links,
+            twitch_user_id,
+            twitch_display_name,
+            twitch_profile_image_url,
+            auth_user:auth.users ( raw_user_meta_data )
+        `)
+        // Ищем по display_name из user_profiles или по login из auth.users
+        .or(`twitch_display_name.ilike.%${query}%, auth_user.raw_user_meta_data->>login.ilike.%${query}%`)
+        .limit(10); 
 
       if (error) {
         console.error('[API /search/combined] Supabase search error:', error);
-        // Не прерываем поиск, просто логируем ошибку
       } else {
         supabaseUsers = data || [];
         console.log(`[API /search/combined] Found ${supabaseUsers.length} users in Supabase.`);
@@ -58,25 +65,24 @@ export async function GET(request) {
 
     // 1. Обрабатываем пользователей из нашей базы
     supabaseUsers.forEach(user => {
-      const twitchLogin = user.raw_user_meta_data?.login;
-      const twitchId = user.user_metadata?.provider_id;
+      const twitchLogin = user.auth_user?.raw_user_meta_data?.login;
+      const twitchId = user.twitch_user_id;
       
       if (twitchId) processedTwitchIds.add(twitchId);
       
       combinedResults.push({
         twitch_id: twitchId,
-        login: twitchLogin || user.user_metadata?.user_name, // Используем login или user_name
-        display_name: user.user_metadata?.name || user.raw_user_meta_data?.display_name || twitchLogin,
-        avatar_url: user.user_metadata?.avatar_url,
-        registered: true, // Помечаем, что пользователь зареган у нас
-        // Можно добавить другие поля из user_profiles, если нужно
+        login: twitchLogin,
+        display_name: user.twitch_display_name || twitchLogin,
+        avatar_url: user.twitch_profile_image_url, // Берем из user_profiles
+        registered: true, 
       });
     });
 
     // 2. Обрабатываем пользователей из Twitch API, которых нет в нашей базе
     const loginsToFetch = twitchChannels
         .map(channel => channel.broadcaster_login)
-        .filter(login => login && !supabaseUsers.some(su => su.raw_user_meta_data?.login?.toLowerCase() === login.toLowerCase())); // Исключаем уже добавленных по логину
+        .filter(login => login && !supabaseUsers.some(su => su.auth_user?.raw_user_meta_data?.login?.toLowerCase() === login.toLowerCase())); // Исключаем уже добавленных по логину
 
     let additionalTwitchUsers = [];
     if (loginsToFetch.length > 0) {

@@ -167,7 +167,13 @@ export async function GET(request) {
                       currentFollowersCount = followsResponse?.total ?? 0;
                       console.log(`[API /api/twitch/user] Fetched current followers for owner ${userId}: ${currentFollowersCount}`);
                   } catch (followError) {
-                      console.error(`[API /api/twitch/user] Error fetching followers using User Token for ${userId}:`, followError);
+                      // Мягкая обработка ошибки токена
+                      if (followError.message?.includes('Invalid token') || followError.message?.includes('invalid access token')) {
+                          console.warn(`[API /api/twitch/user] Failed to fetch followers due to invalid token for ${userId}. Using stale data: ${currentFollowersCount}`);
+                      } else {
+                           console.error(`[API /api/twitch/user] Error fetching followers using User Token for ${userId}:`, followError);
+                      }
+                      // Не прерываем выполнение, используем старое значение (currentFollowersCount)
                   }
                   
                   const currentBroadcasterType = twitchUserData.broadcaster_type;
@@ -177,14 +183,25 @@ export async function GET(request) {
                   // --- НОВАЯ ЛОГИКА: Update или Insert вместо Upsert ---
                   const dataToUpdateOrInsert = {
                       // Поля, которые мы хотим обновлять из Twitch
-                      twitch_display_name: twitchUserData.display_name,
-                      twitch_profile_image_url: twitchUserData.profile_image_url,
+                      // twitch_display_name: twitchUserData.display_name, // Убрали, берется из auth.users
+                      // twitch_profile_image_url: twitchUserData.profile_image_url, // Убрали, берется из auth.users
                       twitch_follower_count: currentFollowersCount, 
                       twitch_broadcaster_type: currentBroadcasterType,
                       role: currentRole,
                       updated_at: new Date().toISOString(),
                       // НЕ включаем сюда description, social_links, birthday и т.д.
                   };
+
+                  // Удаляем ключи с undefined/null перед отправкой в базу
+                  Object.keys(dataToUpdateOrInsert).forEach(key => {
+                      if (dataToUpdateOrInsert[key] === undefined || dataToUpdateOrInsert[key] === null) {
+                          // Для update: если хотим обнулить поле, ставим null явно.
+                          // Если не хотим трогать поле, если значение null/undefined, то удаляем ключ.
+                          // В данном случае, если followerCount === null, мы хотим его записать.
+                          // Если role/broadcaster_type - null/undefined, возможно, тоже хотим записать.
+                          // Пока оставляем как есть, но это место для потенциального улучшения.
+                      }
+                  });
 
                   let updatedProfileData = null;
                   let dbError = null;
