@@ -48,7 +48,7 @@ export async function POST(request) {
 
     try {
         const body = await request.json();
-        const { category, subcategory, itemName, rating, reviewText, imageUrl } = body;
+        const { category, itemName, rating, reviewText, imageUrl } = body;
 
         // Простая валидация
         if (!category || !itemName || !rating || !reviewText) {
