@@ -278,16 +278,16 @@ export async function POST(request) {
 
         const userPrompt = `Content Author Twitch Name: ${authorTwitchNickname}\n\nContent provided:\n---\n${truncatedContent}\n---\n\nPlease generate the review JSON based on this content. Remember the JSON format with keys: review_text, rating, category, item_name, subcategory (optional).`;
 
-        console.log(\`[API /generate] Sending request to AI. System Prompt size: ${systemPrompt.length}, User Prompt size: ${userPrompt.length}\`);
+        console.log(`[API /generate] Sending request to AI. System Prompt size: ${systemPrompt.length}, User Prompt size: ${userPrompt.length}`);
 
         // 5. Вызов модели через OpenRouter
         const aiResponse = await openrouter.chat.completions.create({
-            model: \"google/gemini-pro\", // Или другая модель, если нужно
+            model: "google/gemini-pro", // Или другая модель, если нужно
             messages: [
-                { role: \"system\", content: systemPrompt },
-                { role: \"user\", content: userPrompt }
+                { role: "system", content: systemPrompt },
+                { role: "user", content: userPrompt }
             ],
-            response_format: { type: \"json_object\" }, // Просим JSON ответ
+            response_format: { type: "json_object" }, // Просим JSON ответ
             temperature: 0.6, // Средняя температура для баланса
         });
 
