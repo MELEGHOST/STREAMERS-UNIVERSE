@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect /*, useCallback */ } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import useSWR from 'swr';
 // import Link from 'next/link'; // НЕ ИСПОЛЬЗУЕТСЯ
@@ -146,28 +146,6 @@ export default function UserProfilePage() {
            await supabase.auth.signOut();
        } catch (error) { console.error('Logout error:', error); }
    };
-
-  const renderProfileActionButton = () => {
-      if (isOwnProfile) {
-          return (
-             <button onClick={() => router.push('/edit-profile')} className={styles.editButton}>
-                Редактировать профиль
-             </button>
-          );
-      } else if (isRegistered === false && twitchUserData?.login) {
-          return (
-              <a 
-                 href={`https://twitch.tv/${twitchUserData.login}`} 
-                 target="_blank" 
-                 rel="noopener noreferrer" 
-                 className={`${styles.actionButton} ${styles.inviteButton}`}
-              >
-                  <span className={styles.icon}>👋</span> Пригласить в Universe
-             </a>
-          );
-      } 
-      return null; 
-  };
 
   if (loadingProfile) {
       console.log('[UserProfilePage] Rendering loading state...');
