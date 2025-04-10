@@ -52,13 +52,14 @@ export async function GET(request) {
 
   let profileData = null; 
   let isOwnerViewing = false;
-  let supabaseUserIdFromTwitchId = null; // <<< ID пользователя Supabase, найденный по Twitch ID
-
-  // --- Получение публичных данных с Twitch --- 
+  let supabaseUserIdFromTwitchId = null; 
   let twitchUserData = null;
   let videos = [];
+  let followersCountFromTwitch = null; // <<< Для фолловеров с App Token
+
+  // --- Получение публичных данных с Twitch (ВКЛЮЧАЯ ФОЛЛОВЕРОВ) --- 
   try {
-      const appTwitchClient = await getTwitchClient(); // Используем App Token для публичных данных
+      const appTwitchClient = await getTwitchClient(); 
       if (!appTwitchClient) throw new Error('Failed to initialize Twitch App client');
 
       console.log(`[API /api/twitch/user] Fetching public data for user ${userId} from Twitch API...`);
@@ -68,6 +69,24 @@ export async function GET(request) {
         return NextResponse.json({ error: 'Twitch user not found' }, { status: 404 });
       }
       console.log(`[API /api/twitch/user] Twitch user data fetched successfully.`);
+
+      // --- Получаем ФОЛЛОВЕРОВ (публично, через App Token) ---
+      try {
+          // Используем helix-метод напрямую, т.к. в @twurple может не быть для AppToken
+          const followsResponse = await appTwitchClient.callApi({
+               url: 'channels/followers',
+               type: 'helix',
+               query: {
+                   broadcaster_id: userId,
+                   first: 1 // Нам нужно только общее число
+               }
+           });
+           followersCountFromTwitch = followsResponse?.total ?? 0;
+           console.log(`[API /api/twitch/user] Fetched public followers for ${userId}: ${followersCountFromTwitch}`);
+       } catch (publicFollowError) {
+           console.error(`[API /api/twitch/user] Error fetching public followers for ${userId}:`, publicFollowError);
+           // Не прерываем, будет null
+       }
 
       // --- Получаем VODы (публичные) ---
       try {
@@ -86,7 +105,6 @@ export async function GET(request) {
           console.error(`[API /api/twitch/user] Error fetching videos for user ${userId}:`, videoError);
       }
       
-      // Собираем базовые данные Twitch
       twitchUserData = {
         id: userResponse.id,
         login: userResponse.name,
@@ -98,7 +116,7 @@ export async function GET(request) {
         offline_image_url: userResponse.offlinePlaceholderUrl,
         view_count: userResponse.views,
         created_at: userResponse.creationDate,
-        followers_count: null, // Изначально null
+        followers_count: followersCountFromTwitch, // <<< Используем полученных фолловеров
         videos: videos,
       };
 
@@ -117,12 +135,16 @@ export async function GET(request) {
       // 1. Ищем пользователя в auth.users по Twitch ID (provider_id)
       console.log(`[API /api/twitch/user] Looking up Supabase user ID for Twitch ID: ${userId}`);
       const { data: authUser, error: authUserError } = await supabaseAdmin
-          .from('users') // Обращаемся к auth.users
+          // Явно указываем схему 'auth' и таблицу 'users'
+          .from('users')
           .select('id')
-          .eq('raw_user_meta_data->>provider_id', userId)
+          // Пробуем снова стандартный метод для JSONB
+          .eq('raw_user_meta_data->>provider_id', userId) 
           .maybeSingle();
 
       if (authUserError) {
+          // Если ошибка "does not exist", возможно, нейминг колонки другой?
+          // Или права доступа? Логируем и продолжаем без ID.
           console.error(`[API /api/twitch/user] Error fetching user from auth.users for Twitch ID ${userId}:`, authUserError);
       } else if (authUser) {
           supabaseUserIdFromTwitchId = authUser.id;
@@ -168,33 +190,35 @@ export async function GET(request) {
 
   // --- Обновление данных, если владелец смотрит свой профиль --- 
   console.log(`[API /api/twitch/user] Checking ownership before update: isOwnerViewing = ${isOwnerViewing}`);
-  if (isOwnerViewing) { 
+  if (isOwnerViewing && supabaseUserIdFromTwitchId) { // <<< Добавил проверку supabaseUserIdFromTwitchId
       try {
-            // ВАЖНО: Используем supabaseUserIdFromTwitchId для операций с БД
             const currentSupabaseUserId = supabaseUserIdFromTwitchId; 
             
-            // Запрашиваем фолловеров (требует User Token)
-            let currentFollowersCount = profileData?.twitch_follower_count ?? null; 
+            // Запрашиваем фолловеров СНОВА, но уже с User Token (если он нужен для более точных данных или других целей)
+            // Если публичных данных достаточно, этот блок можно упростить/удалить
+            let currentFollowersCount = followersCountFromTwitch; // Начинаем с публичных данных
             try {
-                const userTwitchClient = await getTwitchClientWithToken(token);
-                if (!userTwitchClient) throw new Error('Failed to initialize Twitch client with User Token');
-                
-                const followsResponse = await userTwitchClient.channels.getChannelFollowers(userId, userId, undefined, 1);
-                currentFollowersCount = followsResponse?.total ?? 0;
-                console.log(`[API /api/twitch/user] Fetched current followers for owner ${userId}: ${currentFollowersCount}`);
-            } catch (followError) {
-                // Мягкая обработка ошибки токена
-                if (followError.message?.includes('Invalid token') || followError.message?.includes('invalid access token')) {
-                    console.warn(`[API /api/twitch/user] Failed to fetch followers due to invalid token for ${userId}. Using stale data: ${currentFollowersCount}`);
-                } else {
-                     console.error(`[API /api/twitch/user] Error fetching followers using User Token for ${userId}:`, followError);
-                }
-                // Не прерываем выполнение, используем старое значение (currentFollowersCount)
-            }
+                 const userTwitchClient = await getTwitchClientWithToken(token);
+                 if (userTwitchClient) {
+                     const followsResponse = await userTwitchClient.channels.getChannelFollowers(userId, userId, undefined, 1);
+                     currentFollowersCount = followsResponse?.total ?? followersCountFromTwitch ?? 0;
+                     console.log(`[API /api/twitch/user] Fetched current followers using USER TOKEN for owner ${userId}: ${currentFollowersCount}`);
+                 } else {
+                     console.warn(`[API /api/twitch/user] Could not get user token client, using public follower count: ${currentFollowersCount}`);
+                 }
+             } catch (followError) {
+                  // Мягкая обработка ошибки токена
+                  if (followError.message?.includes('Invalid token') || followError.message?.includes('invalid access token')) {
+                      console.warn(`[API /api/twitch/user] Failed to fetch followers due to invalid token for ${userId}. Using stale data: ${currentFollowersCount}`);
+                  } else {
+                       console.error(`[API /api/twitch/user] Error fetching followers using User Token for ${userId}:`, followError);
+                  }
+                  // Не прерываем выполнение, используем старое значение (currentFollowersCount)
+             }
             
             const currentBroadcasterType = twitchUserData.broadcaster_type;
             const currentRole = determineRole(currentFollowersCount, currentBroadcasterType);
-            console.log(`[API /api/twitch/user] Determined role for ${userId}: ${currentRole}`);
+            console.log(`[API /api/twitch/user] Determined role for owner ${userId}: ${currentRole}`);
             
             const dataToUpdateOrInsert = {
                 twitch_follower_count: currentFollowersCount, 
@@ -233,7 +257,8 @@ export async function GET(request) {
                  console.log(`[API /api/twitch/user] Attempting to INSERT new profile for Supabase User ${currentSupabaseUserId}...`);
                 const dataToInsert = {
                     ...dataToUpdateOrInsert,
-                    user_id: currentSupabaseUserId, // <<< Используем найденный ID
+                    user_id: currentSupabaseUserId,
+                    // twitch_user_id: userId, // <<< УБРАНО ОКОНЧАТЕЛЬНО
                 };
                 console.log(`[API /api/twitch/user] Data for INSERT:`, dataToInsert);
                 const { data, error } = await supabaseAdmin
@@ -259,18 +284,18 @@ export async function GET(request) {
            console.error(`[API /api/twitch/user] Error inside owner data refresh block for ${userId}:`, refreshError);
       }
   } else {
-      console.log(`[API /api/twitch/user] Skipping DB update/insert because isOwnerViewing is false.`);
+      console.log(`[API /api/twitch/user] Skipping DB update/insert because isOwnerViewing is ${isOwnerViewing} or SupabaseUserID not found.`);
   }
   
   // --- Финальная подготовка данных для ответа --- 
-  // Обновляем followers_count в twitchUserData из profileData, если он там есть
-  if (profileData?.twitch_follower_count !== null && profileData?.twitch_follower_count !== undefined) {
-       twitchUserData.followers_count = profileData.twitch_follower_count;
+  // Убедимся, что followers_count в twitchUserData актуален (из публичных данных)
+  if (twitchUserData) {
+      twitchUserData.followers_count = followersCountFromTwitch ?? twitchUserData.followers_count; 
   }
-
+  
   const responsePayload = {
       twitch_user: twitchUserData,
-      profile: profileData // Содержит данные из Supabase, включая кэш фолловеров/роли
+      profile: profileData 
   };
 
   console.log(`[API /api/twitch/user] Successfully processed request for Twitch User ID: ${userId}. Returning payload:`, { twitch_user: { ...twitchUserData, videos: `[${videos.length} videos]` }, profile: profileData });

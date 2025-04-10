@@ -15,27 +15,20 @@ export async function GET(request) {
   console.log(`[API /search/combined] Received search query: "${query}"`);
 
   try {
-    // --- Поиск в нашей базе (Supabase user_profiles + auth.users) --- 
+    // --- Поиск в нашей базе (только user_profiles) --- 
     let supabaseUsers = [];
     try {
-        console.log('[API /search/combined] Searching in Supabase...');
-        // Убираем неиспользуемый запрос к auth.users
-        /*
-        const { data: authUsers, error: authError } = await supabase.auth.admin.listUsers({
-             query: query, 
-        });
-        */
+        console.log('[API /search/combined] Searching in Supabase (user_profiles)...');
         const { data: profileData, error: profileError } = await supabase
             .from('user_profiles')
-            // Выбираем поля профиля и логин из связанной таблицы auth.users
+            // Выбираем только нужные поля из самой таблицы
             .select(`
                 user_id,
                 twitch_user_id,
                 twitch_display_name,
-                twitch_profile_image_url,
-                auth_user:user_id ( raw_user_meta_data ) 
+                twitch_profile_image_url 
             `)
-            .ilike('twitch_display_name', `%${query}%`) // Ищем по отображаемому имени
+            .ilike('twitch_display_name', `%${query}%`) 
             .limit(10); 
 
       if (profileError) {
@@ -63,16 +56,14 @@ export async function GET(request) {
 
     // 1. Обрабатываем пользователей из нашей базы
     supabaseUsers.forEach(user => {
-      const twitchLogin = user.auth_user?.raw_user_meta_data?.login;
-      const twitchId = user.twitch_user_id; // <<< Используем twitch_user_id из user_profiles
-      
-      if (twitchId) { // Только если есть Twitch ID
+      const twitchId = user.twitch_user_id;
+      if (twitchId) {
           processedTwitchIds.add(twitchId);
           combinedResults.push({
             twitch_id: twitchId,
-            login: twitchLogin, // Логин из auth.users
-            display_name: user.twitch_display_name || twitchLogin, // Отображаемое имя из профиля или логин
-            avatar_url: user.twitch_profile_image_url, // Аватар из профиля
+            login: null, // <<< Логин пока взять не можем без JOIN или доп. запроса
+            display_name: user.twitch_display_name,
+            avatar_url: user.twitch_profile_image_url,
             registered: true, 
           });
       }
