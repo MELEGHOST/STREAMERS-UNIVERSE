@@ -132,22 +132,20 @@ export async function GET(request) {
   
   // --- Поиск профиля в базе и определение isOwnerViewing --- 
   try {
-      // 1. Ищем пользователя в auth.users по Twitch ID (provider_id) - ИСПРАВЛЕННЫЙ МЕТОД
-      console.log(`[API /api/twitch/user] Looking up Supabase user ID for Twitch ID: ${userId}`);
-      // Сначала получаем всех юзеров (менее эффективно, но обходит проблему с JSON запросом)
-      // В реальном приложении нужен более эффективный способ, возможно функция в БД
-      const { data: { users: allAuthUsers }, error: listUsersError } = await supabaseAdmin.auth.admin.listUsers();
-      
-      let authUser = null;
-      if (listUsersError) {
-           console.error(`[API /api/twitch/user] Error listing users from auth.users:`, listUsersError);
-      } else {
-           authUser = allAuthUsers.find(u => u.raw_user_meta_data?.provider_id === userId);
-      }
+      // 1. Ищем Supabase user_id в auth.identities по Twitch ID
+      console.log(`[API /api/twitch/user] Looking up Supabase user ID in auth.identities for Twitch ID: ${userId}`);
+      const { data: identityData, error: identityError } = await supabaseAdmin
+          .from('identities') // <<< Ищем в auth.identities
+          .select('user_id')
+          .eq('provider', 'twitch') // <<< Указываем провайдера
+          .eq('provider_id', userId) // <<< Ищем по Twitch ID
+          .maybeSingle(); 
 
-      if (authUser) {
-          supabaseUserIdFromTwitchId = authUser.id;
-          console.log(`[API /api/twitch/user] Found Supabase User ID: ${supabaseUserIdFromTwitchId} for Twitch ID ${userId}`);
+      if (identityError) {
+          console.error(`[API /api/twitch/user] Error fetching from auth.identities for Twitch ID ${userId}:`, identityError);
+      } else if (identityData) {
+          supabaseUserIdFromTwitchId = identityData.user_id;
+          console.log(`[API /api/twitch/user] Found Supabase User ID: ${supabaseUserIdFromTwitchId} from auth.identities for Twitch ID ${userId}`);
           
           // 2. Если нашли Supabase User ID, ищем профиль в user_profiles
           const { data: profile, error: profileError } = await supabaseAdmin
@@ -165,7 +163,7 @@ export async function GET(request) {
               console.log(`[API /api/twitch/user] User profile NOT found in Supabase for user_id ${supabaseUserIdFromTwitchId}`);
           }
       } else {
-           console.log(`[API /api/twitch/user] No user found in auth.users for Twitch ID ${userId}. User is not registered.`);
+           console.log(`[API /api/twitch/user] No identity found in auth.identities for Twitch ID ${userId}. User is likely not registered via Twitch.`);
       }
 
       // 3. Определяем isOwnerViewing
