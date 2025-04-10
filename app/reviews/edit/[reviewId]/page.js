@@ -95,7 +95,7 @@ export default function EditReviewPage() {
         } finally {
             setLoading(false);
         }
-    }, [reviewId, isAuthenticated, supabase, user]); // Добавил user для потенциальной проверки
+    }, [reviewId, isAuthenticated, supabase]); // Убрал user из зависимостей
 
     useEffect(() => {
         if (isAuthenticated !== null) { // Ждем определения статуса аутентификации
