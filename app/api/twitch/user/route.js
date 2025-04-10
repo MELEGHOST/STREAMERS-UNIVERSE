@@ -234,7 +234,6 @@ export async function GET(request) {
                 const dataToInsert = {
                     ...dataToUpdateOrInsert,
                     user_id: currentSupabaseUserId, // <<< Используем найденный ID
-                    twitch_user_id: userId, // Все еще сохраняем Twitch ID для возможной будущей связи
                 };
                 console.log(`[API /api/twitch/user] Data for INSERT:`, dataToInsert);
                 const { data, error } = await supabaseAdmin
