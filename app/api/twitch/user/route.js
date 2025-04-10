@@ -154,6 +154,7 @@ export async function GET(request) {
           }
           
           // 2. Если АВТОРИЗОВАННЫЙ ПОЛЬЗОВАТЕЛЬ смотрит СВОЙ профиль, пытаемся обновить данные
+          console.log(`[API /api/twitch/user] Checking ownership: isOwnerViewing = ${isOwnerViewing}`);
           if (isOwnerViewing) { 
               try {
                   // Используем JWT токен пользователя для запроса к Twitch
@@ -180,16 +181,11 @@ export async function GET(request) {
                   const currentRole = determineRole(currentFollowersCount, currentBroadcasterType);
                   console.log(`[API /api/twitch/user] Determined role for ${userId}: ${currentRole}`);
                   
-                  // --- НОВАЯ ЛОГИКА: Update или Insert вместо Upsert ---
                   const dataToUpdateOrInsert = {
-                      // Поля, которые мы хотим обновлять из Twitch
-                      // twitch_display_name: twitchUserData.display_name, // Убрали, берется из auth.users
-                      // twitch_profile_image_url: twitchUserData.profile_image_url, // Убрали, берется из auth.users
                       twitch_follower_count: currentFollowersCount, 
                       twitch_broadcaster_type: currentBroadcasterType,
                       role: currentRole,
                       updated_at: new Date().toISOString(),
-                      // НЕ включаем сюда description, social_links, birthday и т.д.
                   };
 
                   // Удаляем ключи с undefined/null перед отправкой в базу
@@ -203,11 +199,13 @@ export async function GET(request) {
                       }
                   });
 
+                  console.log(`[API /api/twitch/user] Data prepared for DB operation:`, dataToUpdateOrInsert);
+
                   let updatedProfileData = null;
                   let dbError = null;
 
-                  if (profileData) { // Профиль существует, обновляем только нужные поля
-                      console.log(`[API /api/twitch/user] Updating existing profile for Supabase User ${supabaseUserId}...`);
+                  if (profileData) { // Профиль существует, обновляем
+                      console.log(`[API /api/twitch/user] Attempting to UPDATE existing profile for Supabase User ${supabaseUserId}...`);
                       const { data, error } = await supabaseAdmin
                           .from('user_profiles')
                           .update(dataToUpdateOrInsert)
@@ -216,13 +214,14 @@ export async function GET(request) {
                           .single();
                       updatedProfileData = data;
                       dbError = error;
-                  } else { // Профиля нет, создаем новый с базовыми и обновленными данными
-                      console.log(`[API /api/twitch/user] Inserting new profile for Supabase User ${supabaseUserId}...`);
+                  } else { // Профиля нет, создаем
+                      console.log(`[API /api/twitch/user] Attempting to INSERT new profile for Supabase User ${supabaseUserId}...`);
                       const dataToInsert = {
                           ...dataToUpdateOrInsert,
                           user_id: supabaseUserId,
-                          twitch_user_id: userId, // Убедимся, что twitch_user_id тоже записан
+                          twitch_user_id: userId, 
                       };
+                      console.log(`[API /api/twitch/user] Data for INSERT:`, dataToInsert);
                       const { data, error } = await supabaseAdmin
                           .from('user_profiles')
                           .insert(dataToInsert)
@@ -231,24 +230,22 @@ export async function GET(request) {
                       updatedProfileData = data;
                       dbError = error;
                   }
-                  // --- КОНЕЦ НОВОЙ ЛОГИКИ ---
+
+                  console.log(`[API /api/twitch/user] DB operation result: dbError =`, dbError, `, updatedProfileData =`, updatedProfileData);
 
                   if (dbError) {
-                       console.error(`[API /api/twitch/user] Error updating/inserting profile for ${supabaseUserId}:`, dbError);
-                       // Не прерываем, вернем старые (если были) или базовые данные
+                       console.error(`[API /api/twitch/user] Error during DB update/insert for ${supabaseUserId}:`, dbError);
                   } else if (updatedProfileData) {
-                      console.log(`[API /api/twitch/user] Profile data updated/inserted successfully for ${supabaseUserId}.`);
-                      // Обновляем переменную profileData, которую вернем в ответе
-                      // Если profileData был null, то updatedProfileData - это новый профиль.
-                      // Если profileData существовал, мержим обновленные поля.
+                      console.log(`[API /api/twitch/user] Profile DB operation successful for ${supabaseUserId}.`);
                       profileData = { ...(profileData || {}), ...updatedProfileData }; 
+                      console.log(`[API /api/twitch/user] Merged profileData after DB operation:`, profileData);
                   }
                   
               } catch (refreshError) {
-                    console.error(`[API /api/twitch/user] Error during owner data refresh for ${userId}:`, refreshError);
+                    console.error(`[API /api/twitch/user] Error inside owner data refresh block for ${userId}:`, refreshError);
               }
           } else {
-                console.log(`[API /api/twitch/user] Not owner viewing or owner check failed, skipping data refresh and upsert for profile ${userId}.`);
+              console.log(`[API /api/twitch/user] Skipping DB update/insert because isOwnerViewing is false.`);
           }
           
       } else {
