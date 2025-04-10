@@ -437,8 +437,8 @@ export default function CreateReviewPage() {
             </button>
         </div>
 
-        <button onClick={() => router.push('/reviews')} className={pageStyles.backButton} style={{ marginTop: '2rem' }}>
-            &larr; Назад к отзывам
+        <button onClick={() => router.push('/menu')} className={pageStyles.backButton} style={{ marginTop: '2rem' }}>
+            &larr; Назад в меню
         </button>
     </div>
   );

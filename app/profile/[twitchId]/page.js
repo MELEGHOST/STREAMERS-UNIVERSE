@@ -77,8 +77,10 @@ export default function UserProfilePage() {
   const profileTwitchId = params.twitchId;
 
   const { user, isAuthenticated, supabase, isLoading: authIsLoading } = useAuth();
-  const currentUserTwitchId = user?.user_metadata?.provider_id;
-  const isOwnProfile = currentUserTwitchId === profileTwitchId;
+  
+  // Вычисляем isOwnProfile *после* проверки authIsLoading
+  const currentUserTwitchId = !authIsLoading ? user?.user_metadata?.provider_id : undefined;
+  const isOwnProfile = !authIsLoading && !!currentUserTwitchId && currentUserTwitchId === profileTwitchId;
 
   // --- Получаем токен для запроса --- 
   const [authToken, setAuthToken] = useState(null);
@@ -104,24 +106,20 @@ export default function UserProfilePage() {
   // --- Запрос данных через SWR ---
   const apiUrl = `/api/twitch/user?userId=${profileTwitchId}&fetchProfile=true`;
   const { data: apiData, error: apiError, isLoading: dataIsLoading } = useSWR(
-      // Ключ SWR: сам URL. Запрос будет выполняться только если profileTwitchId есть.
       profileTwitchId ? [apiUrl, authToken] : null, 
-      ([url, token]) => fetcher(url, token), // Используем наш фетчер
+      ([url, token]) => fetcher(url, token),
       {
-          revalidateOnFocus: true, // <<< Магия! Авто-обновление при фокусе окна
-          revalidateOnReconnect: true, // Авто-обновление при реконнекте
-          shouldRetryOnError: false, // Не повторять при ошибке (чтобы не спамить запросами)
-          onError: (err) => {
-              console.error('[useSWR onError]', err);
-          },
-          onSuccess: (data) => {
-              console.log('[useSWR onSuccess] Data received:', data);
-          }
+          revalidateOnFocus: true, 
+          revalidateOnReconnect: true,
+          shouldRetryOnError: false, 
+          onError: (err) => { console.error('[useSWR onError]', err); },
+          onSuccess: (data) => { console.log('[useSWR onSuccess] Data received:', data); }
       }
   );
   
   // --- Обработка состояния загрузки и ошибок SWR ---
-  const loadingProfile = authIsLoading || dataIsLoading;
+  // Добавил проверку на !profileTwitchId к состоянию загрузки
+  const loadingProfile = (!profileTwitchId || authIsLoading || dataIsLoading);
   const error = apiError ? (apiError.message || "Неизвестная ошибка загрузки данных") : null;
   const profileExists = apiError ? apiError.exists !== false : !!apiData?.twitch_user;
   
@@ -129,15 +127,19 @@ export default function UserProfilePage() {
   const twitchUserData = apiData?.twitch_user || null;
   const profileData = apiData?.profile || null;
   const videos = apiData?.twitch_user?.videos || [];
-  const isRegistered = !!profileData; // Определяем регистрацию по наличию профиля из нашей БД
+  const isRegistered = !!profileData; 
 
-  console.log('[UserProfilePage] Rendering with SWR states:', {
+  // Добавляем лог перед рендером
+  console.log('[UserProfilePage] Final state before render:', {
+      profileTwitchId,
+      authIsLoading,
+      currentUserTwitchId,
+      isOwnProfile,
+      dataIsLoading,
       loadingProfile,
       profileExists,
       isRegistered,
-      twitchUserData: !!twitchUserData,
-      profileData: !!profileData,
-      error: error
+      error
   });
 
   const handleLogout = async () => {
