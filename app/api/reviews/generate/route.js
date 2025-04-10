@@ -291,19 +291,28 @@ export async function POST(request) {
             temperature: 0.6, // Средняя температура для баланса
         });
 
-        // 5. Выполняем запрос к Gemini
-        const response = await openrouter.chat.completions.create({
-            model: "google/gemini-2.5-pro-exp-03-25:free",
-            messages: [
-                { role: "system", content: "Ты - AI ассистент, который пишет краткие отзывы на основе предоставленного текста." },
-                { role: "user", content: prompt }
-            ],
-            max_tokens: 300,
-            temperature: 0.7,
-        });
-        const generatedText = response.choices[0]?.message?.content?.trim();
-        if (!generatedText) throw new Error('AI (Gemini) не смог сгенерировать отзыв.');
-        console.log(`[API /generate] Gemini generated text (${generatedText.length} chars).`);
+        // Проверяем ответ AI
+        const aiResultString = aiResponse.choices[0]?.message?.content?.trim();
+        if (!aiResultString) {
+            throw new Error('AI не вернул ответ.');
+        }
+        console.log(`[API /generate] AI response string received (${aiResultString.length} chars).`);
+
+        // Парсим JSON из ответа AI
+        let reviewJson;
+        try {
+            reviewJson = JSON.parse(aiResultString);
+        } catch (parseError) {
+            console.error('[API /generate] Failed to parse AI JSON response:', aiResultString);
+            throw new Error(`Ошибка парсинга ответа от AI: ${parseError.message}`);
+        }
+
+        // Валидируем JSON и извлекаем поля
+        const { review_text, rating, category: aiCategory, item_name: aiItemName, subcategory: aiSubcategory } = reviewJson;
+        if (!review_text || typeof rating !== 'number' || !aiCategory || !aiItemName) {
+            console.error('[API /generate] Invalid JSON structure from AI:', reviewJson);
+            throw new Error('AI вернул JSON в неверном формате.');
+        }
 
         // 6. Сохраняем результат в БД
         const finalSourceIdentifier = sourceFilePath || sourceUrl;
@@ -311,15 +320,16 @@ export async function POST(request) {
             .from('reviews')
             .insert({
                 user_id: authorUserId, // Будет null, если автор не зареган у нас
-                category,
-                subcategory: subcategory || null,
-                item_name: itemName,
-                review_text: generatedText, 
+                category: aiCategory, // <<< Используем категорию от AI
+                subcategory: aiSubcategory || subcategory || null, // <<< Приоритет AI, потом пользовательский
+                item_name: aiItemName, // <<< Используем имя от AI
+                review_text: review_text, // <<< Текст от AI
+                rating: rating, // <<< Рейтинг от AI
                 source_file_path: finalSourceIdentifier,
                 status: 'pending',
                 author_twitch_nickname: authorTwitchNickname // <<< Всегда сохраняем никнейм
             })
-            .select('id') 
+            .select('id')
             .single();
 
         if (insertError) throw insertError;
