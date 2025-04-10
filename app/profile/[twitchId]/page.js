@@ -144,7 +144,13 @@ export default function UserProfilePage() {
        if (!supabase) return;
        try {
            await supabase.auth.signOut();
-       } catch (error) { console.error('Logout error:', error); }
+           console.log('[UserProfilePage] Logout successful, redirecting to /auth...');
+           router.push('/auth'); // <<< Редирект на страницу входа
+           router.refresh(); // <<< Дополнительно обновляем страницу, чтобы сбросить состояние
+       } catch (error) { 
+           console.error('Logout error:', error);
+           // TODO: Показать пользователю сообщение об ошибке выхода?
+       }
    };
 
   if (loadingProfile) {

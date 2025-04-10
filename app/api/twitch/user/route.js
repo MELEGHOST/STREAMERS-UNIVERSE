@@ -119,94 +119,116 @@ export async function GET(request) {
           supabaseUserId = verifiedToken.sub; 
           console.log(`[API /api/twitch/user] Authenticated request by Supabase User ${supabaseUserId}`);
           
-          // 1. Получаем профиль из user_profiles
+          // 1. Получаем профиль запрашиваемого пользователя из user_profiles по twitch_user_id
           try {
+              console.log(`[API /api/twitch/user] Fetching profile from Supabase for twitch_user_id: ${userId}`);
               const { data: profile, error: profileError } = await supabaseAdmin
                   .from('user_profiles')
                   .select('*') 
-                  .eq('user_id', supabaseUserId)
-                  .single();
+                  // Ищем по twitch_user_id, а не по user_id авторизованного пользователя!
+                  .eq('twitch_user_id', userId) 
+                  .maybeSingle(); // Используем maybeSingle, т.к. профиля может не быть
                   
-              if (profileError && profileError.code !== 'PGRST116') {
-                  console.error(`[API /api/twitch/user] Error fetching profile for ${supabaseUserId}:`, profileError);
+              if (profileError && profileError.code !== 'PGRST116') { // PGRST116 - это "No rows found", это не ошибка
+                  console.error(`[API /api/twitch/user] Error fetching profile for twitch_user_id ${userId}:`, profileError);
               } else if (profile) {
                   profileData = profile; 
-                  console.log(`[API /api/twitch/user] User profile found in Supabase for ${supabaseUserId}`);
+                  console.log(`[API /api/twitch/user] User profile found in Supabase for twitch_user_id ${userId}`);
                   // Проверяем, принадлежит ли найденный профиль авторизованному пользователю
-                  if (profileData.user_id === supabaseUserId) {
-                      isOwnerViewing = true; // Устанавливаем флаг, что владелец смотрит (даже если twitch_id еще не совпал)
-                      console.log(`[API /api/twitch/user] Logged-in user ${supabaseUserId} matches owner of the fetched profile. Will attempt to refresh data.`);
-                  } else {
-                       console.log(`[API /api/twitch/user] Logged-in user ${supabaseUserId} does not match owner (${profileData.user_id}) of the fetched profile.`);
+                  // Это нужно только для того, чтобы понять, нужно ли обновлять данные (upsert)
+                  if (verifiedToken && profileData.user_id === verifiedToken.sub) {
+                      isOwnerViewing = true;
+                      console.log(`[API /api/twitch/user] Logged-in user ${verifiedToken.sub} owns the requested profile ${userId}. Will attempt data refresh.`);
                   }
               } else {
-                  console.log(`[API /api/twitch/user] User profile NOT found in Supabase for ${supabaseUserId}`);
-                  // Если профиля нет, НО пользователь авторизован, он может смотреть свой профиль первый раз
-                  // Мы всё равно попытаемся сделать upsert ниже, если isOwnerViewing будет установлен по twitch id в токене
-                  // Добавим проверку Twitch ID из токена, если он там есть
-                  const twitchIdFromToken = verifiedToken.user_metadata?.provider_id; 
+                  console.log(`[API /api/twitch/user] User profile NOT found in Supabase for twitch_user_id ${userId}`);
+                  // Если профиля нет, проверяем, авторизованный ли пользователь запрашивает СВОЙ ID
+                  const twitchIdFromToken = verifiedToken?.user_metadata?.provider_id; 
                   if (twitchIdFromToken && twitchIdFromToken === userId) {
-                       console.log(`[API /api/twitch/user] Logged-in user ${supabaseUserId} matches the requested Twitch ID ${userId} from token. Will attempt to upsert profile.`);
-                       isOwnerViewing = true; // Ставим флаг для попытки upsert
+                       console.log(`[API /api/twitch/user] Logged-in user ${verifiedToken.sub} is requesting their own unsaved profile ${userId}. Will attempt upsert.`);
+                       isOwnerViewing = true; // Ставим флаг для попытки upsert при первом заходе
                   }
               }
           } catch (e) {
                console.error("[API /api/twitch/user] Unexpected error during Supabase profile fetch:", e);
           }
           
-          // 2. Если АВТОРИЗОВАННЫЙ ПОЛЬЗОВАТЕЛЬ смотрит свой профиль (проверка по supabaseUserId или twitchId из токена), пытаемся обновить данные
-          if (isOwnerViewing) { // Теперь isOwnerViewing ставится, если user_id совпал или если профиля нет, но twitchId из токена совпал
+          // 2. Если АВТОРИЗОВАННЫЙ ПОЛЬЗОВАТЕЛЬ смотрит СВОЙ профиль, пытаемся обновить данные
+          if (isOwnerViewing) { 
               try {
                   // Используем JWT токен пользователя для запроса к Twitch
                   const userTwitchClient = await getTwitchClientWithToken(token);
                   if (!userTwitchClient) throw new Error('Failed to initialize Twitch client with User Token');
                   
                   // Запрашиваем фолловеров (требует User Token)
-                  let currentFollowersCount = profileData?.twitch_follower_count ?? null; // Берем старое значение как fallback
+                  let currentFollowersCount = profileData?.twitch_follower_count ?? null; 
                   try {
                       const followsResponse = await userTwitchClient.channels.getChannelFollowers(userId, userId, undefined, 1);
                       currentFollowersCount = followsResponse?.total ?? 0;
                       console.log(`[API /api/twitch/user] Fetched current followers for owner ${userId}: ${currentFollowersCount}`);
                   } catch (followError) {
                       console.error(`[API /api/twitch/user] Error fetching followers using User Token for ${userId}:`, followError);
-                      // Не прерываем, используем старое значение или null
                   }
                   
-                  // Берем broadcaster_type из уже полученных публичных данных
                   const currentBroadcasterType = twitchUserData.broadcaster_type;
-                  
-                  // Определяем роль
                   const currentRole = determineRole(currentFollowersCount, currentBroadcasterType);
                   console.log(`[API /api/twitch/user] Determined role for ${userId}: ${currentRole}`);
                   
-                  // Обновляем или создаем запись в user_profiles (Upsert)
-                  console.log(`[API /api/twitch/user] Upserting profile data for Supabase User ${supabaseUserId}...`);
-                  const { data: upsertData, error: upsertError } = await supabaseAdmin
-                      .from('user_profiles')
-                      .upsert({
-                          user_id: supabaseUserId, // ID пользователя Supabase
-                          twitch_user_id: userId,   // ID канала Twitch ИЗ ЗАПРОСА
-                          twitch_display_name: twitchUserData.display_name,
-                          twitch_profile_image_url: twitchUserData.profile_image_url,
-                          twitch_follower_count: currentFollowersCount, 
-                          twitch_broadcaster_type: currentBroadcasterType,
-                          role: currentRole,
-                          updated_at: new Date().toISOString()
-                      })
-                      .select() 
-                      .single();
+                  // --- НОВАЯ ЛОГИКА: Update или Insert вместо Upsert ---
+                  const dataToUpdateOrInsert = {
+                      // Поля, которые мы хотим обновлять из Twitch
+                      twitch_display_name: twitchUserData.display_name,
+                      twitch_profile_image_url: twitchUserData.profile_image_url,
+                      twitch_follower_count: currentFollowersCount, 
+                      twitch_broadcaster_type: currentBroadcasterType,
+                      role: currentRole,
+                      updated_at: new Date().toISOString(),
+                      // НЕ включаем сюда description, social_links, birthday и т.д.
+                  };
 
-                  if (upsertError) {
-                       console.error(`[API /api/twitch/user] Error upserting profile for ${supabaseUserId}:`, upsertError);
-                       // Не прерываем, вернем старые или базовые данные
-                  } else if (upsertData) {
-                      console.log(`[API /api/twitch/user] Profile data upserted successfully for ${supabaseUserId}.`);
-                      profileData = upsertData; // Обновляем profileData для возврата
+                  let updatedProfileData = null;
+                  let dbError = null;
+
+                  if (profileData) { // Профиль существует, обновляем только нужные поля
+                      console.log(`[API /api/twitch/user] Updating existing profile for Supabase User ${supabaseUserId}...`);
+                      const { data, error } = await supabaseAdmin
+                          .from('user_profiles')
+                          .update(dataToUpdateOrInsert)
+                          .eq('user_id', supabaseUserId)
+                          .select()
+                          .single();
+                      updatedProfileData = data;
+                      dbError = error;
+                  } else { // Профиля нет, создаем новый с базовыми и обновленными данными
+                      console.log(`[API /api/twitch/user] Inserting new profile for Supabase User ${supabaseUserId}...`);
+                      const dataToInsert = {
+                          ...dataToUpdateOrInsert,
+                          user_id: supabaseUserId,
+                          twitch_user_id: userId, // Убедимся, что twitch_user_id тоже записан
+                      };
+                      const { data, error } = await supabaseAdmin
+                          .from('user_profiles')
+                          .insert(dataToInsert)
+                          .select()
+                          .single();
+                      updatedProfileData = data;
+                      dbError = error;
+                  }
+                  // --- КОНЕЦ НОВОЙ ЛОГИКИ ---
+
+                  if (dbError) {
+                       console.error(`[API /api/twitch/user] Error updating/inserting profile for ${supabaseUserId}:`, dbError);
+                       // Не прерываем, вернем старые (если были) или базовые данные
+                  } else if (updatedProfileData) {
+                      console.log(`[API /api/twitch/user] Profile data updated/inserted successfully for ${supabaseUserId}.`);
+                      // Обновляем переменную profileData, которую вернем в ответе
+                      // Если profileData был null, то updatedProfileData - это новый профиль.
+                      // Если profileData существовал, мержим обновленные поля.
+                      profileData = { ...(profileData || {}), ...updatedProfileData }; 
                   }
                   
               } catch (refreshError) {
                     console.error(`[API /api/twitch/user] Error during owner data refresh for ${userId}:`, refreshError);
-                    // Не удалось обновить, profileData останется старым (если был) или null
               }
           } else {
                 console.log(`[API /api/twitch/user] Not owner viewing or owner check failed, skipping data refresh and upsert for profile ${userId}.`);
