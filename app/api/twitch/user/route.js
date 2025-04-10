@@ -55,7 +55,7 @@ export async function GET(request) {
   let supabaseUserIdFromTwitchId = null; 
   let twitchUserData = null;
   let videos = [];
-  let followersCountFromTwitch = null; // <<< Для фолловеров с App Token
+  let followersCountFromTwitch = null; 
 
   // --- Получение публичных данных с Twitch (ВКЛЮЧАЯ ФОЛЛОВЕРОВ) --- 
   try {
@@ -116,7 +116,7 @@ export async function GET(request) {
         offline_image_url: userResponse.offlinePlaceholderUrl,
         view_count: userResponse.views,
         created_at: userResponse.creationDate,
-        followers_count: followersCountFromTwitch, // <<< Используем полученных фолловеров
+        followers_count: followersCountFromTwitch,
         videos: videos,
       };
 
@@ -132,21 +132,20 @@ export async function GET(request) {
   
   // --- Поиск профиля в базе и определение isOwnerViewing --- 
   try {
-      // 1. Ищем пользователя в auth.users по Twitch ID (provider_id)
+      // 1. Ищем пользователя в auth.users по Twitch ID (provider_id) - ИСПРАВЛЕННЫЙ МЕТОД
       console.log(`[API /api/twitch/user] Looking up Supabase user ID for Twitch ID: ${userId}`);
-      const { data: authUser, error: authUserError } = await supabaseAdmin
-          // Явно указываем схему 'auth' и таблицу 'users'
-          .from('users')
-          .select('id')
-          // Пробуем снова стандартный метод для JSONB
-          .eq('raw_user_meta_data->>provider_id', userId) 
-          .maybeSingle();
+      // Сначала получаем всех юзеров (менее эффективно, но обходит проблему с JSON запросом)
+      // В реальном приложении нужен более эффективный способ, возможно функция в БД
+      const { data: { users: allAuthUsers }, error: listUsersError } = await supabaseAdmin.auth.admin.listUsers();
+      
+      let authUser = null;
+      if (listUsersError) {
+           console.error(`[API /api/twitch/user] Error listing users from auth.users:`, listUsersError);
+      } else {
+           authUser = allAuthUsers.find(u => u.raw_user_meta_data?.provider_id === userId);
+      }
 
-      if (authUserError) {
-          // Если ошибка "does not exist", возможно, нейминг колонки другой?
-          // Или права доступа? Логируем и продолжаем без ID.
-          console.error(`[API /api/twitch/user] Error fetching user from auth.users for Twitch ID ${userId}:`, authUserError);
-      } else if (authUser) {
+      if (authUser) {
           supabaseUserIdFromTwitchId = authUser.id;
           console.log(`[API /api/twitch/user] Found Supabase User ID: ${supabaseUserIdFromTwitchId} for Twitch ID ${userId}`);
           
@@ -169,7 +168,7 @@ export async function GET(request) {
            console.log(`[API /api/twitch/user] No user found in auth.users for Twitch ID ${userId}. User is not registered.`);
       }
 
-      // 3. Определяем isOwnerViewing: если есть токен и ID из токена совпадает с найденным ID
+      // 3. Определяем isOwnerViewing
       if (token) {
           const verifiedToken = await verifyJwt(token);
           if (verifiedToken && supabaseUserIdFromTwitchId && verifiedToken.sub === supabaseUserIdFromTwitchId) {
@@ -190,32 +189,14 @@ export async function GET(request) {
 
   // --- Обновление данных, если владелец смотрит свой профиль --- 
   console.log(`[API /api/twitch/user] Checking ownership before update: isOwnerViewing = ${isOwnerViewing}`);
-  if (isOwnerViewing && supabaseUserIdFromTwitchId) { // <<< Добавил проверку supabaseUserIdFromTwitchId
+  if (isOwnerViewing && supabaseUserIdFromTwitchId) { 
       try {
             const currentSupabaseUserId = supabaseUserIdFromTwitchId; 
             
-            // Запрашиваем фолловеров СНОВА, но уже с User Token (если он нужен для более точных данных или других целей)
-            // Если публичных данных достаточно, этот блок можно упростить/удалить
-            let currentFollowersCount = followersCountFromTwitch; // Начинаем с публичных данных
-            try {
-                 const userTwitchClient = await getTwitchClientWithToken(token);
-                 if (userTwitchClient) {
-                     const followsResponse = await userTwitchClient.channels.getChannelFollowers(userId, userId, undefined, 1);
-                     currentFollowersCount = followsResponse?.total ?? followersCountFromTwitch ?? 0;
-                     console.log(`[API /api/twitch/user] Fetched current followers using USER TOKEN for owner ${userId}: ${currentFollowersCount}`);
-                 } else {
-                     console.warn(`[API /api/twitch/user] Could not get user token client, using public follower count: ${currentFollowersCount}`);
-                 }
-             } catch (followError) {
-                  // Мягкая обработка ошибки токена
-                  if (followError.message?.includes('Invalid token') || followError.message?.includes('invalid access token')) {
-                      console.warn(`[API /api/twitch/user] Failed to fetch followers due to invalid token for ${userId}. Using stale data: ${currentFollowersCount}`);
-                  } else {
-                       console.error(`[API /api/twitch/user] Error fetching followers using User Token for ${userId}:`, followError);
-                  }
-                  // Не прерываем выполнение, используем старое значение (currentFollowersCount)
-             }
-            
+            // Упрощаем: используем публично полученных фолловеров
+            let currentFollowersCount = followersCountFromTwitch;
+            console.log(`[API /api/twitch/user] Using public follower count for owner update: ${currentFollowersCount}`);
+           
             const currentBroadcasterType = twitchUserData.broadcaster_type;
             const currentRole = determineRole(currentFollowersCount, currentBroadcasterType);
             console.log(`[API /api/twitch/user] Determined role for owner ${userId}: ${currentRole}`);
@@ -288,7 +269,6 @@ export async function GET(request) {
   }
   
   // --- Финальная подготовка данных для ответа --- 
-  // Убедимся, что followers_count в twitchUserData актуален (из публичных данных)
   if (twitchUserData) {
       twitchUserData.followers_count = followersCountFromTwitch ?? twitchUserData.followers_count; 
   }

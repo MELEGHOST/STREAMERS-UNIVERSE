@@ -15,30 +15,55 @@ export async function GET(request) {
   console.log(`[API /search/combined] Received search query: "${query}"`);
 
   try {
-    // --- Поиск в нашей базе (только user_profiles) --- 
-    let supabaseUsers = [];
+    // --- Поиск в нашей базе (user_profiles) --- 
+    let supabaseUsersData = [];
     try {
         console.log('[API /search/combined] Searching in Supabase (user_profiles)...');
         const { data: profileData, error: profileError } = await supabase
             .from('user_profiles')
-            // Выбираем только нужные поля из самой таблицы
-            .select(`
-                user_id,
-                twitch_user_id,
-                twitch_display_name,
-                twitch_profile_image_url 
-            `)
+            .select(` user_id, twitch_user_id, twitch_display_name, twitch_profile_image_url `)
             .ilike('twitch_display_name', `%${query}%`) 
             .limit(10); 
 
       if (profileError) {
         console.error('[API /search/combined] Supabase search error:', profileError);
       } else {
-        supabaseUsers = profileData || [];
-        console.log(`[API /search/combined] Found ${supabaseUsers.length} users in Supabase.`);
+        supabaseUsersData = profileData || [];
+        console.log(`[API /search/combined] Found ${supabaseUsersData.length} potential profiles in Supabase.`);
       }
     } catch (dbError) {
         console.error('[API /search/combined] Critical Supabase search error:', dbError);
+    }
+    
+    // --- Получаем логины для найденных профилей из auth.users --- 
+    let supabaseUsersWithLogin = [];
+    if (supabaseUsersData.length > 0) {
+        const userIds = supabaseUsersData.map(p => p.user_id);
+        try {
+            console.log(`[API /search/combined] Fetching logins from auth.users for user IDs: ${userIds.join(', ')}`);
+            const { data: { users: authUsersData }, error: authUsersError } = await supabase.auth.admin.listUsers({
+                 // К сожалению, listUsers не позволяет фильтровать по ID напрямую эффективно.
+                 // Фильтруем на клиенте - НЕ ОЧЕНЬ ЭФФЕКТИВНО ДЛЯ БОЛЬШОГО ЧИСЛА ЮЗЕРОВ!
+                 // page: 1, perPage: 1000 // Можно попробовать пагинацию, если юзеров много
+             });
+
+            if (authUsersError) {
+                 console.error('[API /search/combined] Error fetching from auth.users:', authUsersError);
+            } else {
+                 // Сопоставляем профили с данными auth.users
+                 supabaseUsersWithLogin = supabaseUsersData.map(profile => {
+                     const authUser = authUsersData.find(u => u.id === profile.user_id);
+                     return {
+                         ...profile,
+                         login: authUser?.raw_user_meta_data?.login || null
+                     };
+                 });
+                 console.log(`[API /search/combined] Added logins for ${supabaseUsersWithLogin.length} Supabase users.`);
+            }
+        } catch (authFetchError) {
+            console.error('[API /search/combined] Critical error fetching from auth.users:', authFetchError);
+            supabaseUsersWithLogin = supabaseUsersData.map(p => ({ ...p, login: null })); // Возвращаем без логинов при ошибке
+        }
     }
 
     // --- Поиск в Twitch API --- 
@@ -54,15 +79,15 @@ export async function GET(request) {
     const combinedResults = [];
     const processedTwitchIds = new Set(); // Чтобы не дублировать юзеров
 
-    // 1. Обрабатываем пользователей из нашей базы
-    supabaseUsers.forEach(user => {
+    // 1. Обрабатываем пользователей из нашей базы (теперь с логинами)
+    supabaseUsersWithLogin.forEach(user => {
       const twitchId = user.twitch_user_id;
       if (twitchId) {
           processedTwitchIds.add(twitchId);
           combinedResults.push({
             twitch_id: twitchId,
-            login: null, // <<< Логин пока взять не можем без JOIN или доп. запроса
-            display_name: user.twitch_display_name,
+            login: user.login, // <<< Теперь есть логин!
+            display_name: user.twitch_display_name || user.login, // Добавили логин как fallback
             avatar_url: user.twitch_profile_image_url,
             registered: true, 
           });
