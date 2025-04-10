@@ -70,7 +70,6 @@ export async function POST(request) {
             .insert({
                 user_id: userId,
                 category,
-                subcategory: subcategory || null,
                 item_name: itemName,
                 rating,
                 review_text: reviewText,

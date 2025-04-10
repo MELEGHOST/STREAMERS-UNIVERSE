@@ -291,12 +291,20 @@ export async function POST(request) {
             temperature: 0.6, // Средняя температура для баланса
         });
 
+        // Логируем ВЕСЬ ответ от AI
+        console.log('[API /generate] Raw AI Response:', JSON.stringify(aiResponse, null, 2));
+
         // Проверяем ответ AI
-        const aiResultString = aiResponse.choices[0]?.message?.content?.trim();
+        const aiResultString = aiResponse.choices?.[0]?.message?.content?.trim();
+        // Убрал ?.trim() чтобы видеть пробельные строки, если они приходят
+        const choiceReason = aiResponse.choices?.[0]?.finish_reason;
+
         if (!aiResultString) {
-            throw new Error('AI не вернул ответ.');
+            // Если строка пустая или отсутствует, логируем причину завершения и весь ответ
+            console.error(`[API /generate] AI returned empty or no content. Finish reason: ${choiceReason}. Full response logged above.`);
+            throw new Error(`AI не вернул контент ответа. Причина завершения: ${choiceReason || 'unknown'}`);
         }
-        console.log(`[API /generate] AI response string received (${aiResultString.length} chars).`);
+        console.log(`[API /generate] AI response string received (${aiResultString.length} chars). Finish reason: ${choiceReason}. String: "${aiResultString}"`); // Логируем саму строку
 
         // Парсим JSON из ответа AI
         let reviewJson;
