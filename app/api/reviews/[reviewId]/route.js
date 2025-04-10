@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
-import { supabaseAdmin } from '../../../../utils/supabase/admin'; // Adjusted path
-import { verifyJwt } from '../../../../utils/jwt'; // Adjusted path
+import { supabaseAdmin } from '../../../../utils/supabase/admin'; // Путь уже был исправлен, оставляем
+import { verifyJwt } from '../../../../utils/jwt'; // Путь уже был исправлен, оставляем
 
 // DELETE - Удаление отзыва
 export async function DELETE(request, { params }) {

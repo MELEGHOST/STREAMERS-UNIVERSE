@@ -1,9 +1,11 @@
 'use client';
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
-import { useAuth } from '../../../contexts/AuthContext';
+import { useAuth } from '../../contexts/AuthContext';
+import { supabaseAdmin } from '../../../utils/supabase/admin'; // TODO: На клиенте admin не нужен, убрать?
 import styles from './admin-reviews.module.css'; // Стили создадим позже
-import pageStyles from '../../../../styles/page.module.css';
+import pageStyles from '../../../styles/page.module.css'; // Исправленный путь
+import Image from 'next/image';
 
 // Функция форматирования даты (можно вынести)
 const formatDate = (dateString) => {

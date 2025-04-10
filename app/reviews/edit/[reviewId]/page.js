@@ -2,9 +2,9 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter, useParams } from 'next/navigation';
-import { useAuth } from '../../../contexts/AuthContext'; // Проверь путь
-import styles from './edit-review.module.css'; // Создадим позже
-import pageStyles from '../../../../styles/page.module.css'; // Общие стили
+import { useAuth } from '../../../contexts/AuthContext'; // Путь вроде верный
+import styles from './edit-review.module.css'; // Путь вроде верный
+import pageStyles from '../../../../styles/page.module.css'; // Путь вроде верный
 
 // Компонент для звездочек рейтинга (можно вынести)
 const StarRating = ({ rating, setRating, disabled }) => {
