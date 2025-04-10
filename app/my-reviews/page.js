@@ -18,10 +18,11 @@ const formatDate = (dateString) => {
 
 export default function MyReviewsPage() {
     const router = useRouter();
-    const { supabase, isAuthenticated } = useAuth(); // Получаем нужные данные из контекста
+    const { supabase, isAuthenticated, user } = useAuth(); // Добавил user для получения token
     const [reviews, setReviews] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
+    const [deletingId, setDeletingId] = useState(null); // ID удаляемого отзыва
 
     const fetchMyReviews = useCallback(async () => {
         console.log('[MyReviewsPage] Fetching reviews...');
@@ -36,7 +37,14 @@ export default function MyReviewsPage() {
         }
 
         try {
-            const session = await supabase.auth.getSession();
+            // Используем user.id для получения сессии, если isAuthenticated гарантирует наличие user
+            if (!user?.id) {
+                setError('Пользователь не найден для получения сессии.');
+                setLoading(false);
+                console.warn('[MyReviewsPage] User object not available for session.');
+                return;
+            }
+            const session = await supabase.auth.getSession(); // Получаем текущую сессию
             const token = session.data.session?.access_token;
 
             if (!token) {
@@ -68,11 +76,61 @@ export default function MyReviewsPage() {
         } finally {
             setLoading(false);
         }
-    }, [isAuthenticated, supabase]);
+    }, [isAuthenticated, supabase, user]); // Добавил user в зависимости
 
     useEffect(() => {
-        fetchMyReviews();
-    }, [fetchMyReviews]);
+        // Ждем аутентификации перед загрузкой
+        if (isAuthenticated !== null) { // Проверяем, что статус аутентификации определен
+             if (isAuthenticated) {
+                 fetchMyReviews();
+             } else {
+                 setError('Для просмотра отзывов необходимо авторизоваться.');
+                 setLoading(false);
+             }
+        }
+    }, [isAuthenticated, fetchMyReviews]); // Убрал supabase и user, т.к. они в fetchMyReviews
+
+    // --- Функция удаления отзыва ---
+    const handleDelete = useCallback(async (reviewId) => {
+        if (!reviewId) return;
+
+        const confirmed = window.confirm("Братан, ты реально хочешь снести этот отзыв? Назад пути не будет.");
+        if (!confirmed) return;
+
+        setDeletingId(reviewId); // Показываем лоадер для конкретной карточки
+        setError(null); // Сбрасываем предыдущие ошибки
+
+        try {
+            const session = await supabase.auth.getSession();
+            const token = session.data.session?.access_token;
+
+            if (!token) {
+                throw new Error('Токен авторизации не найден. Попробуй перезайти.');
+            }
+
+            const response = await fetch(`/api/reviews/${reviewId}`, {
+                method: 'DELETE',
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.error || `Ошибка сервера: ${response.status}`);
+            }
+
+            // Успешно удалено - обновляем список локально
+            setReviews(prevReviews => prevReviews.filter(r => r.id !== reviewId));
+            console.log(`[MyReviewsPage] Review ${reviewId} deleted successfully.`);
+
+        } catch (deleteError) {
+            console.error(`[MyReviewsPage] Error deleting review ${reviewId}:`, deleteError);
+            setError(`Не удалось удалить отзыв: ${deleteError.message}`);
+        } finally {
+            setDeletingId(null); // Убираем лоадер
+        }
+    }, [supabase]); // Убрал user и isAuthenticated, получаем токен внутри
 
     // --- Рендеринг --- 
 
@@ -103,7 +161,7 @@ export default function MyReviewsPage() {
             {!error && reviews.length > 0 && (
                 <div className={styles.reviewsList}>
                     {reviews.map(review => (
-                        <div key={review.id} className={styles.reviewCard}>
+                        <div key={review.id} className={`${styles.reviewCard} ${deletingId === review.id ? styles.deleting : ''}`}>
                            <div className={styles.reviewHeader}>
                                 <Link href={`/profile/${review.streamer_twitch_id}`} className={styles.streamerInfo}>
                                     {review.streamer_profile_image_url && (
@@ -121,9 +179,25 @@ export default function MyReviewsPage() {
                                 <span className={styles.reviewDate}>{formatDate(review.created_at)}</span>
                            </div>
                             <p className={styles.reviewText}>{review.review_text}</p>
-                             {/* Можно добавить рейтинг, если он есть */}
-                             {/* review.rating && <p>Рейтинг: {review.rating}/5</p> */}
-                            {/* Добавить кнопку Редактировать/Удалить? */}
+                            
+                            {/* --- Блок с кнопками --- */}
+                            <div className={styles.reviewActions}>
+                                <button 
+                                    onClick={() => router.push(`/reviews/edit/${review.id}`)} 
+                                    className={`${styles.actionButton} ${styles.editButton}`}
+                                    disabled={deletingId === review.id} // Блокируем во время удаления
+                                >
+                                    ✏️ Редактировать
+                                </button>
+                                <button 
+                                    onClick={() => handleDelete(review.id)} 
+                                    className={`${styles.actionButton} ${styles.deleteButton}`}
+                                    disabled={deletingId === review.id} // Блокируем во время удаления
+                                >
+                                    {deletingId === review.id ? 'Удаляю...' : '❌ Удалить'}
+                                </button>
+                            </div>
+                            {/* --------------------- */}
                         </div>
                     ))}
                 </div>

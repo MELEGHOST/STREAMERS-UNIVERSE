@@ -58,7 +58,12 @@ export async function POST(request) {
              return NextResponse.json({ error: 'Invalid rating value' }, { status: 400 });
         }
 
-        console.log(`[API /api/reviews] Creating manual review for user ${userId}...`);
+        console.log(`[API /api/reviews] Creating manual review by ${userId} for item: ${itemName}`);
+
+        // --- УБИРАЕМ ПРОВЕРКУ НА СТРИМЕРА - ВСЕ ОТЗЫВЫ ОДОБРЕНЫ --- 
+        const reviewStatus = 'approved';
+        console.log(`[API /api/reviews] Manual review status set to: ${reviewStatus}`);
+        // ---------------------------------------------------------
 
         const { data, error } = await supabaseAdmin
             .from('reviews')
@@ -70,18 +75,22 @@ export async function POST(request) {
                 rating,
                 review_text: reviewText,
                 image_url: imageUrl || null,
-                status: 'pending' // По умолчанию новые отзывы ожидают модерации
+                status: reviewStatus // Всегда approved
             })
-            .select('id') // Возвращаем ID созданного отзыва
-            .single(); // Ожидаем одну строку
+            .select('id, status')
+            .single();
 
         if (error) {
             console.error('Error inserting review:', error);
+            if (error.message.includes('rating') && error.message.includes('does not exist')) {
+                 return NextResponse.json({ error: 'Database error: rating column missing.' }, { status: 500 });
+            }
             return NextResponse.json({ error: 'Failed to create review', details: error.message }, { status: 500 });
         }
 
-        console.log(`[API /api/reviews] Manual review created by user ${userId} with ID: ${data.id}`);
-        return NextResponse.json({ id: data.id, message: 'Review created successfully, pending moderation.' }, { status: 201 });
+        console.log(`[API /api/reviews] Manual review created by ${userId} with ID: ${data.id}, Status: ${data.status}`);
+        const message = 'Review created and published successfully.'; // Сообщение всегда об успехе
+        return NextResponse.json({ id: data.id, status: data.status, message }, { status: 201 });
 
     } catch (error) {
         console.error('Error processing POST /api/reviews:', error);

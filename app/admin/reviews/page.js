@@ -1,195 +1,169 @@
 'use client';
-import { useEffect, useState, useCallback } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
-import { useAuth } from '../../contexts/AuthContext';
-import styles from './admin-reviews.module.css';
-import pageStyles from '../../../styles/page.module.css';
+import { useAuth } from '../../../contexts/AuthContext';
+import styles from './admin-reviews.module.css'; // Стили создадим позже
+import pageStyles from '../../../../styles/page.module.css';
+
+// Функция форматирования даты (можно вынести)
+const formatDate = (dateString) => {
+  if (!dateString) return 'Неизвестно';
+  try {
+    return new Date(dateString).toLocaleDateString('ru-RU', { year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+  } catch { return 'Неверная дата'; }
+};
 
 export default function AdminReviewsPage() {
-  const { user, isLoading, isAuthenticated, supabase } = useAuth();
-  const router = useRouter();
-  const title = "Модерация Отзывов";
+    const router = useRouter();
+    const { user, isLoading, isAuthenticated, supabase, userRole } = useAuth();
+    const [reviews, setReviews] = useState([]);
+    const [loadingReviews, setLoadingReviews] = useState(true);
+    const [error, setError] = useState(null);
+    const [updatingId, setUpdatingId] = useState(null); // ID отзыва, который обновляется
 
-  const [pendingReviews, setPendingReviews] = useState([]);
-  const [loadingReviews, setLoadingReviews] = useState(true);
-  const [error, setError] = useState(null);
-  const [isAdminUser, setIsAdminUser] = useState(false); // Состояние для проверки админа
+    const isAdminUser = userRole === 'admin';
 
-  // Проверка роли админа на клиенте (дополнительная проверка)
-  const checkAdminRole = useCallback(async () => {
-      if (!user || !supabase) return false;
-      try {
-          const { data, error } = await supabase
-              .from('user_profiles')
-              .select('role')
-              .eq('user_id', user.id)
-              .single();
-          if (error || !data) return false;
-          return data.role === 'admin';
-      } catch { return false; }
-  }, [user, supabase]);
+    const fetchPendingReviews = useCallback(async () => {
+        if (!isAdminUser || !supabase) return;
+        setLoadingReviews(true);
+        setError(null);
+        console.log('[AdminReviews] Fetching pending reviews...');
+        
+        try {
+            const session = await supabase.auth.getSession();
+            const token = session.data.session?.access_token;
+            if (!token) throw new Error('Auth token not found');
 
-  // Загрузка ожидающих отзывов
-  const fetchPendingReviews = useCallback(async () => {
-      if (!supabase) return;
-      setLoadingReviews(true);
-      setError(null);
-      try {
-          const token = await supabase.auth.getSession().then(s => s.data.session?.access_token);
-          const response = await fetch('/api/admin/reviews', {
-              headers: { 'Authorization': `Bearer ${token}` }
-          });
-          if (response.status === 403) {
-             setError('Доступ запрещен. Только администраторы могут просматривать эту страницу.');
-             setIsAdminUser(false); // Пользователь не админ
-             setPendingReviews([]);
-             return;
-          } 
-          if (!response.ok) {
-              const errData = await response.json();
-              throw new Error(errData.error || `Ошибка загрузки отзывов (${response.status})`);
-          }
-          const data = await response.json();
-          setPendingReviews(data || []);
-      } catch (err) {
-          console.error(`[${title}] Ошибка загрузки ожидающих отзывов:`, err);
-          setError('Не удалось загрузить отзывы для модерации: ' + err.message);
-      } finally {
-          setLoadingReviews(false);
-      }
-  }, [supabase, title]);
+            const response = await fetch('/api/admin/reviews?status=pending', {
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
 
-  // Модерация (одобрить/отклонить)
-  const moderateReview = async (reviewId, newStatus) => {
-      setError(null);
-      try {
-           const token = await supabase.auth.getSession().then(s => s.data.session?.access_token);
-           const response = await fetch('/api/admin/reviews/moderate', {
-              method: 'POST',
-              headers: { 
-                  'Content-Type': 'application/json',
-                  'Authorization': `Bearer ${token}` 
-              },
-              body: JSON.stringify({ reviewId, newStatus })
-           });
             if (!response.ok) {
-              const errData = await response.json();
-              throw new Error(errData.error || `Ошибка модерации (${response.status})`);
+                 const errorData = await response.json();
+                 throw new Error(errorData.error || `Failed to fetch: ${response.statusText}`);
             }
-            // Обновляем список, убирая отмодерированный отзыв
-            setPendingReviews(prev => prev.filter(r => r.id !== reviewId));
-            alert(`Отзыв успешно ${newStatus === 'approved' ? 'одобрен' : 'отклонен'}!`);
-
-      } catch (err) {
-            console.error(`[${title}] Ошибка модерации отзыва ${reviewId}:`, err);
-            setError('Ошибка модерации: ' + err.message);
-            // Можно добавить alert об ошибке
-      }
-  };
-
-   // useEffect для проверки роли и загрузки данных
-   useEffect(() => {
-       if (!isLoading && !isAuthenticated) {
-           router.push('/auth?next=/admin/reviews');
-       } else if (isAuthenticated && user && supabase) {
-           checkAdminRole().then(isAdminResult => {
-               setIsAdminUser(isAdminResult); // Сохраняем результат проверки
-               if (isAdminResult) {
-                   fetchPendingReviews();
-               } else {
-                   setError('Доступ запрещен. У вас нет прав администратора.');
-                   setLoadingReviews(false); // Останавливаем загрузку
-               }
-           });
-       } else if (!isLoading && isAuthenticated && !user) {
-            setError("Ошибка аутентификации."); // Странная ситуация
+            const data = await response.json();
+            setReviews(data);
+            console.log(`[AdminReviews] Fetched ${data.length} pending reviews.`);
+        } catch (err) {
+            console.error('[AdminReviews] Error fetching reviews:', err);
+            setError(err.message || 'Failed to load reviews.');
+        } finally {
             setLoadingReviews(false);
-       }
-   }, [isLoading, isAuthenticated, user, supabase, router, checkAdminRole, fetchPendingReviews]);
+        }
+    }, [isAdminUser, supabase]);
 
+    const updateReviewStatus = useCallback(async (reviewId, newStatus) => {
+        if (!isAdminUser || !supabase) return;
+        setUpdatingId(reviewId); // Показываем лоадер для этой карточки
+        setError(null);
+        console.log(`[AdminReviews] Updating review ${reviewId} to ${newStatus}...`);
+        
+        try {
+            const session = await supabase.auth.getSession();
+            const token = session.data.session?.access_token;
+            if (!token) throw new Error('Auth token not found');
 
-  // --- Рендеринг --- 
-  if (isLoading || (isAuthenticated && loadingReviews && !error)) { // Показываем загрузку, если грузим или проверяем админа
-      return (
-          <div className={pageStyles.loadingContainer}>
-              <div className="spinner"></div><p>Загрузка модерации...</p>
-          </div>
-      );
-  }
+            const response = await fetch('/api/admin/reviews', {
+                method: 'PATCH',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify({ reviewId, newStatus })
+            });
 
-  if (!isAuthenticated || !isAdminUser) { // Если не авторизован или не админ (после проверки)
-       return (
-            <div className={pageStyles.container}>
-                <h1 className={styles.title}>{title}</h1>
-                <p className={pageStyles.errorMessage}>{error || 'Доступ запрещен.'}</p>
-                 <button onClick={() => router.push('/admin')} className={pageStyles.backButton}>
-                    &larr; Назад в Админ панель
-                 </button>
+            if (!response.ok) {
+                 const errorData = await response.json();
+                 throw new Error(errorData.error || `Failed to update: ${response.statusText}`);
+            }
+             console.log(`[AdminReviews] Review ${reviewId} status updated successfully.`);
+            // Обновляем список, удаляя обработанный отзыв
+            setReviews(prev => prev.filter(r => r.id !== reviewId)); 
+        } catch (err) {
+            console.error(`[AdminReviews] Error updating review ${reviewId}:`, err);
+            setError(`Ошибка обновления отзыва ${reviewId}: ${err.message}`);
+        } finally {
+            setUpdatingId(null);
+        }
+    }, [isAdminUser, supabase]);
+
+    useEffect(() => {
+        // Проверка прав доступа на клиенте
+        if (!isLoading && !isAdminUser) {
+            console.warn('[AdminReviews] User is not admin. Redirecting...');
+            router.push('/menu'); // Или на главную, или показать 403
+        } else if (isAdminUser) {
+            fetchPendingReviews();
+        }
+    }, [isLoading, isAuthenticated, isAdminUser, router, fetchPendingReviews]);
+
+    // --- Рендеринг ---
+    if (isLoading || (!isAdminUser && !isLoading)) { // Показываем загрузку, пока идет проверка прав
+        return (
+            <div className={pageStyles.loadingContainer}>
+                <div className="spinner"></div>
+                <p>Загрузка...</p>
             </div>
         );
-  }
+    }
+    
+    return (
+        <div className={pageStyles.container}>
+            <h1 className={styles.title}>Модерация Отзывов</h1>
+            
+            {error && <p className={pageStyles.errorMessage}>{error}</p>}
 
-  return (
-    <div className={pageStyles.container}>
-        <h1 className={styles.title}>{title}</h1>
-        
-        {error && <div className={pageStyles.errorMessage} style={{ marginBottom: '1rem' }}>{error}</div>}
+            {loadingReviews && (
+                 <div className={pageStyles.loadingContainer}>
+                     <div className="spinner"></div>
+                     <p>Загрузка отзывов...</p>
+                 </div>
+            )}
 
-        {pendingReviews.length === 0 ? (
-            <p>Нет отзывов, ожидающих модерации.</p>
-        ) : (
-            <div className={styles.reviewsTableContainer}>
-                <table className={styles.reviewsTable}>
-                    <thead>
-                        <tr>
-                            <th>Дата</th>
-                            <th>Категория</th>
-                            <th>Подкатегория</th>
-                            <th>Объект</th>
-                            <th>Контент (AI)</th>
-                            <th>Источник</th>
-                            <th>Действия</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {pendingReviews.map(review => (
-                            <tr key={review.id}>
-                                <td>{new Date(review.created_at).toLocaleDateString('ru-RU')}</td>
-                                <td>{review.category}</td>
-                                <td>{review.subcategory || '-'}</td>
-                                <td>{review.item_name}</td>
-                                <td>
-                                    {review.generated_content ? (
-                                        <details>
-                                            <summary>Показать текст...</summary>
-                                            <p className={styles.generatedTextPreview}>{review.generated_content}</p>
-                                        </details>
-                                    ) : (
-                                        <em>(Нет текста)</em>
-                                    )}
-                                </td>
-                                <td>
-                                    {review.source_file_url ? (
-                                        <a href={review.source_file_url} target="_blank" rel="noopener noreferrer" title={review.source_file_url}>Файл</a>
-                                    ) : (
-                                         <em>(Нет)</em>
-                                    )}
-                                </td>
-                                <td>
-                                    <div className={styles.actionButtons}>
-                                        <button onClick={() => moderateReview(review.id, 'approved')} className={`${styles.actionButton} ${styles.approveButton}`}>Одобрить</button>
-                                        <button onClick={() => moderateReview(review.id, 'rejected')} className={`${styles.actionButton} ${styles.rejectButton}`}>Отклонить</button>
-                                    </div>
-                                </td>
-                            </tr>
-                        ))}
-                    </tbody>
-                </table>
-            </div>
-        )}
-         <button onClick={() => router.push('/admin')} className={pageStyles.backButton} style={{ marginTop: '2rem' }}>
-             &larr; Назад в Админ панель
-         </button>
-    </div>
-  );
+            {!loadingReviews && reviews.length === 0 && (
+                <p className={styles.noReviewsMessage}>Нет отзывов, ожидающих модерации.</p>
+            )}
+
+            {!loadingReviews && reviews.length > 0 && (
+                <div className={styles.reviewsGrid}> 
+                    {reviews.map(review => (
+                        <div key={review.id} className={`${styles.reviewCard} ${updatingId === review.id ? styles.updating : ''}`}>
+                            {updatingId === review.id && <div className={styles.cardLoader}><div className="spinner-small"></div></div>}
+                            <div className={styles.reviewMeta}>
+                                <span><b>Автор:</b> {review.author_nickname}</span>
+                                <span><b>Объект:</b> {review.item_name}</span>
+                                <span><b>Категория:</b> {review.category}{review.subcategory ? ` / ${review.subcategory}`: ''}</span>
+                                <span><b>Дата:</b> {formatDate(review.created_at)}</span>
+                                {review.rating && <span><b>Рейтинг:</b> {review.rating}/5</span>}
+                                {review.is_generated && <span className={styles.aiBadge}>AI</span>}
+                            </div>
+                            {review.image_url && (
+                                <img src={review.image_url} alt="Review image" className={styles.reviewImage}/>
+                            )}
+                            <p className={styles.reviewText}>{review.review_text}</p>
+                            {review.source_info && <p className={styles.sourceInfo}><i>Источник ИИ:</i> {review.source_info}</p>}
+                            
+                            <div className={styles.actions}>
+                                <button 
+                                    onClick={() => updateReviewStatus(review.id, 'approved')} 
+                                    className={`${styles.actionButton} ${styles.approveButton}`}
+                                    disabled={!!updatingId}
+                                >
+                                    Одобрить
+                                </button>
+                                <button 
+                                    onClick={() => updateReviewStatus(review.id, 'rejected')} 
+                                    className={`${styles.actionButton} ${styles.rejectButton}`}
+                                     disabled={!!updatingId}
+                                >
+                                    Отклонить
+                                </button>
+                            </div>
+                        </div>
+                    ))}
+                </div>
+            )}
+        </div>
+    );
 } 

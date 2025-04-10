@@ -40,61 +40,131 @@
 }
 
 .reviewCard {
-    background-color: var(--card-bg-color); /* Используем переменную */
-    border: 1px solid var(--border-color); /* Используем переменную */
+    background-color: var(--secondary-bg-color);
+    border: 1px solid var(--border-color);
     border-radius: 8px;
-    padding: 1.5rem;
-    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-    transition: box-shadow 0.2s ease;
+    padding: 15px;
+    margin-bottom: 20px;
+    transition: box-shadow 0.3s ease;
+    position: relative; /* Для позиционирования лоадера удаления */
+    overflow: hidden; /* Чтобы лоадер не вылезал */
 }
 
 .reviewCard:hover {
-    box-shadow: 0 4px 10px rgba(0,0,0,0.15);
+    box-shadow: 0 4px 15px rgba(0, 255, 255, 0.1);
+}
+
+/* Стиль для карточки во время удаления */
+.reviewCard.deleting {
+    opacity: 0.6;
+    pointer-events: none; /* Блокируем взаимодействие */
+}
+
+.reviewCard.deleting::after {
+    content: 'Удаление...'; /* Можно добавить лоадер/текст */
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(0, 0, 0, 0.5);
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.1em;
+    z-index: 10;
 }
 
 .reviewHeader {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 1rem;
-    flex-wrap: wrap; /* Перенос на малых экранах */
-    gap: 0.5rem; /* Пространство между элементами при переносе */
+    margin-bottom: 10px;
+    flex-wrap: wrap; /* Перенос на маленьких экранах */
+    gap: 10px;
 }
 
 .streamerInfo {
     display: flex;
     align-items: center;
-    gap: 0.75rem;
+    gap: 10px;
     text-decoration: none;
-    color: var(--text-color); /* Используем переменную */
+    color: var(--primary-text-color);
     transition: color 0.2s ease;
 }
 
 .streamerInfo:hover {
-    color: var(--primary-color); /* Используем переменную */
+    color: var(--accent-color);
 }
 
 .streamerAvatar {
     border-radius: 50%;
-    border: 2px solid var(--primary-color); /* Используем переменную */
+    border: 1px solid var(--accent-color);
 }
 
 .streamerName {
     font-weight: bold;
-    font-size: 1.1rem;
 }
 
 .reviewDate {
-    font-size: 0.9rem;
-    color: var(--secondary-text-color); /* Используем переменную */
-    white-space: nowrap; /* Запрет переноса даты */
+    font-size: 0.9em;
+    color: var(--secondary-text-color);
+    white-space: nowrap; /* Предотвращаем перенос даты */
 }
 
 .reviewText {
-    margin: 0;
+    margin-bottom: 15px;
     line-height: 1.6;
-    color: var(--text-color); /* Используем переменную */
+    color: var(--primary-text-color);
 }
+
+/* --- Стили для кнопок действий --- */
+.reviewActions {
+    display: flex;
+    justify-content: flex-end; /* Кнопки справа */
+    gap: 10px;
+    margin-top: 15px;
+    padding-top: 10px;
+    border-top: 1px solid var(--border-color); /* Разделитель */
+}
+
+.actionButton {
+    padding: 8px 15px;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 0.9em;
+    font-weight: 500;
+    transition: background-color 0.2s ease, opacity 0.2s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.actionButton:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.editButton {
+    background-color: #4a90e2; /* Синий */
+    color: white;
+}
+
+.editButton:hover:not(:disabled) {
+    background-color: #357abd;
+}
+
+.deleteButton {
+    background-color: #e94f4f; /* Красный */
+    color: white;
+}
+
+.deleteButton:hover:not(:disabled) {
+    background-color: #d43f3f;
+}
+/* --- Конец стилей для кнопок --- */
 
 /* Адаптивность (простой пример) */
 @media (max-width: 600px) {
