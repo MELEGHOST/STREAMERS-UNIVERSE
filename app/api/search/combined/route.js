@@ -19,14 +19,12 @@ export async function GET(request) {
     let supabaseUsers = [];
     try {
         console.log('[API /search/combined] Searching in Supabase...');
-        // Ищем сначала ID пользователей в auth.users по логину
+        // Убираем неиспользуемый запрос к auth.users
+        /*
         const { data: authUsers, error: authError } = await supabase.auth.admin.listUsers({
-             query: query, // Ищем по email, phone, но может и по метаданным?
-             // Тут сложно искать по логину из raw_user_meta_data стандартным listUsers.
-             // Проще искать в user_profiles по twitch_display_name
-             // А потом дополнять логином из auth.users по user_id.
+             query: query, 
         });
-        // Альтернативный поиск по user_profiles
+        */
         const { data: profileData, error: profileError } = await supabase
             .from('user_profiles')
             // Выбираем поля профиля и логин из связанной таблицы auth.users

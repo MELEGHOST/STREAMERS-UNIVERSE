@@ -108,3 +108,63 @@ export async function getTwitchClientWithToken(jwtToken) {
         return null;
     }
 } 
+
+// --- Добавляем утилиты для поиска --- 
+
+/**
+ * Ищет каналы на Twitch по запросу.
+ * @param {string} query - Поисковый запрос.
+ * @param {number} limit - Максимальное количество результатов.
+ * @returns {Promise<Array>} Массив объектов каналов.
+ */
+export async function searchTwitchChannels(query, limit = 10) {
+    try {
+        const apiClient = await getTwitchClient();
+        if (!apiClient) throw new Error('Не удалось инициализировать Twitch клиент.');
+
+        console.log(`[TwitchUtils] Searching channels for query: "${query}"`);
+        const response = await apiClient.search.searchChannels(query, { limit });
+        console.log(`[TwitchUtils] Found ${response.data.length} channels.`);
+        // Возвращаем нужные поля
+        return response.data.map(channel => ({
+            id: channel.id,
+            broadcaster_login: channel.name,
+            display_name: channel.displayName,
+            thumbnail_url: channel.thumbnailUrl,
+            is_live: channel.isLive,
+            title: channel.title,
+            // Можно добавить еще поля, если нужно
+        }));
+    } catch (error) {
+        console.error(`[TwitchUtils] Ошибка при поиске каналов Twitch для "${query}":`, error);
+        throw error; // Пробрасываем ошибку дальше
+    }
+}
+
+/**
+ * Получает данные пользователей Twitch по их логинам.
+ * @param {Array<string>} logins - Массив логинов.
+ * @returns {Promise<Array>} Массив объектов пользователей.
+ */
+export async function getTwitchUsers(logins) {
+    if (!logins || logins.length === 0) return [];
+    try {
+        const apiClient = await getTwitchClient();
+        if (!apiClient) throw new Error('Не удалось инициализировать Twitch клиент.');
+
+        console.log(`[TwitchUtils] Getting users by login: ${logins.join(', ')}`);
+        const users = await apiClient.users.getUsersByNames(logins);
+        console.log(`[TwitchUtils] Got data for ${users.length} users.`);
+        // Возвращаем нужные поля
+        return users.map(user => ({
+             id: user.id,
+             login: user.name,
+             display_name: user.displayName,
+             profile_image_url: user.profilePictureUrl,
+             // Можно добавить еще поля
+        }));
+    } catch (error) {
+        console.error(`[TwitchUtils] Ошибка при получении пользователей Twitch по логинам (${logins.join(', ')}):`, error);
+        throw error;
+    }
+} 
