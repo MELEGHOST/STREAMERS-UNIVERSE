@@ -251,17 +251,45 @@ export async function POST(request) {
         console.log(`[API Generate Review] User ${userId} requested generation. Author: ${authorTwitchNickname} (User ID: ${authorUserId ?? 'N/A'}), Item: ${itemName}, Source: ${processingSource}`);
 
         // 4. Формируем промпт для Gemini
-        const prompt = `Ты - опытный критик и обозреватель. Проанализируй следующий текст (это может быть транскрипт видео, статьи и т.д.) и напиши краткий, но содержательный отзыв (~100-200 слов) на русском языке. Сосредоточься на ключевых моментах, плюсах и минусах, общем впечатлении. Не используй фразы вроде "На основе текста...". Пиши так, будто это твое собственное мнение об объекте '${itemName}'.
-Категория: ${category}${subcategory ? `/ ${subcategory}` : ''}
+        const systemPrompt = `You are a helpful assistant tasked with writing a review based on provided content (text, transcript).
+        Your goal is to analyze the content about an item (like a game, movie, or a streamer's content) and the specified author of that content.
+        You MUST provide the review text, a rating from 1 to 5 (1 = very bad, 5 = excellent), the most likely category for the item, the item's name, and optionally a subcategory if applicable.
+        
+        Consider the context: the review will be published on a platform called "Streamers Universe".
+        Analyze the sentiment, key points, and overall quality discussed in the content.
+        
+        **Output Format:** You MUST respond ONLY with a valid JSON object containing the following keys:
+        - "review_text": (string) Your generated review text. Be objective but engaging. Max 1000 characters.
+        - "rating": (integer) A rating from 1 to 5 based on the content analysis.
+        - "category": (string) The most likely category (e.g., "games", "movies", "streamers", "music", "tech").
+        - "item_name": (string) The name of the item being reviewed (e.g., "Cyberpunk 2077", "Dune: Part Two", "StreamerName"). If the content is about a streamer, use the provided author's name as the item name.
+        - "subcategory": (string, optional) If applicable, provide a subcategory (e.g., for "games": "RPG", "Shooter"; for "streamers": "Just Chatting", "Gameplay").
+        
+        Example response:
+        {
+          "review_text": "Based on the transcript, the streamer provided insightful commentary on the game's mechanics...",
+          "rating": 4,
+          "category": "streamers",
+          "item_name": "StreamerName",
+          "subcategory": "Gameplay"
+        }
+        
+        DO NOT include any other text, explanations, or markdown formatting outside the JSON object.`;
 
-Текст для анализа:
----
-${truncatedContent}
----
+        const userPrompt = `Content Author Twitch Name: ${authorTwitchNickname}\n\nContent provided:\n---\n${truncatedContent}\n---\n\nPlease generate the review JSON based on this content. Remember the JSON format with keys: review_text, rating, category, item_name, subcategory (optional).`;
 
-Напиши только сам текст отзыва.`;
+        console.log(\`[API /generate] Sending request to AI. System Prompt size: ${systemPrompt.length}, User Prompt size: ${userPrompt.length}\`);
 
-        console.log(`[API /generate] Sending request to OpenRouter (Gemini 2.5 Pro)...`);
+        // 5. Вызов модели через OpenRouter
+        const aiResponse = await openrouter.chat.completions.create({
+            model: \"google/gemini-pro\", // Или другая модель, если нужно
+            messages: [
+                { role: \"system\", content: systemPrompt },
+                { role: \"user\", content: userPrompt }
+            ],
+            response_format: { type: \"json_object\" }, // Просим JSON ответ
+            temperature: 0.6, // Средняя температура для баланса
+        });
 
         // 5. Выполняем запрос к Gemini
         const response = await openrouter.chat.completions.create({

@@ -20,17 +20,76 @@
 
 .socialLinksSection {
     margin-top: 2rem;
-    padding: 1.5rem;
-    background-color: var(--card-bg-color);
-    border: 1px solid var(--border-color);
-    border-radius: 8px;
 }
 
-.socialLinksSection h2 {
-    margin-top: 0;
-    margin-bottom: 1rem;
-    color: var(--primary-color);
-    font-size: 1.4rem;
+/* Новый контейнер для всех кнопок соцсетей */
+.socialLinksContainer {
+    display: flex;
+    flex-wrap: wrap; /* Разрешаем перенос на новую строку */
+    justify-content: center; /* Центрируем кнопки */
+    gap: 20px; /* Пространство между кнопками */
+    margin-top: 1rem;
+    padding: 10px; /* Небольшой отступ внутри */
+    /* background-color: rgba(255, 255, 255, 0.05); /* Легкий фон для отладки? */
+    /* border-radius: 8px; */
+}
+
+/* Стили для ссылок СТАРЫХ кнопок (StyledSocialButton) */
+.socialIconLink {
+    display: inline-flex; /* Чтобы не растягивались по ширине */
+    align-items: center;
+    justify-content: center;
+    padding: 12px; /* Размер паддинга влияет на размер кнопки */
+    border-radius: 50%; /* Круглые кнопки */
+    color: #fff; /* Белая иконка */
+    transition: transform 0.2s ease, background-color 0.2s ease;
+    text-decoration: none;
+    min-width: 50px; /* Минимальная ширина */
+    min-height: 50px; /* Минимальная высота */
+    box-sizing: border-box; /* Чтобы паддинг не увеличивал размер */
+}
+
+.socialIconLink:hover {
+    transform: scale(1.1);
+}
+
+/* Цвета для СТАРЫХ кнопок */
+.socialIconVk {
+    background-color: #4a76a8;
+}
+.socialIconVk:hover {
+    background-color: #5b8ac2;
+}
+
+.socialIconYoutube {
+    background-color: #ff0000;
+}
+.socialIconYoutube:hover {
+    background-color: #cc0000;
+}
+
+.socialIconTiktok {
+    background-color: #000000; /* Или градиент, если получится */
+    /* Можно добавить border для видимости на темном фоне */
+    border: 1px solid #555;
+}
+.socialIconTiktok:hover {
+    background-color: #333;
+}
+
+.socialIconBoosty {
+    background-color: #f15f2c; /* Оранжевый Boosty */
+}
+.socialIconBoosty:hover {
+    background-color: #d95427;
+}
+
+.socialIconGeneric {
+    background-color: #555; /* Цвет по умолчанию */
+    border: 1px solid #777;
+}
+.socialIconGeneric:hover {
+    background-color: #777;
 }
 
 .socialIconsContainer {

@@ -10,8 +10,10 @@ import pageStyles from '../../../styles/page.module.css';
 import { useAuth } from '../../contexts/AuthContext';
 // Возвращаем StyledSocialButton
 import StyledSocialButton from '../../components/StyledSocialButton/StyledSocialButton';
-// Убираем импорты Fa-иконок
-// import { FaVk, FaTwitch, FaDiscord, FaYoutube } from 'react-icons/fa';
+import { FaVk, FaYoutube, FaTiktok } from 'react-icons/fa'; // Убрали Twitch, Discord
+import { SiBoosty } from "react-icons/si"; // Иконка для Boosty
+import DiscordButton from '../../components/SocialButtons/DiscordButton'; // Импорт новой кнопки Discord
+import TelegramButton from '../../components/SocialButtons/TelegramButton'; // Импорт новой кнопки Telegram
 
 const translateBroadcasterType = (type) => {
   switch (type) {
@@ -280,17 +282,70 @@ export default function UserProfilePage() {
           </div>
       )}
 
-      {/* Блок социальных сетей - ВОЗВРАЩАЕМ КАК БЫЛО, с StyledSocialButton */}
-      {isRegistered && profileSocialLinks && Object.keys(profileSocialLinks).length > 0 && (
-          <div className={styles.socialLinksSection}> 
-              <h2>Социальные сети</h2>
-              <div className={styles.socialIconsContainer}> 
-                  {Object.entries(profileSocialLinks).map(([platform, url]) => (
-                      url && <StyledSocialButton key={platform} platform={platform} url={url} />
-                  ))}
-              </div>
+      {/* --- Блок Социальные сети --- */}
+      {profileSocialLinks && Object.keys(profileSocialLinks).length > 0 && (
+        <div className={styles.section}>
+          <h2 className={styles.sectionTitle}>Социальные сети</h2>
+          <div className={styles.socialLinksContainer}> {/* Новый контейнер для кнопок */} 
+            {Object.entries(profileSocialLinks).map(([key, value]) => {
+              if (!value) return null; // Пропускаем пустые ссылки
+              
+              // Определение компонента иконки/кнопки
+              let SocialComponent = null;
+              let iconProps = { size: 28 }; // Базовый размер для react-icons
+              let specificClassName = styles.socialIconGeneric; // Общий класс
+
+              switch (key.toLowerCase()) {
+                case 'vk':
+                  SocialComponent = FaVk;
+                  specificClassName = styles.socialIconVk;
+                  break;
+                case 'youtube':
+                  SocialComponent = FaYoutube;
+                   specificClassName = styles.socialIconYoutube;
+                  break;
+                 case 'tiktok':
+                   SocialComponent = FaTiktok;
+                   specificClassName = styles.socialIconTiktok;
+                   break;
+                 case 'discord':
+                   // Используем новый компонент DiscordButton
+                   return <DiscordButton key={key} url={value} />;
+                 case 'telegram':
+                     // Используем новый компонент TelegramButton
+                     return <TelegramButton key={key} url={value} />;
+                 case 'boosty':
+                    SocialComponent = SiBoosty;
+                    specificClassName = styles.socialIconBoosty;
+                    iconProps = { size: 24 }; // Иконка Boosty может быть меньше
+                    break;
+                // Добавить другие кейсы по необходимости
+                default:
+                  // Можно вернуть заглушку или просто пропустить
+                  console.warn(`[UserProfilePage] Unknown social link key: ${key}`);
+                  return null; 
+              }
+              
+              // Рендерим старый StyledSocialButton для остальных иконок
+               if (SocialComponent) {
+                   return (
+                       <StyledSocialButton
+                           key={key}
+                           href={value}
+                           network={key}
+                           aria-label={`Профиль в ${key}`}
+                           className={`${styles.socialIconLink} ${specificClassName}`}
+                       >
+                           <SocialComponent {...iconProps} />
+                       </StyledSocialButton>
+                   );
+               }
+               return null;
+            })}
           </div>
+        </div>
       )}
+      {/* --- Конец блока Социальные сети --- */}
 
       {videos && videos.length > 0 && (
           <div className={styles.videosSection}>

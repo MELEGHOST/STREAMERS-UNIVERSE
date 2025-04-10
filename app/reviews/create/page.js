@@ -212,8 +212,8 @@ export default function CreateReviewPage() {
 
   // Обработчик загрузки файла ИЛИ ИСПОЛЬЗОВАНИЯ ССЫЛКИ и генерации ИИ отзыва
   const handleAiSubmit = async () => {
-      if (!category || !itemName || !authorTwitchNickname) {
-          setError('Пожалуйста, укажите Категорию, Название объекта и Twitch Никнейм автора.');
+      if (!authorTwitchNickname) {
+          setError('Пожалуйста, укажите Twitch Никнейм автора контента.');
           return;
       }
       // Проверка: должен быть либо файл, либо URL
@@ -250,38 +250,38 @@ export default function CreateReviewPage() {
           const session = await supabase.auth.getSession();
           const token = session.data.session?.access_token;
 
-          const response = await fetch('/api/reviews/generate', {
+          const response = await fetch('/api/ai/generate-review', {
               method: 'POST',
               headers: {
                   'Content-Type': 'application/json',
                   'Authorization': `Bearer ${token}`,
               },
-              body: JSON.stringify({ 
-                  category,
-                  subcategory,
-                  itemName,
-                  // Передаем либо путь к файлу, либо URL
-                  sourceFilePath: sourceFilePath, 
-                  sourceUrl: sourceUrl || null, // Передаем URL, если он есть
-                  authorTwitchNickname: authorTwitchNickname
-              }),
+              body: JSON.stringify({
+                  sourcePath: sourceFilePath, // Путь к файлу в storage (или null)
+                  sourceUrl: sourceUrl,       // URL (или null)
+                  authorTwitchName: authorTwitchNickname,
+              })
           });
 
           if (!response.ok) {
               const errorData = await response.json();
-              throw new Error(errorData.error || `Ошибка генерации отзыва (${response.status})`);
+              throw new Error(errorData.error || 'Ошибка генерации AI отзыва.');
           }
 
-          setSuccessMessage('Файл загружен, отзыв генерируется и отправлен на модерацию!');
-           // Очищаем форму и перенаправляем
-          setCategory(''); setSubcategory(''); setItemName(''); setFile(null); setAuthorTwitchNickname(''); setSourceUrl(''); // Сбрасываем никнейм
+          const result = await response.json();
+          console.log('[ReviewCreate] AI Review generated:', result);
+          setSuccessMessage(result.message || 'AI Отзыв успешно сгенерирован и отправлен на модерацию!');
+
+          // Очистка полей AI
+          setAuthorTwitchNickname('');
+          setFile(null);
+          setSourceUrl('');
           const fileInput = document.getElementById('fileInput');
-          if (fileInput) fileInput.value = ''; // Сбрасываем инпут файла
-          setTimeout(() => router.push('/reviews'), 2000);
+          if (fileInput) fileInput.value = '';
 
       } catch (err) {
           console.error('Ошибка генерации AI отзыва:', err);
-          setError('Не удалось сгенерировать отзыв: ' + err.message);
+          setError(err.message || 'Произошла ошибка при генерации.');
       } finally {
           setIsUploading(false);
           setIsGenerating(false);
@@ -428,9 +428,10 @@ export default function CreateReviewPage() {
                 </div>
             </div>
             <button 
+                type="button" 
                 onClick={handleAiSubmit} 
-                className={styles.submitButton} 
-                disabled={(!file && !sourceUrl) || isUploading || isGenerating || isSubmitting || !category || !itemName || !authorTwitchNickname || (!!file && !!sourceUrl)}
+                className={`${pageStyles.button} ${styles.submitButton}`}
+                disabled={!authorTwitchNickname || (!file && !sourceUrl) || isUploading || isGenerating}
             >
                 {isUploading ? 'Загрузка файла...' : (isGenerating ? 'Генерация отзыва...' : 'Загрузить и сгенерировать')}
             </button>
