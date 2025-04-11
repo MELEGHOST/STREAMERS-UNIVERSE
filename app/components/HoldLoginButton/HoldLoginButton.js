@@ -3,6 +3,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import styled, { keyframes } from 'styled-components';
 import { useAuth } from '../../contexts/AuthContext';
+import { useRouter } from 'next/router';
 
 // --- Styled Components (твой код) --- 
 const wobble = keyframes`
@@ -36,20 +37,19 @@ const glowingStars = keyframes`
 `;
 
 const StyledWrapper = styled.div`
-  display: inline-block; // Чтобы кнопка занимала только свое место
-  --hold-duration: 2000ms; // Время удержания в миллисекундах (2 секунды)
-  --hold-progress: 0; // Переменная для прогресса удержания
+  display: inline-block;
+  --hold-duration: 1500ms; // <<< Уменьшил время удержания до 1.5 сек
+  --hold-progress: 0; 
 
   .text {
     translate: 2% -6%;
     letter-spacing: 0.01ch;
-    // Меняем цвет на белый и добавляем зависимость от прогресса
     color: hsl(0 0% calc(100% - (var(--hold-progress) * 40%))); 
     z-index: 999;
     padding: 0 34px;
     font-weight: 600;
-    position: relative; // Нужно для псевдоэлементов
-    user-select: none; // Запрещаем выделение текста
+    position: relative; 
+    user-select: none; 
   }
   .text::before {
     content: "";
@@ -84,10 +84,9 @@ const StyledWrapper = styled.div`
     display: block;
   }
 
-  // Добавляем отображение прогресса удержания
   .hold-indicator {
       position: absolute;
-      bottom: 5px; // Положение индикатора
+      bottom: 5px; 
       left: 10%;
       width: 80%;
       height: 4px;
@@ -107,12 +106,11 @@ const StyledWrapper = styled.div`
       width: calc(var(--hold-progress) * 100%);
       background-color: #fff;
       border-radius: 2px;
-      transition: width 0.1s linear; // Плавное заполнение
+      transition: width 0.1s linear; 
   }
   .space-button.holding .hold-indicator {
       opacity: 1;
   }
-
 
   .galaxy::before {
     content: "";
@@ -170,22 +168,23 @@ const StyledWrapper = styled.div`
     animation: ${glowingStars} 1s linear alternate infinite;
     animation-delay: 0.8s;
   }
+  
   .space-button {
     --cut: 0.1em;
-    --active: 0; // Будем использовать для hover/focus
-    --holding-active: 0; // Отдельно для состояния удержания
-    // Меняем цвета на фиолетово-розовые тона
-    --bg: radial-gradient(
+    --active: 0; // Для hover/focus
+    --holding-active: 0; // Для удержания
+    // Возвращаем твои цвета
+     --bg: radial-gradient(
           120% 120% at 126% 126%,
-          hsl(280 calc(var(--holding-active) * 80%) 98% / calc(var(--holding-active) * 0.7)) 40%,
+          hsl(0 calc(var(--holding-active) * 97%) 98% / calc(var(--holding-active) * 0.9)) 40%,
           transparent 50%
         ) calc(100px - (var(--holding-active) * 100px)) 0 / 100% 100% no-repeat,
       radial-gradient(
           120% 120% at 120% 120%,
-          hsl(300 calc(var(--holding-active) * 85%) 75% / calc(var(--holding-active) * 0.8)) 30%,
+          hsl(0 calc(var(--holding-active) * 97%) 70% / calc(var(--holding-active) * 1)) 30%,
           transparent 70%
         ) calc(100px - (var(--holding-active) * 100px)) 0 / 100% 100% no-repeat,
-      hsl(270 calc(var(--holding-active) * 50%) calc(15% - (var(--holding-active) * 10%)));
+      hsl(0 calc(var(--holding-active) * 100%) calc(12% - (var(--holding-active) * 8%)));
     background: var(--bg);
     font-size: 1.4rem;
     font-weight: 500;
@@ -198,45 +197,50 @@ const StyledWrapper = styled.div`
     white-space: nowrap;
     border-radius: 2rem;
     position: relative;
+    // Возвращаем твои тени
     box-shadow:
-        0 0 calc(var(--holding-active) * 4em) calc(var(--holding-active) * 2em) hsla(300, 90%, 70%, 0.4),
-        0 0.05em 0 0 hsl(280, calc(var(--holding-active) * 60%), calc((var(--holding-active) * 40%) + 40%)) inset,
-        0 -0.05em 0 0 hsl(270, calc(var(--holding-active) * 50%), calc(var(--holding-active) * 5%)) inset;
+        0 0 calc(var(--holding-active) * 6em) calc(var(--holding-active) * 3em) hsla(12, 97%, 61%, 0.3),
+        0 0.05em 0 0 hsl(0, calc(var(--holding-active) * 97%), calc((var(--holding-active) * 50%) + 30%)) inset,
+        0 -0.05em 0 0 hsl(0, calc(var(--holding-active) * 97%), calc(var(--holding-active) * 10%)) inset;
     transition:
-      box-shadow 0.3s ease-out,
-      scale 0.3s,
-      background 0.3s;
-    scale: calc(1 + (var(--holding-active) * 0.05)); // Чуть меньше scale при удержании
+      box-shadow 0.25s ease-out,
+      scale 0.25s,
+      background 0.25s;
+    scale: calc(1 + (var(--holding-active) * 0.1)); // Оставляем небольшой scale при удержании
     transform-style: preserve-3d;
     perspective: 100vmin;
     overflow: hidden;
   }
 
-  // Отдельный стиль для hover/focus, не зависящий от удержания
   .space-button:is(:hover, :focus-visible) {
       --active: 1;
-      filter: brightness(1.1);
+      // filter: brightness(1.1); // Убираем яркость, если не нужна
   }
   .space-button:is(:hover, :focus-visible) .text::before,
   .space-button:is(:hover, :focus-visible) .text::after {
       display: block;
   }
   
-  // Стили при активном УДЕРЖАНИИ (класс .holding)
   .space-button.holding {
     --holding-active: 1; 
-    scale: 1.05; // Можно чуть увеличить при удержании
-    // Анимации текста при удержании
+    // scale: 1.05; // Можно вернуть scale, если хочешь
     .text {
-        animation: ${wobble} 0.8s ease-in-out infinite, ${blurMove} 1.8s ease-in-out infinite;
+        animation: ${wobble} 0.6s ease-in-out infinite, ${blurMove} 1.5s ease-in-out infinite;
         text-shadow:
-            3px 3px 15px rgba(255, 255, 255, 0.7),
-            6px 6px 25px rgba(255, 100, 255, 0.5); 
+            5px 5px 20px rgba(255, 255, 255, 0.8),
+            10px 10px 30px rgba(255, 0, 255, 0.6);
     }
-    // Анимации галактики при удержании
     .galaxy::before { animation: ${circling} 2s linear infinite; }
     .galaxy::after { animation: ${circling} 1.5s linear infinite; }
   }
+
+  // Возвращаем :active стиль для мгновенного эффекта нажатия (если нужно)
+  /* 
+  .space-button:active {
+    scale: 1; 
+    // ... (остальные стили из твоего :active, если хочешь вернуть)
+  } 
+  */
 
   .galaxy {
     position: absolute;
@@ -246,8 +250,8 @@ const StyledWrapper = styled.div`
     left: 50%;
     translate: -50% -50%;
     overflow: hidden;
-    opacity: var(--holding-active); // Зависит от удержания
-    transition: opacity 0.3s;
+    opacity: var(--holding-active); 
+    transition: opacity 0.25s;
   }
 
   .backdrop {
@@ -255,8 +259,8 @@ const StyledWrapper = styled.div`
     inset: var(--cut);
     background: var(--bg);
     border-radius: 2rem;
-    transition: background 0.3s;
-    z-index: -1; // Помещаем под текст и галактику
+    transition: background 0.25s;
+    z-index: -1; 
   }
 
   .galaxy-button {
@@ -265,66 +269,98 @@ const StyledWrapper = styled.div`
 `;
 
 // --- Компонент кнопки --- 
-const HoldLoginButton = ({ holdDuration = 2000 }) => {
-  const { signInWithTwitch } = useAuth();
+const HoldLoginButton = ({ holdDuration = 1500 }) => { 
+  const { signInWithTwitch, isAuthenticated } = useAuth(); 
+  const router = useRouter();
+
   const [isHolding, setIsHolding] = useState(false);
-  const [holdProgress, setHoldProgress] = useState(0); // От 0 до 1
+  const [holdProgress, setHoldProgress] = useState(0); 
   const holdTimeoutRef = useRef(null);
   const progressIntervalRef = useRef(null);
   const startTimeRef = useRef(null);
+  const actionTriggeredRef = useRef(false); 
 
   const holdDurationMs = holdDuration;
 
   const startHold = () => {
+    if (actionTriggeredRef.current) return; 
     setIsHolding(true);
     startTimeRef.current = Date.now();
     setHoldProgress(0);
+    actionTriggeredRef.current = false; 
 
-    // Запускаем таймер на выполнение действия
-    holdTimeoutRef.current = setTimeout(() => {
-      console.log('Hold complete! Signing in...');
-      if (signInWithTwitch) {
-          signInWithTwitch();
-      }
-      resetHold(); 
-    }, holdDurationMs);
-
-    // Запускаем интервал для обновления прогресса
     progressIntervalRef.current = setInterval(() => {
         const elapsedTime = Date.now() - startTimeRef.current;
         const progress = Math.min(elapsedTime / holdDurationMs, 1);
         setHoldProgress(progress);
+        
         if (progress >= 1) {
             clearInterval(progressIntervalRef.current);
+            progressIntervalRef.current = null; 
+            holdTimeoutRef.current = setTimeout(resetHoldVisuals, 500); 
         }
-    }, 50); // Обновляем прогресс каждые 50мс
+    }, 50); 
   };
 
-  const resetHold = () => {
-    setIsHolding(false);
-    setHoldProgress(0);
-    if (holdTimeoutRef.current) {
-      clearTimeout(holdTimeoutRef.current);
-      holdTimeoutRef.current = null;
-    }
-    if (progressIntervalRef.current) {
-        clearInterval(progressIntervalRef.current);
-        progressIntervalRef.current = null;
-    }
-    startTimeRef.current = null;
+  const triggerActionOnRelease = () => {
+      if (!isHolding) return; 
+      
+      if (progressIntervalRef.current) {
+          clearInterval(progressIntervalRef.current);
+          progressIntervalRef.current = null;
+      }
+      if (holdTimeoutRef.current) {
+            clearTimeout(holdTimeoutRef.current);
+            holdTimeoutRef.current = null;
+      }
+      
+      const elapsedTime = Date.now() - startTimeRef.current;
+      if (elapsedTime >= holdDurationMs && !actionTriggeredRef.current) {
+          actionTriggeredRef.current = true; // Ставим флаг ДО действия
+
+          if (isAuthenticated) {
+              console.log('Hold complete and released! User is authenticated. Navigating to /menu...');
+              router.push('/menu');
+              resetHoldVisuals(); 
+          } else {
+              console.log('Hold complete and released! User not authenticated. Signing in...');
+              if (signInWithTwitch) {
+                  signInWithTwitch();
+              }
+              setTimeout(resetHoldVisuals, 500);
+          }
+          
+      } else {
+          console.log('Hold released too early or action already triggered.');
+          resetHoldVisuals();
+      }
   };
 
-  // Очистка таймеров при размонтировании
+  const resetHoldVisuals = () => {
+      setIsHolding(false);
+      setHoldProgress(0);
+      startTimeRef.current = null;
+       if (progressIntervalRef.current) {
+            clearInterval(progressIntervalRef.current);
+            progressIntervalRef.current = null;
+        }
+       if (holdTimeoutRef.current) {
+            clearTimeout(holdTimeoutRef.current);
+            holdTimeoutRef.current = null;
+        }
+  };
+
   useEffect(() => {
+    actionTriggeredRef.current = false;
     return () => {
-      resetHold();
+       if (progressIntervalRef.current) clearInterval(progressIntervalRef.current);
+       if (holdTimeoutRef.current) clearTimeout(holdTimeoutRef.current);
     };
-  }, []);
+  }, [isAuthenticated]);
 
-  // Обновляем CSS переменную для прогресса
   const buttonStyle = {
       '--hold-progress': holdProgress,
-      '--holding-active': isHolding ? 1 : 0 // Передаем состояние удержания в CSS
+      '--holding-active': isHolding ? 1 : 0 
   };
 
   return (
@@ -334,18 +370,19 @@ const HoldLoginButton = ({ holdDuration = 2000 }) => {
           className={`space-button ${isHolding ? 'holding' : ''}`}
           style={buttonStyle}
           onMouseDown={startHold}
-          onMouseUp={resetHold}
-          onMouseLeave={resetHold} // Сбрасываем, если мышь ушла с кнопки
-          onTouchStart={(e) => { e.preventDefault(); startHold(); }} // PreventDefault для мобилок
-          onTouchEnd={resetHold}
-          onTouchCancel={resetHold} // На случай системной отмены касания
+          onMouseUp={triggerActionOnRelease} 
+          onMouseLeave={resetHoldVisuals} 
+          onTouchStart={(e) => { e.preventDefault(); startHold(); }} 
+          onTouchEnd={triggerActionOnRelease} 
+          onTouchCancel={resetHoldVisuals} 
         >
           <span className="backdrop" />
           <span className="galaxy" />
-          <label className="text">Войти через Twitch</label>
-          <div className="hold-indicator"></div> {/* Индикатор прогресса */} 
+          <label className="text">
+            {isAuthenticated ? "Войти в Меню" : "Войти через Twitch"}
+          </label>
+          <div className="hold-indicator"></div> 
         </button>
-        {/* <div className="bodydrop" /> -> Не используется без поддержки :has */}
       </div>
     </StyledWrapper>
   );

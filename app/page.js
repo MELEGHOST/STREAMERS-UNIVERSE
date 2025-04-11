@@ -14,7 +14,7 @@ export default function HomePage() {
   // Простой компонент для звездного фона
   const StarryBackground = () => (
       <div className={styles.stars}>
-        <div className={styles.twinkling}></div>
+        {/* <div className={styles.twinkling}></div> */}
       </div>
   );
 
@@ -40,24 +40,19 @@ export default function HomePage() {
                 priority // Для LCP
             />
             
-            {isAuthenticated ? (
-                <div className={styles.loggedInContent}>
-                    <h2>С возвращением!</h2>
-                    <p>Готов исследовать Вселенную Стримеров?</p>
-                    <button 
-                        className={styles.menuButton} 
-                        onClick={() => router.push('/menu')}
-                    >
-                        Перейти в Меню
-                    </button>
-                </div>
-            ) : (
-                <div className={styles.loggedOutContent}>
-                    <h2>Добро пожаловать во Вселенную Стримеров!</h2>
-                    <p>Войдите, чтобы начать.</p>
-                    <HoldLoginButton />
-                 </div>
-            )}
+            <div className={styles.loggedOutContent}>
+                <h2>
+                    {isAuthenticated 
+                        ? "С возвращением во Вселенную!" 
+                        : "Добро пожаловать во Вселенную Стримеров!"}
+                </h2>
+                <p>
+                    {isAuthenticated
+                        ? "Зажмите кнопку, чтобы войти в Меню"
+                        : "Зажмите кнопку, чтобы войти через Twitch"}
+                </p>
+                <HoldLoginButton />
+            </div>
         </div>
     </div>
   );

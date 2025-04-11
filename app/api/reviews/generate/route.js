@@ -36,20 +36,26 @@ async function getYoutubeAudioStream(url) {
     }
     try {
         console.log(`[getYoutubeAudioStream] Getting audio stream for ${url}`);
-        // Выбираем формат только с аудио, предпочтительно opus или aac
         const info = await ytdl.getInfo(url);
         const format = ytdl.chooseFormat(info.formats, { quality: 'highestaudio', filter: 'audioonly' });
         if (!format) {
             throw new Error('Не найден подходящий аудиоформат для этого YouTube видео.');
         }
         console.log(`[getYoutubeAudioStream] Chosen format: ${format.mimeType}, ${format.audioBitrate}kbps`);
-        // Создаем поток PassThrough для передачи в Whisper
         const stream = new PassThrough(); 
         ytdl(url, { format: format }).pipe(stream);
         return stream; // Возвращаем поток
     } catch (error) {
-        console.error(`[getYoutubeAudioStream] Error getting audio stream:`, error);
-        throw new Error(`Ошибка получения аудио с YouTube: ${error.message}`);
+        // <<< Логируем полную ошибку ytdl >>>
+        console.error(`[getYoutubeAudioStream] Full ytdl error:`, error); 
+        // Сохраняем исходное сообщение для проверки статуса
+        const originalErrorMessage = error.message || 'Неизвестная ошибка ytdl';
+        let userFriendlyMessage = `Ошибка получения аудио с YouTube: ${originalErrorMessage}`;
+        // <<< Добавляем проверку на 410 >>>
+        if (originalErrorMessage.includes('Status code: 410')) {
+             userFriendlyMessage = 'Не удалось получить аудио с YouTube (Ошибка 410). Возможно, видео недоступно в регионе сервера (США), удалено или имеет возрастные/региональные ограничения.';
+        }
+        throw new Error(userFriendlyMessage); // Выбрасываем новую ошибку
     }
 }
 
@@ -123,20 +129,26 @@ export async function POST(request) {
         } else if (sourceUrl) {
             processingSource = `url: ${sourceUrl}`;
             console.log(`[API /generate] Processing URL: ${sourceUrl}`);
-            if (sourceUrl.includes('youtube.com') || sourceUrl.includes('youtu.be')) {
-                console.log('[API /generate] Detected YouTube URL.');
-                sourceFileName = `youtube_${ytdl.getVideoID(sourceUrl)}.mp3`; // Имя для Whisper
-                streamSource = await getYoutubeAudioStream(sourceUrl);
-                console.log('[API /generate] Got YouTube audio stream.');
-            } 
-            // else if (sourceUrl.includes('twitch.tv') && sourceUrl.includes('/clip/')) {
-            //     console.log('[API /generate] Detected Twitch Clip URL.');
-            //     sourceFileName = `twitch_clip_${/* extract clip id */}.mp4`; 
-            //     streamSource = await getTwitchClipStream(sourceUrl); // TODO: Implement
-            // }
-            else {
-                // Пока другие URL не поддерживаем
-                throw new Error('Неподдерживаемый URL. Сейчас поддерживаются только ссылки YouTube.'); 
+            try { // <<< Оборачиваем получение потока в try...catch здесь >>>
+                if (sourceUrl.includes('youtube.com') || sourceUrl.includes('youtu.be')) {
+                    console.log('[API /generate] Detected YouTube URL.');
+                    sourceFileName = `youtube_${ytdl.getVideoID(sourceUrl)}.mp3`;
+                    streamSource = await getYoutubeAudioStream(sourceUrl);
+                    console.log('[API /generate] Got YouTube audio stream.');
+                } 
+                // else if (sourceUrl.includes('twitch.tv') && sourceUrl.includes('/clip/')) {
+                //     console.log('[API /generate] Detected Twitch Clip URL.');
+                //     sourceFileName = `twitch_clip_${/* extract clip id */}.mp4`; 
+                //     streamSource = await getTwitchClipStream(sourceUrl); // TODO: Implement
+                // }
+                else {
+                    throw new Error('Неподдерживаемый URL. Сейчас поддерживаются только ссылки YouTube.'); 
+                }
+            } catch (urlProcessingError) {
+                // <<< Ловим ошибку из getYoutubeAudioStream или других обработчиков URL >>>
+                console.error(`[API /generate] Error processing URL ${sourceUrl}:`, urlProcessingError);
+                // Передаем userFriendlyMessage на фронт
+                return NextResponse.json({ error: urlProcessingError.message || 'Ошибка обработки URL источника.' }, { status: 400 }); 
             }
         }
         // -----------------------------------------
@@ -167,17 +179,20 @@ export async function POST(request) {
 
             } catch (transcriptionError) {
                 console.error('[API /generate] Whisper transcription failed:', transcriptionError);
-                throw new Error(`Ошибка транскрипции из ${processingSource}: ${transcriptionError.message}`);
+                // <<< Возвращаем ошибку на фронт >>>
+                return NextResponse.json({ error: `Ошибка транскрипции из ${processingSource}: ${transcriptionError.message}` }, { status: 500 });
             }
+        } else if (!fileContentText) { // <<< Если не было streamSource и нет текстового файла >>>
+             console.error('[API /generate] No stream source and no text content found.');
+             return NextResponse.json({ error: 'Не удалось получить контент для генерации (ни текст, ни аудио/видео).' }, { status: 400 });
         }
         // -------------------------------------------
 
-        // --- Дальнейшая логика: обрезка текста, поиск автора, промпт Gemini, сохранение --- 
-        // (этот блок остается почти без изменений, кроме проверки fileContentText)
-        
-        // Проверка, что у нас есть текст после всех манипуляций
+        // Проверка, что у нас есть текст ПОСЛЕ этапа транскрипции ИЛИ из файла
         if (!fileContentText) {
-             throw new Error('Не удалось получить текстовое содержимое для генерации отзыва.');
+            // Эта проверка может быть избыточной после предыдущей, но на всякий случай
+             console.error('[API /generate] Text content is empty after processing source.');
+             return NextResponse.json({ error: 'Не удалось получить текстовое содержимое для генерации отзыва.' }, { status: 500 });
         }
 
         // 3. Ограничение на размер текста для промпта Gemini
@@ -348,20 +363,12 @@ export async function POST(request) {
         return NextResponse.json({ message: 'Review generated and submitted for moderation.', reviewId: reviewData?.id }, { status: 201 });
 
     } catch (error) {
-        console.error(`[API /generate] Error processing request:`, error);
-        let statusCode = 500;
-        const errorMessage = error.message || 'Internal Server Error';
-        if (errorMessage.includes('не найден')) statusCode = 404; // Включая "не найден на Twitch"
-        if (errorMessage.includes('download') || errorMessage.includes('YouTube')) statusCode = 502; // Bad Gateway
-        if (errorMessage.includes('transcription')) statusCode = 500; 
-        if (errorMessage.includes('Unsupported file type')) statusCode = 415;
-        if (errorMessage.includes('Unsupported URL')) statusCode = 400;
-        if (errorMessage.includes('author') || errorMessage.includes('зарегистрирован')) statusCode = 404; // Author not found
-        if (errorMessage.includes('Неверная ссылка YouTube')) statusCode = 400;
-        if (errorMessage.includes('аудиоформат')) statusCode = 400; // Youtube format issue
-        if (errorMessage.includes('AI') || errorMessage.includes('Gemini')) statusCode = 503; // AI Service Unavailable
-        if (error.status) statusCode = error.status; // Если ошибка пришла со статусом (напр., от Supabase)
-
-        return NextResponse.json({ error: errorMessage }, { status: statusCode });
+        // Общий обработчик ошибок (например, ошибка парсинга JSON в самом начале)
+        if (error instanceof SyntaxError) {
+             console.error("[API /generate] Failed to parse request JSON:", error);
+             return NextResponse.json({ error: 'Invalid JSON in request body' }, { status: 400 });
+        }
+        console.error("[API /generate] Unexpected error in POST handler:", error);
+        return NextResponse.json({ error: error.message || 'Internal Server Error' }, { status: 500 });
     }
 } 

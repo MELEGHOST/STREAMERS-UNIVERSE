@@ -82,7 +82,7 @@
 }
 
 .stars,
-.twinkling {
+.twinkling { /* <<< Убираем .twinkling отсюда, т.к. ссылка битая */
   position:absolute;
   top:0;
   left:0;
@@ -95,14 +95,18 @@
 }
 
 .stars {
+ /* <<< Убедись, что эта ссылка рабочая, или замени на локальный файл */
  background: #000 url(https://www.script-tutorials.com/demos/360/images/stars.png) repeat top center;
 }
 
+/* <<< Убираем блок .twinkling полностью >>> */
+/* 
 .twinkling {
  background:transparent url(https://www.script-tutorials.com/demos/360/images/twinkling.png) repeat top center;
  -webkit-animation:move-twink-back 200s linear infinite;
  animation:move-twink-back 200s linear infinite;
 }
+*/
 
 /* Spinner (если нужен) */
 .spinner {
