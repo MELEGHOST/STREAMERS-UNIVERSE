@@ -135,10 +135,11 @@ export async function GET(request) {
       // 1. Ищем Supabase user_id в auth.identities по Twitch ID
       console.log(`[API /api/twitch/user] Looking up Supabase user ID in auth.identities for Twitch ID: ${userId}`);
       const { data: identityData, error: identityError } = await supabaseAdmin
-          .from('identities') // <<< Ищем в auth.identities
+          .schema('auth') // <<< Указываем схему 'auth'
+          .from('identities') 
           .select('user_id')
-          .eq('provider', 'twitch') // <<< Указываем провайдера
-          .eq('provider_id', userId) // <<< Ищем по Twitch ID
+          .eq('provider', 'twitch') 
+          .eq('provider_id', userId) 
           .maybeSingle(); 
 
       if (identityError) {
