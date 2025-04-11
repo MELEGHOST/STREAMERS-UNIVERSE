@@ -250,7 +250,7 @@ export default function CreateReviewPage() {
           const session = await supabase.auth.getSession();
           const token = session.data.session?.access_token;
 
-          const response = await fetch('/api/ai/generate-review', {
+          const response = await fetch('/api/reviews/generate', {
               method: 'POST',
               headers: {
                   'Content-Type': 'application/json',
