@@ -77,16 +77,18 @@ export async function POST(request) {
 
     try {
         const body = await request.json();
-        const { sourceFilePath, sourceUrl, authorTwitchNickname } = body;
+        const { sourceFilePath, sourceUrl, authorTwitchName } = body;
 
-        if (!authorTwitchNickname || (!sourceFilePath && !sourceUrl)) {
-            return NextResponse.json({ error: 'Missing required fields (authorTwitchNickname, and either sourceFilePath or sourceUrl)' }, { status: 400 });
+        if (!authorTwitchName || (!sourceFilePath && !sourceUrl)) {
+            console.error("[API /generate] Validation failed: Missing required fields", { authorTwitchName, sourceFilePath, sourceUrl }); 
+            return NextResponse.json({ error: 'Missing required fields (authorTwitchName, and either sourceFilePath or sourceUrl)' }, { status: 400 });
         }
         if (sourceFilePath && sourceUrl) {
-             return NextResponse.json({ error: 'Provide either sourceFilePath or sourceUrl, not both.' }, { status: 400 });
+             console.error("[API /generate] Validation failed: Both sourceFilePath and sourceUrl provided", { sourceFilePath, sourceUrl });
+              return NextResponse.json({ error: 'Provide either sourceFilePath or sourceUrl, not both.' }, { status: 400 });
         }
 
-        console.log(`[API /generate] Processing request for AI review. Author Nickname: ${authorTwitchNickname}`);
+        console.log(`[API /generate] Processing request for AI review. Author Name: ${authorTwitchName}`);
 
         let fileContentText = '';
         let processingSource = '';
@@ -190,7 +192,7 @@ export async function POST(request) {
         let validatedTwitchUser = null;
 
         try {
-            const nicknameLower = authorTwitchNickname.toLowerCase();
+            const nicknameLower = authorTwitchName.toLowerCase();
             console.log(`[API Generate Review] Ищем автора в БД по нику: ${nicknameLower}`);
             
             // Сначала ищем в нашей базе
@@ -228,17 +230,17 @@ export async function POST(request) {
                 console.log(`[API Generate Review] Автор ${nicknameLower} не найден в БД. Проверяем на Twitch...`);
                 validatedTwitchUser = await validateTwitchUser(nicknameLower); 
                 if (!validatedTwitchUser) {
-                    console.warn(`[API Generate Review] Автор с ником ${authorTwitchNickname} не найден и на Twitch.`);
+                    console.warn(`[API Generate Review] Автор с ником ${authorTwitchName} не найден и на Twitch.`);
                     // Возвращаем 404, но указываем, что не найден на Twitch
-                    return NextResponse.json({ error: `Пользователь Twitch с никнеймом '${authorTwitchNickname}' не найден.` }, { status: 404 });
+                    return NextResponse.json({ error: `Пользователь Twitch с никнеймом '${authorTwitchName}' не найден.` }, { status: 404 });
                 } else {
-                    console.log(`[API Generate Review] Автор ${authorTwitchNickname} найден на Twitch. ID: ${validatedTwitchUser.id}, Display Name: ${validatedTwitchUser.display_name}`);
+                    console.log(`[API Generate Review] Автор ${authorTwitchName} найден на Twitch. ID: ${validatedTwitchUser.id}, Display Name: ${validatedTwitchUser.display_name}`);
                     // authorUserId остается null, но мы знаем, что юзер валиден
                 }
             }
             
         } catch (dbLookupError) {
-             console.error(`[API Generate Review] Ошибка поиска/валидации автора ${authorTwitchNickname}:`, dbLookupError);
+             console.error(`[API Generate Review] Ошибка поиска/валидации автора ${authorTwitchName}:`, dbLookupError);
              // Обрабатываем возможные ошибки от Twitch API или БД
              let statusCode = 500;
              let message = `Ошибка поиска автора: ${dbLookupError.message || dbLookupError}`;
@@ -248,7 +250,7 @@ export async function POST(request) {
         }
         // -------------------------------------------
 
-        console.log(`[API Generate Review] User ${userId} requested generation. Author: ${authorTwitchNickname} (User ID: ${authorUserId ?? 'N/A'}), Source: ${processingSource}`);
+        console.log(`[API Generate Review] User ${userId} requested generation. Author: ${authorTwitchName} (User ID: ${authorUserId ?? 'N/A'}), Source: ${processingSource}`);
 
         // 4. Формируем промпт для Gemini
         const systemPrompt = `You are a helpful assistant tasked with writing a review based on provided content (text, transcript).
@@ -276,7 +278,7 @@ export async function POST(request) {
         
         DO NOT include any other text, explanations, or markdown formatting outside the JSON object.`;
 
-        const userPrompt = `Content Author Twitch Name: ${authorTwitchNickname}\n\nContent provided:\n---\n${truncatedContent}\n---\n\nPlease generate the review JSON based on this content. Remember the JSON format with keys: review_text, rating, category, item_name, subcategory (optional).`;
+        const userPrompt = `Content Author Twitch Name: ${authorTwitchName}\n\nContent provided:\n---\n${truncatedContent}\n---\n\nPlease generate the review JSON based on this content. Remember the JSON format with keys: review_text, rating, category, item_name, subcategory (optional).`;
 
         console.log(`[API /generate] Sending request to AI. System Prompt size: ${systemPrompt.length}, User Prompt size: ${userPrompt.length}`);
 
@@ -335,14 +337,14 @@ export async function POST(request) {
                 rating: rating, // <<< Рейтинг от AI
                 source_file_path: finalSourceIdentifier,
                 status: 'pending',
-                author_twitch_nickname: authorTwitchNickname // <<< Всегда сохраняем никнейм
+                author_twitch_nickname: authorTwitchName // <<< Всегда сохраняем никнейм
             })
             .select('id')
             .single();
 
         if (insertError) throw insertError;
 
-        console.log(`[API /generate] Generated review saved with ID: ${reviewData?.id} for author: ${authorTwitchNickname} (User ID: ${authorUserId ?? 'N/A'})`);
+        console.log(`[API /generate] Generated review saved with ID: ${reviewData?.id} for author: ${authorTwitchName} (User ID: ${authorUserId ?? 'N/A'})`);
         return NextResponse.json({ message: 'Review generated and submitted for moderation.', reviewId: reviewData?.id }, { status: 201 });
 
     } catch (error) {

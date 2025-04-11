@@ -87,10 +87,30 @@ export function AuthProvider({ children }) {
 
     getInitialSession();
 
+    // <<< Начало: Логика для реферальной ссылки >>>
+    if (typeof window !== 'undefined') {
+      const urlParams = new URLSearchParams(window.location.search);
+      const referrerTwitchId = urlParams.get('ref');
+
+      if (referrerTwitchId) {
+        console.log(`[AuthContext] Найден ID реферрера в URL: ${referrerTwitchId}`);
+        try {
+          localStorage.setItem('referrerTwitchId', referrerTwitchId);
+          // Очищаем параметр из URL, чтобы он не мешался
+          const newUrl = window.location.pathname + window.location.search.replace(/[?&]ref=[^&]+/, '').replace(/^&/, '?');
+          window.history.replaceState({}, document.title, newUrl);
+          console.log('[AuthContext] ID реферрера сохранен в localStorage и удален из URL.');
+        } catch (storageError) {
+            console.error('[AuthContext] Не удалось сохранить ID реферрера в localStorage:', storageError);
+        }
+      }
+    }
+    // <<< Конец: Логика для реферальной ссылки >>>
+
     // Подписываемся на изменения состояния аутентификации
     console.log('[AuthContext] Подписка на onAuthStateChange...');
     const { data: authListener } = supabase.auth.onAuthStateChange(
-      (event, currentSession) => {
+      async (event, currentSession) => {
         if (!isMounted) return;
 
         console.log(`[AuthContext] Событие: ${event}, Сессия:`, !!currentSession);
@@ -105,9 +125,42 @@ export function AuthProvider({ children }) {
               router.push('/');
            }
         }
+        
+        // <<< Начало: Отправка реферрера при входе >>>
         if (event === 'SIGNED_IN' && currentSession) {
              console.log('[AuthContext] Пользователь вошел (событие SIGNED_IN). User ID:', currentSession.user.id);
+             const storedReferrerId = localStorage.getItem('referrerTwitchId');
+             if (storedReferrerId) {
+                 console.log(`[AuthContext] Найден сохраненный ID реферрера: ${storedReferrerId}. Отправка на бэкенд...`);
+                 try {
+                      const token = currentSession.access_token;
+                      if (!token) throw new Error('Access token не найден в сессии после SIGNED_IN');
+
+                      const response = await fetch('/api/profile/set-referrer', {
+                          method: 'POST',
+                          headers: {
+                              'Content-Type': 'application/json',
+                              'Authorization': `Bearer ${token}`
+                          },
+                          body: JSON.stringify({ referrerTwitchId: storedReferrerId })
+                      });
+
+                      if (!response.ok) {
+                           const errorData = await response.json();
+                           console.error('[AuthContext] Ошибка отправки реферрера на бэкенд:', response.status, errorData);
+                           // Не удаляем ID из localStorage, чтобы попробовать позже?
+                      } else {
+                           console.log('[AuthContext] ID реферрера успешно отправлен на бэкенд.');
+                           localStorage.removeItem('referrerTwitchId'); // <<< Удаляем после успешной отправки
+                      }
+                 } catch (fetchError) {
+                      console.error('[AuthContext] Исключение при отправке реферрера:', fetchError);
+                 }
+             } else {
+                 console.log('[AuthContext] Сохраненный ID реферрера не найден.');
+             }
         }
+        // <<< Конец: Отправка реферрера при входе >>>
       }
     );
 

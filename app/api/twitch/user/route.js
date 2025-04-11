@@ -236,40 +236,57 @@ export async function GET(request) {
                 const { data, error } = await supabaseAdmin
                     .from('user_profiles')
                     .update(dataToUpdateOrInsert)
-                    .eq('user_id', currentSupabaseUserId) // <<< Используем найденный ID
-                    .select()
+                    .eq('user_id', currentSupabaseUserId) 
+                    .select() // Выбираем обновленные данные
                     .single();
                 updatedProfileData = data;
                 dbError = error;
             } else { // Профиля нет, создаем
                  console.log(`[API /api/twitch/user] Attempting to INSERT new profile for Supabase User ${currentSupabaseUserId}...`);
+                // Добавляем базовые данные из Twitch при создании
                 const dataToInsert = {
                     ...dataToUpdateOrInsert,
                     user_id: currentSupabaseUserId,
-                    // twitch_user_id: userId, // <<< УБРАНО ОКОНЧАТЕЛЬНО
+                    // Добавляем поля, которые есть у Twitch, но могли отсутствовать в profileData
+                    twitch_login: twitchUserData.login, 
+                    twitch_display_name: twitchUserData.display_name,
+                    twitch_profile_image_url: twitchUserData.profile_image_url,
+                    description: twitchUserData.description, // Берем описание из Twitch как базовое
+                    // Убедимся, что role устанавливается при создании
+                    role: currentRole || determineRole(followersCountFromTwitch, twitchUserData.broadcaster_type), 
                 };
-                console.log(`[API /api/twitch/user] Data for INSERT:`, dataToInsert);
+                 // Удаляем ключи с undefined/null перед вставкой, чтобы не засорять базу? 
+                 // Или пусть будут null? Оставим как есть пока.
+                Object.keys(dataToInsert).forEach(key => {
+                   if (dataToInsert[key] === undefined) { // Оставим null, удалим только undefined
+                      delete dataToInsert[key]; 
+                    }
+                });
+                
+                console.log(`[API /api/twitch/user] Data prepared for INSERT:`, dataToInsert);
+
                 const { data, error } = await supabaseAdmin
                     .from('user_profiles')
                     .insert(dataToInsert)
-                    .select()
+                    .select() // Выбираем вставленные данные
                     .single();
                 updatedProfileData = data;
                 dbError = error;
             }
 
-            console.log(`[API /api/twitch/user] DB operation result: dbError =`, dbError, `, updatedProfileData =`, updatedProfileData);
-
             if (dbError) {
-                 console.error(`[API /api/twitch/user] Error during DB update/insert for ${currentSupabaseUserId}:`, dbError);
+                console.error(`[API /api/twitch/user] Database ${profileData ? 'UPDATE' : 'INSERT'} error for user ${currentSupabaseUserId}:`, dbError);
+                // Не кидаем ошибку, просто логируем. profileData останется старым (или null).
             } else if (updatedProfileData) {
-                console.log(`[API /api/twitch/user] Profile DB operation successful for ${currentSupabaseUserId}.`);
-                profileData = { ...(profileData || {}), ...updatedProfileData }; 
-                console.log(`[API /api/twitch/user] Merged profileData after DB operation:`, profileData);
+                console.log(`[API /api/twitch/user] Database ${profileData ? 'UPDATE' : 'INSERT'} successful for user ${currentSupabaseUserId}.`);
+                // <<< ВОТ ОНО, БЛЯТЬ! Присваиваем СВЕЖИЕ данные переменной profileData >>>
+                profileData = updatedProfileData; 
+            } else {
+                 console.warn(`[API /api/twitch/user] Database ${profileData ? 'UPDATE' : 'INSERT'} operation did not return data or error for user ${currentSupabaseUserId}.`);
             }
-            
-      } catch (refreshError) {
-           console.error(`[API /api/twitch/user] Error inside owner data refresh block for ${userId}:`, refreshError);
+
+      } catch (ownerUpdateError) {
+          console.error(`[API /api/twitch/user] Error during owner profile update/insert for ${userId}:`, ownerUpdateError);
       }
   } else {
       console.log(`[API /api/twitch/user] Skipping DB update/insert because isOwnerViewing is ${isOwnerViewing} or SupabaseUserID not found.`);
