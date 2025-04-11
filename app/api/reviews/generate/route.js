@@ -77,16 +77,16 @@ export async function POST(request) {
 
     try {
         const body = await request.json();
-        const { category, subcategory, itemName, sourceFilePath, sourceUrl, authorTwitchNickname } = body;
+        const { sourceFilePath, sourceUrl, authorTwitchNickname } = body;
 
-        if (!category || !itemName || !authorTwitchNickname || (!sourceFilePath && !sourceUrl)) {
-            return NextResponse.json({ error: 'Missing required fields (category, itemName, authorTwitchNickname, and either sourceFilePath or sourceUrl)' }, { status: 400 });
+        if (!authorTwitchNickname || (!sourceFilePath && !sourceUrl)) {
+            return NextResponse.json({ error: 'Missing required fields (authorTwitchNickname, and either sourceFilePath or sourceUrl)' }, { status: 400 });
         }
         if (sourceFilePath && sourceUrl) {
              return NextResponse.json({ error: 'Provide either sourceFilePath or sourceUrl, not both.' }, { status: 400 });
         }
 
-        console.log(`[API /generate] Processing request for ${itemName}. Category: ${category}. Author Nickname: ${authorTwitchNickname}`);
+        console.log(`[API /generate] Processing request for AI review. Author Nickname: ${authorTwitchNickname}`);
 
         let fileContentText = '';
         let processingSource = '';
@@ -248,7 +248,7 @@ export async function POST(request) {
         }
         // -------------------------------------------
 
-        console.log(`[API Generate Review] User ${userId} requested generation. Author: ${authorTwitchNickname} (User ID: ${authorUserId ?? 'N/A'}), Item: ${itemName}, Source: ${processingSource}`);
+        console.log(`[API Generate Review] User ${userId} requested generation. Author: ${authorTwitchNickname} (User ID: ${authorUserId ?? 'N/A'}), Source: ${processingSource}`);
 
         // 4. Формируем промпт для Gemini
         const systemPrompt = `You are a helpful assistant tasked with writing a review based on provided content (text, transcript).
@@ -329,7 +329,7 @@ export async function POST(request) {
             .insert({
                 user_id: authorUserId, // Будет null, если автор не зареган у нас
                 category: aiCategory, // <<< Используем категорию от AI
-                subcategory: aiSubcategory || subcategory || null, // <<< Приоритет AI, потом пользовательский
+                subcategory: aiSubcategory || null, // <<< Приоритет AI, потом пользовательский
                 item_name: aiItemName, // <<< Используем имя от AI
                 review_text: review_text, // <<< Текст от AI
                 rating: rating, // <<< Рейтинг от AI

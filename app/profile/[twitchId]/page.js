@@ -193,7 +193,7 @@ export default function UserProfilePage() {
         alert('Не удалось получить ваш Twitch ID для создания ссылки-приглашения.');
         return;
     }
-    const inviteUrl = `${window.location.origin}/auth?ref=${currentUserTwitchId}`;
+    const inviteUrl = `${window.location.origin}/?ref=${currentUserTwitchId}`;
     try {
       await navigator.clipboard.writeText(inviteUrl);
       alert(`Ссылка-приглашение для ${displayName} скопирована в буфер обмена!\n${inviteUrl}`);
