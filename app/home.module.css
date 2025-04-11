@@ -1,11 +1,124 @@
-.container {
+.loadingContainer {
   display: flex;
   flex-direction: column;
-  align-items: center;
   justify-content: center;
-  min-height: calc(100vh - var(--header-height, 0px) - 4rem); /* Вычитаем паддинг main */
-  text-align: center;
+  align-items: center;
+  min-height: 100vh;
+  color: #fff;
+  background: radial-gradient(ellipse at bottom, #1b2735 0%, #090a0f 100%);
+}
+
+.container {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
   padding: 2rem;
+  overflow: hidden; /* Чтобы звезды не вылезали */
+}
+
+.content {
+  z-index: 1; /* Контент поверх фона */
+  text-align: center;
+  background-color: rgba(0, 0, 0, 0.6); /* Полупрозрачный темный фон для читаемости */
+  padding: 2rem 3rem;
+  border-radius: 15px;
+  box-shadow: 0 0 20px rgba(150, 100, 255, 0.3);
+  max-width: 600px;
+}
+
+.logo {
+  margin-bottom: 2rem;
+  filter: drop-shadow(0 0 10px rgba(200, 150, 255, 0.5));
+}
+
+.loggedInContent h2,
+.loggedOutContent h2 {
+  margin-bottom: 0.5rem;
+  color: #eee;
+}
+
+.loggedInContent p,
+.loggedOutContent p {
+  margin-bottom: 1.5rem;
+  color: #ccc;
+  font-size: 1.1rem;
+}
+
+.menuButton {
+  background-color: #7e57c2; /* Фиолетовый */
+  color: white;
+  border: none;
+  padding: 12px 25px;
+  border-radius: 25px;
+  font-size: 1.1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.3s ease, transform 0.2s ease;
+  box-shadow: 0 4px 15px rgba(126, 87, 194, 0.4);
+}
+
+.menuButton:hover {
+  background-color: #673ab7;
+  transform: translateY(-2px);
+}
+
+.menuButton:active {
+    transform: translateY(0);
+    box-shadow: 0 2px 10px rgba(126, 87, 194, 0.3);
+}
+
+/* --- Starry Background --- */
+/* Adapted from https://codepen.io/WebSonick/pen/vienna */
+@keyframes move-twink-back {
+    from {background-position:0 0;}
+    to {background-position:-10000px 5000px;}
+}
+@-webkit-keyframes move-twink-back {
+    from {background-position:0 0;}
+    to {background-position:-10000px 5000px;}
+}
+
+.stars,
+.twinkling {
+  position:absolute;
+  top:0;
+  left:0;
+  right:0;
+  bottom:0;
+  width:100%;
+  height:100%;
+  display:block;
+  z-index: 0;
+}
+
+.stars {
+ background: #000 url(https://www.script-tutorials.com/demos/360/images/stars.png) repeat top center;
+}
+
+.twinkling {
+ background:transparent url(https://www.script-tutorials.com/demos/360/images/twinkling.png) repeat top center;
+ -webkit-animation:move-twink-back 200s linear infinite;
+ animation:move-twink-back 200s linear infinite;
+}
+
+/* Spinner (если нужен) */
+.spinner {
+    border: 4px solid rgba(255, 255, 255, 0.3);
+    border-radius: 50%;
+    border-top: 4px solid #fff;
+    width: 40px;
+    height: 40px;
+    -webkit-animation: spin 1s linear infinite;
+    animation: spin 1s linear infinite;
+    margin-bottom: 1rem;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
 }
 
 .container h1 {

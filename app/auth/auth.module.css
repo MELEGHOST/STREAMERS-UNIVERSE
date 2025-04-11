@@ -83,4 +83,13 @@
   background-color: hsla(from var(--accent-secondary) h s l / 0.1);
   border: 1px solid var(--accent-secondary);
   color: var(--foreground-secondary);
+}
+
+.container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh; /* Чтобы контейнер занял весь экран */
+  /* Можно добавить фон */
+  /* background: url('/path/to/your/starry-background.jpg') center center / cover no-repeat; */
 } 

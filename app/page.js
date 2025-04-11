@@ -1,78 +1,64 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import React from 'react';
 import { useRouter } from 'next/navigation';
-import { useAuth } from './contexts/AuthContext'; // Импортируем контекст
-import styles from '../styles/page.module.css'; // Используем общие стили
-import { FaTwitch } from 'react-icons/fa'; // Импортируем иконку
+import { useAuth } from './contexts/AuthContext';
+import HoldLoginButton from './components/HoldLoginButton/HoldLoginButton';
+import Image from 'next/image';
+import styles from './home.module.css'; // Используем стили для главной
 
 export default function HomePage() {
-  const { isLoading, isAuthenticated, signInWithTwitch } = useAuth();
+  const { isAuthenticated, isLoading } = useAuth();
   const router = useRouter();
-  const [isLoggingIn, setIsLoggingIn] = useState(false); // Состояние для кнопки
 
-  useEffect(() => {
-    // Если пользователь уже авторизован и загрузка контекста завершена, редирект в меню
-    if (!isLoading && isAuthenticated) {
-      console.log('[HomePage] User already authenticated, redirecting to /menu');
-      router.replace('/menu');
-    }
-  }, [isLoading, isAuthenticated, router]);
+  // Простой компонент для звездного фона
+  const StarryBackground = () => (
+      <div className={styles.stars}>
+        <div className={styles.twinkling}></div>
+      </div>
+  );
 
-  const handleLogin = async () => {
-    setIsLoggingIn(true);
-    try {
-      // Вызываем функцию входа из контекста
-      await signInWithTwitch();
-      // Редирект произойдет автоматически через Supabase/AuthContext
-    } catch (error) {
-      console.error("Login failed:", error);
-      // Можно показать сообщение об ошибке пользователю
-      alert("Ошибка входа через Twitch. Попробуйте еще раз.");
-      setIsLoggingIn(false); // Сбрасываем состояние кнопки при ошибке
-    }
-    // Не сбрасываем setIsLoggingIn(false) при успехе, т.к. произойдет редирект
-  };
-
-  // Не показываем ничего, пока идет проверка авторизации или уже идет редирект
-  if (isLoading || isAuthenticated) {
-     return (
-        <div className={styles.loadingContainer}>
-          <div className="spinner"></div>
-          <p>Загрузка...</p>
+  if (isLoading) {
+    return (
+        <div className={styles.loadingContainer}> 
+             <div className="spinner"></div>
+             <p>Загрузка Вселенной...</p>
         </div>
-      );
+    );
   }
 
-  // Показываем контент только если пользователь не авторизован
   return (
     <div className={styles.container}>
-      <main className={styles.main}>
-        <h1 className={styles.title}>
-          Добро пожаловать в <span className={styles.appName}>Streamers Universe!</span>
-        </h1>
-
-        <p className={styles.description}>
-          Ваша новая платформа для взаимодействия со стримерами, просмотра контента и участия в жизни сообщества.
-        </p>
-
-        <button 
-          onClick={handleLogin} 
-          className={`${styles.ctaButton} ${styles.twitchButton}`}
-          disabled={isLoggingIn}
-        >
-          {isLoggingIn ? (
-            <>
-              <span className="spinner button-spinner"></span> Вход...
-            </>
-          ) : (
-            <>
-              <FaTwitch className={styles.twitchIcon} />
-              <span>Войти через Twitch</span>
-            </>
-          )}
-        </button>
-      </main>
+        <StarryBackground />
+        <div className={styles.content}>
+            <Image 
+                src="/logo.png" // <<< Убедись, что лого лежит в /public/logo.png
+                alt="Streamers Universe Logo"
+                width={200} // <<< Размер лого
+                height={200}
+                className={styles.logo}
+                priority // Для LCP
+            />
+            
+            {isAuthenticated ? (
+                <div className={styles.loggedInContent}>
+                    <h2>С возвращением!</h2>
+                    <p>Готов исследовать Вселенную Стримеров?</p>
+                    <button 
+                        className={styles.menuButton} 
+                        onClick={() => router.push('/menu')}
+                    >
+                        Перейти в Меню
+                    </button>
+                </div>
+            ) : (
+                <div className={styles.loggedOutContent}>
+                    <h2>Добро пожаловать во Вселенную Стримеров!</h2>
+                    <p>Войдите, чтобы начать.</p>
+                    <HoldLoginButton />
+                 </div>
+            )}
+        </div>
     </div>
   );
 } 
