@@ -5,8 +5,15 @@ import HoldLoginButton from '../components/HoldLoginButton/HoldLoginButton';
 // import styles from './auth.module.css'; // <<< Убираем неиспользуемый импорт
 import Image from 'next/image'; // <<< Добавляем импорт Image
 import pageStyles from '../home.module.css'; // <<< Используем стили из home
+import { useAuth } from '../contexts/AuthContext'; // <<< Импортируем useAuth
 
 export default function AuthPage() {
+  // <<< Добавляем проверку isLoading >>>
+  const { isLoading } = useAuth();
+
+  // <<< Лог рендера страницы >>>
+  console.log('[AuthPage] Rendering...');
+
   // <<< Используем ту же структуру, что и HomePage >>>
   const StarryBackground = () => (
       <div className={pageStyles.stars}>
@@ -14,6 +21,17 @@ export default function AuthPage() {
       </div>
   );
 
+  // <<< Показываем лоадер, пока AuthContext загружается >>>
+  if (isLoading) {
+    return (
+        <div className={pageStyles.loadingContainer}> 
+             <div className="spinner"></div>
+             <p>Загрузка Вселенной...</p>
+        </div>
+    );
+  }
+
+  // <<< Если не isLoading, рендерим контент >>>
   return (
     <div className={pageStyles.container}> {/* Используем стили из home.module.css */} 
       <StarryBackground />
