@@ -200,7 +200,6 @@ export async function GET(request) {
       try {
             const currentSupabaseUserId = supabaseUserIdFromTwitchId; 
             
-            // Упрощаем: используем публично полученных фолловеров
             let currentFollowersCount = followersCountFromTwitch;
             console.log(`[API /api/twitch/user] Using public follower count for owner update: ${currentFollowersCount}`);
            
@@ -215,72 +214,71 @@ export async function GET(request) {
                 updated_at: new Date().toISOString(),
             };
 
-            // Удаляем ключи с undefined/null перед отправкой в базу
+            // Удаляем ключи с undefined перед отправкой в базу
             Object.keys(dataToUpdateOrInsert).forEach(key => {
-                if (dataToUpdateOrInsert[key] === undefined || dataToUpdateOrInsert[key] === null) {
-                    // Для update: если хотим обнулить поле, ставим null явно.
-                    // Если не хотим трогать поле, если значение null/undefined, то удаляем ключ.
-                    // В данном случае, если followerCount === null, мы хотим его записать.
-                    // Если role/broadcaster_type - null/undefined, возможно, тоже хотим записать.
-                    // Пока оставляем как есть, но это место для потенциального улучшения.
+                if (dataToUpdateOrInsert[key] === undefined) {
+                    delete dataToUpdateOrInsert[key];
                 }
             });
 
             console.log(`[API /api/twitch/user] Data prepared for DB operation:`, dataToUpdateOrInsert);
+            // <<< Лог: Текущее значение profileData ПЕРЕД операцией >>>
+            console.log('[API /api/twitch/user] Current profileData before DB operation:', profileData);
 
             let updatedProfileData = null;
             let dbError = null;
 
             if (profileData) { // Профиль существует, обновляем
                 console.log(`[API /api/twitch/user] Attempting to UPDATE existing profile for Supabase User ${currentSupabaseUserId}...`);
-                const { data, error } = await supabaseAdmin
+                const { data: updateResult, error: updateError } = await supabaseAdmin
                     .from('user_profiles')
                     .update(dataToUpdateOrInsert)
                     .eq('user_id', currentSupabaseUserId) 
-                    .select() // Выбираем обновленные данные
+                    .select() // <<< Убеждаемся, что select есть
                     .single();
-                updatedProfileData = data;
-                dbError = error;
+                updatedProfileData = updateResult;
+                dbError = updateError;
+                // <<< Лог: Результат UPDATE >>>
+                console.log('[API /api/twitch/user] UPDATE Result:', { updateResult, updateError });
             } else { // Профиля нет, создаем
                  console.log(`[API /api/twitch/user] Attempting to INSERT new profile for Supabase User ${currentSupabaseUserId}...`);
-                // Добавляем базовые данные из Twitch при создании
                 const dataToInsert = {
                     ...dataToUpdateOrInsert,
                     user_id: currentSupabaseUserId,
-                    // Добавляем поля, которые есть у Twitch, но могли отсутствовать в profileData
                     twitch_login: twitchUserData.login, 
                     twitch_display_name: twitchUserData.display_name,
                     twitch_profile_image_url: twitchUserData.profile_image_url,
-                    description: twitchUserData.description, // Берем описание из Twitch как базовое
-                    // Убедимся, что role устанавливается при создании
+                    description: twitchUserData.description, 
                     role: currentRole || determineRole(followersCountFromTwitch, twitchUserData.broadcaster_type), 
                 };
-                 // Удаляем ключи с undefined/null перед вставкой, чтобы не засорять базу? 
-                 // Или пусть будут null? Оставим как есть пока.
-                Object.keys(dataToInsert).forEach(key => {
-                   if (dataToInsert[key] === undefined) { // Оставим null, удалим только undefined
+                 Object.keys(dataToInsert).forEach(key => {
+                   if (dataToInsert[key] === undefined) { 
                       delete dataToInsert[key]; 
                     }
                 });
                 
                 console.log(`[API /api/twitch/user] Data prepared for INSERT:`, dataToInsert);
 
-                const { data, error } = await supabaseAdmin
+                const { data: insertResult, error: insertError } = await supabaseAdmin
                     .from('user_profiles')
                     .insert(dataToInsert)
-                    .select() // Выбираем вставленные данные
+                    .select() // <<< Убеждаемся, что select есть
                     .single();
-                updatedProfileData = data;
-                dbError = error;
+                updatedProfileData = insertResult;
+                dbError = insertError;
+                 // <<< Лог: Результат INSERT >>>
+                console.log('[API /api/twitch/user] INSERT Result:', { insertResult, insertError });
             }
 
             if (dbError) {
                 console.error(`[API /api/twitch/user] Database ${profileData ? 'UPDATE' : 'INSERT'} error for user ${currentSupabaseUserId}:`, dbError);
-                // Не кидаем ошибку, просто логируем. profileData останется старым (или null).
             } else if (updatedProfileData) {
                 console.log(`[API /api/twitch/user] Database ${profileData ? 'UPDATE' : 'INSERT'} successful for user ${currentSupabaseUserId}.`);
-                // <<< ВОТ ОНО, БЛЯТЬ! Присваиваем СВЕЖИЕ данные переменной profileData >>>
+                // <<< Лог: Значение profileData ПЕРЕД присваиванием >>>
+                console.log('[API /api/twitch/user] profileData BEFORE assignment:', profileData);
                 profileData = updatedProfileData; 
+                // <<< Лог: Значение profileData ПОСЛЕ присваивания >>>
+                console.log('[API /api/twitch/user] profileData AFTER assignment:', profileData);
             } else {
                  console.warn(`[API /api/twitch/user] Database ${profileData ? 'UPDATE' : 'INSERT'} operation did not return data or error for user ${currentSupabaseUserId}.`);
             }
@@ -297,13 +295,14 @@ export async function GET(request) {
       twitchUserData.followers_count = followersCountFromTwitch ?? twitchUserData.followers_count; 
   }
   
-  const responsePayload = {
-      twitch_user: twitchUserData,
+  // <<< Лог: Финальное значение profileData перед возвратом >>>
+  console.log(`[API /api/twitch/user] Returning final profileData:`, profileData);
+  
+  // --- Возвращаем данные ---
+  return NextResponse.json({ 
+      twitch_user: twitchUserData, 
       profile: profileData 
-  };
-
-  console.log(`[API /api/twitch/user] Successfully processed request for Twitch User ID: ${userId}. Returning payload:`, { twitch_user: { ...twitchUserData, videos: `[${videos.length} videos]` }, profile: profileData });
-  return NextResponse.json(responsePayload, { status: 200 });
+  });
 }
 
 export const dynamic = 'force-dynamic'; 

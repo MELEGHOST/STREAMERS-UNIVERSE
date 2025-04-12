@@ -303,6 +303,7 @@ const HoldLoginButton = ({ holdDuration = 1500 }) => {
   };
 
   const triggerActionOnRelease = () => {
+      console.log('[HoldButton] triggerActionOnRelease called', { isHolding }); // Лог 1
       if (!isHolding) return; 
       
       if (progressIntervalRef.current) {
@@ -315,23 +316,45 @@ const HoldLoginButton = ({ holdDuration = 1500 }) => {
       }
       
       const elapsedTime = Date.now() - startTimeRef.current;
+      console.log('[HoldButton] Release Check:', { // Лог 2
+          elapsedTime,
+          holdDurationMs,
+          conditionMet: elapsedTime >= holdDurationMs,
+          actionTriggered: actionTriggeredRef.current
+      });
+
       if (elapsedTime >= holdDurationMs && !actionTriggeredRef.current) {
-          actionTriggeredRef.current = true; // Ставим флаг ДО действия
+          actionTriggeredRef.current = true; 
+          console.log('[HoldButton] Hold condition met. isAuthenticated:', isAuthenticated); // Лог 3
 
           if (isAuthenticated) {
-              console.log('Hold complete and released! User is authenticated. Navigating to /menu...');
-              router.push('/menu');
-              resetHoldVisuals(); 
-          } else {
-              console.log('Hold complete and released! User not authenticated. Signing in...');
-              if (signInWithTwitch) {
-                  signInWithTwitch();
+              try {
+                   console.log('[HoldButton] Navigating to /menu...'); // Лог 4a
+                   router.push('/menu');
+                   resetHoldVisuals(); 
+              } catch (error) {
+                  console.error('[HoldButton] Error navigating to /menu:', error); // Лог ошибки
+                  resetHoldVisuals(); // Сбрасываем в любом случае
               }
-              setTimeout(resetHoldVisuals, 500);
+          } else {
+              try {
+                  console.log('[HoldButton] Calling signInWithTwitch...'); // Лог 4b
+                  if (signInWithTwitch) {
+                      signInWithTwitch();
+                      // Не сбрасываем визуал сразу, ждем редиректа
+                      // setTimeout(resetHoldVisuals, 500); // Можно вернуть, если редирект не всегда срабатывает
+                  } else {
+                      console.error('[HoldButton] signInWithTwitch function not found in context!');
+                      resetHoldVisuals();
+                  }
+              } catch (error) {
+                   console.error('[HoldButton] Error calling signInWithTwitch:', error); // Лог ошибки
+                   resetHoldVisuals(); // Сбрасываем в любом случае
+              }
           }
           
       } else {
-          console.log('Hold released too early or action already triggered.');
+          console.log('[HoldButton] Hold released too early or action already triggered.');
           resetHoldVisuals();
       }
   };
