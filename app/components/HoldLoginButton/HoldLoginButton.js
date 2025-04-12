@@ -3,7 +3,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import styled, { keyframes } from 'styled-components';
 import { useAuth } from '../../contexts/AuthContext';
-import { useRouter } from 'next/router';
+import { useRouter } from 'next/navigation';
 
 // --- Styled Components (твой код) --- 
 const wobble = keyframes`
