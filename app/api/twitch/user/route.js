@@ -142,19 +142,40 @@ export async function GET(request) {
       let authUser = null;
       if (listUsersError) {
            console.error(`[API /api/twitch/user] Error listing users from auth.users:`, listUsersError);
-           // Пытаемся продолжить без ID, возможно, профиль найдется по-другому? Или вернуть ошибку?
-           // Пока просто логируем и supabaseUserIdFromTwitchId останется null
       } else {
-           // Ищем нужного пользователя в полученном списке
-           authUser = allAuthUsers.find(u => u.raw_user_meta_data?.provider_id === userId);
+           // <<< ИЗМЕНЯЕМ ЛОГИКУ ПОИСКА >>>
+           console.log(`[API /api/twitch/user] Searching for user with Twitch ID ${userId} in ${allAuthUsers.length} users...`);
+           for (const u of allAuthUsers) {
+               // Логируем структуру identities для отладки (можно будет убрать)
+               // console.log(`[API /api/twitch/user] Checking user ${u.id}, identities:`, u.identities);
+               if (u.identities && Array.isArray(u.identities)) {
+                   const twitchIdentity = u.identities.find(
+                       identity => identity.provider === 'twitch' && identity.provider_id === userId
+                   );
+                   if (twitchIdentity) {
+                       console.log(`[API /api/twitch/user] Found matching Twitch identity for user ${u.id}`);
+                       authUser = u; // Нашли!
+                       break; // Выходим из цикла
+                   }
+               } else if (u.raw_user_meta_data?.provider_id === userId) {
+                   // Оставляем старую проверку как fallback (на всякий случай)
+                    console.warn(`[API /api/twitch/user] Found user ${u.id} by fallback raw_user_meta_data check.`);
+                    authUser = u;
+                    break;
+               }
+           }
+
+           // Старый поиск (закомментирован)
+           // authUser = allAuthUsers.find(u => u.raw_user_meta_data?.provider_id === userId);
+           
            if (!authUser) {
-               console.log(`[API /api/twitch/user] User with Twitch ID ${userId} not found in auth.users list.`);
+               console.log(`[API /api/twitch/user] User with Twitch ID ${userId} not found after checking identities.`);
            }
       }
 
       if (authUser) {
           supabaseUserIdFromTwitchId = authUser.id;
-          console.log(`[API /api/twitch/user] Found Supabase User ID: ${supabaseUserIdFromTwitchId} for Twitch ID ${userId}`);
+          console.log(`[API /api/twitch/user] Found Supabase User ID: ${supabaseUserIdFromTwitchId} for Twitch ID ${userId} (via identities)`);
           
           // 2. Если нашли Supabase User ID, ищем профиль в user_profiles
           const { data: profile, error: profileError } = await supabaseAdmin
