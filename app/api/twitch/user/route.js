@@ -146,8 +146,8 @@ export async function GET(request) {
            // <<< ИЗМЕНЯЕМ ЛОГИКУ ПОИСКА >>>
            console.log(`[API /api/twitch/user] Searching for user with Twitch ID ${userId} in ${allAuthUsers.length} users...`);
            for (const u of allAuthUsers) {
-               // <<< РАСКОММЕНТИРУЕМ ЛОГ >>>
-               console.log(`[API /api/twitch/user] Checking user ${u.id}, identities:`, u.identities);
+               // Логируем identities и raw_user_meta_data
+               console.log(`[API /api/twitch/user] Checking user ${u.id}. Identities:`, u.identities, "Raw User Meta:" , u.raw_user_meta_data);
                if (u.identities && Array.isArray(u.identities)) {
                    const twitchIdentity = u.identities.find(
                        identity => identity.provider === 'twitch' && identity.provider_id === userId
@@ -157,11 +157,21 @@ export async function GET(request) {
                        authUser = u; // Нашли!
                        break; // Выходим из цикла
                    }
-               } else if (u.raw_user_meta_data?.provider_id === userId) {
-                   // Оставляем старую проверку как fallback (на всякий случай)
-                    console.warn(`[API /api/twitch/user] Found user ${u.id} by fallback raw_user_meta_data check.`);
+                // <<< ИЗМЕНЯЕМ ПРОВЕРКУ FALLBACK >>>
+               } else if (u.raw_user_meta_data && u.raw_user_meta_data.provider_id === userId) { 
+                   // Проверяем конкретно raw_user_meta_data.provider_id
+                    console.warn(`[API /api/twitch/user] Found user ${u.id} by fallback raw_user_meta_data.provider_id check.`);
                     authUser = u;
                     break;
+               } else if (u.raw_user_meta_data && u.raw_user_meta_data.user_name === userId) {
+                   // <<< ДОБАВЛЯЕМ ПРОВЕРКУ raw_user_meta_data.user_name >>>
+                   // Иногда Twitch ID может быть в user_name, если login занят?
+                   console.warn(`[API /api/twitch/user] Found user ${u.id} by fallback raw_user_meta_data.user_name check.`);
+                   authUser = u;
+                   break;
+               } else {
+                    // <<< ЛОГИРУЕМ, если не нашли ни там, ни там >>>
+                    console.log(`[API /api/twitch/user] No match for user ${u.id} in identities or known raw_user_meta_data fields.`);
                }
            }
 
