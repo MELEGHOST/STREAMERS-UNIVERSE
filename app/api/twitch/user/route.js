@@ -146,8 +146,8 @@ export async function GET(request) {
            // <<< ИЗМЕНЯЕМ ЛОГИКУ ПОИСКА >>>
            console.log(`[API /api/twitch/user] Searching for user with Twitch ID ${userId} in ${allAuthUsers.length} users...`);
            for (const u of allAuthUsers) {
-               // Логируем структуру identities для отладки (можно будет убрать)
-               // console.log(`[API /api/twitch/user] Checking user ${u.id}, identities:`, u.identities);
+               // <<< РАСКОММЕНТИРУЕМ ЛОГ >>>
+               console.log(`[API /api/twitch/user] Checking user ${u.id}, identities:`, u.identities);
                if (u.identities && Array.isArray(u.identities)) {
                    const twitchIdentity = u.identities.find(
                        identity => identity.provider === 'twitch' && identity.provider_id === userId

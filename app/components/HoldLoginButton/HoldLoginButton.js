@@ -275,7 +275,6 @@ const HoldLoginButton = ({ holdDuration = 1500 }) => {
 
   const [isHolding, setIsHolding] = useState(false);
   const [holdProgress, setHoldProgress] = useState(0); 
-  const holdTimeoutRef = useRef(null);
   const progressIntervalRef = useRef(null);
   const startTimeRef = useRef(null);
   const actionTriggeredRef = useRef(false); 
@@ -289,6 +288,8 @@ const HoldLoginButton = ({ holdDuration = 1500 }) => {
     setHoldProgress(0);
     actionTriggeredRef.current = false; 
 
+    if (progressIntervalRef.current) clearInterval(progressIntervalRef.current);
+
     progressIntervalRef.current = setInterval(() => {
         const elapsedTime = Date.now() - startTimeRef.current;
         const progress = Math.min(elapsedTime / holdDurationMs, 1);
@@ -297,26 +298,21 @@ const HoldLoginButton = ({ holdDuration = 1500 }) => {
         if (progress >= 1) {
             clearInterval(progressIntervalRef.current);
             progressIntervalRef.current = null; 
-            holdTimeoutRef.current = setTimeout(resetHoldVisuals, 500); 
         }
     }, 50); 
   };
 
   const triggerActionOnRelease = () => {
-      console.log('[HoldButton] triggerActionOnRelease called', { isHolding }); // Лог 1
+      console.log('[HoldButton] triggerActionOnRelease called', { isHolding }); 
       if (!isHolding) return; 
       
       if (progressIntervalRef.current) {
           clearInterval(progressIntervalRef.current);
           progressIntervalRef.current = null;
       }
-      if (holdTimeoutRef.current) {
-            clearTimeout(holdTimeoutRef.current);
-            holdTimeoutRef.current = null;
-      }
       
       const elapsedTime = Date.now() - startTimeRef.current;
-      console.log('[HoldButton] Release Check:', { // Лог 2
+      console.log('[HoldButton] Release Check:', { 
           elapsedTime,
           holdDurationMs,
           conditionMet: elapsedTime >= holdDurationMs,
@@ -325,31 +321,30 @@ const HoldLoginButton = ({ holdDuration = 1500 }) => {
 
       if (elapsedTime >= holdDurationMs && !actionTriggeredRef.current) {
           actionTriggeredRef.current = true; 
-          console.log('[HoldButton] Hold condition met. isAuthenticated:', isAuthenticated); // Лог 3
+          console.log('[HoldButton] Hold condition met. isAuthenticated:', isAuthenticated);
 
           if (isAuthenticated) {
               try {
-                   console.log('[HoldButton] Navigating to /menu...'); // Лог 4a
+                   console.log('[HoldButton] Navigating to /menu...'); 
                    router.push('/menu');
                    resetHoldVisuals(); 
               } catch (error) {
-                  console.error('[HoldButton] Error navigating to /menu:', error); // Лог ошибки
-                  resetHoldVisuals(); // Сбрасываем в любом случае
+                  console.error('[HoldButton] Error navigating to /menu:', error); 
+                  resetHoldVisuals(); 
               }
           } else {
               try {
-                  console.log('[HoldButton] Calling signInWithTwitch...'); // Лог 4b
+                  console.log('[HoldButton] Calling signInWithTwitch...'); 
                   if (signInWithTwitch) {
                       signInWithTwitch();
-                      // Не сбрасываем визуал сразу, ждем редиректа
-                      // setTimeout(resetHoldVisuals, 500); // Можно вернуть, если редирект не всегда срабатывает
+                      resetHoldVisuals(); 
                   } else {
                       console.error('[HoldButton] signInWithTwitch function not found in context!');
                       resetHoldVisuals();
                   }
               } catch (error) {
-                   console.error('[HoldButton] Error calling signInWithTwitch:', error); // Лог ошибки
-                   resetHoldVisuals(); // Сбрасываем в любом случае
+                   console.error('[HoldButton] Error calling signInWithTwitch:', error); 
+                   resetHoldVisuals(); 
               }
           }
           
@@ -360,6 +355,7 @@ const HoldLoginButton = ({ holdDuration = 1500 }) => {
   };
 
   const resetHoldVisuals = () => {
+      console.log('[HoldButton] Resetting visuals...');
       setIsHolding(false);
       setHoldProgress(0);
       startTimeRef.current = null;
@@ -367,17 +363,12 @@ const HoldLoginButton = ({ holdDuration = 1500 }) => {
             clearInterval(progressIntervalRef.current);
             progressIntervalRef.current = null;
         }
-       if (holdTimeoutRef.current) {
-            clearTimeout(holdTimeoutRef.current);
-            holdTimeoutRef.current = null;
-        }
   };
 
   useEffect(() => {
     actionTriggeredRef.current = false;
     return () => {
        if (progressIntervalRef.current) clearInterval(progressIntervalRef.current);
-       if (holdTimeoutRef.current) clearTimeout(holdTimeoutRef.current);
     };
   }, [isAuthenticated]);
 
