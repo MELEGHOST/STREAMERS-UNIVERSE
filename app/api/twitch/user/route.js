@@ -238,87 +238,57 @@ export async function GET(request) {
             const currentRole = determineRole(currentFollowersCount, currentBroadcasterType);
             console.log(`[API /api/twitch/user] Determined role for owner ${userId}: ${currentRole}`);
             
-            const dataToUpdateOrInsert = {
+            // Данные для UPSERT
+            const dataToUpsert = {
+                user_id: currentSupabaseUserId, // Обязательно для upsert
                 twitch_follower_count: currentFollowersCount, 
                 twitch_broadcaster_type: currentBroadcasterType,
                 role: currentRole,
                 updated_at: new Date().toISOString(),
+                // Добавляем базовые данные из Twitch, если их нет в профиле (для INSERT части upsert)
+                twitch_login: profileData?.twitch_login ?? twitchUserData.login, 
+                twitch_display_name: profileData?.twitch_display_name ?? twitchUserData.display_name,
+                twitch_profile_image_url: profileData?.twitch_profile_image_url ?? twitchUserData.profile_image_url,
+                description: profileData?.description ?? twitchUserData.description, // Описание из профиля или Twitch
             };
 
-            // Удаляем ключи с undefined перед отправкой в базу
-            Object.keys(dataToUpdateOrInsert).forEach(key => {
-                if (dataToUpdateOrInsert[key] === undefined) {
-                    delete dataToUpdateOrInsert[key];
+            // Удаляем ключи с undefined
+            Object.keys(dataToUpsert).forEach(key => {
+                if (dataToUpsert[key] === undefined) {
+                    delete dataToUpsert[key];
                 }
             });
 
-            console.log(`[API /api/twitch/user] Data prepared for DB operation:`, dataToUpdateOrInsert);
-            // <<< Лог: Текущее значение profileData ПЕРЕД операцией >>>
+            console.log(`[API /api/twitch/user] Data prepared for UPSERT operation:`, dataToUpsert);
             console.log('[API /api/twitch/user] Current profileData before DB operation:', profileData);
 
-            let updatedProfileData = null;
-            let dbError = null;
+            // <<< ИСПОЛЬЗУЕМ UPSERT >>>
+            const { data: upsertResult, error: upsertError } = await supabaseAdmin
+                .from('user_profiles')
+                .upsert(dataToUpsert, { onConflict: 'user_id' }) // Указываем конфликт по user_id
+                .select() // Выбираем результат (вставленный или обновленный)
+                .single(); // Ожидаем одну строку
 
-            if (profileData) { // Профиль существует, обновляем
-                console.log(`[API /api/twitch/user] Attempting to UPDATE existing profile for Supabase User ${currentSupabaseUserId}...`);
-                const { data: updateResult, error: updateError } = await supabaseAdmin
-                    .from('user_profiles')
-                    .update(dataToUpdateOrInsert)
-                    .eq('user_id', currentSupabaseUserId) 
-                    .select() // <<< Убеждаемся, что select есть
-                    .single();
-                updatedProfileData = updateResult;
-                dbError = updateError;
-                // <<< Лог: Результат UPDATE >>>
-                console.log('[API /api/twitch/user] UPDATE Result:', { updateResult, updateError });
-            } else { // Профиля нет, создаем
-                 console.log(`[API /api/twitch/user] Attempting to INSERT new profile for Supabase User ${currentSupabaseUserId}...`);
-                const dataToInsert = {
-                    ...dataToUpdateOrInsert,
-                    user_id: currentSupabaseUserId,
-                    twitch_login: twitchUserData.login, 
-                    twitch_display_name: twitchUserData.display_name,
-                    twitch_profile_image_url: twitchUserData.profile_image_url,
-                    description: twitchUserData.description, 
-                    role: currentRole || determineRole(followersCountFromTwitch, twitchUserData.broadcaster_type), 
-                };
-                 Object.keys(dataToInsert).forEach(key => {
-                   if (dataToInsert[key] === undefined) { 
-                      delete dataToInsert[key]; 
-                    }
-                });
-                
-                console.log(`[API /api/twitch/user] Data prepared for INSERT:`, dataToInsert);
+            console.log('[API /api/twitch/user] UPSERT Result:', { upsertResult, upsertError });
 
-                const { data: insertResult, error: insertError } = await supabaseAdmin
-                    .from('user_profiles')
-                    .insert(dataToInsert)
-                    .select() // <<< Убеждаемся, что select есть
-                    .single();
-                updatedProfileData = insertResult;
-                dbError = insertError;
-                 // <<< Лог: Результат INSERT >>>
-                console.log('[API /api/twitch/user] INSERT Result:', { insertResult, insertError });
-            }
-
-            if (dbError) {
-                console.error(`[API /api/twitch/user] Database ${profileData ? 'UPDATE' : 'INSERT'} error for user ${currentSupabaseUserId}:`, dbError);
-            } else if (updatedProfileData) {
-                console.log(`[API /api/twitch/user] Database ${profileData ? 'UPDATE' : 'INSERT'} successful for user ${currentSupabaseUserId}.`);
-                // <<< Лог: Значение profileData ПЕРЕД присваиванием >>>
+            if (upsertError) {
+                console.error(`[API /api/twitch/user] Database UPSERT error for user ${currentSupabaseUserId}:`, upsertError);
+                // Не прерываем, но profileData может остаться старым/null
+            } else if (upsertResult) {
+                console.log(`[API /api/twitch/user] Database UPSERT successful for user ${currentSupabaseUserId}.`);
                 console.log('[API /api/twitch/user] profileData BEFORE assignment:', profileData);
-                profileData = updatedProfileData; 
-                // <<< Лог: Значение profileData ПОСЛЕ присваивания >>>
+                profileData = upsertResult; // Присваиваем результат upsert
                 console.log('[API /api/twitch/user] profileData AFTER assignment:', profileData);
             } else {
-                 console.warn(`[API /api/twitch/user] Database ${profileData ? 'UPDATE' : 'INSERT'} operation did not return data or error for user ${currentSupabaseUserId}.`);
+                 console.warn(`[API /api/twitch/user] Database UPSERT operation did not return data or error for user ${currentSupabaseUserId}.`);
             }
 
       } catch (ownerUpdateError) {
-          console.error(`[API /api/twitch/user] Error during owner profile update/insert for ${userId}:`, ownerUpdateError);
+          console.error(`[API /api/twitch/user] Error during owner profile upsert for ${userId}:`, ownerUpdateError);
       }
   } else {
-      console.log(`[API /api/twitch/user] Skipping DB update/insert because isOwnerViewing is ${isOwnerViewing} or SupabaseUserID not found.`);
+      // <<< Исправляем лог >>>
+      console.log(`[API /api/twitch/user] Skipping DB upsert because isOwnerViewing is ${isOwnerViewing} or SupabaseUserID not found.`);
   }
   
   // --- Финальная подготовка данных для ответа --- 
