@@ -260,11 +260,6 @@ export async function GET(request) {
                 twitch_broadcaster_type: currentBroadcasterType,
                 role: currentRole,
                 updated_at: new Date().toISOString(),
-                // Добавляем базовые данные из Twitch, если их нет в профиле (для INSERT части upsert)
-                twitch_login: profileData?.twitch_login ?? twitchUserData.login, 
-                twitch_display_name: profileData?.twitch_display_name ?? twitchUserData.display_name,
-                twitch_profile_image_url: profileData?.twitch_profile_image_url ?? twitchUserData.profile_image_url,
-                description: profileData?.description ?? twitchUserData.description, // Описание из профиля или Twitch
             };
 
             // Удаляем ключи с undefined

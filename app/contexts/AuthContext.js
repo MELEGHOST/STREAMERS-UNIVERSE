@@ -1,7 +1,7 @@
 'use client';
 
 import React, { createContext, useState, useEffect, useContext, useMemo, useCallback } from 'react';
-import { createClient } from '@supabase/supabase-js';
+import { createBrowserClient } from '@supabase/ssr';
 import { useRouter } from 'next/navigation'; // Импортируем useRouter
 
 // Создаем контекст
@@ -14,7 +14,7 @@ export function AuthProvider({ children }) {
   const [currentTheme, setCurrentTheme] = useState('dark'); // <<< Стейт темы
   const router = useRouter(); // Получаем router
 
-  // Создаем Supabase клиент один раз ИСПОЛЬЗУЯ createClient
+  // Создаем Supabase клиент один раз ИСПОЛЬЗУЯ createBrowserClient
   const supabase = useMemo(() => {
     const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
     const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
@@ -23,18 +23,9 @@ export function AuthProvider({ children }) {
         // Можно добавить состояние ошибки или вернуть заглушку клиента
         return null; 
     }
-    // Используем createClient вместо createBrowserClient
-    // Добавляем опцию persistSession: true (хотя она по умолчанию)
-    // и autoRefreshToken: true (тоже по умолчанию)
-    return createClient(url, key, {
-         auth: {
-             persistSession: true,
-             autoRefreshToken: true,
-             // detectSessionInUrl: true, // Оставляем по умолчанию (true)
-             // storage: localStorage, // Используется по умолчанию
-             // storageKey: 'supabase.auth.token' // Ключ по умолчанию
-         }
-     });
+    // <<< Используем createBrowserClient >>>
+    // Он автоматически использует куки и синхронизируется с middleware
+    return createBrowserClient(url, key);
   }, []);
 
   // <<< useEffect для загрузки темы на клиенте >>>
@@ -67,7 +58,7 @@ export function AuthProvider({ children }) {
     let isMounted = true;
 
     async function getInitialSession() {
-      console.log('[AuthContext] Attempting getInitialSession()...');
+      console.log('[AuthContext] Attempting getInitialSession() using BrowserClient...');
       try {
           const { data: sessionData, error } = await supabase.auth.getSession();
           console.log('[AuthContext] getSession() Result:', { sessionData, error }); 
