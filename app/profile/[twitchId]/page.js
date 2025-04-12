@@ -78,9 +78,26 @@ export default function UserProfilePage() {
 
   const { user, isAuthenticated, supabase, isLoading: authIsLoading } = useAuth();
   
+  // --- Debug Log: Проверка данных из useAuth ---
+  console.log('[UserProfilePage] Auth Context State:', { 
+      authIsLoading, 
+      isAuthenticated, 
+      userId: user?.id, 
+      userMeta: user?.user_metadata 
+  });
+
   // Вычисляем isOwnProfile *после* проверки authIsLoading
   const currentUserTwitchId = !authIsLoading ? user?.user_metadata?.provider_id : undefined;
   const isOwnProfile = !authIsLoading && !!currentUserTwitchId && currentUserTwitchId === profileTwitchId;
+  
+  // --- Debug Log: Проверка вычисления isOwnProfile ---
+  console.log('[UserProfilePage] isOwnProfile Calculation:', {
+      authIsLoading,
+      currentUserTwitchId,
+      profileTwitchId,
+      comparisonResult: currentUserTwitchId === profileTwitchId,
+      final_isOwnProfile: isOwnProfile
+  });
 
   // --- Получаем токен для запроса --- 
   const [authToken, setAuthToken] = useState(null);
@@ -117,8 +134,14 @@ export default function UserProfilePage() {
       }
   );
   
+  // --- Debug Log: Проверка данных от API ---
+  console.log('[UserProfilePage] SWR State:', {
+      dataIsLoading,
+      apiData,
+      apiError
+  });
+
   // --- Обработка состояния загрузки и ошибок SWR ---
-  // Добавил проверку на !profileTwitchId к состоянию загрузки
   const loadingProfile = (!profileTwitchId || authIsLoading || dataIsLoading);
   const error = apiError ? (apiError.message || "Неизвестная ошибка загрузки данных") : null;
   const profileExists = apiError ? apiError.exists !== false : !!apiData?.twitch_user;
@@ -129,16 +152,18 @@ export default function UserProfilePage() {
   const videos = apiData?.twitch_user?.videos || [];
   const isRegistered = !!profileData; 
 
-  // Добавляем лог перед рендером
+  // --- Debug Log: Финальные данные перед рендером ---
   console.log('[UserProfilePage] Final state before render:', {
       profileTwitchId,
       authIsLoading,
       currentUserTwitchId,
-      isOwnProfile,
+      isOwnProfile, // <<< Используем значение, вычисленное ранее
       dataIsLoading,
       loadingProfile,
       profileExists,
       isRegistered,
+      twitchUserDataExists: !!twitchUserData,
+      profileDataExists: !!profileData,
       error
   });
 
