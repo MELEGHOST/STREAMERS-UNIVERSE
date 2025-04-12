@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { useRouter } from 'next/navigation';
+// import { useRouter } from 'next/navigation'; // <<< Убираем неиспользуемый импорт
 import { useAuth } from './contexts/AuthContext';
 import HoldLoginButton from './components/HoldLoginButton/HoldLoginButton';
 import Image from 'next/image';
@@ -9,7 +9,7 @@ import styles from './home.module.css'; // Используем стили дл�
 
 export default function HomePage() {
   const { isAuthenticated, isLoading } = useAuth();
-  const router = useRouter();
+  // const router = useRouter(); // <<< Убираем неиспользуемую переменную
 
   // Простой компонент для звездного фона
   const StarryBackground = () => (

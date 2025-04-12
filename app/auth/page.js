@@ -2,7 +2,7 @@
 
 import React from 'react';
 import HoldLoginButton from '../components/HoldLoginButton/HoldLoginButton';
-import styles from './auth.module.css'; // Создадим стили для центрирования
+// import styles from './auth.module.css'; // <<< Убираем неиспользуемый импорт
 import Image from 'next/image'; // <<< Добавляем импорт Image
 import pageStyles from '../home.module.css'; // <<< Используем стили из home
 
