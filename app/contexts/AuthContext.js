@@ -57,32 +57,47 @@ export function AuthProvider({ children }) {
   }, []); // Зависимостей нет, т.к. работает с localStorage и body
 
   useEffect(() => {
-    // Не инициализируем, если клиент не создан (из-за отсутствия ключей)
     if (!supabase) {
         console.warn("[AuthContext] Supabase клиент не создан, инициализация прервана.");
         setLoading(false);
         return;
     }
 
-    console.log('[AuthContext] Инициализация...');
-    let isMounted = true; // Флаг для предотвращения обновлений после размонтирования
+    console.log('[AuthContext] useEffect Init...');
+    let isMounted = true;
 
     async function getInitialSession() {
-      console.log('[AuthContext] Попытка получить начальную сессию...');
-      const { data: { session: initialSession }, error } = await supabase.auth.getSession();
+      console.log('[AuthContext] Attempting getInitialSession()...');
+      try {
+          const { data: sessionData, error } = await supabase.auth.getSession();
+          console.log('[AuthContext] getSession() Result:', { sessionData, error }); 
 
-      if (!isMounted) return; // Не обновляем, если компонент размонтирован
+          if (!isMounted) return;
 
-      if (error) {
-        console.error('[AuthContext] Ошибка при getSession:', error.message);
-      } else if (initialSession) {
-        console.log('[AuthContext] Начальная сессия найдена, User ID:', initialSession.user.id);
-        setUser(initialSession.user);
-        setSession(initialSession);
-      } else {
-        console.log('[AuthContext] Начальная сессия не найдена.');
+          if (error) {
+            console.error('[AuthContext] Error in getSession():', error.message);
+          } else if (sessionData?.session) {
+            const initialSession = sessionData.session;
+            console.log('[AuthContext] Initial session found via getSession(), User ID:', initialSession.user.id);
+            console.log('[AuthContext] Setting user and session from getSession()');
+            setUser(initialSession.user);
+            setSession(initialSession);
+          } else {
+            console.log('[AuthContext] No initial session found via getSession().');
+             if (user || session) {
+                 console.log('[AuthContext] Clearing existing user/session state because getSession() returned null.');
+                 setUser(null);
+                 setSession(null);
+             }
+          }
+      } catch (catchError) {
+           console.error('[AuthContext] Exception during getInitialSession():', catchError);
+      } finally {
+          if (isMounted) {
+              console.log('[AuthContext] Setting loading = false after getInitialSession attempt.');
+              setLoading(false);
+          }
       }
-      setLoading(false);
     }
 
     getInitialSession();
@@ -108,33 +123,66 @@ export function AuthProvider({ children }) {
     // <<< Конец: Логика для реферальной ссылки >>>
 
     // Подписываемся на изменения состояния аутентификации
-    console.log('[AuthContext] Подписка на onAuthStateChange...');
+    console.log('[AuthContext] Subscribing to onAuthStateChange...');
     const { data: authListener } = supabase.auth.onAuthStateChange(
       async (event, currentSession) => {
-        if (!isMounted) return;
+        console.log(`[AuthContext] onAuthStateChange Event: ${event}. Session present: ${!!currentSession}`);
+        if (currentSession) {
+            console.log(`[AuthContext] onAuthStateChange Session User ID: ${currentSession.user?.id}, Expires at: ${currentSession.expires_at ? new Date(currentSession.expires_at * 1000) : 'N/A'}`);
+        }
 
-        console.log(`[AuthContext] Событие: ${event}, Сессия:`, !!currentSession);
+        if (!isMounted) {
+            console.log('[AuthContext] onAuthStateChange fired but component unmounted. Ignoring.');
+            return;
+        }
+
+        console.log('[AuthContext] Updating state based on onAuthStateChange...');
         setSession(currentSession);
         setUser(currentSession?.user ?? null);
-        setLoading(false); 
 
         if (event === 'SIGNED_OUT') {
-          console.log('[AuthContext] Пользователь вышел. Очистка состояния.');
+          console.log('[AuthContext] User signed out. Clearing state and redirecting.');
+          setUser(null);
+          setSession(null);
           if (typeof window !== 'undefined' && window.location.pathname !== '/') { 
-              console.log('[AuthContext] Перенаправление на / после выхода.');
+              console.log('[AuthContext] Redirecting to / after sign out.');
               router.push('/');
            }
         }
         
-        // <<< Начало: Отправка реферрера при входе >>>
         if (event === 'SIGNED_IN' && currentSession) {
-             console.log('[AuthContext] Пользователь вошел (событие SIGNED_IN). User ID:', currentSession.user.id);
+             const userId = currentSession.user.id;
+             const userTwitchId = currentSession.user.user_metadata?.provider_id;
+             console.log(`[AuthContext] Событие SIGNED_IN. User ID: ${userId}, Twitch ID: ${userTwitchId}`);
+             
+             // 1. Гарантируем создание/обновление профиля фоновым запросом
+             if (userTwitchId && currentSession.access_token) {
+                 console.log(`[AuthContext] Запускаем фоновый запрос к /api/twitch/user для ${userTwitchId} для гарантии создания/обновления профиля...`);
+                 try {
+                      await fetch(`/api/twitch/user?userId=${userTwitchId}&fetchProfile=true`, { // fetchProfile=true, чтобы сработал upsert
+                          method: 'GET',
+                          headers: {
+                              'Authorization': `Bearer ${currentSession.access_token}`
+                          }
+                      });
+                      // Не проверяем ответ, просто запускаем
+                      console.log(`[AuthContext] Фоновый запрос к /api/twitch/user завершен.`);
+                 } catch (profileFetchError) {
+                      console.error(`[AuthContext] Ошибка фонового запроса к /api/twitch/user:`, profileFetchError);
+                      // Продолжаем попытку установить реферрера
+                 }
+             }
+
+             // 2. Проверяем и отправляем реферрера
              const storedReferrerId = localStorage.getItem('referrerTwitchId');
              if (storedReferrerId) {
-                 console.log(`[AuthContext] Найден сохраненный ID реферрера: ${storedReferrerId}. Отправка на бэкенд...`);
+                 console.log(`[AuthContext] Найден сохраненный ID реферрера: ${storedReferrerId}. Попытка отправки на бэкенд...`);
                  try {
                       const token = currentSession.access_token;
                       if (!token) throw new Error('Access token не найден в сессии после SIGNED_IN');
+                      
+                      // <<< Лог перед fetch >>>
+                      console.log(`[AuthContext] Отправка POST на /api/profile/set-referrer. Body:`, { referrerTwitchId: storedReferrerId });
 
                       const response = await fetch('/api/profile/set-referrer', {
                           method: 'POST',
@@ -145,13 +193,14 @@ export function AuthProvider({ children }) {
                           body: JSON.stringify({ referrerTwitchId: storedReferrerId })
                       });
 
+                      const responseData = await response.json(); // <<< Читаем ответ
+                      console.log(`[AuthContext] Ответ от /api/profile/set-referrer:`, { status: response.status, data: responseData }); // <<< Лог ответа
+
                       if (!response.ok) {
-                           const errorData = await response.json();
-                           console.error('[AuthContext] Ошибка отправки реферрера на бэкенд:', response.status, errorData);
-                           // Не удаляем ID из localStorage, чтобы попробовать позже?
+                           console.error('[AuthContext] Ошибка отправки реферрера на бэкенд:', response.status, responseData);
                       } else {
-                           console.log('[AuthContext] ID реферрера успешно отправлен на бэкенд.');
-                           localStorage.removeItem('referrerTwitchId'); // <<< Удаляем после успешной отправки
+                           console.log('[AuthContext] ID реферрера успешно обработан бэкендом.');
+                           localStorage.removeItem('referrerTwitchId');
                       }
                  } catch (fetchError) {
                       console.error('[AuthContext] Исключение при отправке реферрера:', fetchError);
@@ -160,7 +209,16 @@ export function AuthProvider({ children }) {
                  console.log('[AuthContext] Сохраненный ID реферрера не найден.');
              }
         }
-        // <<< Конец: Отправка реферрера при входе >>>
+        if (event === 'TOKEN_REFRESHED') {
+             console.log('[AuthContext] Token refreshed successfully.', { newSession: currentSession });
+         } 
+         if (event === 'INITIAL_SESSION') {
+              console.log('[AuthContext] INITIAL_SESSION event received.', { session: currentSession });
+              if (loading) {
+                   console.log('[AuthContext] Setting loading = false after INITIAL_SESSION.');
+                   setLoading(false);
+              }
+         }
       }
     );
 

@@ -15,31 +15,37 @@ const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey, {
 });
 
 export async function POST(request) {
+    console.log('[API /set-referrer] Received POST request');
     const token = request.headers.get('Authorization')?.split(' ')[1];
     const verifiedToken = await verifyJwt(token);
 
     if (!verifiedToken) {
+        console.error('[API /set-referrer] Unauthorized: No valid token');
         return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
-    // ID текущего пользователя, который только что залогинился
+    
     const currentUserId = verifiedToken.sub; 
+    console.log(`[API /set-referrer] Authenticated user ID: ${currentUserId}`);
 
     try {
         const body = await request.json();
         const { referrerTwitchId } = body;
+        console.log('[API /set-referrer] Request body:', body);
 
         if (!referrerTwitchId) {
+            console.error('[API /set-referrer] Bad Request: Missing referrerTwitchId');
             return NextResponse.json({ error: 'Missing referrerTwitchId in request body' }, { status: 400 });
         }
         
-        // Проверяем, что referrerTwitchId - это числовой ID
         if (!/^[0-9]+$/.test(referrerTwitchId)) {
+             console.error(`[API /set-referrer] Bad Request: Invalid referrerTwitchId format: ${referrerTwitchId}`);
              return NextResponse.json({ error: 'Invalid referrerTwitchId format' }, { status: 400 });
         }
 
-        console.log(`[API /set-referrer] User ${currentUserId} is setting referrer Twitch ID to: ${referrerTwitchId}`);
+        console.log(`[API /set-referrer] User ${currentUserId} attempting to set referrer Twitch ID to: ${referrerTwitchId}`);
 
         // 1. Получаем текущий профиль пользователя
+        console.log(`[API /set-referrer] Fetching profile for user ${currentUserId}...`);
         const { data: currentProfile, error: fetchError } = await supabaseAdmin
             .from('user_profiles')
             .select('referred_by_twitch_id')
@@ -52,26 +58,27 @@ export async function POST(request) {
         }
 
         if (!currentProfile) {
-             console.warn(`[API /set-referrer] Profile not found for user ${currentUserId}. Cannot set referrer.`);
-            // Возможно, профиль еще не создан? Это странно, если пользователь только что вошел.
-            // Можно попробовать создать профиль здесь, но лучше, чтобы он создавался при первом заходе на страницу профиля.
-            return NextResponse.json({ error: 'User profile not found' }, { status: 404 });
+             console.error(`[API /set-referrer] Profile not found for user ${currentUserId} in user_profiles table. Cannot set referrer.`);
+            return NextResponse.json({ error: 'User profile not found. Cannot set referrer.' }, { status: 404 });
         }
+        
+        console.log(`[API /set-referrer] Profile fetched for user ${currentUserId}. Current referrer:`, currentProfile.referred_by_twitch_id);
 
         // 2. Проверяем, не установлен ли реферрер уже
         if (currentProfile.referred_by_twitch_id) {
-            console.log(`[API /set-referrer] Referrer ID already set for user ${currentUserId} to ${currentProfile.referred_by_twitch_id}. Skipping update.`);
+            console.log(`[API /set-referrer] Referrer ID already set for user ${currentUserId}. Skipping update.`);
             return NextResponse.json({ message: 'Referrer already set' }, { status: 200 });
         }
 
         // 3. Обновляем профиль, устанавливая реферрера
+        console.log(`[API /set-referrer] Updating profile for user ${currentUserId} with referrer ${referrerTwitchId}...`);
         const { error: updateError } = await supabaseAdmin
             .from('user_profiles')
             .update({ referred_by_twitch_id: referrerTwitchId })
             .eq('user_id', currentUserId);
 
         if (updateError) {
-            console.error(`[API /set-referrer] Error updating profile for user ${currentUserId} with referrer ${referrerTwitchId}:`, updateError);
+            console.error(`[API /set-referrer] Error updating profile for user ${currentUserId}:`, updateError);
             return NextResponse.json({ error: 'Failed to update profile with referrer ID' }, { status: 500 });
         }
 
