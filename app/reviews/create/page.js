@@ -1,14 +1,13 @@
 "use client";
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@supabase/supabase-js';
 import Select from 'react-select';
-import { useUser } from '../../../context/UserContext';
-import Button from '../../../components/ui/Button';
+import { useAuth } from '../../contexts/AuthContext';
+import Button from '../../components/ui/Button';
 import { categories, movieGenres } from '../categories';
 import styles from './create-review.module.css';
-import useTelegram from '../../../hooks/useTelegram';
 
 // Стили для react-select, чтобы они соответствовали теме
 const reactSelectStyles = (themeParams) => ({
@@ -87,15 +86,30 @@ const reactSelectStyles = (themeParams) => ({
   }),
 });
 
-
 export default function CreateReviewPage() {
     const supabase = createClient(
         process.env.NEXT_PUBLIC_SUPABASE_URL,
         process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
     );
     const router = useRouter();
-    const { user } = useUser();
-    const { tg, themeParams, user: tgUser } = useTelegram();
+    const { user, isLoading: authLoading, isAuthenticated, currentTheme } = useAuth();
+
+    const themeParams = useMemo(() => {
+        const isDark = currentTheme === 'dark';
+        return {
+            bg_color: isDark ? '#1a1a1a' : '#ffffff',
+            text_color: isDark ? '#ffffff' : '#000000',
+            hint_color: isDark ? '#aaaaaa' : '#777777',
+            link_color: isDark ? '#8774e1' : '#007bff',
+            button_color: isDark ? '#8774e1' : '#007bff',
+            button_text_color: '#ffffff',
+            secondary_bg_color: isDark ? '#2c2c2c' : '#f8f9fa',
+            destructive_text_color: isDark ? '#ff6b6b' : '#dc3545',
+            'button-rgb': isDark ? '135, 116, 225' : '0, 123, 255',
+            'destructive-rgb': isDark ? '255, 107, 107' : '220, 53, 69',
+            'accent-text-color': isDark ? '#624fad' : '#0056b3',
+        };
+    }, [currentTheme]);
 
     const [category, setCategory] = useState('');
     const [subcategory, setSubcategory] = useState('');
@@ -115,45 +129,10 @@ export default function CreateReviewPage() {
     const isMovieOrSeries = category === 'Фильмы' || category === 'Сериалы';
 
     useEffect(() => {
-        if (!user) {
-            // Можно добавить редирект на логин, если пользователь не авторизован
-            // router.push('/auth');
+        if (!authLoading && !isAuthenticated) {
             console.log("Пользователь не авторизован, редирект или сообщение");
         }
-    }, [user, router]);
-
-    useEffect(() => {
-        if (tg) {
-            tg.BackButton.show();
-            tg.BackButton.onClick(() => router.push('/menu'));
-
-            // Настраиваем MainButton
-            tg.MainButton.setText('Опубликовать отзыв');
-            tg.MainButton.hide(); // Сначала скрыта
-
-            // Показываем кнопку, только если форма валидна (хотя бы что-то заполнено)
-            // Простая проверка, можно усложнить
-            if (category && title && text && rating > 0 && (!isMovieOrSeries || selectedGenres.length > 0 || subcategory)) {
-                tg.MainButton.show();
-            } else {
-                tg.MainButton.hide();
-            }
-
-            // Устанавливаем обработчик
-            const mainButtonClickHandler = () => {
-                handleSubmit();
-            };
-            tg.MainButton.onClick(mainButtonClickHandler);
-
-            // Очистка при размонтировании
-            return () => {
-                tg.BackButton.offClick(() => router.push('/menu'));
-                tg.BackButton.hide();
-                tg.MainButton.offClick(mainButtonClickHandler);
-                tg.MainButton.hide();
-            };
-        }
-    }, [tg, router, category, title, text, rating, isMovieOrSeries, selectedGenres, subcategory, handleSubmit]); // Добавляем handleSubmit в зависимости
+    }, [authLoading, isAuthenticated, router]);
 
     const handleRating = (rate) => {
         setRating(rate);
@@ -168,7 +147,7 @@ export default function CreateReviewPage() {
                 setImagePreview(reader.result);
             };
             reader.readAsDataURL(file);
-            setImageUrl(''); // Сбрасываем URL, если выбрали файл
+            setImageUrl('');
         }
     };
 
@@ -176,10 +155,9 @@ export default function CreateReviewPage() {
         const url = e.target.value;
         setImageUrl(url);
         if (url) {
-            setImagePreview(url); // Показываем превью по URL
-            setImageFile(null); // Сбрасываем файл, если ввели URL
-        }
-         else {
+            setImagePreview(url);
+            setImageFile(null);
+        } else {
             setImagePreview(null);
         }
     };
@@ -209,7 +187,6 @@ export default function CreateReviewPage() {
 
             const data = await response.json();
 
-            // Аккуратно обновляем поля, только если они пришли от AI
             if (data.text) setText(data.text);
             if (data.rating) setRating(parseInt(data.rating, 10) || 0);
             if (data.age_rating) setAgeRating(data.age_rating);
@@ -219,7 +196,6 @@ export default function CreateReviewPage() {
                 setImageFile(null);
             }
             if (isMovieOrSeries && data.genres && Array.isArray(data.genres)) {
-                // Преобразуем строки жанров в формат { value: genre, label: genre }
                 const genreOptions = data.genres
                     .map(genre => genre.trim())
                     .filter(genre => movieGenres.some(g => g.value === genre))
@@ -241,7 +217,6 @@ export default function CreateReviewPage() {
         }
     };
 
-    // Оборачиваем handleSubmit в useCallback
     const handleSubmit = useCallback(async () => {
         if (!user) {
             setError('Необходимо авторизоваться для создания отзыва.');
@@ -264,19 +239,17 @@ export default function CreateReviewPage() {
         setError('');
         setSuccessMessage('');
 
-        let uploadedImageUrl = imageUrl; // Используем URL по умолчанию
+        let uploadedImageUrl = imageUrl;
 
-        // 1. Загрузка изображения, если выбран файл
         if (imageFile) {
             const filePath = `reviews/${user.id}/${Date.now()}_${imageFile.name}`;
             try {
                 const { data: uploadData, error: uploadError } = await supabase.storage
-                    .from('images') // Убедитесь, что бакет 'images' существует и доступен
+                    .from('images')
                     .upload(filePath, imageFile);
 
                 if (uploadError) {
                     console.error('Ошибка Supabase Storage Upload:', uploadError);
-                    // Добавим более подробный вывод ошибки
                     if (uploadError.message.includes('Bucket not found')) {
                          setError('Ошибка: Хранилище изображений (bucket \'images\') не найдено. Обратитесь к администратору.');
                     } else if (uploadError.message.includes('exceeds the maximum allowed size')) {
@@ -290,25 +263,21 @@ export default function CreateReviewPage() {
                     return;
                 }
 
-                // Получаем публичный URL загруженного файла
                 const { data: publicUrlData, error: urlError } = supabase.storage
                     .from('images')
                     .getPublicUrl(filePath);
 
                 if (urlError) {
                     console.error("Ошибка получения public URL:", urlError);
-                    // Загрузка прошла, но URL не получен. Можно использовать path,
-                    // но лучше показать предупреждение.
                     setError('Изображение загружено, но не удалось получить публичную ссылку. Отзыв будет без картинки.');
-                    uploadedImageUrl = null; // Явно обнуляем
+                    uploadedImageUrl = null;
                 } else {
                     uploadedImageUrl = publicUrlData.publicUrl;
-                    setImageUrl(uploadedImageUrl); // Обновляем состояние для отображения
+                    setImageUrl(uploadedImageUrl);
                     console.log("Изображение загружено, URL:", uploadedImageUrl);
                 }
 
             } catch (uploadError) {
-                // Этот catch может сработать на другие ошибки, не связанные с Supabase напрямую
                 console.error('Непредвиденная ошибка загрузки изображения:', uploadError);
                 setError(`Не удалось загрузить изображение: ${uploadError.message}`);
                 setIsSubmitting(false);
@@ -316,17 +285,16 @@ export default function CreateReviewPage() {
             }
         }
 
-        // 2. Создание ревью в базе данных
         const reviewData = {
             author_id: user.id,
             category,
             title,
             text,
             rating,
-            image_url: uploadedImageUrl, // Используем загруженный или введенный URL
-            age_rating: ageRating || null, // Отправляем null, если пусто
+            image_url: uploadedImageUrl,
+            age_rating: ageRating || null,
             ...(isMovieOrSeries
-                ? { genres: selectedGenres.map(g => g.value) } // Отправляем массив строк жанров
+                ? { genres: selectedGenres.map(g => g.value) }
                 : { subcategory: subcategory })
         };
 
@@ -334,14 +302,13 @@ export default function CreateReviewPage() {
             const { data, error: dbError } = await supabase
                 .from('reviews')
                 .insert(reviewData)
-                .select(); // select() чтобы получить созданную запись
+                .select();
 
             if (dbError) {
                 throw dbError;
             }
 
             setSuccessMessage('Отзыв успешно создан!');
-            // Очистка формы или редирект
             setCategory('');
             setSubcategory('');
             setSelectedGenres([]);
@@ -353,34 +320,29 @@ export default function CreateReviewPage() {
             setImageFile(null);
             setImagePreview(null);
 
-            tg?.HapticFeedback.notificationOccurred('success');
-            // Можно добавить редирект на страницу отзыва или в меню
-            // router.push(`/reviews/${data[0].id}`);
             setTimeout(() => {
                 setSuccessMessage('');
-                router.push('/menu'); // Возвращаемся в меню после успеха
+                router.push('/menu');
             }, 2000);
 
         } catch (dbError) {
             console.error('Ошибка сохранения отзыва:', dbError);
             setError(`Не удалось сохранить отзыв: ${dbError.message}`);
-            tg?.HapticFeedback.notificationOccurred('error');
         } finally {
             setIsSubmitting(false);
         }
-    }, [user, category, title, text, rating, subcategory, selectedGenres, ageRating, imageUrl, imageFile, isMovieOrSeries, supabase, router, tg]); // Добавляем зависимости useCallback
-
+    }, [user, category, title, text, rating, subcategory, selectedGenres, ageRating, imageUrl, imageFile, isMovieOrSeries, supabase, router, currentTheme]);
 
     const genreOptions = movieGenres.map(genre => ({ value: genre, label: genre }));
 
+    const selectStyles = reactSelectStyles(themeParams);
+
     return (
         <div className={styles.container} style={{ backgroundColor: themeParams.bg_color, color: themeParams.text_color }}>
-            {/* <h1 className={styles.title}>Создать новый отзыв</h1> */} {/* Заголовок обычно не нужен в Mini App */} 
-
             {error && <p className={styles.errorMessage}>{error}</p>}
             {successMessage && <p className={styles.successMessage}>{successMessage}</p>}
 
-            <form className={styles.form} onSubmit={(e) => e.preventDefault()}> {/* Предотвращаем стандартную отправку */} 
+            <form className={styles.form} onSubmit={(e) => e.preventDefault()}>
                 <div className={styles.formGroup}>
                     <label htmlFor="category" className={styles.label}>Категория *</label>
                     <select
@@ -388,13 +350,12 @@ export default function CreateReviewPage() {
                         value={category}
                         onChange={(e) => {
                             setCategory(e.target.value);
-                            // Сбрасываем подкатегорию/жанры при смене категории
                             setSubcategory('');
                             setSelectedGenres([]);
                         }}
                         className={styles.selectInput}
                         required
-                        disabled={isSubmitting}
+                        disabled={isSubmitting || authLoading}
                     >
                         <option value="">Выберите категорию</option>
                         {categories.map((cat) => (
@@ -403,7 +364,6 @@ export default function CreateReviewPage() {
                     </select>
                 </div>
 
-                {/* Условное отображение Жанры / Подкатегория */}
                 {isMovieOrSeries ? (
                     <div className={styles.formGroup}>
                         <label htmlFor="genres" className={styles.label}>Жанры *</label>
@@ -414,10 +374,10 @@ export default function CreateReviewPage() {
                             value={selectedGenres}
                             onChange={setSelectedGenres}
                             placeholder="Выберите жанры..."
-                            className={`${styles.reactSelectContainer} react-select-container`} // Добавляем класс для стилей
-                            styles={reactSelectStyles(themeParams)}
+                            className={`${styles.reactSelectContainer} react-select-container`}
+                            styles={selectStyles}
                             required
-                            isDisabled={isSubmitting}
+                            isDisabled={isSubmitting || authLoading}
                         />
                     </div>
                 ) : category ? (
@@ -431,7 +391,7 @@ export default function CreateReviewPage() {
                             className={styles.inputField}
                             placeholder="Например, RPG, Шутер, Поп-музыка..."
                             required
-                            disabled={isSubmitting}
+                            disabled={isSubmitting || authLoading}
                         />
                     </div>
                 ) : null}
@@ -446,16 +406,15 @@ export default function CreateReviewPage() {
                         className={styles.inputField}
                         placeholder="Название фильма, игры, книги..."
                         required
-                        disabled={isSubmitting}
+                        disabled={isSubmitting || authLoading}
                     />
                 </div>
 
-                {/* Кнопка AI */}
                 {category && title && (
                     <div className={styles.aiButtonGroup}>
                          <Button
                             onClick={handleAiFill}
-                            disabled={isSubmitting || !title}
+                            disabled={isSubmitting || !title || authLoading}
                             variant="secondary"
                             className={styles.aiButton}
                         >
@@ -473,7 +432,7 @@ export default function CreateReviewPage() {
                         className={styles.textareaField}
                         placeholder="Ваши впечатления..."
                         required
-                        disabled={isSubmitting}
+                        disabled={isSubmitting || authLoading}
                     />
                 </div>
 
@@ -507,7 +466,7 @@ export default function CreateReviewPage() {
                         onChange={(e) => setAgeRating(e.target.value)}
                         className={styles.inputField}
                         placeholder="Например, 18+, PG-13, 0+"
-                        disabled={isSubmitting}
+                        disabled={isSubmitting || authLoading}
                     />
                 </div>
 
@@ -520,7 +479,7 @@ export default function CreateReviewPage() {
                         onChange={handleImageUrlChange}
                         className={styles.inputField}
                         placeholder="https://example.com/image.jpg"
-                        disabled={isSubmitting}
+                        disabled={isSubmitting || authLoading}
                     />
                 </div>
 
@@ -531,8 +490,8 @@ export default function CreateReviewPage() {
                         id="imageFile"
                         accept="image/*"
                         onChange={handleImageChange}
-                        className={styles.fileInput} // Используем базовый стиль или кастомный
-                        disabled={isSubmitting}
+                        className={styles.fileInput}
+                        disabled={isSubmitting || authLoading}
                     />
                      {imagePreview && (
                         <div className={styles.imagePreviewContainer}>
@@ -541,16 +500,17 @@ export default function CreateReviewPage() {
                     )}
                 </div>
 
-
-                {/* Кнопки управления теперь внизу или через MainButton Telegram */}
-                 {/* <div className={styles.buttonGroup}>
-                   <Button onClick={() => router.push('/menu')} variant="secondary" disabled={isSubmitting}>
+                <div className={styles.buttonGroup}>
+                   <Button onClick={() => router.push('/menu')} variant="secondary" disabled={isSubmitting || authLoading}>
                         Назад в меню
                     </Button>
-                   <Button type="submit" onClick={handleSubmit} disabled={isSubmitting || !category || !title || !text || rating === 0 || (isMovieOrSeries && selectedGenres.length === 0) || (!isMovieOrSeries && !subcategory)}>
+                   <Button
+                       onClick={handleSubmit}
+                       disabled={isSubmitting || authLoading || !category || !title || !text || rating === 0 || (isMovieOrSeries && selectedGenres.length === 0) || (!isMovieOrSeries && !subcategory)}
+                   >
                         {isSubmitting ? 'Публикация...' : 'Опубликовать'}
                     </Button>
-                </div> */} 
+                </div>
 
             </form>
         </div>
