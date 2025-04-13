@@ -10,16 +10,16 @@ import { reviewCategories, movieGenres } from '../categories';
 import styles from './create-review.module.css';
 
 // Стили для react-select, чтобы они соответствовали теме
-const reactSelectStyles = (themeParams) => ({
+const reactSelectStyles = (isDark) => ({
   control: (provided) => ({
     ...provided,
-    backgroundColor: 'var(--tg-theme-secondary-bg-color)',
-    borderColor: 'var(--tg-theme-hint-color)',
+    backgroundColor: isDark ? '#2c2c2c' : '#f8f9fa',
+    borderColor: isDark ? '#aaaaaa' : '#777777',
     borderRadius: '8px',
     minHeight: '48px',
     boxShadow: 'none',
     '&:hover': {
-      borderColor: 'var(--tg-theme-button-color)',
+      borderColor: isDark ? '#8774e1' : '#007bff',
     },
   }),
   valueContainer: (provided) => ({
@@ -28,59 +28,59 @@ const reactSelectStyles = (themeParams) => ({
   }),
   placeholder: (provided) => ({
     ...provided,
-    color: 'var(--tg-theme-hint-color)',
+    color: isDark ? '#aaaaaa' : '#777777',
     margin: 0,
     padding: 0,
   }),
   input: (provided) => ({
     ...provided,
-    color: 'var(--tg-theme-text-color)',
+    color: isDark ? '#ffffff' : '#000000',
     margin: 0,
     padding: 0,
   }),
   singleValue: (provided) => ({
     ...provided,
-    color: 'var(--tg-theme-text-color)',
+    color: isDark ? '#ffffff' : '#000000',
   }),
   menu: (provided) => ({
     ...provided,
-    backgroundColor: 'var(--tg-theme-secondary-bg-color)',
-    border: '1px solid var(--tg-theme-hint-color)',
+    backgroundColor: isDark ? '#2c2c2c' : '#f8f9fa',
+    border: `1px solid ${isDark ? '#aaaaaa' : '#777777'}`,
     borderRadius: '8px',
     zIndex: 10,
   }),
   option: (provided, state) => ({
     ...provided,
     backgroundColor: state.isFocused
-      ? 'var(--tg-theme-button-color)'
+      ? (isDark ? '#8774e1' : '#007bff')
       : state.isSelected
-      ? 'var(--tg-theme-accent-text-color)'
-      : 'var(--tg-theme-secondary-bg-color)',
+      ? (isDark ? '#624fad' : '#0056b3')
+      : (isDark ? '#2c2c2c' : '#f8f9fa'),
     color: state.isFocused || state.isSelected
-      ? 'var(--tg-theme-button-text-color)'
-      : 'var(--tg-theme-text-color)',
+      ? '#ffffff'
+      : (isDark ? '#ffffff' : '#000000'),
     cursor: 'pointer',
     '&:active': {
-        backgroundColor: 'var(--tg-theme-accent-text-color)',
+        backgroundColor: isDark ? '#624fad' : '#0056b3',
     }
   }),
   multiValue: (provided) => ({
     ...provided,
-    backgroundColor: 'var(--tg-theme-accent-text-color)',
+    backgroundColor: isDark ? '#624fad' : '#0056b3',
     borderRadius: '4px',
   }),
   multiValueLabel: (provided) => ({
     ...provided,
-    color: 'var(--tg-theme-button-text-color)',
+    color: '#ffffff',
     padding: '2px 6px',
   }),
   multiValueRemove: (provided) => ({
     ...provided,
-    color: 'var(--tg-theme-button-text-color)',
+    color: '#ffffff',
     cursor: 'pointer',
     borderRadius: '0 4px 4px 0',
     '&:hover': {
-      backgroundColor: 'var(--tg-theme-destructive-text-color)',
+      backgroundColor: isDark ? '#ff6b6b' : '#dc3545',
       color: 'white',
     },
   }),
@@ -93,23 +93,6 @@ export default function CreateReviewPage() {
     );
     const router = useRouter();
     const { user, isLoading: authLoading, isAuthenticated, currentTheme } = useAuth();
-
-    const themeParams = useMemo(() => {
-        const isDark = currentTheme === 'dark';
-        return {
-            bg_color: isDark ? '#1a1a1a' : '#ffffff',
-            text_color: isDark ? '#ffffff' : '#000000',
-            hint_color: isDark ? '#aaaaaa' : '#777777',
-            link_color: isDark ? '#8774e1' : '#007bff',
-            button_color: isDark ? '#8774e1' : '#007bff',
-            button_text_color: '#ffffff',
-            secondary_bg_color: isDark ? '#2c2c2c' : '#f8f9fa',
-            destructive_text_color: isDark ? '#ff6b6b' : '#dc3545',
-            'button-rgb': isDark ? '135, 116, 225' : '0, 123, 255',
-            'destructive-rgb': isDark ? '255, 107, 107' : '220, 53, 69',
-            'accent-text-color': isDark ? '#624fad' : '#0056b3',
-        };
-    }, [currentTheme]);
 
     const [category, setCategory] = useState('');
     const [subcategory, setSubcategory] = useState('');
@@ -335,10 +318,10 @@ export default function CreateReviewPage() {
 
     const categoryOptions = Object.keys(reviewCategories).map(cat => ({ value: cat, label: cat }));
 
-    const selectStyles = reactSelectStyles(themeParams);
+    const selectStyles = useMemo(() => reactSelectStyles(currentTheme === 'dark'), [currentTheme]);
 
     return (
-        <div className={styles.container} style={{ backgroundColor: themeParams.bg_color, color: themeParams.text_color }}>
+        <div className={styles.container}>
             {error && <p className={styles.errorMessage}>{error}</p>}
             {successMessage && <p className={styles.successMessage}>{successMessage}</p>}
 
