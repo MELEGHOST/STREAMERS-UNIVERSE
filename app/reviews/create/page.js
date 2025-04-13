@@ -274,7 +274,7 @@ export default function CreateReviewPage() {
             if (sourceFile) {
                 console.log('[handleAiFullSubmit] Загрузка файла источника...');
                 const filePath = `reviews-sources/${user.id}/${Date.now()}_${sourceFile.name}`;
-                const { data: uploadData, error: uploadError } = await supabase.storage
+                const { error: uploadError } = await supabase.storage
                     .from('reviews-sources')
                     .upload(filePath, sourceFile);
 

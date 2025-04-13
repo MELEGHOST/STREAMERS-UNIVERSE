@@ -34,7 +34,8 @@ export function AuthProvider({ children }) {
     setCurrentTheme(savedTheme);
     document.body.className = savedTheme + '-theme';
     console.log(`[AuthContext] Initial theme set to: ${savedTheme}`);
-  }, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps 
+  }, []); // Зависимостей нет, выполняется один раз
 
   // <<< Функция смены темы >>>
   const toggleTheme = useCallback(() => {
@@ -221,7 +222,8 @@ export function AuthProvider({ children }) {
         authListener.subscription.unsubscribe();
       }
     };
-  }, [supabase, router]); // Добавляем router в зависимости
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [supabase, router]); // Игнорируем предупреждение о зависимостях loading, session, user
 
   // <<< Оборачиваем signInWithTwitch в useCallback >>>
   const signInWithTwitch = useCallback(async () => {
