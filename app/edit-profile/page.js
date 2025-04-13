@@ -96,7 +96,7 @@ export default function EditProfilePage() {
 
   const handleSave = async (e) => {
     e.preventDefault();
-    if (!user || !supabase) {
+    if (!user) {
       setError("Не удалось получить данные пользователя для сохранения.");
       return;
     }
@@ -114,35 +114,44 @@ export default function EditProfilePage() {
       yandex_music: isMusician && yandexMusicLink ? yandexMusicLink : null,
     };
     
-    Object.keys(socialLinksData).forEach(key => {
-      if (socialLinksData[key] === null) {
-        delete socialLinksData[key];
-      }
-    });
-
-    const profileDataToSave = {
-      user_id: user.id,
+    const profileDataToUpdate = {
       birthday: birthday || null,
       description: description || null,
-      social_links: Object.keys(socialLinksData).length > 0 ? socialLinksData : null,
-      updated_at: new Date().toISOString(),
+      social_links: socialLinksData,
     };
 
     try {
-      const { error: saveError } = await supabase
-        .from('user_profiles')
-        .upsert(profileDataToSave, { onConflict: 'user_id' });
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+      if (sessionError || !session?.access_token) {
+        throw new Error(sessionError?.message || "Не удалось получить сессию или токен для сохранения.");
+      }
+      const token = session.access_token;
 
-      if (saveError) {
-        throw saveError;
+      console.log(`[${title}] Отправка данных на /api/twitch/user/profile:`, profileDataToUpdate);
+
+      const response = await fetch('/api/twitch/user/profile', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify(profileDataToUpdate),
+      });
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        console.error(`[${title}] Ошибка от API (${response.status}):`, result.error);
+        throw new Error(result.error || `Ошибка сервера: ${response.status}`);
       }
 
-      console.log(`[${title}] Данные профиля успешно сохранены.`);
-      setSuccessMessage('Профиль успешно обновлен!');
+      console.log(`[${title}] Данные профиля успешно сохранены через API. Ответ:`, result);
+      setSuccessMessage(result.message || 'Профиль успешно обновлен!');
       setTimeout(() => setSuccessMessage(null), 3000);
+
     } catch (err) {
       console.error(`[${title}] Ошибка сохранения данных профиля:`, err);
-      setError('Не удалось сохранить данные профиля. Ошибка: ' + err.message);
+      setError('Не удалось сохранить данные профиля. Ошибка: ' + (err.message || 'Неизвестная ошибка'));
       setTimeout(() => setError(null), 5000);
     } finally {
       setSaving(false);
@@ -282,9 +291,9 @@ export default function EditProfilePage() {
           </button>
         </div>
       </form>
-      <button onClick={() => router.push('/profile')} className={pageStyles.backButton} style={{ marginTop: '2rem' }}>
-        &larr; Назад в профиль
+      <button onClick={() => user ? router.push(`/profile/${user.user_metadata?.provider_id}`) : router.push('/menu')} className={pageStyles.backButton} style={{ marginTop: '2rem' }}>
+         &larr; Назад в профиль
       </button>
     </div>
   );
-} 
+}
