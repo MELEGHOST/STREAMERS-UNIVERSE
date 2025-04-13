@@ -326,10 +326,59 @@
 /* Дисклеймер для AI */
 .aiDisclaimer {
     font-size: 0.9rem;
-    color: var(--foreground-tertiary);
-    background-color: var(--background-tertiary);
+    color: var(--tg-theme-hint-color);
+    background-color: var(--tg-theme-secondary-bg-color);
     padding: 0.8rem 1rem;
-    border-radius: var(--border-radius);
-    border: 1px solid var(--border-primary);
+    border-radius: 8px;
+    border: 1px solid var(--tg-theme-hint-color);
     margin-bottom: 1.5rem;
+}
+
+.fileName {
+    display: inline-block;
+    margin-top: 5px; /* Отступ сверху */
+    font-size: 0.9em;
+    color: var(--tg-theme-hint-color);
+    font-style: italic;
+}
+
+.orSeparator {
+    display: block;
+    text-align: center;
+    margin: 10px 0;
+    font-weight: bold;
+    color: var(--tg-theme-hint-color);
+}
+
+.selectInput {
+    padding: 12px 15px;
+    border: 1px solid var(--tg-theme-hint-color);
+    border-radius: 8px;
+    background-color: var(--tg-theme-secondary-bg-color);
+    color: var(--tg-theme-text-color);
+    font-size: 1em;
+    width: 100%;
+    box-sizing: border-box;
+    transition: border-color 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236c757d' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e");
+    background-position: right 15px center;
+    background-repeat: no-repeat;
+    background-size: 1em 1em;
+}
+
+.selectInput:focus {
+    outline: none;
+    border-color: var(--tg-theme-button-color);
+    box-shadow: 0 0 0 2px rgba(var(--tg-theme-button-rgb), 0.3);
+}
+
+.selectInput option {
+    background-color: var(--tg-theme-secondary-bg-color);
+    color: var(--tg-theme-text-color);
+}
+
+.textareaField {
+    min-height: 120px;
+    resize: vertical;
 } 

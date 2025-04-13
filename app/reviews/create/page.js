@@ -92,7 +92,7 @@ export default function CreateReviewPage() {
         process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
     );
     const router = useRouter();
-    const { user, isLoading: authLoading, isAuthenticated, currentTheme } = useAuth();
+    const { user, isLoading: authLoading, isAuthenticated, currentTheme, supabase: authSupabase } = useAuth();
 
     const [category, setCategory] = useState('');
     const [subcategory, setSubcategory] = useState('');
@@ -108,6 +108,14 @@ export default function CreateReviewPage() {
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [error, setError] = useState('');
     const [successMessage, setSuccessMessage] = useState('');
+
+    const [authorTwitchNickname, setAuthorTwitchNickname] = useState('');
+    const [sourceFile, setSourceFile] = useState(null);
+    const [sourceUrl, setSourceUrl] = useState('');
+    const [isUploadingSource, setIsUploadingSource] = useState(false);
+    const [isGeneratingFull, setIsGeneratingFull] = useState(false);
+    const [aiFullError, setAiFullError] = useState('');
+    const [aiFullSuccessMessage, setAiFullSuccessMessage] = useState('');
 
     const isMovieOrSeries = category === 'Фильмы' || category === 'Сериалы';
 
@@ -199,6 +207,132 @@ export default function CreateReviewPage() {
             setIsSubmitting(false);
         }
     };
+
+    const handleSourceFileChange = (event) => {
+        const file = event.target.files?.[0];
+        if (file) {
+            const allowedTypes = ['text/plain', 'audio/', 'video/'];
+            if (!allowedTypes.some(type => file.type.startsWith(type))) {
+                setAiFullError(`Неподдерживаемый тип файла: ${file.type}. Разрешены .txt, аудио и видео.`);
+                setSourceFile(null);
+                event.target.value = null;
+                return;
+            }
+            const maxSize = 50 * 1024 * 1024;
+            if (file.size > maxSize) {
+                 setAiFullError(`Файл слишком большой (${(file.size / 1024 / 1024).toFixed(1)} MB). Макс. размер: 50 MB.`);
+                 setSourceFile(null);
+                 event.target.value = null;
+                 return;
+            }
+            setSourceFile(file);
+            setSourceUrl('');
+            setAiFullError('');
+        } else {
+            setSourceFile(null);
+        }
+    };
+
+    const handleSourceUrlChange = (event) => {
+        const url = event.target.value;
+        setSourceUrl(url);
+        if (url) {
+            setSourceFile(null);
+            const fileInput = document.getElementById('sourceFileInput');
+            if (fileInput) fileInput.value = '';
+        }
+         setAiFullError('');
+    };
+
+    const handleAiFullSubmit = useCallback(async () => {
+        if (!isAuthenticated || !authSupabase) {
+            setAiFullError('Необходимо авторизоваться для генерации отзыва.');
+            return;
+        }
+        if (!authorTwitchNickname) {
+            setAiFullError('Укажите Twitch Никнейм автора контента.');
+            return;
+        }
+        if (!sourceFile && !sourceUrl) {
+            setAiFullError('Выберите файл ИЛИ укажите URL для генерации.');
+            return;
+        }
+        if (sourceFile && sourceUrl) {
+            setAiFullError('Используйте что-то одно: файл или URL.');
+            return;
+        }
+
+        setIsUploadingSource(!!sourceFile);
+        setIsGeneratingFull(true);
+        setAiFullError('');
+        setAiFullSuccessMessage('');
+
+        let sourceFilePath = null;
+        let uploadErrorOccurred = false;
+
+        try {
+            if (sourceFile) {
+                console.log('[handleAiFullSubmit] Загрузка файла источника...');
+                const filePath = `reviews-sources/${user.id}/${Date.now()}_${sourceFile.name}`;
+                const { data: uploadData, error: uploadError } = await supabase.storage
+                    .from('reviews-sources')
+                    .upload(filePath, sourceFile);
+
+                if (uploadError) {
+                    uploadErrorOccurred = true;
+                    throw new Error(`Ошибка загрузки файла источника: ${uploadError.message}`);
+                }
+                sourceFilePath = filePath;
+                console.log('[handleAiFullSubmit] Файл источника загружен:', sourceFilePath);
+                setIsUploadingSource(false);
+            }
+
+            const session = await authSupabase.auth.getSession();
+            const token = session.data.session?.access_token;
+            if (!token) {
+                throw new Error('Не удалось получить токен авторизации.');
+            }
+
+            setAiFullSuccessMessage('🤖 AI генерирует отзыв...');
+            const response = await fetch('/api/reviews/generate-full', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`,
+                },
+                body: JSON.stringify({
+                    sourcePath: sourceFilePath,
+                    sourceUrl: sourceUrl,
+                    authorTwitchName: authorTwitchNickname,
+                }),
+            });
+
+            const result = await response.json();
+
+            if (!response.ok) {
+                throw new Error(result.error || `Ошибка генерации отзыва (HTTP ${response.status})`);
+            }
+
+            setAiFullSuccessMessage(result.message || 'Отзыв успешно сгенерирован и отправлен на модерацию!');
+            setAuthorTwitchNickname('');
+            setSourceFile(null);
+            setSourceUrl('');
+            const fileInput = document.getElementById('sourceFileInput');
+            if (fileInput) fileInput.value = '';
+            setTimeout(() => setAiFullSuccessMessage(''), 5000);
+
+        } catch (err) {
+            console.error('Ошибка полной генерации AI:', err);
+            setAiFullError(err.message || 'Произошла неизвестная ошибка.');
+            setAiFullSuccessMessage('');
+            if (!uploadErrorOccurred) {
+                 setIsUploadingSource(false);
+            }
+        } finally {
+             setIsGeneratingFull(false);
+             if (!uploadErrorOccurred) setIsUploadingSource(false);
+        }
+    }, [isAuthenticated, authSupabase, user, authorTwitchNickname, sourceFile, sourceUrl, supabase.storage]);
 
     const handleSubmit = useCallback(async () => {
         if (!user) {
@@ -317,7 +451,7 @@ export default function CreateReviewPage() {
     }, [user, category, title, text, rating, subcategory, selectedGenres, ageRating, imageUrl, imageFile, isMovieOrSeries, supabase, router]);
 
     const categoryOptions = Object.keys(reviewCategories).map(cat => ({ value: cat, label: cat }));
-
+    const genreOptions = movieGenres.map(genre => ({ value: genre, label: genre }));
     const selectStyles = useMemo(() => reactSelectStyles(currentTheme === 'dark'), [currentTheme]);
 
     return (
@@ -325,7 +459,8 @@ export default function CreateReviewPage() {
             {error && <p className={styles.errorMessage}>{error}</p>}
             {successMessage && <p className={styles.successMessage}>{successMessage}</p>}
 
-            <form className={styles.form} onSubmit={(e) => e.preventDefault()}>
+            <form className={styles.form} onSubmit={(e) => e.preventDefault()} style={{ marginBottom: '3rem' }}>
+                <h2>Создать отзыв вручную</h2>
                 <div className={styles.formGroup}>
                     <label htmlFor="category" className={styles.label}>Категория *</label>
                     <select
@@ -338,7 +473,7 @@ export default function CreateReviewPage() {
                         }}
                         className={styles.selectInput}
                         required
-                        disabled={isSubmitting || authLoading}
+                        disabled={isSubmitting || isGeneratingFull || authLoading}
                     >
                         <option value="">Выберите категорию</option>
                         {categoryOptions.map((cat) => (
@@ -353,14 +488,14 @@ export default function CreateReviewPage() {
                         <Select
                             id="genres"
                             isMulti
-                            options={movieGenres.map(genre => ({ value: genre, label: genre }))}
+                            options={genreOptions}
                             value={selectedGenres}
                             onChange={setSelectedGenres}
                             placeholder="Выберите жанры..."
                             className={`${styles.reactSelectContainer} react-select-container`}
                             styles={selectStyles}
                             required
-                            isDisabled={isSubmitting || authLoading}
+                            isDisabled={isSubmitting || isGeneratingFull || authLoading}
                         />
                     </div>
                 ) : category ? (
@@ -374,7 +509,7 @@ export default function CreateReviewPage() {
                             className={styles.inputField}
                             placeholder="Например, RPG, Шутер, Поп-музыка..."
                             required
-                            disabled={isSubmitting || authLoading}
+                            disabled={isSubmitting || isGeneratingFull || authLoading}
                         />
                     </div>
                 ) : null}
@@ -389,7 +524,7 @@ export default function CreateReviewPage() {
                         className={styles.inputField}
                         placeholder="Название фильма, игры, книги..."
                         required
-                        disabled={isSubmitting || authLoading}
+                        disabled={isSubmitting || isGeneratingFull || authLoading}
                     />
                 </div>
 
@@ -398,10 +533,10 @@ export default function CreateReviewPage() {
                          <button
                             type="button"
                             onClick={handleAiFill}
-                            disabled={isSubmitting || !title || authLoading}
+                            disabled={isSubmitting || isGeneratingFull || !title || authLoading}
                             className={`${styles.aiButton} ${styles.submitButton}`}
                         >
-                            {isSubmitting && successMessage.includes('Магия') ? '✨ Думаю...' : '🪄 Заполнить с помощью ИИ'}
+                            {isSubmitting && successMessage.includes('Магия') ? '✨ Думаю...' : '🪄 Заполнить поля с помощью ИИ'}
                         </button>
                     </div>
                 )}
@@ -415,7 +550,7 @@ export default function CreateReviewPage() {
                         className={styles.textareaField}
                         placeholder="Ваши впечатления..."
                         required
-                        disabled={isSubmitting || authLoading}
+                        disabled={isSubmitting || isGeneratingFull || authLoading}
                     />
                 </div>
 
@@ -449,7 +584,7 @@ export default function CreateReviewPage() {
                         onChange={(e) => setAgeRating(e.target.value)}
                         className={styles.inputField}
                         placeholder="Например, 18+, PG-13, 0+"
-                        disabled={isSubmitting || authLoading}
+                        disabled={isSubmitting || isGeneratingFull || authLoading}
                     />
                 </div>
 
@@ -462,7 +597,7 @@ export default function CreateReviewPage() {
                         onChange={handleImageUrlChange}
                         className={styles.inputField}
                         placeholder="https://example.com/image.jpg"
-                        disabled={isSubmitting || authLoading}
+                        disabled={isSubmitting || isGeneratingFull || authLoading}
                     />
                 </div>
 
@@ -474,7 +609,7 @@ export default function CreateReviewPage() {
                         accept="image/*"
                         onChange={handleImageChange}
                         className={styles.fileInput}
-                        disabled={isSubmitting || authLoading}
+                        disabled={isSubmitting || isGeneratingFull || authLoading}
                     />
                      {imagePreview && (
                         <div className={styles.imagePreviewContainer}>
@@ -495,7 +630,7 @@ export default function CreateReviewPage() {
                        type="button"
                        onClick={() => router.push('/menu')}
                        className={`${styles.submitButton} ${styles.secondaryButton}`}
-                       disabled={isSubmitting || authLoading}
+                       disabled={isSubmitting || isGeneratingFull || authLoading}
                    >
                         Назад в меню
                     </button>
@@ -503,13 +638,74 @@ export default function CreateReviewPage() {
                        type="button"
                        onClick={handleSubmit}
                        className={styles.submitButton}
-                       disabled={isSubmitting || authLoading || !category || !title || !text || rating === 0 || (isMovieOrSeries && selectedGenres.length === 0) || (!isMovieOrSeries && !subcategory)}
+                       disabled={isSubmitting || isGeneratingFull || authLoading || !category || !title || !text || rating === 0 || (isMovieOrSeries && selectedGenres.length === 0) || (!isMovieOrSeries && !subcategory)}
                    >
-                        {isSubmitting ? 'Публикация...' : 'Опубликовать'}
+                        {isSubmitting ? 'Публикация...' : 'Опубликовать вручную'}
                     </button>
                 </div>
 
             </form>
+
+            <hr className={styles.divider} />
+
+            <div className={styles.form}>
+                 <h2>Сгенерировать отзыв из источника (AI)</h2>
+                 <p className={styles.aiDisclaimer}> 
+                     Загрузите файл (.txt, аудио, видео) ИЛИ укажите ссылку (YouTube), 
+                     укажите Twitch-ник автора контента, и AI попытается написать отзыв (требуется модерация).
+                 </p>
+
+                {aiFullError && <p className={styles.errorMessage}>{aiFullError}</p>}
+                {aiFullSuccessMessage && <p className={styles.successMessage}>{aiFullSuccessMessage}</p>}
+
+                <div className={styles.formGroup}>
+                    <label htmlFor="authorTwitchNickname" className={styles.label}>Twitch Никнейм автора контента *</label>
+                    <input
+                        type="text"
+                        id="authorTwitchNickname"
+                        value={authorTwitchNickname}
+                        onChange={(e) => setAuthorTwitchNickname(e.target.value.toLowerCase())}
+                        className={styles.inputField}
+                        placeholder="Введите никнейм автора на Twitch"
+                        required
+                        disabled={isUploadingSource || isGeneratingFull || authLoading}
+                    />
+                </div>
+                <div className={styles.formGroup}>
+                     <label htmlFor="sourceFileInput" className={styles.label}>Файл ИЛИ Ссылка на YouTube *</label>
+                     <input
+                         type="file"
+                         id="sourceFileInput"
+                         onChange={handleSourceFileChange}
+                         accept=".txt,.mp3,.mp4,audio/*,video/*"
+                         className={styles.fileInput}
+                         disabled={isUploadingSource || isGeneratingFull || authLoading}
+                     />
+                     {sourceFile && <span className={styles.fileName}>Выбран файл: {sourceFile.name}</span>}
+                    
+                     <span className={styles.orSeparator}>ИЛИ</span>
+                    
+                     <input
+                         type="url"
+                         id="sourceUrlInput"
+                         value={sourceUrl}
+                         onChange={handleSourceUrlChange}
+                         placeholder="Вставьте ссылку на YouTube видео"
+                         className={styles.inputField}
+                         style={{ marginTop: '10px' }}
+                         disabled={isUploadingSource || isGeneratingFull || authLoading || !!sourceFile}
+                     />
+                 </div>
+                 <button
+                     type="button"
+                     onClick={handleAiFullSubmit}
+                     className={styles.submitButton}
+                     disabled={!authorTwitchNickname || (!sourceFile && !sourceUrl) || isUploadingSource || isGeneratingFull || authLoading}
+                 >
+                     {isUploadingSource ? 'Загрузка файла...' : (isGeneratingFull ? 'Генерация отзыва...' : 'Сгенерировать из источника')}
+                 </button>
+            </div>
+
         </div>
     );
 } 

@@ -129,4 +129,22 @@
     border: 2px solid currentColor; /* Рамка цветом текста */
     border-radius: 50%;
     line-height: 1;
+}
+
+.profileInfo {
+    flex-grow: 1;
+    overflow: visible; /* <<< Добавляем, чтобы тултипы не обрезались */
+}
+
+.socialLinks {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 15px; /* Уменьшим немного гэп */
+    justify-content: flex-start; /* Выравниваем по левому краю */
+    margin-top: 20px; /* <<< Добавляем отступ сверху */
+    overflow: visible; /* <<< Добавляем, чтобы тултипы не обрезались */
+}
+
+.socialButton {
+    /* Можно добавить общие стили для всех кнопок соцсетей, если нужно */
 } 
