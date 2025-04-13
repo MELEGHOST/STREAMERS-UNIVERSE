@@ -20,6 +20,8 @@ export default function EditProfilePage() {
   const [yandexMusicLink, setYandexMusicLink] = useState('');
   const [isMusician, setIsMusician] = useState(false);
 
+  const [telegramLink, setTelegramLink] = useState('');
+
   const [loadingProfileData, setLoadingProfileData] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState(null);
@@ -55,6 +57,7 @@ export default function EditProfilePage() {
           setTwitchLink(links.twitch || '');
           setDiscordLink(links.discord || '');
           setYoutubeLink(links.youtube || '');
+          setTelegramLink(links.telegram || '');
           if (links.yandex_music) {
             setYandexMusicLink(links.yandex_music);
             setIsMusician(true);
@@ -67,6 +70,7 @@ export default function EditProfilePage() {
           setTwitchLink('');
           setDiscordLink('');
           setYoutubeLink('');
+          setTelegramLink('');
           setYandexMusicLink('');
           setIsMusician(false);
         }
@@ -111,6 +115,7 @@ export default function EditProfilePage() {
       twitch: twitchLink || null,
       discord: discordLink || null,
       youtube: youtubeLink || null,
+      telegram: telegramLink || null,
       yandex_music: isMusician && yandexMusicLink ? yandexMusicLink : null,
     };
     
@@ -251,6 +256,18 @@ export default function EditProfilePage() {
               onChange={(e) => setYoutubeLink(e.target.value)}
               className={styles.input}
               placeholder="https://youtube.com/channel/your_channel"
+            />
+          </div>
+
+          <div className={styles.formGroup}>
+            <label htmlFor="telegramLink" className={styles.label}>Telegram:</label>
+            <input
+              type="text"
+              id="telegramLink"
+              value={telegramLink}
+              onChange={(e) => setTelegramLink(e.target.value)}
+              className={styles.input}
+              placeholder="@username или https://t.me/username"
             />
           </div>
           
