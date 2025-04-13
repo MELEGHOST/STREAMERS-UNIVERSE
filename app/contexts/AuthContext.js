@@ -1,7 +1,8 @@
 'use client';
 
 import React, { createContext, useState, useEffect, useContext, useMemo, useCallback } from 'react';
-import { createBrowserClient } from '@supabase/ssr';
+// import { createBrowserClient } from '@supabase/ssr'; // <<< Меняем обратно
+import { createClient } from '@supabase/supabase-js'; // <<< Используем стандартный клиент
 import { useRouter } from 'next/navigation'; // Импортируем useRouter
 
 // Создаем контекст
@@ -14,18 +15,23 @@ export function AuthProvider({ children }) {
   const [currentTheme, setCurrentTheme] = useState('dark'); // <<< Стейт темы
   const router = useRouter(); // Получаем router
 
-  // Создаем Supabase клиент один раз ИСПОЛЬЗУЯ createBrowserClient
+  // Создаем Supabase клиент один раз ИСПОЛЬЗУЯ createClient
   const supabase = useMemo(() => {
     const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
     const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
     if (!url || !key) {
         console.error("[AuthContext] КРИТИЧЕСКАЯ ОШИБКА: Отсутствуют NEXT_PUBLIC_SUPABASE_URL или NEXT_PUBLIC_SUPABASE_ANON_KEY!");
-        // Можно добавить состояние ошибки или вернуть заглушку клиента
-        return null; 
+        return null;
     }
-    // <<< Используем createBrowserClient >>>
-    // Он автоматически использует куки и синхронизируется с middleware
-    return createBrowserClient(url, key);
+    // <<< Используем createClient >>>
+    // Он использует localStorage для хранения сессии по умолчанию
+    return createClient(url, key, {
+        auth: {
+            // autoRefreshToken: true, // Включено по умолчанию
+            persistSession: true, // Включено по умолчанию, использует localStorage
+            // detectSessionInUrl: true // Включено по умолчанию, для OAuth
+        }
+    });
   }, []);
 
   // <<< useEffect для загрузки темы на клиенте >>>
@@ -55,14 +61,16 @@ export function AuthProvider({ children }) {
         return;
     }
 
-    console.log('[AuthContext] useEffect Init...');
+    console.log('[AuthContext] useEffect Init (using standard createClient)...');
     let isMounted = true;
 
+    // --- ВАЖНО: getSession теперь работает с localStorage --- 
     async function getInitialSession() {
-      console.log('[AuthContext] Attempting getInitialSession() using BrowserClient...');
+      console.log('[AuthContext] Attempting getInitialSession() using standard createClient...');
       try {
+          // createClient читает сессию из localStorage
           const { data: sessionData, error } = await supabase.auth.getSession();
-          console.log('[AuthContext] getSession() Result:', { sessionData, error }); 
+          console.log('[AuthContext] getSession() Result:', { sessionData, error });
 
           if (!isMounted) return;
 
@@ -115,7 +123,7 @@ export function AuthProvider({ children }) {
     // <<< Конец: Логика для реферальной ссылки >>>
 
     // Подписываемся на изменения состояния аутентификации
-    console.log('[AuthContext] Subscribing to onAuthStateChange...');
+    console.log('[AuthContext] Subscribing to onAuthStateChange (standard client)...');
     const { data: authListener } = supabase.auth.onAuthStateChange(
       async (event, currentSession) => {
         console.log(`[AuthContext] onAuthStateChange Event: ${event}. Session present: ${!!currentSession}`);
