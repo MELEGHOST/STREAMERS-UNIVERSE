@@ -1,0 +1,63 @@
+/* Общие стили для всех кнопок соцсетей */
+.socialButtonBase {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8px;
+  border-radius: 50%; /* Круглые кнопки */
+  background-color: var(--secondary-bg-color, #2a2a2e);
+  color: var(--primary-text-color, #e0e0e0);
+  transition: background-color 0.2s ease, transform 0.2s ease;
+  border: 1px solid var(--border-color, #444);
+  cursor: pointer;
+  text-decoration: none; /* Убираем подчеркивание у ссылок */
+  line-height: 1; /* Предотвращает смещение иконки */
+}
+
+.socialButtonBase:hover {
+  transform: scale(1.1);
+  filter: brightness(1.2);
+}
+
+/* Стили для конкретных сетей (можно задать цвет фона при ховере) */
+.vk:hover {
+  background-color: #4a76a8;
+  color: white;
+}
+
+.twitch:hover {
+  background-color: #9146ff;
+  color: white;
+}
+
+.discord:hover {
+  background-color: #5865f2;
+  color: white;
+}
+
+.youtube:hover {
+  background-color: #ff0000;
+  color: white;
+}
+
+.telegram:hover {
+  background-color: #2aabee;
+  color: white;
+}
+
+.tiktok:hover {
+  /* Можно добавить градиент */
+  background: linear-gradient(45deg, #ff0050, #00f2ea);
+  color: white;
+}
+
+.boosty:hover {
+  background-color: #f15f2c;
+  color: white;
+}
+
+/* Можно добавить стили для .username, если решим его показывать */
+.username {
+  margin-left: 6px;
+  font-size: 0.8em;
+} 
