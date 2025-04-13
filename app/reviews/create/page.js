@@ -4,8 +4,9 @@ import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@supabase/supabase-js';
 import Select from 'react-select';
+import Image from 'next/image';
 import { useAuth } from '../../contexts/AuthContext';
-import { categories, movieGenres } from '../categories';
+import { reviewCategories, movieGenres } from '../categories';
 import styles from './create-review.module.css';
 
 // Стили для react-select, чтобы они соответствовали теме
@@ -243,7 +244,7 @@ export default function CreateReviewPage() {
         if (imageFile) {
             const filePath = `reviews/${user.id}/${Date.now()}_${imageFile.name}`;
             try {
-                const { data: uploadData, error: uploadError } = await supabase.storage
+                const { error: uploadError } = await supabase.storage
                     .from('images')
                     .upload(filePath, imageFile);
 
@@ -298,7 +299,7 @@ export default function CreateReviewPage() {
         };
 
         try {
-            const { data, error: dbError } = await supabase
+            const { error: dbError } = await supabase
                 .from('reviews')
                 .insert(reviewData)
                 .select();
@@ -330,9 +331,9 @@ export default function CreateReviewPage() {
         } finally {
             setIsSubmitting(false);
         }
-    }, [user, category, title, text, rating, subcategory, selectedGenres, ageRating, imageUrl, imageFile, isMovieOrSeries, supabase, router, currentTheme]);
+    }, [user, category, title, text, rating, subcategory, selectedGenres, ageRating, imageUrl, imageFile, isMovieOrSeries, supabase, router]);
 
-    const genreOptions = movieGenres.map(genre => ({ value: genre, label: genre }));
+    const categoryOptions = Object.keys(reviewCategories).map(cat => ({ value: cat, label: cat }));
 
     const selectStyles = reactSelectStyles(themeParams);
 
@@ -357,7 +358,7 @@ export default function CreateReviewPage() {
                         disabled={isSubmitting || authLoading}
                     >
                         <option value="">Выберите категорию</option>
-                        {categories.map((cat) => (
+                        {categoryOptions.map((cat) => (
                             <option key={cat.value} value={cat.value}>{cat.label}</option>
                         ))}
                     </select>
@@ -369,7 +370,7 @@ export default function CreateReviewPage() {
                         <Select
                             id="genres"
                             isMulti
-                            options={genreOptions}
+                            options={movieGenres.map(genre => ({ value: genre, label: genre }))}
                             value={selectedGenres}
                             onChange={setSelectedGenres}
                             placeholder="Выберите жанры..."
@@ -494,7 +495,14 @@ export default function CreateReviewPage() {
                     />
                      {imagePreview && (
                         <div className={styles.imagePreviewContainer}>
-                            <img src={imagePreview} alt="Предпросмотр" className={styles.imagePreview} />
+                            <Image
+                                src={imagePreview}
+                                alt="Предпросмотр"
+                                className={styles.imagePreview}
+                                width={200}
+                                height={200}
+                                style={{ objectFit: 'contain' }}
+                            />
                         </div>
                     )}
                 </div>
