@@ -2,13 +2,13 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
-import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
+import { createClient } from '@supabase/supabase-js';
 import Select from 'react-select';
-import { useUser } from '@/context/UserContext';
-import Button from '@/components/ui/Button';
-import { categories, movieGenres } from '../categories'; // Импортируем обновленные категории и жанры
+import { useUser } from '../../../context/UserContext';
+import Button from '../../../components/ui/Button';
+import { categories, movieGenres } from '../categories';
 import styles from './create-review.module.css';
-import useTelegram from '@/hooks/useTelegram';
+import useTelegram from '../../../hooks/useTelegram';
 
 // Стили для react-select, чтобы они соответствовали теме
 const reactSelectStyles = (themeParams) => ({
@@ -89,7 +89,10 @@ const reactSelectStyles = (themeParams) => ({
 
 
 export default function CreateReviewPage() {
-    const supabase = createClientComponentClient();
+    const supabase = createClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL,
+        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+    );
     const router = useRouter();
     const { user } = useUser();
     const { tg, themeParams, user: tgUser } = useTelegram();
@@ -268,23 +271,45 @@ export default function CreateReviewPage() {
             const filePath = `reviews/${user.id}/${Date.now()}_${imageFile.name}`;
             try {
                 const { data: uploadData, error: uploadError } = await supabase.storage
-                    .from('images') // Убедитесь, что бакет 'images' существует
+                    .from('images') // Убедитесь, что бакет 'images' существует и доступен
                     .upload(filePath, imageFile);
 
                 if (uploadError) {
-                    throw uploadError;
+                    console.error('Ошибка Supabase Storage Upload:', uploadError);
+                    // Добавим более подробный вывод ошибки
+                    if (uploadError.message.includes('Bucket not found')) {
+                         setError('Ошибка: Хранилище изображений (bucket \'images\') не найдено. Обратитесь к администратору.');
+                    } else if (uploadError.message.includes('exceeds the maximum allowed size')) {
+                         setError('Ошибка: Файл изображения слишком большой.');
+                    } else if (uploadError.message.includes('policy')) {
+                        setError('Ошибка: Недостаточно прав для загрузки изображения. Проверьте политики RLS для бакета \'images\'.');
+                    } else {
+                         setError(`Не удалось загрузить изображение: ${uploadError.message}`);
+                    }
+                    setIsSubmitting(false);
+                    return;
                 }
 
                 // Получаем публичный URL загруженного файла
-                const { data: publicUrlData } = supabase.storage
+                const { data: publicUrlData, error: urlError } = supabase.storage
                     .from('images')
                     .getPublicUrl(filePath);
 
-                uploadedImageUrl = publicUrlData.publicUrl;
-                setImageUrl(uploadedImageUrl); // Обновляем состояние для отображения
+                if (urlError) {
+                    console.error("Ошибка получения public URL:", urlError);
+                    // Загрузка прошла, но URL не получен. Можно использовать path,
+                    // но лучше показать предупреждение.
+                    setError('Изображение загружено, но не удалось получить публичную ссылку. Отзыв будет без картинки.');
+                    uploadedImageUrl = null; // Явно обнуляем
+                } else {
+                    uploadedImageUrl = publicUrlData.publicUrl;
+                    setImageUrl(uploadedImageUrl); // Обновляем состояние для отображения
+                    console.log("Изображение загружено, URL:", uploadedImageUrl);
+                }
 
             } catch (uploadError) {
-                console.error('Ошибка загрузки изображения:', uploadError);
+                // Этот catch может сработать на другие ошибки, не связанные с Supabase напрямую
+                console.error('Непредвиденная ошибка загрузки изображения:', uploadError);
                 setError(`Не удалось загрузить изображение: ${uploadError.message}`);
                 setIsSubmitting(false);
                 return;
@@ -346,7 +371,7 @@ export default function CreateReviewPage() {
     }, [user, category, title, text, rating, subcategory, selectedGenres, ageRating, imageUrl, imageFile, isMovieOrSeries, supabase, router, tg]); // Добавляем зависимости useCallback
 
 
-    const genreOptions = movieGenres.map(genre => ({ value: genre.value, label: genre.label }));
+    const genreOptions = movieGenres.map(genre => ({ value: genre, label: genre }));
 
     return (
         <div className={styles.container} style={{ backgroundColor: themeParams.bg_color, color: themeParams.text_color }}>
