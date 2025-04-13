@@ -10,11 +10,21 @@ import styles from '../profile.module.css';
 import pageStyles from '../../../styles/page.module.css';
 import { useAuth } from '../../contexts/AuthContext';
 // Возвращаем StyledSocialButton
-import StyledSocialButton from '../../components/StyledSocialButton/StyledSocialButton';
-import { FaYoutube, FaTiktok } from 'react-icons/fa'; // Убрали Twitch, Discord
-import { SiBoosty } from "react-icons/si"; // Иконка для Boosty
-import DiscordButton from '../../components/SocialButtons/DiscordButton'; // Импорт новой кнопки Discord
-import TelegramButton from '../../components/SocialButtons/TelegramButton'; // Импорт новой кнопки Telegram
+// import StyledSocialButton from '../../components/StyledSocialButton/StyledSocialButton';
+// import { FaYoutube, FaTiktok } from 'react-icons/fa'; // Убрали Twitch, Discord
+// import { SiBoosty } from "react-icons/si"; // Иконка для Boosty
+// import DiscordButton from '../../components/SocialButtons/DiscordButton'; // Импорт новой кнопки Discord
+// import TelegramButton from '../../components/SocialButtons/TelegramButton'; // Импорт новой кнопки Telegram
+
+// <<< Импортируем новые компоненты кнопок >>>
+import VkButton from '../../components/SocialButtons/VkButton';
+import TwitchButton from '../../components/SocialButtons/TwitchButton';
+import YoutubeButton from '../../components/SocialButtons/YoutubeButton';
+import DiscordButton from '../../components/SocialButtons/DiscordButton';
+import TelegramButton from '../../components/SocialButtons/TelegramButton';
+import TiktokButton from '../../components/SocialButtons/TiktokButton';
+import BoostyButton from '../../components/SocialButtons/BoostyButton';
+import YandexMusicButton from '../../components/SocialButtons/YandexMusicButton';
 
 const translateBroadcasterType = (type) => {
   switch (type) {
@@ -229,41 +239,6 @@ export default function UserProfilePage() {
     }
   };
 
-  // <<< Добавляем иконку Telegram >>>
-  const socialButtonIcons = {
-    vk: () => <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg"><path fillRule="evenodd" clipRule="evenodd" d="M12 0C5.37258 0 0 5.37258 0 12C0 18.6274 5.37258 24 12 24C18.6274 24 24 18.6274 24 12C24 5.37258 18.6274 0 12 0ZM18.4874 14.307C19.0297 14.7013 19.477 15.021 19.8295 15.2662C20.2556 15.5664 20.4818 15.7734 20.5079 15.8871C20.581 16.2068 20.3414 16.4727 19.7883 16.6849C19.1749 16.9245 18.4299 16.9954 17.5532 16.8975C16.321 16.756 15.3597 16.2947 14.6691 15.5135C14.3048 15.1052 13.9638 14.7715 13.6461 14.5123C13.1921 14.1413 12.862 13.9202 12.6558 13.8489C12.4496 13.7777 12.2909 13.7419 12.1796 13.7419C12.0617 13.7419 11.9169 13.7846 11.7452 13.8701C11.5669 13.9621 11.1586 14.3397 10.5204 15.0037C9.85523 15.6951 9.3194 16.2366 8.91301 16.6281C8.7002 16.8403 8.4874 17.0183 8.27459 17.162C7.84856 17.4587 7.4662 17.5867 7.12749 17.5458C6.62111 17.484 6.2194 17.229 5.92244 16.7807C5.63854 16.3455 5.56133 15.8552 5.69081 15.31C5.71077 15.2322 5.78415 14.9509 5.91109 14.4661C6.72818 11.6553 7.96186 9.42074 9.61214 7.7623C10.9113 6.45652 12.2507 5.71746 13.6304 5.5451C14.7398 5.41061 15.6958 5.65429 16.5063 6.27613C16.6242 6.3681 16.7152 6.49071 16.7792 6.64397C16.8432 6.79723 16.8737 6.96357 16.8707 7.14297C16.8613 7.45227 16.7278 7.687 16.4704 7.84708C16.2195 8.00716 16.0021 8.07058 15.8181 8.03734C15.5984 7.99787 15.4186 8.0613 15.2788 8.22764C15.1455 8.39398 15.0789 8.61498 15.0789 8.89064V11.5565C15.0789 11.9446 15.1455 12.2179 15.2788 12.3766C15.4121 12.5352 15.6185 12.6071 15.8979 12.5921C16.3839 12.5615 16.7216 12.7068 16.9119 13.028C17.1022 13.3492 17.1974 13.7372 17.1974 14.1921C17.1974 14.3516 17.184 14.5454 17.1572 14.7735C17.1303 15.0015 17.117 15.1893 17.117 15.3368C17.117 15.6292 17.2068 15.8349 17.3865 15.9538C17.5728 16.0727 17.8489 16.1322 18.2151 16.1322C18.5186 16.1322 18.717 16.0261 18.8101 15.8139C18.9032 15.6017 18.95 15.3093 18.95 14.9367C18.95 14.5871 18.8051 14.2534 18.4874 14.307Z"/></svg>, // VK SVG
-    twitch: () => <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg"><path d="M4.264 3.003L2 6.07V18.12h4.823V22l3.429-3.88h3.135L22 10.217V3.003H4.264zm15.176 6.66l-3.43 3.43h-3.428l-2.572 2.57v-2.57H6.088V4.826h13.352v4.837z"/><path d="M17.085 6.65h-1.714v4.283h1.714V6.65zm-4.286 0H11.08v4.283h1.719V6.65z"/></svg>, // Twitch SVG
-    youtube: () => <FaYoutube size={24} />,
-    tiktok: () => <FaTiktok size={24} />, // Добавили TikTok
-    boosty: () => <SiBoosty size={24} />, // Добавили Boosty
-    // discord: () => <FaDiscord size={24} />, // Discord теперь отдельный компонент
-    telegram: () => <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg"><path d="M11.9994 0C5.37206 0 0 5.37206 0 11.9994C0 18.6268 5.37206 23.9989 11.9994 23.9989C18.6268 23.9989 23.9989 18.6268 23.9989 11.9994C23.9989 5.37206 18.6268 0 11.9994 0ZM17.6311 7.32748C17.2977 8.81885 16.1277 14.443 15.6086 16.9392C15.4159 17.831 15.0076 18.1961 14.5975 18.226C13.9887 18.2704 13.5342 17.9661 13.1654 17.7027C12.6384 17.3213 12.3233 17.0442 11.7963 16.6628C11.2124 16.239 10.7682 15.9145 10.8229 15.737C10.8684 15.5878 11.0441 15.4387 12.0516 14.4997C12.9547 13.6581 13.6267 13.0319 13.6083 12.8846C13.5864 12.7138 13.4125 12.8372 13.1899 12.9915C12.9672 13.1459 12.3388 13.5558 11.2993 14.2926C10.3225 14.9694 9.60865 15.3838 9.15771 15.3838C8.78887 15.3838 8.1923 15.2066 7.82345 15.0814C7.36428 14.927 6.91686 14.7931 6.97154 14.4473C7.01012 14.1875 7.33233 13.9499 7.93818 13.7345C10.4691 12.8036 12.3284 12.1267 13.5149 11.703C15.4682 11.0364 16.2958 10.7592 16.3495 10.3045C16.3679 10.1319 16.3255 9.98456 16.2223 9.86245C16.119 9.74034 15.9686 9.66365 15.7707 9.6319C15.3561 9.56421 14.7912 9.79557 14.0761 10.3259C13.1847 10.9925 11.556 12.1957 9.18998 13.9356C8.82481 14.1936 8.53909 14.3293 8.33282 14.3413C8.04894 14.3568 7.76321 14.2546 7.47565 14.0347C7.19544 13.8184 6.9728 13.543 6.80771 13.2084C6.64262 12.8738 6.56116 12.5224 6.563 12.1542C6.56483 11.7859 6.64845 11.4344 6.81389 11.1017C7.03873 10.6556 7.3282 10.3147 7.6813 10.0789C10.326 8.26038 12.3107 6.9793 13.6354 6.23564C15.1635 5.39588 16.3431 4.87474 17.1742 4.67222C17.6334 4.55715 17.914 4.65937 18.0172 4.97886C18.0898 5.21249 18.0441 5.49511 17.9802 5.82673C17.8506 6.49157 17.4502 7.85764 16.7792 9.92397L17.6311 7.32748Z"/></svg>,
-  };
-
-  // Функция для безопасного создания URL
-  const createSafeUrl = (baseUrl, value) => {
-      if (!value) return null;
-      try {
-          // Проверяем, является ли value уже полным URL
-          if (/^https?:\/\//i.test(value)) {
-              return new URL(value).toString();
-          }
-          // Если нет, считаем, что это username/id и добавляем к baseUrl
-          if (baseUrl) {
-              // Удаляем возможный слеш в конце baseUrl
-              const cleanBase = baseUrl.endsWith('/') ? baseUrl.slice(0, -1) : baseUrl;
-              // Удаляем возможный @ или / в начале value
-              const cleanValue = value.startsWith('@') || value.startsWith('/') ? value.slice(1) : value;
-              return `${cleanBase}/${cleanValue}`;
-          }
-          // Если нет baseUrl, а value не URL, то ссылка некорректна
-          return null; 
-      } catch (e) {
-          console.warn(`Invalid URL format: ${value}`, e);
-          return null;
-      }
-  };
-
   return (
     <div className={styles.container}> 
       <div className={styles.topBar}>
@@ -349,67 +324,63 @@ export default function UserProfilePage() {
                 )}
               </div>
               <div className={styles.socialLinks}> 
-                {/* <<< Исправляем рендеринг + Добавляем Telegram >>> */}
                  {profileSocialLinks?.vk && (
-                   <StyledSocialButton 
-                       network="vk"
-                       url={createSafeUrl('https://vk.com', profileSocialLinks.vk)} 
-                       icon={socialButtonIcons.vk} 
-                       ariaLabel="VK Профиль"
+                   <VkButton 
+                       value={profileSocialLinks.vk} 
+                       // count={...} // Нет данных о подписчиках VK
+                       className={styles.socialButton} 
+                   />
+                 )}
+                 {/* Кнопка Twitch - используем логин и реальное число фолловеров */}
+                 {twitchUserData?.login && (
+                   <TwitchButton 
+                       value={twitchUserData.login} 
+                       count={followersCount} // Передаем реальное число
                        className={styles.socialButton}
                    />
                  )}
-                 {profileSocialLinks?.twitch && (
-                   <StyledSocialButton 
-                       network="twitch"
-                       url={createSafeUrl('https://twitch.tv', profileSocialLinks.twitch)}
-                       icon={socialButtonIcons.twitch}
-                       ariaLabel="Twitch Канал"
-                       className={styles.socialButton}
-                   />
-                 )}
-                 {/* Используем отдельный DiscordButton */}
                  {profileSocialLinks?.discord && (
                      <DiscordButton 
                          value={profileSocialLinks.discord}
+                         // count={...} // Нет данных
                          className={styles.socialButton}
                      />
                  )}
                  {profileSocialLinks?.youtube && (
-                    <StyledSocialButton 
-                       network="youtube"
-                       url={createSafeUrl('https://youtube.com', profileSocialLinks.youtube)} 
-                       icon={socialButtonIcons.youtube} 
-                       ariaLabel="YouTube Канал"
+                    <YoutubeButton 
+                       value={profileSocialLinks.youtube}
+                       // count={...} // Нет данных
                        className={styles.socialButton}
                    />
                  )}
-                 {/* <<< Добавляем TelegramButton >>> */}
                   {profileSocialLinks?.telegram && (
                      <TelegramButton
-                         username={profileSocialLinks.telegram}
+                         value={profileSocialLinks.telegram}
+                         // count={...} // Нет данных
                          className={styles.socialButton}
                      />
                    )}
                  {profileSocialLinks?.tiktok && (
-                   <StyledSocialButton 
-                       network="tiktok"
-                       url={createSafeUrl('https://tiktok.com', profileSocialLinks.tiktok)} 
-                       icon={socialButtonIcons.tiktok} 
-                       ariaLabel="TikTok Профиль"
+                   <TiktokButton 
+                       value={profileSocialLinks.tiktok} 
+                       // count={...} // Нет данных
                        className={styles.socialButton}
                    />
                  )}
                  {profileSocialLinks?.boosty && (
-                   <StyledSocialButton 
-                       network="boosty"
-                       url={createSafeUrl('https://boosty.to', profileSocialLinks.boosty)} 
-                       icon={socialButtonIcons.boosty} 
-                       ariaLabel="Boosty Профиль"
+                   <BoostyButton 
+                       value={profileSocialLinks.boosty} 
+                       // count={...} // Нет данных
                        className={styles.socialButton}
                    />
                  )}
-                 {/* Добавить другие иконки по аналогии... */}
+                 {profileSocialLinks?.yandex_music && (
+                    <YandexMusicButton
+                        value={profileSocialLinks.yandex_music}
+                        // count={...} // Нет данных
+                        className={styles.socialButton}
+                    />
+                 )}
               </div>
           </div>
       </div>

@@ -1,53 +1,41 @@
 import React from 'react';
 import styled from 'styled-components';
 
-// Принимаем value (username#tag, ссылка) и опциональный count
-const DiscordButton = ({ value, count, className }) => {
+// Принимаем value (url канала/видео) и опциональный count
+const YoutubeButton = ({ value, count, className }) => {
   if (!value) return null;
 
-  // Логика для определения типа и формирования ссылки
-  const isInviteLink = value.includes('discord.gg/') || value.includes('discord.com/invite/');
-  const isProfileLink = value.includes('discord.com/users/');
-  const isProbablyUsername = /.+#[0-9]{4}$/.test(value) || !value.includes('.'); // Простой тест на юзернейм
-
-  let href = '#';
-  let displayValue = value;
-  let actionText = 'Открыть Discord';
-  let aboutText = 'Профиль/Сервер'; // Текст по умолчанию
-
-  if (isInviteLink) {
-    href = value.startsWith('http') ? value : `https://${value}`;
-    displayValue = value.split('/').pop();
-    actionText = 'Присоединиться к серверу';
-    aboutText = 'Приглашение на сервер';
-  } else if (isProfileLink) {
-    href = value.startsWith('http') ? value : `https://${value}`;
-    displayValue = 'Профиль пользователя';
-    actionText = 'Открыть профиль Discord';
-    // count для профиля дискорда обычно недоступен
-  } else if (isProbablyUsername) {
-    href = '#copy';
-    displayValue = value;
-    actionText = 'Скопировать Discord ID';
-    // count для юзернейма тоже
-  } else {
-     href = value.startsWith('http') ? value : `https://${value}`;
-     displayValue = 'Неизвестная ссылка';
-     actionText = 'Перейти по ссылке';
-  }
-
-  const handleClick = async (e) => {
-    if (href === '#copy') {
-      e.preventDefault();
-      try {
-        await navigator.clipboard.writeText(value);
-        alert(`Discord ID "${value}" скопирован в буфер обмена!`);
-      } catch (err) {
-        console.error('Ошибка копирования Discord ID:', err);
-        alert('Не удалось скопировать ID. Ошибка в консоли.');
+  // Формируем URL (просто используем value, т.к. это всегда ссылка)
+  const href = value.startsWith('http') ? value : `https://${value}`;
+  
+  // Пытаемся извлечь имя канала или ID из URL (упрощенно)
+  let displayUsername = 'Канал';
+  try {
+      const urlObj = new URL(href);
+      const pathParts = urlObj.pathname.split('/').filter(Boolean);
+      if (pathParts[0] === 'channel' && pathParts[1]) {
+          displayUsername = pathParts[1];
+      } else if (pathParts[0] === 'c' && pathParts[1]) {
+          displayUsername = pathParts[1];
+      } else if (pathParts[0] === 'user' && pathParts[1]) {
+           displayUsername = pathParts[1];
+      } else if (urlObj.hostname.includes('youtu.be')) {
+          displayUsername = 'Видео'; // Короткая ссылка
+      } else if (urlObj.searchParams.get('v')) {
+           displayUsername = 'Видео'; // Ссылка на видео
       }
-    }
+  } catch { /* Оставляем 'Канал' */ }
+
+
+  // Форматируем count
+  const formatCount = (num) => {
+    if (typeof num !== 'number' || isNaN(num)) return null;
+    if (num >= 1000000) return `${(num / 1000000).toFixed(1)}M+`;
+    if (num >= 1000) return `${Math.floor(num / 1000)}k+`;
+    return `${num}`;
   };
+  const displayCount = formatCount(count);
+  const aboutText = displayCount ? `${displayCount} подписчиков` : 'Канал YouTube'; // Текст по умолчанию
 
   return (
     <StyledWrapper className={className}>
@@ -55,32 +43,40 @@ const DiscordButton = ({ value, count, className }) => {
         <div className="tooltip">
           <div className="profile">
             <div className="user">
-              <div className="img">DS</div>
+              <div className="img">YT</div>
               <div className="details">
-                <div className="name">Discord</div>
-                {/* Используем displayValue */}
-                <div className="username">{displayValue}</div>
+                <div className="name">YouTube</div>
+                <div className="username">{displayUsername}</div>
               </div>
             </div>
-            {/* Используем aboutText (count тут обычно нет) */}
             <div className="about">{aboutText}</div>
           </div>
         </div>
         <div className="text">
-          <a href={href} target={href === '#copy' ? '_self' : '_blank'} rel="noopener noreferrer" className="icon" onClick={handleClick}>
+          <a href={href} target="_blank" rel="noopener noreferrer" className="icon">
             <div className="layer">
               <span />
               <span />
               <span />
               <span />
               <span className="svg">
-                 {/* SVG иконка Discord */}
-                 <svg preserveAspectRatio="xMidYMid" xmlns="http://www.w3.org/2000/svg" viewBox="0 -3.117 28 28">
-                   <path fill="currentColor" d="M23.719 1.815A22.8 22.8 0 0 0 17.942 0c-.249.45-.54 1.055-.74 1.536q-3.231-.486-6.402 0C10.6 1.055 10.302.45 10.051 0A22.7 22.7 0 0 0 4.27 1.82C.614 7.344-.377 12.731.119 18.042c2.425 1.811 4.775 2.911 7.085 3.63a17.6 17.6 0 0 0 1.517-2.499 15 15 0 0 1-2.389-1.163 12 12 0 0 0 .586-.463c4.607 2.155 9.613 2.155 14.165 0a14 14 0 0 0 .586.463 15 15 0 0 1-2.394 1.165c.438.877.945 1.714 1.517 2.499 2.312-.72 4.664-1.82 7.089-3.633.581-6.156-.993-11.494-4.162-16.227M9.349 14.776c-1.383 0-2.517-1.291-2.517-2.863s1.11-2.866 2.517-2.866 2.541 1.291 2.517 2.866c.002 1.572-1.11 2.863-2.517 2.863m9.302 0c-1.383 0-2.517-1.291-2.517-2.863s1.11-2.866 2.517-2.866 2.541 1.291 2.517 2.866c0 1.572-1.11 2.863-2.517 2.863" />
-                 </svg>
+                <svg fill="currentColor" xmlns="http://www.w3.org/2000/svg" version="1.1" viewBox="0 -7 48 48">
+                  <g strokeWidth={0} id="SVGRepo_bgCarrier" />
+                  <g strokeLinejoin="round" strokeLinecap="round" id="SVGRepo_tracerCarrier" />
+                  <g id="SVGRepo_iconCarrier">
+                    <title>Youtube-color</title>
+                    <desc>Created with Sketch.</desc>
+                    <defs />
+                    <g fillRule="evenodd" fill="none" strokeWidth={1} stroke="none" id="Icons">
+                      <g transform="translate(-200.000000, -368.000000)" id="Color-">
+                        <path id="Youtube" d="M219.044,391.269916 L219.0425,377.687742 L232.0115,384.502244 L219.044,391.269916 Z M247.52,375.334163 C247.52,375.334163 247.0505,372.003199 245.612,370.536366 C243.7865,368.610299 241.7405,368.601235 240.803,368.489448 C234.086,368 224.0105,368 224.0105,368 L223.9895,368 C223.9895,368 213.914,368 207.197,368.489448 C206.258,368.601235 204.2135,368.610299 202.3865,370.536366 C200.948,372.003199 200.48,375.334163 200.48,375.334163 C200.48,375.334163 200,379.246723 200,383.157773 L200,386.82561 C200,390.73817 200.48,394.64922 200.48,394.64922 C200.48,394.64922 200.948,397.980184 202.3865,399.447016 C204.2135,401.373084 206.612,401.312658 207.68,401.513574 C211.52,401.885191 224,402 224,402 C224,402 234.086,401.984894 240.803,401.495446 C241.7405,401.382148 243.7865,401.373084 245.612,399.447016 C247.0505,397.980184 247.52,394.64922 247.52,394.64922 C247.52,394.64922 248,390.73817 248,386.82561 L248,383.157773 C248,379.246723 247.52,375.334163 247.52,375.334163 L247.52,375.334163 Z" />
+                      </g>
+                    </g>
+                  </g>
+                </svg>
               </span>
             </div>
-            <div className="text">Discord</div>
+            <div className="text">YouTube</div>
           </a>
         </div>
       </div>
@@ -88,15 +84,15 @@ const DiscordButton = ({ value, count, className }) => {
   );
 }
 
-// Стили копируем из твоего кода Discord
+// Стили из твоего кода
 const StyledWrapper = styled.div`
   display: inline-block;
   vertical-align: middle;
   margin: 0 5px;
 
   .tooltip-container {
-    --color: #5865f2; /* Discord Blue */
-    --border: rgba(88, 101, 242, 0.25);
+    --color: red;
+    --border: rgba(255, 0, 0, 0.25);
     position: relative;
     cursor: pointer;
     transition: all 0.2s;
@@ -124,7 +120,7 @@ const StyledWrapper = styled.div`
   }
 
   .profile {
-    background: rgba(88, 101, 242, 0.1); /* Discord фон */
+    background: rgba(255, 0, 0, 0.1); /* Красный фон YT */
     border-radius: 10px 15px;
     padding: 10px;
     border: 1px solid var(--border);
@@ -133,11 +129,11 @@ const StyledWrapper = styled.div`
   }
 
   .tooltip-container:hover .tooltip {
-    opacity: 1;
-    visibility: visible;
-    pointer-events: auto;
-    transform: translateX(-50%) translateY(-15px);
-  }
+     opacity: 1;
+     visibility: visible;
+     pointer-events: auto;
+     transform: translateX(-50%) translateY(-15px);
+   }
 
   .icon {
     text-decoration: none;
@@ -145,17 +141,14 @@ const StyledWrapper = styled.div`
     display: block;
     position: relative;
   }
-
   .layer {
     width: 50px;
     height: 50px;
     transition: transform 0.3s;
   }
-
   .icon:hover .layer {
     transform: rotate(-35deg) skew(20deg);
   }
-
   .layer span {
     position: absolute;
     top: 0;
@@ -176,7 +169,7 @@ const StyledWrapper = styled.div`
     justify-content: center;
   }
 
-  .layer span.svg {
+ .layer span.svg {
       padding: 0;
   }
 
@@ -203,7 +196,6 @@ const StyledWrapper = styled.div`
   .icon:hover .layer span {
     box-shadow: -1px 1px 3px var(--color);
   }
-
   .icon .text { /* Текст под иконкой */
     position: absolute;
     left: 50%;
@@ -218,7 +210,6 @@ const StyledWrapper = styled.div`
     color: var(--color);
     font-size: 0.8em;
   }
-
   .icon:hover .text {
     bottom: -30px;
     opacity: 1;
@@ -248,8 +239,6 @@ const StyledWrapper = styled.div`
     fill: var(--color);
     transition: fill 0.3s ease;
   }
-
-  /* Стили тултипа */
   .user {
     display: flex;
     gap: 10px;
@@ -296,4 +285,4 @@ const StyledWrapper = styled.div`
   }
 `;
 
-export default DiscordButton; 
+export default YoutubeButton; 

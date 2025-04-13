@@ -1,53 +1,21 @@
 import React from 'react';
 import styled from 'styled-components';
+import { FaTiktok } from "react-icons/fa";
 
-// Принимаем value (username#tag, ссылка) и опциональный count
-const DiscordButton = ({ value, count, className }) => {
+const TiktokButton = ({ value, count, className }) => {
   if (!value) return null;
 
-  // Логика для определения типа и формирования ссылки
-  const isInviteLink = value.includes('discord.gg/') || value.includes('discord.com/invite/');
-  const isProfileLink = value.includes('discord.com/users/');
-  const isProbablyUsername = /.+#[0-9]{4}$/.test(value) || !value.includes('.'); // Простой тест на юзернейм
+  const href = value.startsWith('http') ? value : `https://tiktok.com/@${value.replace('@', '')}`;
+  const displayUsername = value.replace('https://tiktok.com/', '').replace('@', '');
 
-  let href = '#';
-  let displayValue = value;
-  let actionText = 'Открыть Discord';
-  let aboutText = 'Профиль/Сервер'; // Текст по умолчанию
-
-  if (isInviteLink) {
-    href = value.startsWith('http') ? value : `https://${value}`;
-    displayValue = value.split('/').pop();
-    actionText = 'Присоединиться к серверу';
-    aboutText = 'Приглашение на сервер';
-  } else if (isProfileLink) {
-    href = value.startsWith('http') ? value : `https://${value}`;
-    displayValue = 'Профиль пользователя';
-    actionText = 'Открыть профиль Discord';
-    // count для профиля дискорда обычно недоступен
-  } else if (isProbablyUsername) {
-    href = '#copy';
-    displayValue = value;
-    actionText = 'Скопировать Discord ID';
-    // count для юзернейма тоже
-  } else {
-     href = value.startsWith('http') ? value : `https://${value}`;
-     displayValue = 'Неизвестная ссылка';
-     actionText = 'Перейти по ссылке';
-  }
-
-  const handleClick = async (e) => {
-    if (href === '#copy') {
-      e.preventDefault();
-      try {
-        await navigator.clipboard.writeText(value);
-        alert(`Discord ID "${value}" скопирован в буфер обмена!`);
-      } catch (err) {
-        console.error('Ошибка копирования Discord ID:', err);
-        alert('Не удалось скопировать ID. Ошибка в консоли.');
-      }
-    }
+  const formatCount = (num) => {
+    if (typeof num !== 'number' || isNaN(num)) return null;
+    if (num >= 1000000) return `${(num / 1000000).toFixed(1)}M+`;
+    if (num >= 1000) return `${Math.floor(num / 1000)}k+`;
+    return `${num}`;
   };
+  const displayCount = formatCount(count);
+  const aboutText = displayCount ? `${displayCount} подписчиков` : 'Профиль TikTok';
 
   return (
     <StyledWrapper className={className}>
@@ -55,32 +23,27 @@ const DiscordButton = ({ value, count, className }) => {
         <div className="tooltip">
           <div className="profile">
             <div className="user">
-              <div className="img">DS</div>
+              <div className="img">TT</div>
               <div className="details">
-                <div className="name">Discord</div>
-                {/* Используем displayValue */}
-                <div className="username">{displayValue}</div>
+                <div className="name">TikTok</div>
+                <div className="username">@{displayUsername}</div>
               </div>
             </div>
-            {/* Используем aboutText (count тут обычно нет) */}
             <div className="about">{aboutText}</div>
           </div>
         </div>
         <div className="text">
-          <a href={href} target={href === '#copy' ? '_self' : '_blank'} rel="noopener noreferrer" className="icon" onClick={handleClick}>
+          <a href={href} target="_blank" rel="noopener noreferrer" className="icon">
             <div className="layer">
               <span />
               <span />
               <span />
               <span />
               <span className="svg">
-                 {/* SVG иконка Discord */}
-                 <svg preserveAspectRatio="xMidYMid" xmlns="http://www.w3.org/2000/svg" viewBox="0 -3.117 28 28">
-                   <path fill="currentColor" d="M23.719 1.815A22.8 22.8 0 0 0 17.942 0c-.249.45-.54 1.055-.74 1.536q-3.231-.486-6.402 0C10.6 1.055 10.302.45 10.051 0A22.7 22.7 0 0 0 4.27 1.82C.614 7.344-.377 12.731.119 18.042c2.425 1.811 4.775 2.911 7.085 3.63a17.6 17.6 0 0 0 1.517-2.499 15 15 0 0 1-2.389-1.163 12 12 0 0 0 .586-.463c4.607 2.155 9.613 2.155 14.165 0a14 14 0 0 0 .586.463 15 15 0 0 1-2.394 1.165c.438.877.945 1.714 1.517 2.499 2.312-.72 4.664-1.82 7.089-3.633.581-6.156-.993-11.494-4.162-16.227M9.349 14.776c-1.383 0-2.517-1.291-2.517-2.863s1.11-2.866 2.517-2.866 2.541 1.291 2.517 2.866c.002 1.572-1.11 2.863-2.517 2.863m9.302 0c-1.383 0-2.517-1.291-2.517-2.863s1.11-2.866 2.517-2.866 2.541 1.291 2.517 2.866c0 1.572-1.11 2.863-2.517 2.863" />
-                 </svg>
+                 <FaTiktok /> 
               </span>
             </div>
-            <div className="text">Discord</div>
+            <div className="text">TikTok</div>
           </a>
         </div>
       </div>
@@ -88,15 +51,17 @@ const DiscordButton = ({ value, count, className }) => {
   );
 }
 
-// Стили копируем из твоего кода Discord
 const StyledWrapper = styled.div`
   display: inline-block;
   vertical-align: middle;
   margin: 0 5px;
 
   .tooltip-container {
-    --color: #5865f2; /* Discord Blue */
-    --border: rgba(88, 101, 242, 0.25);
+    /* Используем градиент для цвета */
+    --color-1: #ff0050; /* Розовый */
+    --color-2: #00f2ea; /* Бирюзовый */
+    --color: var(--color-1); /* Основной цвет для текста/иконки */
+    --border: rgba(0, 0, 0, 0.25); /* Черная рамка для контраста */
     position: relative;
     cursor: pointer;
     transition: all 0.2s;
@@ -124,7 +89,8 @@ const StyledWrapper = styled.div`
   }
 
   .profile {
-    background: rgba(88, 101, 242, 0.1); /* Discord фон */
+    /* Градиентный фон */
+    background: linear-gradient(45deg, rgba(255, 0, 80, 0.1), rgba(0, 242, 234, 0.1));
     border-radius: 10px 15px;
     padding: 10px;
     border: 1px solid var(--border);
@@ -133,11 +99,11 @@ const StyledWrapper = styled.div`
   }
 
   .tooltip-container:hover .tooltip {
-    opacity: 1;
-    visibility: visible;
-    pointer-events: auto;
-    transform: translateX(-50%) translateY(-15px);
-  }
+     opacity: 1;
+     visibility: visible;
+     pointer-events: auto;
+     transform: translateX(-50%) translateY(-15px);
+   }
 
   .icon {
     text-decoration: none;
@@ -179,15 +145,17 @@ const StyledWrapper = styled.div`
   .layer span.svg {
       padding: 0;
   }
-
+  
+  /* Размер иконки TikTok */
   .layer span.svg svg {
-      width: 60%;
-      height: 60%;
+      width: 55%; 
+      height: 55%;
   }
 
   .tooltip-container:hover .layer span {
     border-radius: 10px;
-    background: var(--color);
+    /* Градиентный фон при ховере */
+    background: linear-gradient(45deg, var(--color-1), var(--color-2)); 
   }
 
   .tooltip-container:hover .svg path {
@@ -195,16 +163,17 @@ const StyledWrapper = styled.div`
   }
 
   .layer span,
-  .text .text { /* Текст под иконкой */
-    color: var(--color);
+  .text .text {
+    color: var(--color); /* Используем основной цвет для текста */
     border-color: var(--color);
   }
 
   .icon:hover .layer span {
-    box-shadow: -1px 1px 3px var(--color);
+     /* Тень с градиентом сделать сложно, оставим простую */
+    box-shadow: -1px 1px 3px rgba(0,0,0,0.5);
   }
 
-  .icon .text { /* Текст под иконкой */
+  .icon .text {
     position: absolute;
     left: 50%;
     bottom: -5px;
@@ -296,4 +265,4 @@ const StyledWrapper = styled.div`
   }
 `;
 
-export default DiscordButton; 
+export default TiktokButton; 
