@@ -5,7 +5,6 @@ import { useRouter } from 'next/navigation';
 import { createClient } from '@supabase/supabase-js';
 import Select from 'react-select';
 import { useAuth } from '../../contexts/AuthContext';
-import Button from '../../components/ui/Button';
 import { categories, movieGenres } from '../categories';
 import styles from './create-review.module.css';
 
@@ -412,14 +411,14 @@ export default function CreateReviewPage() {
 
                 {category && title && (
                     <div className={styles.aiButtonGroup}>
-                         <Button
+                         <button
+                            type="button"
                             onClick={handleAiFill}
                             disabled={isSubmitting || !title || authLoading}
-                            variant="secondary"
-                            className={styles.aiButton}
+                            className={`${styles.aiButton} ${styles.submitButton}`}
                         >
                             {isSubmitting && successMessage.includes('Магия') ? '✨ Думаю...' : '🪄 Заполнить с помощью ИИ'}
-                        </Button>
+                        </button>
                     </div>
                 )}
 
@@ -501,15 +500,22 @@ export default function CreateReviewPage() {
                 </div>
 
                 <div className={styles.buttonGroup}>
-                   <Button onClick={() => router.push('/menu')} variant="secondary" disabled={isSubmitting || authLoading}>
+                   <button
+                       type="button"
+                       onClick={() => router.push('/menu')}
+                       className={`${styles.submitButton} ${styles.secondaryButton}`}
+                       disabled={isSubmitting || authLoading}
+                   >
                         Назад в меню
-                    </Button>
-                   <Button
+                    </button>
+                   <button
+                       type="button"
                        onClick={handleSubmit}
+                       className={styles.submitButton}
                        disabled={isSubmitting || authLoading || !category || !title || !text || rating === 0 || (isMovieOrSeries && selectedGenres.length === 0) || (!isMovieOrSeries && !subcategory)}
                    >
                         {isSubmitting ? 'Публикация...' : 'Опубликовать'}
-                    </Button>
+                    </button>
                 </div>
 
             </form>

@@ -291,6 +291,31 @@
     transform: scale(0.98);
 }
 
+/* Добавляем стили для вторичной кнопки (назад) */
+.secondaryButton {
+    background-color: var(--tg-theme-secondary-bg-color);
+    color: var(--tg-theme-button-color); /* Цвет текста как у основной кнопки */
+    border: 1px solid var(--tg-theme-button-color); /* Рамка в цвет основной кнопки */
+}
+
+.secondaryButton:hover:not(:disabled) {
+    background-color: rgba(var(--tg-theme-button-rgb), 0.1); /* Легкий фон при наведении */
+    color: var(--tg-theme-button-color);
+}
+
+.secondaryButton:disabled {
+    background-color: var(--tg-theme-secondary-bg-color);
+    color: var(--tg-theme-hint-color); /* Бледный цвет текста */
+    border-color: var(--tg-theme-hint-color); /* Бледная рамка */
+    cursor: not-allowed;
+    opacity: 0.7;
+}
+
+.secondaryButton:active:not(:disabled) {
+    background-color: rgba(var(--tg-theme-button-rgb), 0.2);
+    transform: scale(0.98);
+}
+
 /* Разделитель */
 .divider {
     border: none;
