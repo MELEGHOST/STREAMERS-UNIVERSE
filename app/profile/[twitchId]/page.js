@@ -9,6 +9,7 @@ import CyberAvatar from '../../components/CyberAvatar';
 import styles from '../profile.module.css';
 import pageStyles from '../../../styles/page.module.css';
 import { useAuth } from '../../contexts/AuthContext';
+import { pluralize } from '../../utils/pluralize';
 // Возвращаем StyledSocialButton
 // import StyledSocialButton from '../../components/StyledSocialButton/StyledSocialButton';
 // import { FaYoutube, FaTiktok } from 'react-icons/fa'; // Убрали Twitch, Discord
@@ -164,25 +165,25 @@ export default function UserProfilePage() {
 
   // --- Получаем роль/роли из профиля --- 
   const userRolesString = isRegistered ? profileData?.role : null;
-  // Разбиваем строку ролей по запятой и убираем пробелы
-  const userRolesArray = userRolesString?.split(',').map(role => role.trim()).filter(Boolean) || [];
-  const isAdmin = userRolesArray.includes('admin'); // Проверяем наличие роли admin
+  const userRolesArray = userRolesString?.split(',').map(role => role.trim().toLowerCase()).filter(Boolean) || [];
+  const isAdmin = userRolesArray.includes('admin');
 
   // --- Debug Log: Финальные данные перед рендером ---
   console.log('[UserProfilePage] Final state before render:', {
       profileTwitchId,
       authIsLoading,
       currentUserTwitchId,
-      isOwnProfile, // <<< Используем значение, вычисленное ранее
+      isOwnProfile,
       dataIsLoading,
       loadingProfile,
       profileExists,
       isRegistered,
       twitchUserDataExists: !!twitchUserData,
       profileDataExists: !!profileData,
-      userRolesString, // Строка с ролями
-      userRolesArray, // Массив ролей
-      isAdmin, // Флаг админа
+      profileDataReceived: profileData,
+      userRolesString,
+      userRolesArray,
+      isAdmin,
       error
   });
 
@@ -294,15 +295,18 @@ export default function UserProfilePage() {
 
       {error && <p className={styles.errorMessage}>{error}</p>}
 
-      <div className={styles.profileHeader}>
-          <CyberAvatar 
-              src={avatarUrl}
-              alt={`Аватар ${displayName}`} 
-              size={120}
-              priority={true} 
-              className={styles.avatar}
-          />
-          <div className={styles.profileInfo}>
+      <div className={styles.profileGrid}> 
+          <div className={styles.avatarContainer}>
+                <CyberAvatar 
+                    src={avatarUrl}
+                    alt={`Аватар ${displayName}`} 
+                    size={120}
+                    priority={true} 
+                    className={styles.avatar}
+                />
+          </div>
+
+          <div className={styles.profileInfo}> 
               <h1 className={styles.displayName}>{displayName}</h1>
               <p className={styles.loginName}>@{twitchUserData?.login}</p>
               {isRegistered && userRolesArray.length > 0 && (
@@ -311,7 +315,6 @@ export default function UserProfilePage() {
               {!isRegistered && (
                     <div className={styles.notRegisteredBadge}>
                         <p>😥 Пользователь ещё не с нами</p>
-                         {/* Можно добавить кнопку "Пригласить", если не владелец смотрит */}
                         {!isOwnProfile && isAuthenticated && (
                             <button onClick={handleInvite} className={styles.inlineInviteButton}>
                                 Пригласить!
@@ -321,10 +324,10 @@ export default function UserProfilePage() {
                )}
               <div className={styles.stats}>
                 {followersCount !== null && typeof followersCount !== 'undefined' && (
-                    <p>👥 {followersCount.toLocaleString('ru-RU')} фолловеров</p>
+                    <p>👥 {followersCount.toLocaleString('ru-RU')} {pluralize(followersCount, 'фолловер', 'фолловера', 'фолловеров')}</p>
                 )}
                 {viewCount !== null && typeof viewCount !== 'undefined' && (
-                    <p>👁️ {viewCount.toLocaleString('ru-RU')} просмотров</p>
+                    <p>👁️ {viewCount.toLocaleString('ru-RU')} {pluralize(viewCount, 'просмотр', 'просмотра', 'просмотров')}</p>
                 )}
                  {createdAt && (
                     <p>📅 На Twitch с {formattedDate}</p>
@@ -333,65 +336,58 @@ export default function UserProfilePage() {
                      <p>💼 Статус: {translateBroadcasterType(broadcasterType)}</p>
                 )}
               </div>
-              <div className={styles.socialLinks}> 
-                 {profileSocialLinks?.vk && (
+          </div>
+
+          <div className={styles.socialLinksSidebar}> 
+               {profileSocialLinks?.vk && (
                    <VkButton 
                        value={profileSocialLinks.vk} 
-                       // count={...} // Нет данных о подписчиках VK
                        className={styles.socialButton} 
                    />
                  )}
-                 {/* Кнопка Twitch - используем логин и реальное число фолловеров */}
                  {twitchUserData?.login && (
                    <TwitchButton 
                        value={twitchUserData.login} 
-                       count={followersCount} // Передаем реальное число
+                       count={followersCount}
                        className={styles.socialButton}
                    />
                  )}
                  {profileSocialLinks?.discord && (
                      <DiscordButton 
                          value={profileSocialLinks.discord}
-                         // count={...} // Нет данных
                          className={styles.socialButton}
                      />
                  )}
                  {profileSocialLinks?.youtube && (
                     <YoutubeButton 
                        value={profileSocialLinks.youtube}
-                       // count={...} // Нет данных
                        className={styles.socialButton}
                    />
                  )}
                   {profileSocialLinks?.telegram && (
                      <TelegramButton
                          value={profileSocialLinks.telegram}
-                         // count={...} // Нет данных
                          className={styles.socialButton}
                      />
                    )}
                  {profileSocialLinks?.tiktok && (
                    <TiktokButton 
                        value={profileSocialLinks.tiktok} 
-                       // count={...} // Нет данных
                        className={styles.socialButton}
                    />
                  )}
                  {profileSocialLinks?.boosty && (
                    <BoostyButton 
                        value={profileSocialLinks.boosty} 
-                       // count={...} // Нет данных
                        className={styles.socialButton}
                    />
                  )}
                  {profileSocialLinks?.yandex_music && (
                     <YandexMusicButton
                         value={profileSocialLinks.yandex_music}
-                        // count={...} // Нет данных
                         className={styles.socialButton}
                     />
                  )}
-              </div>
           </div>
       </div>
 

@@ -1,9 +1,25 @@
 'use client';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
+import useSWR from 'swr';
 import { useAuth } from '../contexts/AuthContext';
 import styles from './achievements.module.css';
 import pageStyles from '../../styles/page.module.css';
+
+// --- Фетчер для SWR --- 
+const fetcher = async (url, token) => {
+    const headers = {};
+    if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
+    }
+    const res = await fetch(url, { headers });
+    if (!res.ok) {
+        const errorInfo = { status: res.status, message: await res.text() };
+        console.error("[Achievements fetcher] Error:", errorInfo);
+        throw new Error(errorInfo.message || `Ошибка API (${res.status})`);
+    }
+    return res.json();
+};
 
 // Пример структуры данных достижения
 // const exampleAchievement = {
@@ -25,100 +41,122 @@ const exampleAllAchievements = [
 ];
 
 // Компонент для отображения одного достижения
-function AchievementCard({ achievement, isUnlocked }) {
+function AchievementCard({ achievement }) {
     return (
-        <div className={`${styles.achievementCard} ${isUnlocked ? styles.unlocked : styles.locked}`}>
-            <div className={styles.achievementIcon}>{achievement.icon}</div>
+        <div className={`${styles.achievementCard} ${achievement.is_unlocked ? styles.unlocked : styles.locked}`}>
+            <div className={styles.achievementIcon}>{achievement.icon || '🏅'}</div>
             <div className={styles.achievementInfo}>
                 <h3 className={styles.achievementName}>{achievement.name}</h3>
                 <p className={styles.achievementDescription}>{achievement.description}</p>
-                 {/* Можно добавить отображение прогресса, если он есть */} 
-                {!isUnlocked && achievement.condition && <p className={styles.achievementCondition}>Условие: {achievement.condition}</p>}
+                {/* Условие берем из condition_description */} 
+                {achievement.condition_description && 
+                    <p className={styles.achievementCondition}>
+                        Условие: {achievement.condition_description}
+                    </p>}
+                 {/* Можно добавить отображение прогресса, если он есть и ачивка не разблокирована */}
+                 {/* achievement.trigger_type && achievement.trigger_value && !achievement.is_unlocked && ... */}
             </div>
         </div>
     );
 }
 
-
 export default function AchievementsPage() {
-  const { user, isLoading, isAuthenticated, supabase } = useAuth();
+  const { user, isLoading: authLoading, isAuthenticated, supabase } = useAuth();
   const router = useRouter();
-  const [activeTab, setActiveTab] = useState('my'); // 'my' или 'all'
-  const [myAchievements, setMyAchievements] = useState([]);
-  const [allAchievements] = useState(exampleAllAchievements); 
-  const [loadingAch, setLoadingAch] = useState(true);
-  const [error, setError] = useState(null);
+  const [activeTab, setActiveTab] = useState('all'); // Начнем со всех
 
+  // --- Получаем токен для запроса --- 
+  const [authToken, setAuthToken] = useState(null);
   useEffect(() => {
-    if (!isLoading && !isAuthenticated) {
-      router.push('/auth?next=/achievements');
-    } else if (isAuthenticated && user && supabase) {
-       // TODO: Загрузить реальные достижения пользователя и все достижения с API
-       setLoadingAch(true);
-       setError(null);
-       // Здесь будет fetch к /api/achievements
-       // fetch('/api/achievements?userId=' + user.id).then(...).catch(...)
-       // Пока используем заглушки:
-       setTimeout(() => { // Имитация загрузки
-            // Предположим, пользователь открыл только первое достижение
-            const unlockedIds = ['first_stream']; 
-            const userAch = allAchievements.filter(ach => unlockedIds.includes(ach.id));
-            setMyAchievements(userAch);
-            setLoadingAch(false);
-       }, 500);
-    }
-  }, [isLoading, isAuthenticated, user, supabase, router, allAchievements]);
+      const getToken = async () => {
+          if (isAuthenticated && supabase) {
+              const session = await supabase.auth.getSession();
+              setAuthToken(session.data.session?.access_token || null);
+          } else {
+              setAuthToken(null);
+          }
+      };
+      if (!authLoading) {
+         getToken();
+      }
+  }, [isAuthenticated, supabase, authLoading]);
 
+  // --- Запрос данных через SWR --- 
+  const { data: apiData, error: apiError, isLoading: dataIsLoading } = useSWR(
+      // Ключ SWR - массив. Если токен еще не загружен, SWR не будет делать запрос.
+      // Если пользователь не аутентифицирован, токен будет null, и fetcher его не отправит.
+      ['/api/achievements', authToken], 
+      ([url, token]) => fetcher(url, token), 
+      {
+          revalidateOnFocus: true,
+          onError: (err) => { console.error('[AchievementsPage useSWR onError]', err); }
+      }
+  );
+  
+  // --- Логика состояния загрузки и ошибок --- 
+  const isLoading = authLoading || dataIsLoading;
+  const error = apiError?.message || null;
+
+  // --- Обработка редиректа, если не авторизован (ПОСЛЕ ЗАВЕРШЕНИЯ ЗАГРУЗКИ) ---
+  useEffect(() => {
+    if (!authLoading && !isAuthenticated) {
+      console.log('[AchievementsPage] User not authenticated after loading, redirecting to /auth');
+      router.push('/auth?next=/achievements');
+    }
+  }, [authLoading, isAuthenticated, router]);
+
+  // --- Извлекаем данные из ответа API ---
+  const achievements = useMemo(() => apiData?.achievements || [], [apiData]);
+  const myAchievements = useMemo(() => achievements.filter(ach => ach.is_unlocked), [achievements]);
+
+   // --- Рендеринг --- 
    if (isLoading) {
        return (
            <div className={pageStyles.loadingContainer}>
-               <div className="spinner"></div><p>Загрузка...</p>
+               <div className="spinner"></div><p>Загрузка достижений...</p>
            </div>
        );
    }
-   if (!isAuthenticated) { return null; }
+   // Если редирект еще не сработал, но пользователь не авторизован, ничего не рендерим
+   if (!isAuthenticated) { 
+       console.log('[AchievementsPage] Not authenticated, rendering null while redirecting...');
+       return null; 
+   }
 
   return (
     <div className={pageStyles.container}>
       <h1 className={styles.title}>Достижения</h1>
 
       <div className={styles.tabs}>
+        {/* Вкладка "Мои достижения" */}
         <button 
           className={`${styles.tabButton} ${activeTab === 'my' ? styles.activeTab : ''}`}
           onClick={() => setActiveTab('my')}
         >
-          Мои достижения
+          Мои достижения ({myAchievements.length})
         </button>
+        {/* Вкладка "Все достижения" */}
         <button 
           className={`${styles.tabButton} ${activeTab === 'all' ? styles.activeTab : ''}`}
           onClick={() => setActiveTab('all')}
         >
-          Все достижения
+          Все достижения ({achievements.length})
         </button>
       </div>
 
       {error && <div className={pageStyles.errorMessage} style={{ marginBottom: '1rem' }}>{error}</div>}
       
-      {loadingAch ? (
-            <div className={pageStyles.loadingContainer}>
-                <div className="spinner"></div><p>Загрузка достижений...</p>
-            </div>
-       ) : (
-          <div className={styles.achievementsList}>
-             {activeTab === 'my' && (
-                 myAchievements.length === 0 
-                     ? <p className={styles.noAchievements}>У вас пока нет разблокированных достижений.</p>
-                     : myAchievements.map(ach => <AchievementCard key={ach.id} achievement={ach} isUnlocked={true} />)
-             )}
-             {activeTab === 'all' && (
-                 allAchievements.map(ach => {
-                     const isUnlocked = myAchievements.some(myAch => myAch.id === ach.id);
-                     return <AchievementCard key={ach.id} achievement={ach} isUnlocked={isUnlocked} />;
-                 })
-             )}
-          </div>
-       )}
-
+      <div className={styles.achievementsList}>
+         {activeTab === 'my' && (
+             myAchievements.length === 0 
+                 ? <p className={styles.noAchievements}>У вас пока нет разблокированных достижений.</p>
+                 : myAchievements.map(ach => <AchievementCard key={ach.id} achievement={ach} />)
+         )}
+         {activeTab === 'all' && (
+             achievements.map(ach => <AchievementCard key={ach.id} achievement={ach} />)
+         )}
+      </div>
+       
        <button onClick={() => router.back()} className={pageStyles.backButton} style={{ marginTop: '2rem' }}>
            &larr; Назад
        </button>

@@ -27,24 +27,28 @@
   border-radius: 15px;
   box-shadow: 0 0 20px rgba(150, 100, 255, 0.3);
   max-width: 600px;
+  width: 90%; /* <<< Добавляем, чтобы на мобилке не растягивался */
 }
 
 .logo {
   margin-bottom: 2rem;
   filter: drop-shadow(0 0 10px rgba(200, 150, 255, 0.5));
+  width: 150px; /* <<< Уменьшим дефолтный размер */
+  height: 150px;
 }
 
 .loggedInContent h2,
 .loggedOutContent h2 {
   margin-bottom: 0.5rem;
   color: #eee;
+  font-size: 1.5rem; /* <<< Немного уменьшим */
 }
 
 .loggedInContent p,
 .loggedOutContent p {
   margin-bottom: 1.5rem;
   color: #ccc;
-  font-size: 1.1rem;
+  font-size: 1.0rem; /* <<< Немного уменьшим */
 }
 
 .menuButton {
@@ -161,4 +165,49 @@
 
 .ctaButton:active {
   transform: scale(0.98);
+}
+
+/* --- Адаптация --- */
+@media (max-width: 768px) {
+  .content {
+    padding: 1.5rem 1rem; /* Уменьшаем паддинги */
+    max-width: 95%; /* Делаем чуть шире */
+  }
+
+  .logo {
+    width: 120px; /* Еще меньше лого */
+    height: 120px;
+    margin-bottom: 1.5rem;
+  }
+
+  .loggedInContent h2,
+  .loggedOutContent h2 {
+     font-size: 1.3rem;
+  }
+
+  .loggedInContent p,
+  .loggedOutContent p {
+     font-size: 0.95rem;
+     margin-bottom: 1rem;
+  }
+
+  .menuButton {
+     padding: 10px 20px;
+     font-size: 1rem;
+  }
+}
+
+@media (max-width: 480px) {
+   .logo {
+       width: 100px;
+       height: 100px;
+   }
+   .loggedInContent h2,
+   .loggedOutContent h2 {
+       font-size: 1.2rem;
+   }
+   .loggedInContent p,
+   .loggedOutContent p {
+       font-size: 0.9rem;
+   }
 } 

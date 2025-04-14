@@ -59,6 +59,11 @@
   font-size: 0.95rem;
   font-weight: 500;
   color: var(--foreground-primary);
+  /* Добавляем, чтобы имя не переносилось */
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 150px; /* Ограничим максимальную ширину */
 }
 
 .logoutButton {
@@ -281,4 +286,59 @@
 
 .searchError {
     color: var(--error-color);
+}
+
+/* --- Адаптация --- */
+@media (max-width: 768px) {
+  .header {
+      padding: 0.6rem 1rem; /* Уменьшаем паддинги */
+  }
+  .logoText {
+      display: none; /* Скрываем текст лого на мобилках */
+  }
+  .userName {
+      display: none; /* Скрываем имя юзера, оставляем аву */
+  }
+  .userLink {
+      padding: 0.4rem; /* Уменьшаем паддинг ссылки юзера */
+  }
+  .mainNavGrid {
+      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); /* Карточки поменьше */
+      gap: 1rem; /* Отступ поменьше */
+  }
+  .navCard {
+      min-height: 120px; /* Уменьшаем высоту карточки */
+      padding: 1.5rem 0.5rem;
+  }
+  .navCardIcon {
+      font-size: 2rem;
+      margin-bottom: 0.8rem;
+  }
+  .navCardLabel {
+      font-size: 1rem;
+  }
+  .mainTitle {
+      font-size: 1.5rem;
+      margin-bottom: 1.5rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .mainNavGrid {
+      grid-template-columns: repeat(2, 1fr); /* Строго 2 колонки на самых маленьких */
+      gap: 0.8rem;
+  }
+   .navCard {
+       min-height: 100px;
+       padding: 1rem 0.5rem;
+   }
+   .navCardIcon {
+       font-size: 1.8rem;
+   }
+   .navCardLabel {
+       font-size: 0.9rem;
+   }
+  .userNav {
+     gap: 0.5rem; /* Уменьшаем отступ в юзер-навигации */
+  }
 } 

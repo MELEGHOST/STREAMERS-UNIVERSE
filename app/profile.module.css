@@ -151,18 +151,61 @@
 
 .container {
     padding: 20px;
+    overflow: visible; /* На всякий случай */
 }
 
-.profileHeader {
-    display: flex;
+/* Заменяем profileHeader на profileGrid */
+.profileGrid {
+    display: grid;
+    grid-template-columns: auto 1fr auto; /* Аватар | Инфа | Соцсети */
+    /* grid-template-areas: "avatar info social"; */ /* Можно и через area, но так проще */
     gap: 30px;
     align-items: flex-start; /* Выравниваем по верху */
     margin-bottom: 2rem;
-    overflow: visible; /* <<< Пробуем добавить сюда */
+    overflow: visible; /* Оставляем */
+}
+
+.avatarContainer {
+    /* grid-area: avatar; */
+    /* Стили для аватара остаются прежними */
+    width: 120px; /* Можно задать явно */
+    height: 120px;
+    overflow: visible; /* И сюда */
 }
 
 .avatar {
-    /* ... */
+    /* Если стили были тут, переносим в .avatarContainer или оставляем */
+}
+
+.profileInfo {
+    /* grid-area: info; */
+    /* Основная инфа */
+    overflow: visible; /* Оставляем */
+}
+
+.socialLinksSidebar {
+    /* grid-area: social; */
+    display: flex;
+    flex-direction: column; /* Иконки в столбик */
+    align-items: center; /* Центрируем иконки по горизонтали */
+    gap: 20px; /* <<< Увеличим гэп */
+    padding-left: 20px; /* Небольшой отступ слева от этого блока */
+    overflow: visible; /* Оставляем */
+    /* width: 60px; */ /* <<< Убрал фиксированную ширину, может мешать */
+    /* Попробуем выровнять по центру контейнера, а не по верху */
+    /* align-self: center; */ /* <<< Пока уберем, может помешать */
+    /* Попробуем добавить немного padding сверху, если кнопки слишком высоко */
+    padding-top: 10px; 
+}
+
+/* Попытка переопределить тень для слоев кнопки */
+/* :global Giga Pizdec selector */
+.socialLinksSidebar :global(.layer span) {
+    /* box-shadow: none !important; */ /* <<< ЗАКОММЕНТИРОВАНО! Если не поможет, попробуем раскомментить */
+}
+
+.socialButton {
+    overflow: visible; /* И на саму кнопку */
 }
 
 .stats p {
