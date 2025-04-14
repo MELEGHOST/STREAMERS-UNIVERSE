@@ -64,11 +64,9 @@ export function AuthProvider({ children }) {
     console.log('[AuthContext] useEffect Init (using standard createClient)...');
     let isMounted = true;
 
-    // --- ВАЖНО: getSession теперь работает с localStorage --- 
     async function getInitialSession() {
       console.log('[AuthContext] Attempting getInitialSession() using standard createClient...');
       try {
-          // createClient читает сессию из localStorage
           const { data: sessionData, error } = await supabase.auth.getSession();
           console.log('[AuthContext] getSession() Result:', { sessionData, error });
 
@@ -83,18 +81,13 @@ export function AuthProvider({ children }) {
             setUser(initialSession.user);
             setSession(initialSession);
           } else {
-            console.log('[AuthContext] No initial session found via getSession().');
-             if (user || session) {
-                 console.log('[AuthContext] Clearing existing user/session state because getSession() returned null.');
-                 setUser(null);
-                 setSession(null);
-             }
+            console.log('[AuthContext] No initial session found via getSession(). Waiting for INITIAL_SESSION event...');
           }
       } catch (catchError) {
            console.error('[AuthContext] Exception during getInitialSession():', catchError);
       } finally {
-          if (isMounted) {
-              console.log('[AuthContext] Setting loading = false after getInitialSession attempt.');
+          if (isMounted && !session) {
+              console.log('[AuthContext] Setting loading = false after getInitialSession attempt (no session found yet).');
               setLoading(false);
           }
       }
@@ -139,6 +132,11 @@ export function AuthProvider({ children }) {
         console.log('[AuthContext] Updating state based on onAuthStateChange...');
         setSession(currentSession);
         setUser(currentSession?.user ?? null);
+
+        if (loading) {
+            console.log(`[AuthContext] Setting loading = false after onAuthStateChange event: ${event}.`);
+            setLoading(false);
+        }
 
         if (event === 'SIGNED_OUT') {
           console.log('[AuthContext] User signed out. Clearing state and redirecting.');
@@ -211,13 +209,6 @@ export function AuthProvider({ children }) {
         }
         if (event === 'TOKEN_REFRESHED') {
              console.log('[AuthContext] Token refreshed successfully.', { newSession: currentSession });
-         } 
-         if (event === 'INITIAL_SESSION') {
-              console.log('[AuthContext] INITIAL_SESSION event received.', { session: currentSession });
-              if (loading) {
-                   console.log('[AuthContext] Setting loading = false after INITIAL_SESSION.');
-                   setLoading(false);
-              }
          }
       }
     );

@@ -160,7 +160,13 @@ export default function UserProfilePage() {
   const twitchUserData = apiData?.twitch_user || null;
   const profileData = apiData?.profile || null;
   const videos = apiData?.twitch_user?.videos || [];
-  const isRegistered = !!profileData; 
+  const isRegistered = !!profileData;
+
+  // --- Получаем роль/роли из профиля --- 
+  const userRolesString = isRegistered ? profileData?.role : null;
+  // Разбиваем строку ролей по запятой и убираем пробелы
+  const userRolesArray = userRolesString?.split(',').map(role => role.trim()).filter(Boolean) || [];
+  const isAdmin = userRolesArray.includes('admin'); // Проверяем наличие роли admin
 
   // --- Debug Log: Финальные данные перед рендером ---
   console.log('[UserProfilePage] Final state before render:', {
@@ -174,6 +180,9 @@ export default function UserProfilePage() {
       isRegistered,
       twitchUserDataExists: !!twitchUserData,
       profileDataExists: !!profileData,
+      userRolesString, // Строка с ролями
+      userRolesArray, // Массив ролей
+      isAdmin, // Флаг админа
       error
   });
 
@@ -220,7 +229,6 @@ export default function UserProfilePage() {
   const broadcasterType = twitchUserData?.broadcaster_type || profileData?.twitch_broadcaster_type;
   const profileDescription = isRegistered ? profileData?.description : twitchUserData?.description;
   const profileSocialLinks = isRegistered ? profileData?.social_links : null;
-  const userRole = isRegistered ? profileData?.role : null;
   const formattedDate = createdAt ? formatDate(createdAt) : 'Неизвестно';
 
   const handleInvite = async () => {
@@ -246,7 +254,7 @@ export default function UserProfilePage() {
               &larr; Назад
           </button>
           <div className={styles.actionButtons}>
-              {isOwnProfile && isRegistered && userRole === 'admin' && (
+              {isOwnProfile && isRegistered && isAdmin && (
                    <button onClick={() => router.push('/admin/reviews')} className={`${styles.actionButton} ${styles.adminButton}`} title="Модерация">
                        🛡️ Админ панель
                    </button>
@@ -256,7 +264,7 @@ export default function UserProfilePage() {
                        📝 Мои отзывы
                    </button>
                )}
-              {isOwnProfile && isRegistered && (
+               {isOwnProfile && isRegistered && (
                    <button onClick={() => router.push('/achievements')} className={styles.actionButton} title="Достижения">
                        🏆 Достижения
                    </button>
@@ -297,7 +305,9 @@ export default function UserProfilePage() {
           <div className={styles.profileInfo}>
               <h1 className={styles.displayName}>{displayName}</h1>
               <p className={styles.loginName}>@{twitchUserData?.login}</p>
-              {isRegistered && userRole && <p className={styles.userRole}>{userRole}</p>}
+              {isRegistered && userRolesArray.length > 0 && (
+                  <p className={styles.userRole}>{userRolesArray.join(', ')}</p>
+              )}
               {!isRegistered && (
                     <div className={styles.notRegisteredBadge}>
                         <p>😥 Пользователь ещё не с нами</p>
@@ -311,7 +321,7 @@ export default function UserProfilePage() {
                )}
               <div className={styles.stats}>
                 {followersCount !== null && typeof followersCount !== 'undefined' && (
-                    <p>👥 {followersCount.toLocaleString('ru-RU')} последователей</p>
+                    <p>👥 {followersCount.toLocaleString('ru-RU')} фолловеров</p>
                 )}
                 {viewCount !== null && typeof viewCount !== 'undefined' && (
                     <p>👁️ {viewCount.toLocaleString('ru-RU')} просмотров</p>

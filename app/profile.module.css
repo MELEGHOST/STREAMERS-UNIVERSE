@@ -139,12 +139,41 @@
 .socialLinks {
     display: flex;
     flex-wrap: wrap;
-    gap: 15px; /* Уменьшим немного гэп */
-    justify-content: flex-start; /* Выравниваем по левому краю */
-    margin-top: 20px; /* <<< Добавляем отступ сверху */
-    overflow: visible; /* <<< Добавляем, чтобы тултипы не обрезались */
+    gap: 15px;
+    justify-content: flex-start;
+    margin-top: 30px; /* <<< Увеличиваем отступ */
+    overflow: visible; /* Оставляем */
 }
 
 .socialButton {
     /* Можно добавить общие стили для всех кнопок соцсетей, если нужно */
+}
+
+.container {
+    padding: 20px;
+}
+
+.profileHeader {
+    display: flex;
+    gap: 30px;
+    align-items: flex-start; /* Выравниваем по верху */
+    margin-bottom: 2rem;
+    overflow: visible; /* <<< Пробуем добавить сюда */
+}
+
+.avatar {
+    /* ... */
+}
+
+.stats p {
+    margin: 5px 0;
+    color: var(--secondary-text-color);
+    font-size: 0.95rem;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.stats p svg {
+    /* ... */
 } 
