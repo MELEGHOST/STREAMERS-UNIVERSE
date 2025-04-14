@@ -152,7 +152,14 @@ export default function EditProfilePage() {
 
       console.log(`[${title}] Данные профиля успешно сохранены через API. Ответ:`, result);
       setSuccessMessage(result.message || 'Профиль успешно обновлен!');
-      setTimeout(() => setSuccessMessage(null), 3000);
+
+      const userTwitchId = user?.user_metadata?.provider_id;
+      if (userTwitchId) {
+        console.log(`[${title}] Перенаправляем на профиль /profile/${userTwitchId} через router.replace...`);
+        router.replace(`/profile/${userTwitchId}`);
+      } else {
+        console.warn(`[${title}] Не удалось получить Twitch ID пользователя (${user?.id}) для редиректа.`);
+      }
 
     } catch (err) {
       console.error(`[${title}] Ошибка сохранения данных профиля:`, err);

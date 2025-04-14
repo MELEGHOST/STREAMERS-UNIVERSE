@@ -403,9 +403,9 @@ export default function CreateReviewPage() {
         }
 
         const reviewData = {
-            author_id: user.id,
+            user_id: user.id,
             category,
-            title,
+            item_name: title,
             text,
             rating,
             image_url: uploadedImageUrl,
@@ -515,14 +515,14 @@ export default function CreateReviewPage() {
                 ) : null}
 
                 <div className={styles.formGroup}>
-                    <label htmlFor="title" className={styles.label}>Название *</label>
+                    <label htmlFor="title" className={styles.label}>Название объекта *</label>
                     <input
                         type="text"
                         id="title"
                         value={title}
                         onChange={(e) => setTitle(e.target.value)}
                         className={styles.inputField}
-                        placeholder="Название фильма, игры, книги..."
+                        placeholder="Название игры, фильма, книги..."
                         required
                         disabled={isSubmitting || isGeneratingFull || authLoading}
                     />
