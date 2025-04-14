@@ -21,25 +21,6 @@ const fetcher = async (url, token) => {
     return res.json();
 };
 
-// Пример структуры данных достижения
-// const exampleAchievement = {
-//   id: 'first_stream',
-//   name: 'Первый стрим',
-//   description: 'Провести первую трансляцию.',
-//   icon: '🏆', // Можно заменить на URL иконки
-//   unlocked: true, // или false
-//   condition: 'Провести хотя бы одну трансляцию', // Описание условия
-//   progress: null, // { current: 1, target: 1 } или null
-// };
-
-const exampleAllAchievements = [
-   { id: 'first_stream', name: 'Первый стрим', description: 'Провести первую трансляцию.', icon: '🚀', condition: 'Провести трансляцию' },
-   { id: 'follower_goal_10', name: '10 Фолловеров', description: 'Собрать 10 фолловеров на Twitch.', icon: '👥', condition: '10+ фолловеров' },
-   { id: 'watch_time_1h', name: 'Час в эфире', description: 'Набрать 1 час просмотра ваших трансляций.', icon: '⏱️', condition: '1 час просмотра' },
-   { id: 'first_review', name: 'Первый отзыв', description: 'Написать свой первый отзыв.', icon: '✍️', condition: 'Написать отзыв' },
-   { id: 'affiliate_status', name: 'Компаньон Twitch', description: 'Получить статус компаньона на Twitch.', icon: '🤝', condition: 'Статус компаньона' },
-];
-
 // Компонент для отображения одного достижения
 function AchievementCard({ achievement }) {
     return (
@@ -61,7 +42,7 @@ function AchievementCard({ achievement }) {
 }
 
 export default function AchievementsPage() {
-  const { user, isLoading: authLoading, isAuthenticated, supabase } = useAuth();
+  const { /* user, */ isLoading: authLoading, isAuthenticated, supabase } = useAuth();
   const router = useRouter();
   const [activeTab, setActiveTab] = useState('all'); // Начнем со всех
 
