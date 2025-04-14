@@ -270,7 +270,7 @@ const StyledWrapper = styled.div`
 
 // --- Компонент кнопки --- 
 const HoldLoginButton = ({ holdDuration = 1500 }) => { 
-  const { signInWithTwitch, isAuthenticated } = useAuth(); 
+  const { isAuthenticated, signInWithTwitch } = useAuth();
   const router = useRouter();
 
   const [isHolding, setIsHolding] = useState(false);
@@ -377,23 +377,38 @@ const HoldLoginButton = ({ holdDuration = 1500 }) => {
       '--holding-active': isHolding ? 1 : 0 
   };
 
+  // --- Определяем текст и действие кнопки --- 
+  let buttonText = 'Удерживай для входа';
+  let buttonAction = null; // Действие для ОБЫЧНОГО КЛИКА
+
+  if (isAuthenticated) {
+    buttonText = 'Войти в меню';
+    // <<< Назначаем действие для обычного клика >>>
+    buttonAction = () => {
+        console.log('[HoldLoginButton] Клик по кнопке "Войти в меню". Переход...');
+        router.push('/menu');
+    };
+  }
+
   return (
-    <StyledWrapper>
+    <StyledWrapper style={{ '--hold-duration': `${holdDuration}ms`, '--hold-progress': holdProgress }}>
       <div className="galaxy-button">
         <button 
           className={`space-button ${isHolding ? 'holding' : ''}`}
           style={buttonStyle}
-          onMouseDown={startHold}
-          onMouseUp={triggerActionOnRelease} 
-          onMouseLeave={resetHoldVisuals} 
-          onTouchStart={(e) => { e.preventDefault(); startHold(); }} 
-          onTouchEnd={triggerActionOnRelease} 
-          onTouchCancel={resetHoldVisuals} 
+          onMouseDown={!isAuthenticated ? startHold : undefined} // Удержание только для логина
+          onMouseUp={!isAuthenticated ? triggerActionOnRelease : undefined}
+          onMouseLeave={!isAuthenticated ? resetHoldVisuals : undefined}
+          onTouchStart={!isAuthenticated ? startHold : undefined}
+          onTouchEnd={!isAuthenticated ? triggerActionOnRelease : undefined}
+          onTouchCancel={resetHoldVisuals}
+          onClick={buttonAction} // <<< Передаем действие для клика
+          aria-label={buttonText}
         >
           <span className="backdrop" />
           <span className="galaxy" />
           <label className="text">
-            {isAuthenticated ? "Войти в Меню" : "Войти через Twitch"}
+            {buttonText}
           </label>
           <div className="hold-indicator"></div> 
         </button>

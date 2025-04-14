@@ -201,7 +201,7 @@
 /* Попытка переопределить тень для слоев кнопки */
 /* :global Giga Pizdec selector */
 .socialLinksSidebar :global(.layer span) {
-    /* box-shadow: none !important; */ /* <<< ЗАКОММЕНТИРОВАНО! Если не поможет, попробуем раскомментить */
+    box-shadow: none !important; 
 }
 
 .socialButton {
@@ -219,4 +219,67 @@
 
 .stats p svg {
     /* ... */
+}
+
+/* --- Адаптация для мобильных --- */
+@media (max-width: 768px) {
+    .profileGrid {
+        grid-template-columns: 1fr; /* Все в одну колонку */
+        gap: 20px; /* Уменьшаем отступ */
+        text-align: center; /* Центрируем контент в колонке */
+    }
+
+    .avatarContainer {
+        margin: 0 auto; /* Центрируем аватар */
+    }
+
+    .profileInfo {
+        /* Стили основной инфы остаются, но теперь она в центре */
+        text-align: center;
+    }
+    
+    .stats {
+        justify-content: center; /* Центрируем статы */
+        flex-wrap: wrap; /* Разрешаем перенос статов */
+    }
+
+    .socialLinksSidebar {
+        flex-direction: row; /* Иконки в ряд */
+        justify-content: center; /* Центрируем ряд иконок */
+        flex-wrap: wrap; /* Разрешаем перенос иконок */
+        padding: 20px 0 0 0; /* Убираем отступ слева, добавляем сверху */
+        width: 100%; /* Занимаем всю ширину */
+        gap: 20px; /* Оставляем отступ между иконками */
+    }
+
+    .displayName {
+        font-size: 1.8rem; /* Уменьшаем шрифт имени */
+    }
+    
+    .profileDescription {
+        text-align: left; /* Описание возвращаем к выравниванию по левому краю */
+    }
+    
+    .videosGrid {
+        grid-template-columns: 1fr; /* Видео в одну колонку */
+    }
+}
+
+@media (max-width: 480px) {
+     .displayName {
+        font-size: 1.6rem; 
+    }
+    .stats p {
+        font-size: 0.9rem;
+    }
+    .socialLinksSidebar {
+        gap: 15px; /* Еще меньше отступ между иконками */
+    }
+    /* Уменьшаем сами кнопки, если нужно */
+    /* 
+    .socialLinksSidebar .socialButton .layer {
+        width: 45px;
+        height: 45px;
+    } 
+    */
 } 
