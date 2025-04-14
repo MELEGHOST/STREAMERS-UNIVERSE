@@ -383,7 +383,6 @@ const HoldLoginButton = ({ holdDuration = 1500 }) => {
 
   if (isAuthenticated) {
     buttonText = 'Войти в меню';
-    // <<< Назначаем действие для обычного клика >>>
     buttonAction = () => {
         console.log('[HoldLoginButton] Клик по кнопке "Войти в меню". Переход...');
         router.push('/menu');
@@ -396,13 +395,13 @@ const HoldLoginButton = ({ holdDuration = 1500 }) => {
         <button 
           className={`space-button ${isHolding ? 'holding' : ''}`}
           style={buttonStyle}
-          onMouseDown={!isAuthenticated ? startHold : undefined} // Удержание только для логина
-          onMouseUp={!isAuthenticated ? triggerActionOnRelease : undefined}
-          onMouseLeave={!isAuthenticated ? resetHoldVisuals : undefined}
-          onTouchStart={!isAuthenticated ? startHold : undefined}
-          onTouchEnd={!isAuthenticated ? triggerActionOnRelease : undefined}
+          onMouseDown={startHold}
+          onMouseUp={triggerActionOnRelease}
+          onMouseLeave={resetHoldVisuals}
+          onTouchStart={startHold}
+          onTouchEnd={triggerActionOnRelease}
           onTouchCancel={resetHoldVisuals}
-          onClick={buttonAction} // <<< Передаем действие для клика
+          onClick={buttonAction}
           aria-label={buttonText}
         >
           <span className="backdrop" />

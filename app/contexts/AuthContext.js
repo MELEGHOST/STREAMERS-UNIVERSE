@@ -1,8 +1,8 @@
 'use client';
 
 import React, { createContext, useState, useEffect, useContext, useMemo, useCallback } from 'react';
-// import { createBrowserClient } from '@supabase/ssr'; // <<< Меняем обратно
-import { createClient } from '@supabase/supabase-js'; // <<< Используем стандартный клиент
+import { createBrowserClient } from '@supabase/ssr'; // <<< Возвращаем
+// import { createClient } from '@supabase/supabase-js'; // <<< Убираем
 import { useRouter } from 'next/navigation'; // Импортируем useRouter
 
 // Создаем контекст
@@ -15,7 +15,7 @@ export function AuthProvider({ children }) {
   const [currentTheme, setCurrentTheme] = useState('dark'); // <<< Стейт темы
   const router = useRouter(); // Получаем router
 
-  // Создаем Supabase клиент один раз ИСПОЛЬЗУЯ createClient
+  // Создаем Supabase клиент один раз ИСПОЛЬЗУЯ createBrowserClient
   const supabase = useMemo(() => {
     const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
     const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
@@ -23,15 +23,8 @@ export function AuthProvider({ children }) {
         console.error("[AuthContext] КРИТИЧЕСКАЯ ОШИБКА: Отсутствуют NEXT_PUBLIC_SUPABASE_URL или NEXT_PUBLIC_SUPABASE_ANON_KEY!");
         return null;
     }
-    // <<< Используем createClient >>>
-    // Он использует localStorage для хранения сессии по умолчанию
-    return createClient(url, key, {
-        auth: {
-            // autoRefreshToken: true, // Включено по умолчанию
-            persistSession: true, // Включено по умолчанию, использует localStorage
-            // detectSessionInUrl: true // Включено по умолчанию, для OAuth
-        }
-    });
+    // <<< Используем createBrowserClient >>>
+    return createBrowserClient(url, key);
   }, []);
 
   // <<< useEffect для загрузки темы на клиенте >>>
@@ -61,12 +54,13 @@ export function AuthProvider({ children }) {
         return;
     }
 
-    console.log('[AuthContext] useEffect Init (using standard createClient)...');
+    console.log('[AuthContext] useEffect Init (using createBrowserClient)...');
     let isMounted = true;
 
     async function getInitialSession() {
-      console.log('[AuthContext] Attempting getInitialSession() using standard createClient...');
+      console.log('[AuthContext] Attempting getInitialSession() using createBrowserClient...');
       try {
+          // createBrowserClient читает сессию из кук
           const { data: sessionData, error } = await supabase.auth.getSession();
           console.log('[AuthContext] getSession() Result:', { sessionData, error });
 
@@ -81,13 +75,17 @@ export function AuthProvider({ children }) {
             setUser(initialSession.user);
             setSession(initialSession);
           } else {
-            console.log('[AuthContext] No initial session found via getSession(). Waiting for INITIAL_SESSION event...');
+            console.log('[AuthContext] No initial session found via getSession(). Clearing existing state (if any)...');
+            if (user || session) {
+                 setUser(null);
+                 setSession(null);
+             }
           }
       } catch (catchError) {
            console.error('[AuthContext] Exception during getInitialSession():', catchError);
       } finally {
-          if (isMounted && !session) {
-              console.log('[AuthContext] Setting loading = false after getInitialSession attempt (no session found yet).');
+          if (isMounted) {
+              console.log('[AuthContext] Setting loading = false after getInitialSession attempt.');
               setLoading(false);
           }
       }
@@ -116,7 +114,7 @@ export function AuthProvider({ children }) {
     // <<< Конец: Логика для реферальной ссылки >>>
 
     // Подписываемся на изменения состояния аутентификации
-    console.log('[AuthContext] Subscribing to onAuthStateChange (standard client)...');
+    console.log('[AuthContext] Subscribing to onAuthStateChange (createBrowserClient)...');
     const { data: authListener } = supabase.auth.onAuthStateChange(
       async (event, currentSession) => {
         console.log(`[AuthContext] onAuthStateChange Event: ${event}. Session present: ${!!currentSession}`);
@@ -133,9 +131,13 @@ export function AuthProvider({ children }) {
         setSession(currentSession);
         setUser(currentSession?.user ?? null);
 
-        if (loading) {
-            console.log(`[AuthContext] Setting loading = false after onAuthStateChange event: ${event}.`);
-            setLoading(false);
+        // Восстанавливаем установку loading=false после INITIAL_SESSION
+        if (event === 'INITIAL_SESSION') {
+             console.log('[AuthContext] INITIAL_SESSION event received.', { session: currentSession });
+             if (loading) {
+                  console.log('[AuthContext] Setting loading = false after INITIAL_SESSION.');
+                  setLoading(false);
+             }
         }
 
         if (event === 'SIGNED_OUT') {
