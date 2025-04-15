@@ -270,7 +270,7 @@ const StyledWrapper = styled.div`
 
 // --- Компонент кнопки --- 
 const HoldLoginButton = ({ holdDuration = 1000 }) => { 
-  const { isAuthenticated, signInWithTwitch } = useAuth();
+  const { isAuthenticated, signInWithTwitch, isLoading } = useAuth();
   const router = useRouter();
 
   const [isHolding, setIsHolding] = useState(false);
@@ -379,9 +379,13 @@ const HoldLoginButton = ({ holdDuration = 1000 }) => {
 
   // --- Определяем текст и действие кнопки --- 
   let buttonText = 'Удерживай для входа';
-  let buttonAction = null; // Действие для ОБЫЧНОГО КЛИКА
+  let buttonAction = null;
+  let isDisabled = false;
 
-  if (isAuthenticated) {
+  if (isLoading) {
+    buttonText = 'Загрузка...';
+    isDisabled = true;
+  } else if (isAuthenticated) {
     buttonText = 'Войти в меню';
     buttonAction = () => {
         console.log('[HoldLoginButton] Клик по кнопке "Войти в меню". Переход...');
@@ -395,14 +399,15 @@ const HoldLoginButton = ({ holdDuration = 1000 }) => {
         <button 
           className={`space-button ${isHolding ? 'holding' : ''}`}
           style={buttonStyle}
-          onMouseDown={startHold}
-          onMouseUp={triggerActionOnRelease}
-          onMouseLeave={resetHoldVisuals}
-          onTouchStart={startHold}
-          onTouchEnd={triggerActionOnRelease}
-          onTouchCancel={resetHoldVisuals}
-          onClick={buttonAction}
+          onMouseDown={isDisabled ? undefined : startHold}
+          onMouseUp={isDisabled ? undefined : triggerActionOnRelease}
+          onMouseLeave={isDisabled ? undefined : resetHoldVisuals}
+          onTouchStart={isDisabled ? undefined : startHold}
+          onTouchEnd={isDisabled ? undefined : triggerActionOnRelease}
+          onTouchCancel={isDisabled ? undefined : resetHoldVisuals}
+          onClick={isDisabled ? undefined : buttonAction}
           aria-label={buttonText}
+          disabled={isDisabled}
         >
           <span className="backdrop" />
           <span className="galaxy" />
