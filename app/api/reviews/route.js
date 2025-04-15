@@ -48,51 +48,131 @@ export async function POST(request) {
 
     try {
         const body = await request.json();
-        const { category, itemName, rating, reviewText, imageUrl } = body;
+        // <<< Извлекаем все нужные поля, включая genres и age_rating >>>
+        const { 
+            category, 
+            item_name, // Используем item_name, который приходит с фронта 
+            rating, 
+            text, // Используем text
+            image_url, 
+            genres, 
+            age_rating, 
+            subcategory // Добавляем subcategory 
+        } = body;
 
         // Простая валидация
-        if (!category || !itemName || !rating || !reviewText) {
+        if (!category || !item_name || !rating || !text) { // Проверяем text
             return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
         }
         if (typeof rating !== 'number' || rating < 1 || rating > 5) {
              return NextResponse.json({ error: 'Invalid rating value' }, { status: 400 });
         }
+        // Проверка: если фильмы/сериалы, нужны жанры
+        if ((category === 'Фильмы' || category === 'Сериалы') && (!genres || !Array.isArray(genres) || genres.length === 0)) {
+            return NextResponse.json({ error: 'Genres are required for Movies/Series' }, { status: 400 });
+        }
+        // Проверка: если НЕ фильмы/сериалы, нужна подкатегория
+        if (!(category === 'Фильмы' || category === 'Сериалы') && !subcategory) {
+             return NextResponse.json({ error: 'Subcategory is required for this category' }, { status: 400 });
+        }
 
-        console.log(`[API /api/reviews] Creating manual review by ${userId} for item: ${itemName}`);
+        console.log(`[API /api/reviews] Creating manual review by ${userId} for item: ${item_name}`);
 
-        // --- УБИРАЕМ ПРОВЕРКУ НА СТРИМЕРА - ВСЕ ОТЗЫВЫ ОДОБРЕНЫ --- 
+        // Отзывы всегда одобрены
         const reviewStatus = 'approved';
         console.log(`[API /api/reviews] Manual review status set to: ${reviewStatus}`);
-        // ---------------------------------------------------------
 
-        const { data, error } = await supabaseAdmin
+        // --- Сохраняем основной отзыв --- 
+        const { data: reviewData, error: insertError } = await supabaseAdmin
             .from('reviews')
             .insert({
                 user_id: userId,
                 category,
-                item_name: itemName,
+                item_name, // Сохраняем item_name
                 rating,
-                review_text: reviewText,
-                image_url: imageUrl || null,
-                status: reviewStatus // Всегда approved
+                review_text: text, // Сохраняем text
+                image_url: image_url || null,
+                status: reviewStatus, 
+                genres: (category === 'Фильмы' || category === 'Сериалы') ? genres : null, // Сохраняем массив жанров
+                age_rating: age_rating || null, // Сохраняем возрастной рейтинг
+                subcategory: (category !== 'Фильмы' && category !== 'Сериалы') ? subcategory : null // Сохраняем подкатегорию
             })
             .select('id, status')
             .single();
 
-        if (error) {
-            console.error('Error inserting review:', error);
-            if (error.message.includes('rating') && error.message.includes('does not exist')) {
+        if (insertError) {
+            console.error('Error inserting review:', insertError);
+            if (insertError.message.includes('rating') && insertError.message.includes('does not exist')) {
                  return NextResponse.json({ error: 'Database error: rating column missing.' }, { status: 500 });
             }
-            return NextResponse.json({ error: 'Failed to create review', details: error.message }, { status: 500 });
+            return NextResponse.json({ error: 'Failed to create review', details: insertError.message }, { status: 500 });
         }
 
-        console.log(`[API /api/reviews] Manual review created by ${userId} with ID: ${data.id}, Status: ${data.status}`);
-        const message = 'Review created and published successfully.'; // Сообщение всегда об успехе
-        return NextResponse.json({ id: data.id, status: data.status, message }, { status: 201 });
+        console.log(`[API /api/reviews] Manual review created by ${userId} with ID: ${reviewData.id}, Status: ${reviewData.status}`);
+        const message = 'Review created and published successfully.';
+
+        // --- Логика Ачивки "Первый отзыв" --- 
+        try {
+            console.log(`[API /api/reviews] Checking 'first_review' achievement for user ${userId}...`);
+            // 1. Проверяем, есть ли у пользователя УЖЕ эта ачивка
+            const { data: existingAchievement, error: checkError } = await supabaseAdmin
+                .from('user_achievements')
+                .select('achievement_id')
+                .eq('user_id', userId)
+                .eq('achievement_id', 'first_review')
+                .maybeSingle(); 
+
+            if (checkError) {
+                console.error(`[API /api/reviews] Error checking existing achievement 'first_review' for user ${userId}:`, checkError);
+                // Не прерываем основной ответ из-за ошибки ачивки
+            } else if (existingAchievement) {
+                 console.log(`[API /api/reviews] User ${userId} already has 'first_review' achievement.`);
+                 // Ничего не делаем, ачивка уже есть
+            } else {
+                // 2. Ачивки нет - проверяем, первая ли это рецензия
+                const { count: reviewCount, error: countError } = await supabaseAdmin
+                    .from('reviews')
+                    .select('*', { count: 'exact', head: true }) // Считаем все записи пользователя
+                    .eq('user_id', userId);
+
+                 if (countError) {
+                     console.error(`[API /api/reviews] Error counting reviews for user ${userId}:`, countError);
+                 } else if (reviewCount === 1) {
+                     // 3. Это точно первый отзыв - даем ачивку
+                     console.log(`[API /api/reviews] First review detected for user ${userId}. Unlocking 'first_review' achievement...`);
+                     const { error: unlockError } = await supabaseAdmin
+                        .from('user_achievements')
+                        .insert({ 
+                            user_id: userId, 
+                            achievement_id: 'first_review', 
+                            unlocked_at: new Date().toISOString(),
+                            current_progress: 1 // Ставим прогресс 1
+                        });
+                     if (unlockError) {
+                         console.error(`[API /api/reviews] Error unlocking 'first_review' for user ${userId}:`, unlockError);
+                     } else {
+                          console.log(`[API /api/reviews] Achievement 'first_review' unlocked successfully for user ${userId}.`);
+                          // Можно добавить сообщение об ачивке в ответ, но необязательно
+                          // message += ' Achievement Unlocked: Первый отзыв!'; 
+                     }
+                 } else {
+                      console.log(`[API /api/reviews] User ${userId} has ${reviewCount} reviews, not unlocking 'first_review'.`);
+                 }
+            }
+        } catch (achievementError) {
+             console.error(`[API /api/reviews] Unexpected error in achievement logic for user ${userId}:`, achievementError);
+             // Логируем, но не ломаем основной ответ
+        }
+        // -----------------------------------------
+
+        return NextResponse.json({ id: reviewData.id, status: reviewData.status, message }, { status: 201 });
 
     } catch (error) {
         console.error('Error processing POST /api/reviews:', error);
-        return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
+         // Проверяем ошибку парсинга JSON
+         if (error instanceof SyntaxError && error.message.includes('JSON')) {
+             return NextResponse.json({ error: 'Invalid JSON format in request body' }, { status: 400 });
+         } 
+        return NextResponse.json({ error: error.message || 'Internal Server Error' }, { status: 500 });
     }
 } 

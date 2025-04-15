@@ -339,55 +339,36 @@ export default function UserProfilePage() {
           </div>
 
           <div className={styles.socialLinksSidebar}> 
-               {profileSocialLinks?.vk && (
-                   <VkButton 
-                       value={profileSocialLinks.vk} 
-                       className={styles.socialButton} 
-                   />
-                 )}
-                 {twitchUserData?.login && (
-                   <TwitchButton 
-                       value={twitchUserData.login} 
-                       count={followersCount}
-                       className={styles.socialButton}
-                   />
-                 )}
-                 {profileSocialLinks?.discord && (
-                     <DiscordButton 
-                         value={profileSocialLinks.discord}
-                         className={styles.socialButton}
-                     />
-                 )}
-                 {profileSocialLinks?.youtube && (
-                    <YoutubeButton 
-                       value={profileSocialLinks.youtube}
-                       className={styles.socialButton}
-                   />
-                 )}
-                  {profileSocialLinks?.telegram && (
-                     <TelegramButton
-                         value={profileSocialLinks.telegram}
-                         className={styles.socialButton}
-                     />
-                   )}
-                 {profileSocialLinks?.tiktok && (
-                   <TiktokButton 
-                       value={profileSocialLinks.tiktok} 
-                       className={styles.socialButton}
-                   />
-                 )}
-                 {profileSocialLinks?.boosty && (
-                   <BoostyButton 
-                       value={profileSocialLinks.boosty} 
-                       className={styles.socialButton}
-                   />
-                 )}
-                 {profileSocialLinks?.yandex_music && (
-                    <YandexMusicButton
-                        value={profileSocialLinks.yandex_music}
-                        className={styles.socialButton}
-                    />
-                 )}
+                 {(profileSocialLinks?.vk || profileSocialLinks?.twitch || profileSocialLinks?.discord || profileSocialLinks?.youtube || profileSocialLinks?.telegram || profileSocialLinks?.tiktok || profileSocialLinks?.boosty || profileSocialLinks?.yandex_music || twitchUserData?.login) ? (
+                    <>
+                        {profileSocialLinks?.vk && (
+                            <VkButton value={profileSocialLinks.vk} className={styles.socialButton} />
+                        )}
+                        {twitchUserData?.login && (
+                            <TwitchButton value={twitchUserData.login} count={followersCount} className={styles.socialButton} />
+                        )}
+                        {profileSocialLinks?.discord && (
+                            <DiscordButton value={profileSocialLinks.discord} className={styles.socialButton} />
+                        )}
+                        {profileSocialLinks?.youtube && (
+                            <YoutubeButton value={profileSocialLinks.youtube} className={styles.socialButton} />
+                        )}
+                        {profileSocialLinks?.telegram && (
+                            <TelegramButton value={profileSocialLinks.telegram} className={styles.socialButton} />
+                        )}
+                        {profileSocialLinks?.tiktok && (
+                            <TiktokButton value={profileSocialLinks.tiktok} className={styles.socialButton} />
+                        )}
+                        {profileSocialLinks?.boosty && (
+                            <BoostyButton value={profileSocialLinks.boosty} className={styles.socialButton} />
+                        )}
+                        {profileSocialLinks?.yandex_music && (
+                            <YandexMusicButton value={profileSocialLinks.yandex_music} className={styles.socialButton} />
+                        )}
+                    </>
+                 ) : isRegistered ? (
+                     <p className={styles.noSocials}>Нет ссылок</p>
+                 ) : null /* Ничего не показываем для незареганных без ссылок */}
           </div>
       </div>
 

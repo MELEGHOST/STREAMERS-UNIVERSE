@@ -239,22 +239,49 @@
 }
 
 /* Адаптивность */
+@media (max-width: 768px) {
+    /* Дополнительные стили для планшетов, если нужны */
+    .container {
+        max-width: 95%; /* Чуть шире на планшетах */
+    }
+}
+
 @media (max-width: 600px) {
     .container {
         padding: 15px;
+        max-width: 100%; /* На мобилках занимает всю ширину */
     }
 
     .form {
         gap: 15px;
     }
+    
+    .inputField,
+    .textareaField,
+    .selectInput {
+        padding: 10px 12px; /* Чуть меньше паддинги полей */
+        font-size: 0.95em;
+    }
+    
+    .textareaField {
+        min-height: 100px;
+    }
+    
+    .star {
+        font-size: 1.8em; /* Звезды чуть меньше */
+    }
 
     .buttonGroup {
-        flex-direction: column-reverse; /* Кнопки друг под другом на мобилке */
+        flex-direction: column-reverse; /* Кнопки друг под другом, основная снизу */
         gap: 10px;
     }
 
-    .buttonGroup > * {
-        width: 100%; /* Растягиваем кнопки */
+    .buttonGroup > * { /* Делаем кнопки на всю ширину */
+       width: 100%;
+    }
+    
+    .aiButtonGroup {
+       /* Можно тоже сделать кнопку во всю ширину или оставить справа */
     }
 }
 
