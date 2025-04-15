@@ -273,6 +273,9 @@ const HoldLoginButton = ({ holdDuration = 1000 }) => {
   const { isAuthenticated, signInWithTwitch, isLoading } = useAuth();
   const router = useRouter();
 
+  // --- ЛОГИ ДЛЯ ДИАГНОСТИКИ ---
+  console.log('[HoldLoginButton] RENDER', { isLoading, isAuthenticated });
+
   const [isHolding, setIsHolding] = useState(false);
   const [holdProgress, setHoldProgress] = useState(0); 
   const progressIntervalRef = useRef(null);
