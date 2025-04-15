@@ -2,10 +2,9 @@
 
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
-import { createClient } from '@supabase/supabase-js';
+import { useAuth } from '../../contexts/AuthContext';
 import Select from 'react-select';
 import Image from 'next/image';
-import { useAuth } from '../../contexts/AuthContext';
 import { reviewCategories, movieGenres } from '../categories';
 import styles from './create-review.module.css';
 
@@ -87,12 +86,9 @@ const reactSelectStyles = (isDark) => ({
 });
 
 export default function CreateReviewPage() {
-    const supabase = createClient(
-        process.env.NEXT_PUBLIC_SUPABASE_URL,
-        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-    );
     const router = useRouter();
     const { user, isLoading: authLoading, isAuthenticated, currentTheme, supabase: authSupabase } = useAuth();
+    const supabase = authSupabase;
 
     const [category, setCategory] = useState('');
     const [subcategory, setSubcategory] = useState('');
