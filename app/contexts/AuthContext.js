@@ -154,6 +154,12 @@ export function AuthProvider({ children }) {
              const userTwitchId = currentSession.user.user_metadata?.provider_id;
              console.log(`[AuthContext] Событие SIGNED_IN. User ID: ${userId}, Twitch ID: ${userTwitchId}`);
              
+             // <<< Новый редирект: если мы на /auth, сразу кидаем в меню >>>
+             if (typeof window !== 'undefined' && window.location.pathname === '/auth') {
+                 console.log('[AuthContext] SIGNED_IN detected on /auth, redirecting to /menu...');
+                 router.push('/menu');
+             }
+
              // 1. Гарантируем создание/обновление профиля фоновым запросом
              if (userTwitchId && currentSession.access_token) {
                  console.log(`[AuthContext] Запускаем фоновый запрос к /api/twitch/user для ${userTwitchId} для гарантии создания/обновления профиля...`);

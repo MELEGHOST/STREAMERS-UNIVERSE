@@ -3,7 +3,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import styled, { keyframes } from 'styled-components';
 import { useAuth } from '../../contexts/AuthContext';
-import { useRouter } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
 
 // --- Styled Components (твой код) --- 
 const wobble = keyframes`
@@ -272,6 +272,7 @@ const StyledWrapper = styled.div`
 const HoldLoginButton = ({ holdDuration = 1000 }) => { 
   const { isAuthenticated, signInWithTwitch, isLoading } = useAuth();
   const router = useRouter();
+  const pathname = usePathname();
 
   const [isHolding, setIsHolding] = useState(false);
   const [holdProgress, setHoldProgress] = useState(0); 
@@ -391,6 +392,11 @@ const HoldLoginButton = ({ holdDuration = 1000 }) => {
         console.log('[HoldLoginButton] Клик по кнопке "Войти в меню". Переход...');
         router.push('/menu');
     };
+  }
+
+  // --- Скрываем кнопку, если авторизован и НЕ на /auth ---
+  if (isAuthenticated && pathname !== '/auth') {
+    return null;
   }
 
   return (
