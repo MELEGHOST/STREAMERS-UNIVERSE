@@ -1,8 +1,7 @@
 'use client';
 
 import React, { createContext, useState, useEffect, useContext, useMemo, useCallback } from 'react';
-import { createBrowserClient } from '@supabase/ssr'; // <<< Возвращаем
-// import { createClient } from '@supabase/supabase-js'; // <<< Убираем
+import { createClient } from '@supabase/supabase-js'; // Заменил импорт
 import { useRouter } from 'next/navigation'; // Импортируем useRouter
 
 // Создаем контекст
@@ -15,7 +14,7 @@ export function AuthProvider({ children }) {
   const [currentTheme, setCurrentTheme] = useState('dark'); // <<< Стейт темы
   const router = useRouter(); // Получаем router
 
-  // Создаем Supabase клиент один раз ИСПОЛЬЗУЯ createBrowserClient
+  // Создаем Supabase клиент один раз ИСПОЛЬЗУЯ createClient
   const supabase = useMemo(() => {
     const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
     const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
@@ -23,8 +22,8 @@ export function AuthProvider({ children }) {
         console.error("[AuthContext] КРИТИЧЕСКАЯ ОШИБКА: Отсутствуют NEXT_PUBLIC_SUPABASE_URL или NEXT_PUBLIC_SUPABASE_ANON_KEY!");
         return null;
     }
-    // <<< Используем createBrowserClient >>>
-    return createBrowserClient(url, key);
+    // <<< Используем createClient >>>
+    return createClient(url, key);
   }, []);
 
   // <<< useEffect для загрузки темы на клиенте >>>
@@ -54,13 +53,13 @@ export function AuthProvider({ children }) {
         return;
     }
 
-    console.log('[AuthContext] useEffect Init (using createBrowserClient)...');
+    console.log('[AuthContext] useEffect Init (using createClient)...');
     let isMounted = true;
 
     async function getInitialSession() {
-      console.log('[AuthContext] Attempting getInitialSession() using createBrowserClient...');
+      console.log('[AuthContext] Attempting getInitialSession() using createClient...');
       try {
-          // createBrowserClient читает сессию из кук
+          // createClient читает сессию из кук
           const { data: sessionData, error } = await supabase.auth.getSession();
           console.log('[AuthContext] getSession() Result:', { sessionData, error });
 
@@ -114,7 +113,7 @@ export function AuthProvider({ children }) {
     // <<< Конец: Логика для реферальной ссылки >>>
 
     // Подписываемся на изменения состояния аутентификации
-    console.log('[AuthContext] Subscribing to onAuthStateChange (createBrowserClient)...');
+    console.log('[AuthContext] Subscribing to onAuthStateChange (createClient)...');
     const { data: authListener } = supabase.auth.onAuthStateChange(
       async (event, currentSession) => {
         console.log(`[AuthContext] onAuthStateChange Event: ${event}. Session present: ${!!currentSession}`);

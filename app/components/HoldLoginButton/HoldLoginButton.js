@@ -269,7 +269,7 @@ const StyledWrapper = styled.div`
 `;
 
 // --- Компонент кнопки --- 
-const HoldLoginButton = ({ holdDuration = 1500 }) => { 
+const HoldLoginButton = ({ holdDuration = 1000 }) => { 
   const { isAuthenticated, signInWithTwitch } = useAuth();
   const router = useRouter();
 
@@ -390,7 +390,7 @@ const HoldLoginButton = ({ holdDuration = 1500 }) => {
   }
 
   return (
-    <StyledWrapper style={{ '--hold-duration': `${holdDuration}ms`, '--hold-progress': holdProgress }}>
+    <StyledWrapper style={{ '--hold-duration': `${holdDurationMs}ms`, '--hold-progress': holdProgress }}>
       <div className="galaxy-button">
         <button 
           className={`space-button ${isHolding ? 'holding' : ''}`}

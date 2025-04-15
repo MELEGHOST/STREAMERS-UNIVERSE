@@ -158,19 +158,20 @@
 .profileGrid {
     display: grid;
     grid-template-columns: auto 1fr auto; /* Аватар | Инфа | Соцсети */
-    /* grid-template-areas: "avatar info social"; */ /* Можно и через area, но так проще */
+    /* <<< Явно указываем области для надежности >>> */
+    grid-template-areas:
+        "avatar info social"; 
     gap: 30px;
-    align-items: flex-start; /* Выравниваем по верху */
+    align-items: flex-start; 
     margin-bottom: 2rem;
-    overflow: visible; /* Оставляем */
+    overflow: visible; 
 }
 
 .avatarContainer {
-    /* grid-area: avatar; */
-    /* Стили для аватара остаются прежними */
-    width: 120px; /* Можно задать явно */
+    grid-area: avatar; /* <<< Назначаем область */
+    width: 120px; 
     height: 120px;
-    overflow: visible; /* И сюда */
+    overflow: visible; 
 }
 
 .avatar {
@@ -178,24 +179,24 @@
 }
 
 .profileInfo {
-    /* grid-area: info; */
-    /* Основная инфа */
-    overflow: visible; /* Оставляем */
+    grid-area: info; /* <<< Назначаем область */
+    overflow: visible; 
+    /* Можно добавить max-width, если нужно ограничить */
+    /* max-width: 600px; */ 
 }
 
 .socialLinksSidebar {
-    /* grid-area: social; */
+    grid-area: social; /* <<< Назначаем область */
     display: flex;
-    flex-direction: column; /* Иконки в столбик */
-    align-items: center; /* Центрируем иконки по горизонтали */
-    gap: 20px; /* <<< Увеличим гэп */
-    padding-left: 20px; /* Небольшой отступ слева от этого блока */
-    overflow: visible; /* Оставляем */
-    /* width: 60px; */ /* <<< Убрал фиксированную ширину, может мешать */
-    /* Попробуем выровнять по центру контейнера, а не по верху */
-    /* align-self: center; */ /* <<< Пока уберем, может помешать */
-    /* Попробуем добавить немного padding сверху, если кнопки слишком высоко */
+    flex-direction: column; 
+    align-items: center; 
+    gap: 20px; 
+    /* Убираем padding-left, т.к. gap грида уже дает отступ */
+    /* padding-left: 20px; */ 
+    overflow: visible; 
     padding-top: 10px; 
+    /* Добавим выравнивание по правому краю контейнера грида */
+    justify-self: end; 
 }
 
 /* Попытка переопределить тень для слоев кнопки */
@@ -224,17 +225,23 @@
 /* --- Адаптация для мобильных --- */
 @media (max-width: 768px) {
     .profileGrid {
-        grid-template-columns: 1fr; /* Все в одну колонку */
-        gap: 20px; /* Уменьшаем отступ */
-        text-align: center; /* Центрируем контент в колонке */
+        grid-template-columns: 1fr; /* Одна колонка */
+        /* <<< Новые области для одной колонки >>> */
+        grid-template-areas:
+            "avatar"
+            "info"
+            "social"; 
+        gap: 20px; 
+        text-align: center; 
     }
 
     .avatarContainer {
-        margin: 0 auto; /* Центрируем аватар */
+        /* grid-area: avatar; */ /* Уже есть */
+        margin: 0 auto; 
     }
 
     .profileInfo {
-        /* Стили основной инфы остаются, но теперь она в центре */
+        /* grid-area: info; */ /* Уже есть */
         text-align: center;
     }
     
@@ -244,14 +251,16 @@
     }
 
     .socialLinksSidebar {
-        flex-direction: row; /* Иконки в ряд */
-        justify-content: center; /* Центрируем ряд иконок */
-        flex-wrap: wrap; /* Разрешаем перенос иконок */
-        padding: 20px 0 0 0; /* Убираем отступ слева, добавляем сверху */
-        width: 100%; /* Занимаем всю ширину */
-        gap: 20px; /* Оставляем отступ между иконками */
+        /* grid-area: social; */ /* Уже есть */
+        flex-direction: row; 
+        justify-content: center; 
+        flex-wrap: wrap; 
+        padding: 20px 0 0 0; 
+        width: 100%; 
+        gap: 20px; 
+        justify-self: center; /* <<< Центрируем в одной колонке */
     }
-
+    
     .displayName {
         font-size: 1.8rem; /* Уменьшаем шрифт имени */
     }
