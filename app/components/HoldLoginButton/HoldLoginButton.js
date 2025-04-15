@@ -394,8 +394,8 @@ const HoldLoginButton = ({ holdDuration = 1000 }) => {
     };
   }
 
-  // --- Скрываем кнопку, если авторизован и НЕ на /auth ---
-  if (isAuthenticated && pathname !== '/auth') {
+  // --- Скрываем кнопку только на /auth, если авторизован ---
+  if (isAuthenticated && pathname === '/auth') {
     return null;
   }
 
