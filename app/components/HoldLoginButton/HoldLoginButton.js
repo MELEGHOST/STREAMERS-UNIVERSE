@@ -382,7 +382,6 @@ const HoldLoginButton = ({ holdDuration = 1000 }) => {
 
   // --- Определяем текст и действие кнопки --- 
   let buttonText = 'Удерживай для входа';
-  let buttonAction = null;
   let isDisabled = false;
 
   if (isLoading) {
@@ -390,11 +389,16 @@ const HoldLoginButton = ({ holdDuration = 1000 }) => {
     isDisabled = true;
   } else if (isAuthenticated) {
     buttonText = 'Войти в меню';
-    buttonAction = () => {
-        console.log('[HoldLoginButton] Клик по кнопке "Войти в меню". Переход...');
-        router.push('/menu');
-    };
   }
+
+  // --- Новый onClick: для авторизованных всегда ведёт в меню, для неавторизованных ничего --- 
+  const handleClick = () => {
+    if (isDisabled) return;
+    if (isAuthenticated) {
+      console.log('[HoldLoginButton] Клик по кнопке "Войти в меню". Переход...');
+      router.push('/menu');
+    }
+  };
 
   return (
     <StyledWrapper style={{ '--hold-duration': `${holdDurationMs}ms`, '--hold-progress': holdProgress }}>
@@ -408,7 +412,7 @@ const HoldLoginButton = ({ holdDuration = 1000 }) => {
           onTouchStart={isDisabled ? undefined : startHold}
           onTouchEnd={isDisabled ? undefined : triggerActionOnRelease}
           onTouchCancel={isDisabled ? undefined : resetHoldVisuals}
-          onClick={isDisabled ? undefined : buttonAction}
+          onClick={isDisabled ? undefined : handleClick}
           aria-label={buttonText}
           disabled={isDisabled}
         >
