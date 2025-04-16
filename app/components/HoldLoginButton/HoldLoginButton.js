@@ -272,7 +272,6 @@ const HoldLoginButton = ({ holdDuration = 1500 }) => {
   console.log('[HoldLoginButton] RENDER', { isLoading, isAuthenticated });
 
   const [isHolding, setIsHolding] = useState(false);
-  const [holdProgress, setHoldProgress] = useState(0);
   const progressIntervalRef = useRef(null);
   const startTimeRef = useRef(null);
   const actionTriggeredRef = useRef(false);
@@ -284,31 +283,11 @@ const HoldLoginButton = ({ holdDuration = 1500 }) => {
     if (actionTriggeredRef.current || isLoading) return;
     setIsHolding(true);
     startTimeRef.current = Date.now();
-    setHoldProgress(0);
     actionTriggeredRef.current = false;
-
-    if (progressIntervalRef.current) clearInterval(progressIntervalRef.current);
-
-    progressIntervalRef.current = setInterval(() => {
-      if (!startTimeRef.current) return;
-      const elapsedTime = Date.now() - startTimeRef.current;
-      const progress = Math.min(elapsedTime / holdDurationMs, 1);
-      setHoldProgress(progress);
-
-      if (progress >= 1) {
-        clearInterval(progressIntervalRef.current);
-        progressIntervalRef.current = null;
-      }
-    }, 50);
-  }, [holdDurationMs, isLoading]);
+  }, [isLoading]);
 
   const resetHoldVisuals = useCallback(() => {
     setIsHolding(false);
-    setHoldProgress(0);
-    if (progressIntervalRef.current) {
-      clearInterval(progressIntervalRef.current);
-      progressIntervalRef.current = null;
-    }
     startTimeRef.current = null;
   }, []);
 
@@ -316,11 +295,6 @@ const HoldLoginButton = ({ holdDuration = 1500 }) => {
     if (!isHolding || isLoading) {
         resetHoldVisuals();
         return;
-    }
-
-    if (progressIntervalRef.current) {
-        clearInterval(progressIntervalRef.current);
-        progressIntervalRef.current = null;
     }
 
     const elapsedTime = Date.now() - (startTimeRef.current || Date.now());
@@ -346,9 +320,6 @@ const HoldLoginButton = ({ holdDuration = 1500 }) => {
 
   useEffect(() => {
     actionTriggeredRef.current = false;
-    return () => {
-       if (progressIntervalRef.current) clearInterval(progressIntervalRef.current);
-    };
   }, [isAuthenticated]);
 
   // --- Определяем текст кнопки --- 
