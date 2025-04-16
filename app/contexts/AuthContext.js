@@ -116,9 +116,12 @@ export function AuthProvider({ children }) {
     console.log('[AuthContext] Subscribing to onAuthStateChange (createClient)...');
     const { data: authListener } = supabase.auth.onAuthStateChange(
       async (event, currentSession) => {
-        console.log(`[AuthContext] onAuthStateChange Event: ${event}. Session present: ${!!currentSession}`);
-        if (currentSession) {
-            console.log(`[AuthContext] onAuthStateChange Session User ID: ${currentSession.user?.id}, Expires at: ${currentSession.expires_at ? new Date(currentSession.expires_at * 1000) : 'N/A'}`);
+        // --- Добавляем подробные логи --- 
+        console.log(`[AuthContext] ===> onAuthStateChange Event: ${event} <===`);
+        console.log('[AuthContext] Current Session Object:', currentSession);
+        if (currentSession?.user) {
+            console.log('[AuthContext] User Object:', currentSession.user);
+            console.log('[AuthContext] User Metadata:', currentSession.user.user_metadata);
         }
 
         if (!isMounted) {
@@ -126,9 +129,13 @@ export function AuthProvider({ children }) {
             return;
         }
 
-        console.log('[AuthContext] Updating state based on onAuthStateChange...');
+        console.log('[AuthContext] Updating state based on onAuthStateChange... ');
         setSession(currentSession);
         setUser(currentSession?.user ?? null);
+        console.log('[AuthContext] State update potentially complete. New state:', { 
+            session: currentSession, 
+            user: currentSession?.user ?? null 
+        });
 
         // Восстанавливаем установку loading=false после INITIAL_SESSION
         if (event === 'INITIAL_SESSION') {
@@ -233,19 +240,35 @@ export function AuthProvider({ children }) {
 
   // <<< Оборачиваем signInWithTwitch в useCallback >>>
   const signInWithTwitch = useCallback(async () => {
-    if (!supabase) throw new Error("Supabase client not available");
-    console.log('[AuthContext] Attempting Twitch sign in...');
-    const { error } = await supabase.auth.signInWithOAuth({
-      provider: 'twitch',
-      options: {
-        // redirectTo: `${window.location.origin}/auth/callback`,
-      },
-    });
-    if (error) {
-      console.error('[AuthContext] Twitch sign in error:', error);
-      throw error;
+    if (!supabase) {
+        console.error("[AuthContext] signInWithTwitch called but Supabase client is not available!");
+        throw new Error("Supabase client not available");
     }
-  }, [supabase]); // <<< Добавляем supabase в зависимости useCallback >>>
+    console.log('[AuthContext] Attempting Twitch sign in...');
+    try {
+        const { data, error } = await supabase.auth.signInWithOAuth({
+          provider: 'twitch',
+          options: {
+            // redirectTo: `${window.location.origin}/auth/callback`, // Можно раскомментировать, если редирект нужен явно
+          },
+        });
+        
+        // ЛОГИРУЕМ РЕЗУЛЬТАТ
+        if (error) {
+          console.error('[AuthContext] Supabase signInWithOAuth ERROR:', error);
+          // Дополнительно логируем код ошибки и сообщение
+          console.error(`[AuthContext] Error Code: ${error.code}, Message: ${error.message}, Status: ${error.status}`);
+          throw error;
+        } else {
+          console.log('[AuthContext] Supabase signInWithOAuth SUCCESS. Waiting for redirect...', { data });
+          // data обычно null или содержит URL для редиректа, если провайдер его возвращает
+        }
+    } catch (catchError) {
+        console.error('[AuthContext] Exception during signInWithOAuth:', catchError);
+        // Перевыбрасываем ошибку, чтобы компонент мог её обработать
+        throw catchError;
+    }
+  }, [supabase]);
 
   // <<< Добавляем signOut (если еще не было) >>>
   const signOut = useCallback(async () => {

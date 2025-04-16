@@ -1,11 +1,11 @@
 'use client';
 
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import styled, { keyframes } from 'styled-components';
 import { useAuth } from '../../contexts/AuthContext';
 import { useRouter } from 'next/navigation';
 
-// --- Styled Components (твой код) --- 
+// --- Вставляем ТВОИ keyframes и стили --- 
 const wobble = keyframes`
   0%, 100% { transform: translate(0, 0); }
   25% { transform: translate(-2px, -10px); }
@@ -14,13 +14,22 @@ const wobble = keyframes`
 `;
 
 const blurMove = keyframes`
-  0%, 100% { text-shadow: 5px 5px 20px rgba(255, 255, 255, 0.8), 10px 10px 30px rgba(255, 0, 255, 0.6); filter: blur(0); }
-  50% { text-shadow: 10px 10px 25px rgba(255, 255, 255, 0.8), 15px 15px 35px rgba(255, 0, 255, 0.6); filter: blur(1px); }
+  0%, 100% {
+    text-shadow:
+      5px 5px 20px rgba(255, 255, 255, 0.8),
+      10px 10px 30px rgba(255, 0, 255, 0.6);
+  }
+  50% {
+    filter: blur(1px);
+    text-shadow:
+      10px 10px 25px rgba(255, 255, 255, 0.8),
+      15px 15px 35px rgba(255, 0, 255, 0.6);
+  }
 `;
 
 const circling = keyframes`
   0% { transform: translate(-10px, -20%) rotate(0deg); }
-  100% { transform: translate(-10px, -20%) rotate(360deg); } // Полный оборот
+  100% { transform: translate(-10px, -20%) rotate(200deg); } // Твой вариант с 200deg
 `;
 
 const shootingStar = keyframes`
@@ -36,20 +45,17 @@ const glowingStars = keyframes`
     100% { opacity: 0; }
 `;
 
+// <<< Вставляем ТВОИ СТИЛИ StyledWrapper >>>
 const StyledWrapper = styled.div`
-  display: inline-block;
-  --hold-duration: 1500ms; // <<< Уменьшил время удержания до 1.5 сек
-  --hold-progress: 0; 
-
   .text {
     translate: 2% -6%;
     letter-spacing: 0.01ch;
-    color: hsl(0 0% calc(100% - (var(--hold-progress) * 40%))); 
+    color: hsl(0 0% calc(60% + (var(--active) * 26%))); // <<< Из твоего кода
     z-index: 999;
     padding: 0 34px;
     font-weight: 600;
-    position: relative; 
-    user-select: none; 
+    position: relative; // <<< Добавляем position: relative для before/after
+    user-select: none; // <<< Добавляем user-select: none
   }
   .text::before {
     content: "";
@@ -60,7 +66,7 @@ const StyledWrapper = styled.div`
     width: 5em;
     height: 1px;
     background: linear-gradient(90deg, #ffffff, transparent);
-    animation: ${shootingStar} 4s ease-in-out infinite;
+    animation: 4s ${shootingStar} ease-in-out infinite; // <<< Используем твой keyframe
     transition: 1s ease;
     z-index: -1;
     animation-delay: 1s;
@@ -76,42 +82,13 @@ const StyledWrapper = styled.div`
     width: 5em;
     height: 1px;
     background: linear-gradient(90deg, #ffffff, transparent);
-    animation: ${shootingStar} 7s ease-in-out infinite;
+    animation: 7s ${shootingStar} ease-in-out infinite; // <<< Используем твой keyframe
     animation-delay: 3s;
   }
   .space-button:hover .text::before,
   .space-button:hover .text::after {
     display: block;
   }
-
-  .hold-indicator {
-      position: absolute;
-      bottom: 5px; 
-      left: 10%;
-      width: 80%;
-      height: 4px;
-      background-color: rgba(255, 255, 255, 0.2);
-      border-radius: 2px;
-      overflow: hidden;
-      opacity: 0;
-      transition: opacity 0.3s;
-      z-index: 1000;
-  }
-  .hold-indicator::before {
-      content: '';
-      position: absolute;
-      top: 0;
-      left: 0;
-      height: 100%;
-      width: calc(var(--hold-progress) * 100%);
-      background-color: #fff;
-      border-radius: 2px;
-      transition: width 0.1s linear; 
-  }
-  .space-button.holding .hold-indicator {
-      opacity: 1;
-  }
-
   .galaxy::before {
     content: "";
     position: absolute;
@@ -136,7 +113,7 @@ const StyledWrapper = styled.div`
       520px 50px #fff;
     z-index: -1;
     transition: all 1.5s ease-in-out;
-    animation: ${glowingStars} 1s linear alternate infinite;
+    animation: 1s ${glowingStars} linear alternate infinite; // <<< Используем твой keyframe
     animation-delay: 0.4s;
   }
   .galaxy::after {
@@ -165,26 +142,23 @@ const StyledWrapper = styled.div`
       150px 369px #fff;
     z-index: -1;
     transition: all 2s ease-in-out;
-    animation: ${glowingStars} 1s linear alternate infinite;
+    animation: 1s ${glowingStars} linear alternate infinite; // <<< Используем твой keyframe
     animation-delay: 0.8s;
   }
-  
   .space-button {
     --cut: 0.1em;
-    --active: 0; // Для hover/focus
-    --holding-active: 0; // Для удержания
-    // Возвращаем твои цвета
-     --bg: radial-gradient(
+    --active: 0; // Используем твой --active для управления
+    --bg: radial-gradient(
           120% 120% at 126% 126%,
-          hsl(0 calc(var(--holding-active) * 97%) 98% / calc(var(--holding-active) * 0.9)) 40%,
+          hsl(0 calc(var(--active) * 97%) 98% / calc(var(--active) * 0.9)) 40%,
           transparent 50%
-        ) calc(100px - (var(--holding-active) * 100px)) 0 / 100% 100% no-repeat,
+        ) calc(100px - (var(--active) * 100px)) 0 / 100% 100% no-repeat,
       radial-gradient(
           120% 120% at 120% 120%,
-          hsl(0 calc(var(--holding-active) * 97%) 70% / calc(var(--holding-active) * 1)) 30%,
+          hsl(0 calc(var(--active) * 97%) 70% / calc(var(--active) * 1)) 30%,
           transparent 70%
-        ) calc(100px - (var(--holding-active) * 100px)) 0 / 100% 100% no-repeat,
-      hsl(0 calc(var(--holding-active) * 100%) calc(12% - (var(--holding-active) * 8%)));
+        ) calc(100px - (var(--active) * 100px)) 0 / 100% 100% no-repeat,
+      hsl(0 calc(var(--active) * 100%) calc(12% - (var(--active) * 8%)));
     background: var(--bg);
     font-size: 1.4rem;
     font-weight: 500;
@@ -197,50 +171,57 @@ const StyledWrapper = styled.div`
     white-space: nowrap;
     border-radius: 2rem;
     position: relative;
-    // Возвращаем твои тени
     box-shadow:
-        0 0 calc(var(--holding-active) * 6em) calc(var(--holding-active) * 3em) hsla(12, 97%, 61%, 0.3),
-        0 0.05em 0 0 hsl(0, calc(var(--holding-active) * 97%), calc((var(--holding-active) * 50%) + 30%)) inset,
-        0 -0.05em 0 0 hsl(0, calc(var(--holding-active) * 97%), calc(var(--holding-active) * 10%)) inset;
+      0 0 calc(var(--active) * 6em) calc(var(--active) * 3em) hsla(12, 97%, 61%, 0.3),
+      0 0.05em 0 0 hsl(0, calc(var(--active) * 97%), calc((var(--active) * 50%) + 30%)) inset,
+      0 -0.05em 0 0 hsl(0, calc(var(--active) * 97%), calc(var(--active) * 10%)) inset;
     transition:
       box-shadow 0.25s ease-out,
       scale 0.25s,
       background 0.25s;
-    scale: calc(1 + (var(--holding-active) * 0.1)); // Оставляем небольшой scale при удержании
+    scale: calc(1 + (var(--active) * 0.1));
     transform-style: preserve-3d;
     perspective: 100vmin;
     overflow: hidden;
   }
-
-  .space-button:is(:hover, :focus-visible) {
-      --active: 1;
-      // filter: brightness(1.1); // Убираем яркость, если не нужна
-  }
-  .space-button:is(:hover, :focus-visible) .text::before,
-  .space-button:is(:hover, :focus-visible) .text::after {
-      display: block;
-  }
-  
-  .space-button.holding {
-    --holding-active: 1; 
-    // scale: 1.05; // Можно вернуть scale, если хочешь
-    .text {
-        animation: ${wobble} 0.6s ease-in-out infinite, ${blurMove} 1.5s ease-in-out infinite;
-        text-shadow:
-            5px 5px 20px rgba(255, 255, 255, 0.8),
-            10px 10px 30px rgba(255, 0, 255, 0.6);
-    }
-    .galaxy::before { animation: ${circling} 2s linear infinite; }
-    .galaxy::after { animation: ${circling} 1.5s linear infinite; }
-  }
-
-  // Возвращаем :active стиль для мгновенного эффекта нажатия (если нужно)
-  /* 
   .space-button:active {
-    scale: 1; 
-    // ... (остальные стили из твоего :active, если хочешь вернуть)
-  } 
-  */
+    scale: 1;
+    // Переопределяем --bg и box-shadow для :active как в твоем коде
+    --bg: radial-gradient(
+          120% 120% at 126% 126%,
+          hsl(245 calc(var(--active) * 97%) 98% / calc(var(--active) * 0.9)) 40%,
+          transparent 50%
+        ) calc(100px - (var(--active) * 100px)) 0 / 100% 100% no-repeat,
+      radial-gradient(
+          120% 120% at 120% 120%,
+          hsl(245 calc(var(--active) * 97%) 70% / calc(var(--active) * 1)) 30%,
+          transparent 70%
+        ) calc(100px - (var(--active) * 100px)) 0 / 100% 100% no-repeat,
+      hsl(245 calc(var(--active) * 100%) calc(12% - (var(--active) * 8%)));
+    box-shadow:
+      0 0 calc(var(--active) * 6em) calc(var(--active) * 3em) hsl(245 97% 61% / 0.5),
+      0 0.05em 0 0 hsl(245 calc(var(--active) * 97%) calc((var(--active) * 50%) + 30%)) inset,
+      0 -0.05em 0 0 hsl(245 calc(var(--active) * 97%) calc(var(--active) * 10%)) inset;
+    background: var(--bg); // Применяем переопределенный --bg
+  }
+
+  // Apply wobble animation on active button
+  .space-button:active .text {
+    font-weight: 300;
+    animation:
+      ${wobble} 0.6s ease-in-out infinite,
+      ${blurMove} 1.5s ease-in-out infinite;
+    text-shadow:
+      5px 5px 20px rgba(255, 255, 255, 0.8),
+      10px 10px 30px rgba(255, 0, 255, 0.6);
+  }
+
+  .galaxy:active::before { // <<< Используем :active для запуска анимации галактики
+    animation: ${circling} 2s linear infinite;
+  }
+  .galaxy:active::after { // <<< Используем :active для запуска анимации галактики
+    animation: ${circling} 1.5s linear infinite;
+  }
 
   .galaxy {
     position: absolute;
@@ -250,7 +231,7 @@ const StyledWrapper = styled.div`
     left: 50%;
     translate: -50% -50%;
     overflow: hidden;
-    opacity: var(--holding-active); 
+    opacity: var(--active); // Управляем через --active
     transition: opacity 0.25s;
   }
 
@@ -260,113 +241,108 @@ const StyledWrapper = styled.div`
     background: var(--bg);
     border-radius: 2rem;
     transition: background 0.25s;
-    z-index: -1; 
+    z-index: -1; // <<< Добавляем z-index: -1
   }
 
   .galaxy-button {
     position: relative;
   }
+
+  // --- Стили для отключенной кнопки (добавляем) ---
+  .space-button:disabled {
+    cursor: not-allowed;
+    filter: grayscale(80%);
+    opacity: 0.6;
+    --active: 0; // Убедимся, что --active сброшен
+    scale: 1;
+    animation: none !important; // Отключаем анимации
+    pointer-events: none; // Отключаем события мыши
+  }
+  .space-button:disabled .text,
+  .space-button:disabled .galaxy {
+     animation: none !important;
+  }
 `;
 
-// --- Компонент кнопки --- 
-const HoldLoginButton = ({ holdDuration = 1000 }) => { 
+// --- Компонент HoldLoginButton С ТВОИМИ СТИЛЯМИ --- 
+const HoldLoginButton = ({ holdDuration = 1500 }) => {
   const { isAuthenticated, signInWithTwitch, isLoading } = useAuth();
   const router = useRouter();
 
-  // --- ЛОГИ ДЛЯ ДИАГНОСТИКИ ---
   console.log('[HoldLoginButton] RENDER', { isLoading, isAuthenticated });
 
   const [isHolding, setIsHolding] = useState(false);
-  const [holdProgress, setHoldProgress] = useState(0); 
+  const [holdProgress, setHoldProgress] = useState(0);
   const progressIntervalRef = useRef(null);
   const startTimeRef = useRef(null);
-  const actionTriggeredRef = useRef(false); 
+  const actionTriggeredRef = useRef(false);
 
   const holdDurationMs = holdDuration;
 
-  const startHold = () => {
-    if (actionTriggeredRef.current) return; 
+  // --- Логика удержания и отпускания ОСТАЕТСЯ НАШЕЙ --- 
+  const startHold = useCallback(() => {
+    if (actionTriggeredRef.current || isLoading) return;
     setIsHolding(true);
     startTimeRef.current = Date.now();
     setHoldProgress(0);
-    actionTriggeredRef.current = false; 
+    actionTriggeredRef.current = false;
 
     if (progressIntervalRef.current) clearInterval(progressIntervalRef.current);
 
     progressIntervalRef.current = setInterval(() => {
-        const elapsedTime = Date.now() - startTimeRef.current;
-        const progress = Math.min(elapsedTime / holdDurationMs, 1);
-        setHoldProgress(progress);
-        
-        if (progress >= 1) {
-            clearInterval(progressIntervalRef.current);
-            progressIntervalRef.current = null; 
-        }
-    }, 50); 
-  };
-
-  const triggerActionOnRelease = () => {
-      console.log('[HoldButton] triggerActionOnRelease called', { isHolding }); 
-      if (!isHolding) return; 
-      
-      if (progressIntervalRef.current) {
-          clearInterval(progressIntervalRef.current);
-          progressIntervalRef.current = null;
-      }
-      
+      if (!startTimeRef.current) return;
       const elapsedTime = Date.now() - startTimeRef.current;
-      console.log('[HoldButton] Release Check:', { 
-          elapsedTime,
-          holdDurationMs,
-          conditionMet: elapsedTime >= holdDurationMs,
-          actionTriggered: actionTriggeredRef.current
-      });
+      const progress = Math.min(elapsedTime / holdDurationMs, 1);
+      setHoldProgress(progress);
 
-      if (elapsedTime >= holdDurationMs && !actionTriggeredRef.current) {
-          actionTriggeredRef.current = true; 
-          console.log('[HoldButton] Hold condition met. isAuthenticated:', isAuthenticated);
-
-          if (isAuthenticated) {
-              try {
-                   console.log('[HoldButton] Navigating to /menu...'); 
-                   router.push('/menu');
-                   resetHoldVisuals(); 
-              } catch (error) {
-                  console.error('[HoldButton] Error navigating to /menu:', error); 
-                  resetHoldVisuals(); 
-              }
-          } else {
-              try {
-                  console.log('[HoldButton] Calling signInWithTwitch...'); 
-                  if (signInWithTwitch) {
-                      signInWithTwitch();
-                      resetHoldVisuals(); 
-                  } else {
-                      console.error('[HoldButton] signInWithTwitch function not found in context!');
-                      resetHoldVisuals();
-                  }
-              } catch (error) {
-                   console.error('[HoldButton] Error calling signInWithTwitch:', error); 
-                   resetHoldVisuals(); 
-              }
-          }
-          
-      } else {
-          console.log('[HoldButton] Hold released too early or action already triggered.');
-          resetHoldVisuals();
+      if (progress >= 1) {
+        clearInterval(progressIntervalRef.current);
+        progressIntervalRef.current = null;
       }
-  };
+    }, 50);
+  }, [holdDurationMs, isLoading]);
 
-  const resetHoldVisuals = () => {
-      console.log('[HoldButton] Resetting visuals...');
-      setIsHolding(false);
-      setHoldProgress(0);
-      startTimeRef.current = null;
-       if (progressIntervalRef.current) {
-            clearInterval(progressIntervalRef.current);
-            progressIntervalRef.current = null;
+  const resetHoldVisuals = useCallback(() => {
+    setIsHolding(false);
+    setHoldProgress(0);
+    if (progressIntervalRef.current) {
+      clearInterval(progressIntervalRef.current);
+      progressIntervalRef.current = null;
+    }
+    startTimeRef.current = null;
+  }, []);
+
+  const triggerActionOnRelease = useCallback(() => {
+    if (!isHolding || isLoading) {
+        resetHoldVisuals();
+        return;
+    }
+
+    if (progressIntervalRef.current) {
+        clearInterval(progressIntervalRef.current);
+        progressIntervalRef.current = null;
+    }
+
+    const elapsedTime = Date.now() - (startTimeRef.current || Date.now());
+    const conditionMet = elapsedTime >= holdDurationMs;
+
+    if (conditionMet && !actionTriggeredRef.current) {
+        actionTriggeredRef.current = true;
+        if (isAuthenticated) {
+            router.push('/menu');
+        } else {
+            signInWithTwitch();
         }
-  };
+    }
+    resetHoldVisuals();
+  }, [isHolding, isLoading, holdDurationMs, isAuthenticated, router, signInWithTwitch, resetHoldVisuals]);
+
+  const handleClick = useCallback(() => {
+    if (isLoading || isHolding) return;
+    if (isAuthenticated) {
+      router.push('/menu');
+    }
+  }, [isLoading, isAuthenticated, router, isHolding]);
 
   useEffect(() => {
     actionTriggeredRef.current = false;
@@ -375,54 +351,41 @@ const HoldLoginButton = ({ holdDuration = 1000 }) => {
     };
   }, [isAuthenticated]);
 
-  const buttonStyle = {
-      '--hold-progress': holdProgress,
-      '--holding-active': isHolding ? 1 : 0 
-  };
-
-  // --- Определяем текст и действие кнопки --- 
+  // --- Определяем текст кнопки --- 
   let buttonText = 'Удерживай для входа';
-  let isDisabled = false;
-
   if (isLoading) {
     buttonText = 'Загрузка...';
-    isDisabled = true;
   } else if (isAuthenticated) {
     buttonText = 'Войти в меню';
   }
 
-  // --- Новый onClick: для авторизованных всегда ведёт в меню, для неавторизованных ничего --- 
-  const handleClick = () => {
-    if (isDisabled) return;
-    if (isAuthenticated) {
-      console.log('[HoldLoginButton] Клик по кнопке "Войти в меню". Переход...');
-      router.push('/menu');
-    }
-  };
+  // --- Используем isHolding для управления переменной --active ---
+  const activeVar = isHolding ? 1 : 0;
 
   return (
-    <StyledWrapper style={{ '--hold-duration': `${holdDurationMs}ms`, '--hold-progress': holdProgress }}>
+    <StyledWrapper>
       <div className="galaxy-button">
-        <button 
-          className={`space-button ${isHolding ? 'holding' : ''}`}
-          style={buttonStyle}
-          onMouseDown={isDisabled ? undefined : startHold}
-          onMouseUp={isDisabled ? undefined : triggerActionOnRelease}
-          onMouseLeave={isDisabled ? undefined : resetHoldVisuals}
-          onTouchStart={isDisabled ? undefined : startHold}
-          onTouchEnd={isDisabled ? undefined : triggerActionOnRelease}
-          onTouchCancel={isDisabled ? undefined : resetHoldVisuals}
-          onClick={isDisabled ? undefined : handleClick}
+        <button
+          className={`space-button ${isHolding ? 'holding' : ''}`} // Класс holding оставляем для возможного использования
+          style={{ '--active': activeVar }} // Передаем --active
+          onMouseDown={isLoading ? undefined : startHold}
+          onMouseUp={isLoading ? undefined : triggerActionOnRelease}
+          onMouseLeave={isLoading ? undefined : resetHoldVisuals}
+          onTouchStart={isLoading ? undefined : startHold}
+          onTouchEnd={isLoading ? undefined : triggerActionOnRelease}
+          onTouchCancel={isLoading ? undefined : resetHoldVisuals}
+          onClick={handleClick}
           aria-label={buttonText}
-          disabled={isDisabled}
+          disabled={isLoading}
         >
           <span className="backdrop" />
           <span className="galaxy" />
           <label className="text">
-            {buttonText}
+            {buttonText} {/* <<< НАШ ДИНАМИЧЕСКИЙ ТЕКСТ >>> */}
           </label>
-          <div className="hold-indicator"></div> 
+          {/* Индикатор удержания больше не нужен, если логика на :active */}
         </button>
+        {/* <div className="bodydrop" /> // Убираем, если не используется */}
       </div>
     </StyledWrapper>
   );
