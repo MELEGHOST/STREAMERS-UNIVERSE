@@ -272,7 +272,6 @@ const HoldLoginButton = ({ holdDuration = 1500 }) => {
   console.log('[HoldLoginButton] RENDER', { isLoading, isAuthenticated });
 
   const [isHolding, setIsHolding] = useState(false);
-  const progressIntervalRef = useRef(null);
   const startTimeRef = useRef(null);
   const actionTriggeredRef = useRef(false);
 
