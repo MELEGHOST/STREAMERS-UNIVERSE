@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useRef, useEffect, useCallback } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import styled, { keyframes } from 'styled-components';
 import { useAuth } from '../../contexts/AuthContext';
 import { useRouter } from 'next/navigation';
@@ -277,20 +277,26 @@ const HoldLoginButton = ({ holdDuration = 1500 }) => {
 
   const holdDurationMs = holdDuration;
 
-  // --- Логика удержания и отпускания ОСТАЕТСЯ НАШЕЙ --- 
-  const startHold = useCallback(() => {
+  // --- Логика удержания и отпускания --- 
+  // Убираем useCallback для простоты дебага
+  const startHold = () => {
+    console.log('[HoldLoginButton] startHold triggered'); // <<< ЛОГ
     if (actionTriggeredRef.current || isLoading) return;
     setIsHolding(true);
     startTimeRef.current = Date.now();
     actionTriggeredRef.current = false;
-  }, [isLoading]);
+  };
 
-  const resetHoldVisuals = useCallback(() => {
+  // Убираем useCallback
+  const resetHoldVisuals = () => {
+    console.log('[HoldLoginButton] resetHoldVisuals triggered'); // <<< ЛОГ
     setIsHolding(false);
     startTimeRef.current = null;
-  }, []);
+  };
 
-  const triggerActionOnRelease = useCallback(() => {
+  // Убираем useCallback
+  const triggerActionOnRelease = () => {
+    console.log('[HoldLoginButton] triggerActionOnRelease triggered', { isHolding, isLoading }); // <<< ЛОГ
     if (!isHolding || isLoading) {
         resetHoldVisuals();
         return;
@@ -298,24 +304,33 @@ const HoldLoginButton = ({ holdDuration = 1500 }) => {
 
     const elapsedTime = Date.now() - (startTimeRef.current || Date.now());
     const conditionMet = elapsedTime >= holdDurationMs;
+    console.log('[HoldLoginButton] Release Check:', { elapsedTime, holdDurationMs, conditionMet, actionTriggered: actionTriggeredRef.current }); // <<< ЛОГ
 
     if (conditionMet && !actionTriggeredRef.current) {
         actionTriggeredRef.current = true;
+        console.log('[HoldLoginButton] HOLD ACTION Condition met. IsAuthenticated:', isAuthenticated); // <<< ЛОГ
         if (isAuthenticated) {
+            console.log('[HoldLoginButton] --- Navigating to /menu (HOLD) ---'); // <<< ЛОГ
             router.push('/menu');
         } else {
+            console.log('[HoldLoginButton] --- Calling signInWithTwitch (HOLD) ---'); // <<< ЛОГ
             signInWithTwitch();
         }
+    } else {
+        console.log('[HoldLoginButton] Hold released too early or action already triggered.');
     }
     resetHoldVisuals();
-  }, [isHolding, isLoading, holdDurationMs, isAuthenticated, router, signInWithTwitch, resetHoldVisuals]);
+  };
 
-  const handleClick = useCallback(() => {
+  // Убираем useCallback
+  const handleClick = () => {
+    console.log('[HoldLoginButton] handleClick triggered', { isLoading, isHolding, isAuthenticated }); // <<< ЛОГ
     if (isLoading || isHolding) return;
     if (isAuthenticated) {
+      console.log('[HoldLoginButton] --- Navigating to /menu (CLICK) ---'); // <<< ЛОГ
       router.push('/menu');
     }
-  }, [isLoading, isAuthenticated, router, isHolding]);
+  };
 
   useEffect(() => {
     actionTriggeredRef.current = false;
