@@ -249,23 +249,19 @@ export function AuthProvider({ children }) {
         const { data, error } = await supabase.auth.signInWithOAuth({
           provider: 'twitch',
           options: {
-            // redirectTo: `${window.location.origin}/auth/callback`, // Можно раскомментировать, если редирект нужен явно
+            redirectTo: `${window.location.origin}/auth`,
           },
         });
-        
-        // ЛОГИРУЕМ РЕЗУЛЬТАТ
         if (error) {
-          console.error('[AuthContext] Supabase signInWithOAuth ERROR:', error);
-          // Дополнительно логируем код ошибки и сообщение
-          console.error(`[AuthContext] Error Code: ${error.code}, Message: ${error.message}, Status: ${error.status}`);
-          throw error;
-        } else {
-          console.log('[AuthContext] Supabase signInWithOAuth SUCCESS. Waiting for redirect...', { data });
-          // data обычно null или содержит URL для редиректа, если провайдер его возвращает
+            console.error('[AuthContext] Supabase signInWithOAuth ERROR:', error);
+            throw error;
+        }
+        console.log('[AuthContext] signInWithOAuth returned data:', data);
+        if (data?.url) {
+            window.location.href = data.url;
         }
     } catch (catchError) {
         console.error('[AuthContext] Exception during signInWithOAuth:', catchError);
-        // Перевыбрасываем ошибку, чтобы компонент мог её обработать
         throw catchError;
     }
   }, [supabase]);

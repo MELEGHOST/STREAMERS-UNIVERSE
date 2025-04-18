@@ -255,12 +255,7 @@ export async function GET(request) {
             // <<< Данные для UPSERT >>>
             const dataToUpsert = {
                 user_id: currentSupabaseUserId,
-                twitch_user_id: twitchUserData.id, 
-                twitch_login: twitchUserData.login,
-                twitch_display_name: twitchUserData.display_name,
-                twitch_profile_image_url: twitchUserData.profile_image_url,
-                twitch_broadcaster_type: twitchUserData.broadcaster_type,
-                twitch_view_count: twitchUserData.view_count,
+                twitch_broadcaster_type: currentBroadcasterType,
                 twitch_follower_count: currentFollowersCount,
             };
 
