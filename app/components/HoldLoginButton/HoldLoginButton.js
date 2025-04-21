@@ -324,11 +324,14 @@ const HoldLoginButton = ({ holdDuration = 1500 }) => {
 
   // Убираем useCallback
   const handleClick = () => {
-    console.log('[HoldLoginButton] handleClick triggered', { isLoading, isHolding, isAuthenticated }); // <<< ЛОГ
+    console.log('[HoldLoginButton] handleClick triggered', { isLoading, isHolding, isAuthenticated });
     if (isLoading || isHolding) return;
     if (isAuthenticated) {
-      console.log('[HoldLoginButton] --- Navigating to /menu (CLICK) ---'); // <<< ЛОГ
+      console.log('[HoldLoginButton] --- Navigating to /menu (CLICK) ---');
       router.push('/menu');
+    } else {
+      console.log('[HoldLoginButton] --- Calling signInWithTwitch (CLICK) ---');
+      signInWithTwitch();
     }
   };
 
