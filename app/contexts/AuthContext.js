@@ -246,10 +246,18 @@ export function AuthProvider({ children }) {
     }
     console.log('[AuthContext] Attempting Twitch sign in...');
     try {
+        // Определяем URL для редиректа. Используем NEXT_PUBLIC_BASE_URL для Vercel
+        const redirectUri = typeof window !== 'undefined'
+            ? `${window.location.origin}/auth/callback` // Для локальной разработки/клиента
+            : `${process.env.NEXT_PUBLIC_BASE_URL}/auth/callback`; // Для сервера/Vercel
+
+        console.log(`[AuthContext] Setting redirect URI to: ${redirectUri}`);
+
         const { data, error } = await supabase.auth.signInWithOAuth({
           provider: 'twitch',
           options: {
-            redirectTo: `${window.location.origin}/auth`,
+            redirectTo: redirectUri, // <<< ИСПРАВЛЕНО
+            // Убедимся, что этот URI добавлен в разрешенные в настройках Supabase Auth -> URL Configuration -> Redirect URLs
           },
         });
         if (error) {
@@ -257,12 +265,18 @@ export function AuthProvider({ children }) {
             throw error;
         }
         console.log('[AuthContext] signInWithOAuth returned data:', data);
+        // Редирект на URL от Supabase, он уже содержит всё необходимое
         if (data?.url) {
+             console.log(`[AuthContext] Redirecting to Supabase OAuth URL: ${data.url}`);
             window.location.href = data.url;
+        } else {
+            console.error('[AuthContext] Supabase signInWithOAuth did not return a URL!');
         }
     } catch (catchError) {
         console.error('[AuthContext] Exception during signInWithOAuth:', catchError);
-        throw catchError;
+        // Показываем ошибку пользователю?
+        // setErrorState(catchError.message || "Ошибка входа через Twitch");
+        throw catchError; // Пробрасываем дальше или обрабатываем
     }
   }, [supabase]);
 

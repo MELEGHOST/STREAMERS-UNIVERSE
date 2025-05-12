@@ -81,7 +81,7 @@ export async function POST(request) {
         console.log(`[API /generate] Sending request to AI for review fill. Title: ${title}, Category: ${category}`);
 
         const aiResponse = await openrouter.chat.completions.create({
-            model: "google/gemini-pro",
+            model: "google/gemini-2.5-pro-preview",
             messages: [
                 { role: "system", content: systemPrompt },
                 { role: "user", content: userPrompt }

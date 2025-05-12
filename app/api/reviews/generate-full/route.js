@@ -248,7 +248,7 @@ Please generate the review JSON based on this content. Remember the JSON format 
         console.log(`[API /generate-full] Sending request to AI. Prompt size approx: ${systemPrompt.length + userPrompt.length}`);
 
         const aiResponse = await openrouter.chat.completions.create({
-            model: "google/gemini-pro",
+            model: "google/gemini-2.5-pro-preview",
             messages: [
                 { role: "system", content: systemPrompt },
                 { role: "user", content: userPrompt }

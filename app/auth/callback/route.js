@@ -53,8 +53,24 @@ export async function GET(request) {
     const { error } = await supabase.auth.exchangeCodeForSession(code);
 
     if (error) {
-      console.error('[Auth Callback] Ошибка обмена кода на сессию:', error.message);
-      return NextResponse.redirect(`${origin}/auth?error=Не+удалось+войти.&error_description=${encodeURIComponent(error.message)}`);
+      // Улучшенное логирование ошибки
+      console.error('[Auth Callback] Ошибка обмена кода на сессию:', {
+          message: error.message,
+          status: error.status,
+          code: error.code, // Если есть код ошибки Supabase
+          details: error.cause, // Иногда тут детали
+          name: error.name,
+          fullError: error // Логируем весь объект ошибки
+      });
+      // Передаем более понятное сообщение пользователю, если возможно
+      let userErrorMessage = 'Не удалось войти.';
+      if (error.message.includes('invalid_grant')) {
+          userErrorMessage = 'Ошибка авторизации: Неверный или истекший код авторизации. Попробуйте снова.';
+      } else if (error.status === 403) {
+           userErrorMessage = 'Доступ запрещен. Проверьте настройки OAuth провайдера.';
+      }
+      // Редирект с улучшенным сообщением
+      return NextResponse.redirect(`${origin}/auth?error=${encodeURIComponent(userErrorMessage)}&error_details=${encodeURIComponent(error.message)}`);
     }
 
     // Успешно!
