@@ -339,13 +339,12 @@ const HoldLoginButton = ({ holdDuration = 1500 }) => {
     actionTriggeredRef.current = false;
   }, [isAuthenticated]);
 
-  // --- Определяем текст кнопки --- 
-  let buttonText = 'Удерживай для входа';
-  if (isLoading) {
-    buttonText = 'Загрузка...';
-  } else if (isAuthenticated) {
-    buttonText = 'Войти в меню';
-  }
+  // --- Определяем текст кнопки ---
+  const buttonText = isLoading
+    ? 'Загрузка...'
+    : isAuthenticated
+      ? 'Войти в меню'
+      : 'Войти через Twitch';
 
   // --- Используем isHolding для управления переменной --active ---
   const activeVar = isHolding ? 1 : 0;

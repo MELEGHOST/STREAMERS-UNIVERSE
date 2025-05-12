@@ -246,18 +246,24 @@ export function AuthProvider({ children }) {
     }
     console.log('[AuthContext] Attempting Twitch sign in...');
     try {
-        // Определяем URL для редиректа. Используем NEXT_PUBLIC_BASE_URL для Vercel
-        const redirectUri = typeof window !== 'undefined'
-            ? `${window.location.origin}/auth/callback` // Для локальной разработки/клиента
-            : `${process.env.NEXT_PUBLIC_BASE_URL}/auth/callback`; // Для сервера/Vercel
-
-        console.log(`[AuthContext] Setting redirect URI to: ${redirectUri}`);
+        // Определяем URL для редиректа через переменные окружения Twitch Redirect URI  
+        let redirectUri;
+        const isPreview = process.env.VERCEL_ENV === 'preview';
+        if (isPreview && process.env.NEXT_PUBLIC_TWITCH_REDIRECT_URI_PREVIEW) {
+          redirectUri = process.env.NEXT_PUBLIC_TWITCH_REDIRECT_URI_PREVIEW;
+        } else if (process.env.NEXT_PUBLIC_TWITCH_REDIRECT_URI) {
+          redirectUri = process.env.NEXT_PUBLIC_TWITCH_REDIRECT_URI;
+        } else if (typeof window !== 'undefined') {
+          redirectUri = `${window.location.origin}/auth/callback`;
+        } else {
+          throw new Error('Redirect URI не определен. Установите NEXT_PUBLIC_TWITCH_REDIRECT_URI в переменных окружения.');
+        }
+        console.log(`[AuthContext] Using Twitch OAuth redirect URI: ${redirectUri}`);
 
         const { data, error } = await supabase.auth.signInWithOAuth({
           provider: 'twitch',
           options: {
-            redirectTo: redirectUri, // <<< ИСПРАВЛЕНО
-            // Убедимся, что этот URI добавлен в разрешенные в настройках Supabase Auth -> URL Configuration -> Redirect URLs
+            redirectTo: redirectUri, // <<< Используем настроенный Redirect URI
           },
         });
         if (error) {
@@ -265,18 +271,14 @@ export function AuthProvider({ children }) {
             throw error;
         }
         console.log('[AuthContext] signInWithOAuth returned data:', data);
-        // Редирект на URL от Supabase, он уже содержит всё необходимое
         if (data?.url) {
-             console.log(`[AuthContext] Redirecting to Supabase OAuth URL: ${data.url}`);
             window.location.href = data.url;
         } else {
             console.error('[AuthContext] Supabase signInWithOAuth did not return a URL!');
         }
     } catch (catchError) {
         console.error('[AuthContext] Exception during signInWithOAuth:', catchError);
-        // Показываем ошибку пользователю?
-        // setErrorState(catchError.message || "Ошибка входа через Twitch");
-        throw catchError; // Пробрасываем дальше или обрабатываем
+        throw catchError;
     }
   }, [supabase]);
 
