@@ -246,19 +246,22 @@ export function AuthProvider({ children }) {
     }
     console.log('[AuthContext] Attempting Twitch sign in...');
     try {
-        // Определяем URL для редиректа через переменные окружения Twitch Redirect URI  
         let redirectUri;
-        const isPreview = process.env.VERCEL_ENV === 'preview';
-        if (isPreview && process.env.NEXT_PUBLIC_TWITCH_REDIRECT_URI_PREVIEW) {
-          redirectUri = process.env.NEXT_PUBLIC_TWITCH_REDIRECT_URI_PREVIEW;
-        } else if (process.env.NEXT_PUBLIC_TWITCH_REDIRECT_URI) {
-          redirectUri = process.env.NEXT_PUBLIC_TWITCH_REDIRECT_URI;
+        const baseRedirectPath = '/auth/callback';
+
+        if (process.env.NEXT_PUBLIC_BASE_URL) {
+          redirectUri = `${process.env.NEXT_PUBLIC_BASE_URL.replace(/\/$/, '')}${baseRedirectPath}`;
         } else if (typeof window !== 'undefined') {
-          redirectUri = `${window.location.origin}/auth/callback`;
+          redirectUri = `${window.location.origin}${baseRedirectPath}`;
         } else {
-          throw new Error('Redirect URI не определен. Установите NEXT_PUBLIC_TWITCH_REDIRECT_URI в переменных окружения.');
+          console.warn('[AuthContext] Critical: Cannot determine redirect URI for Twitch OAuth.');
+          // В критической ситуации можно либо бросить ошибку, либо попытаться использовать относительный путь,
+          // но это скорее всего не сработает для OAuth редиректа.
+          // Для безопасности лучше бросить ошибку, чтобы проблема была сразу видна.
+          throw new Error("Cannot determine redirect URI for OAuth");
         }
-        console.log(`[AuthContext] Using Twitch OAuth redirect URI: ${redirectUri}`);
+
+        console.log(`[AuthContext] Using redirect URI for Twitch: ${redirectUri}`);
 
         const { data, error } = await supabase.auth.signInWithOAuth({
           provider: 'twitch',

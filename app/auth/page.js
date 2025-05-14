@@ -1,6 +1,7 @@
 'use client';
 
-import React from 'react';
+import React, { useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import HoldLoginButton from '../components/HoldLoginButton/HoldLoginButton';
 // import styles from './auth.module.css'; // <<< Убираем неиспользуемый импорт
 import Image from 'next/image'; // <<< Добавляем импорт Image
@@ -8,11 +9,20 @@ import pageStyles from '../home.module.css'; // <<< Используем сти�
 import { useAuth } from '../contexts/AuthContext'; // <<< Импортируем useAuth
 
 export default function AuthPage() {
-  // <<< Добавляем проверку isLoading >>>
-  const { isLoading } = useAuth();
+  const { isLoading, isAuthenticated, session } = useAuth();
+  const router = useRouter();
 
-  // <<< Лог рендера страницы >>>
-  console.log('[AuthPage] Rendering...');
+  console.log('[AuthPage] Rendering...', { isLoading, isAuthenticated, session_exists: !!session });
+
+  useEffect(() => {
+    console.log('[AuthPage] useEffect check:', { isLoading, isAuthenticated, session_exists: !!session });
+    if (!isLoading && isAuthenticated) {
+      console.log('[AuthPage] User is authenticated, redirecting to /menu...');
+      router.push('/menu');
+    } else if (!isLoading && !isAuthenticated) {
+      console.log('[AuthPage] User is not authenticated, staying on auth page.');
+    }
+  }, [isLoading, isAuthenticated, router, session]);
 
   // <<< Используем ту же структуру, что и HomePage >>>
   const StarryBackground = () => (
@@ -21,8 +31,9 @@ export default function AuthPage() {
       </div>
   );
 
-  // <<< Показываем лоадер, пока AuthContext загружается >>>
-  if (isLoading) {
+  // Если isLoading=true ИЛИ (уже не isLoading, но isAuthenticated=true и мы ждем редиректа из useEffect)
+  // показываем лоадер. Это предотвратит мигание контента страницы входа для уже вошедшего юзера.
+  if (isLoading || (!isLoading && isAuthenticated)) {
     return (
         <div className={pageStyles.loadingContainer}> 
              <div className="spinner"></div>
@@ -31,7 +42,7 @@ export default function AuthPage() {
     );
   }
 
-  // <<< Если не isLoading, рендерим контент >>>
+  // <<< Если не isLoading И НЕ isAuthenticated, рендерим контент для входа >>>
   return (
     <div className={pageStyles.container}> {/* Используем стили из home.module.css */} 
       <StarryBackground />
