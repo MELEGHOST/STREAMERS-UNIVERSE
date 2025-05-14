@@ -9,20 +9,21 @@ import pageStyles from '../home.module.css'; // <<< Используем сти�
 import { useAuth } from '../contexts/AuthContext'; // <<< Импортируем useAuth
 
 export default function AuthPage() {
-  const { isLoading, isAuthenticated, session } = useAuth();
+  const { isLoading, isAuthenticated, session, user } = useAuth(); // Добавил user для более явного лога
   const router = useRouter();
 
-  console.log('[AuthPage] Rendering...', { isLoading, isAuthenticated, session_exists: !!session });
+  console.log('[AuthPage] Rendering...', { isLoading, isAuthenticated, userId: user?.id, provider: user?.app_metadata?.provider });
 
   useEffect(() => {
-    console.log('[AuthPage] useEffect check:', { isLoading, isAuthenticated, session_exists: !!session });
+    console.log('[AuthPage] useEffect check:', { isLoading, isAuthenticated, userId: user?.id });
     if (!isLoading && isAuthenticated) {
-      console.log('[AuthPage] User is authenticated, redirecting to /menu...');
+      console.log('[AuthPage] User is authenticated, attempting redirect to /menu...');
       router.push('/menu');
     } else if (!isLoading && !isAuthenticated) {
-      console.log('[AuthPage] User is not authenticated, staying on auth page.');
+      console.log('[AuthPage] User is not authenticated, staying on auth page. Ready for login attempt.');
     }
-  }, [isLoading, isAuthenticated, router, session]);
+    // Добавил user в зависимости, чтобы реагировать на его изменение, если isAuthenticated обновится с задержкой
+  }, [isLoading, isAuthenticated, router, user]);
 
   // <<< Используем ту же структуру, что и HomePage >>>
   const StarryBackground = () => (
@@ -31,8 +32,9 @@ export default function AuthPage() {
       </div>
   );
 
-  // Если isLoading=true ИЛИ (уже не isLoading, но isAuthenticated=true и мы ждем редиректа из useEffect)
-  // показываем лоадер. Это предотвратит мигание контента страницы входа для уже вошедшего юзера.
+  // Если isLoading, показываем лоадер.
+  // Если НЕ isLoading и УЖЕ isAuthenticated, то useEffect выше должен был начать редирект.
+  // В этом случае можно тоже показать лоадер, чтобы избежать мигания контента перед редиректом.
   if (isLoading || (!isLoading && isAuthenticated)) {
     return (
         <div className={pageStyles.loadingContainer}> 
@@ -42,7 +44,8 @@ export default function AuthPage() {
     );
   }
 
-  // <<< Если не isLoading И НЕ isAuthenticated, рендерим контент для входа >>>
+  // Если НЕ isLoading и НЕ isAuthenticated, значит, пользователь должен войти.
+  // Показываем контент для входа.
   return (
     <div className={pageStyles.container}> {/* Используем стили из home.module.css */} 
       <StarryBackground />
