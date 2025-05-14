@@ -9,7 +9,7 @@ import pageStyles from '../home.module.css'; // <<< Используем сти�
 import { useAuth } from '../contexts/AuthContext'; // <<< Импортируем useAuth
 
 export default function AuthPage() {
-  const { isLoading, isAuthenticated, session, user } = useAuth(); // Добавил user для более явного лога
+  const { isLoading, isAuthenticated, user } = useAuth(); // Добавил user для более явного лога
   const router = useRouter();
 
   console.log('[AuthPage] Rendering...', { isLoading, isAuthenticated, userId: user?.id, provider: user?.app_metadata?.provider });
