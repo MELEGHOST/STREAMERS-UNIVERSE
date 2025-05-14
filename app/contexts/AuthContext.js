@@ -7,6 +7,18 @@ import { useRouter } from 'next/navigation'; // Импортируем useRouter
 // Создаем контекст
 const AuthContext = createContext(undefined);
 
+// Вспомогательная функция для промисов с таймаутом
+function promiseWithTimeout(promise, ms, timeoutError = new Error('Promise timed out')) {
+  let timer;
+  const timeout = new Promise((_, reject) => {
+    timer = setTimeout(() => reject(timeoutError), ms);
+  });
+  return Promise.race([
+    promise.finally(() => clearTimeout(timer)), // Очищаем таймаут, если промис завершился сам
+    timeout
+  ]);
+}
+
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
   const [session, setSession] = useState(null);
@@ -57,16 +69,18 @@ export function AuthProvider({ children }) {
     let isMounted = true;
 
     async function getInitialSession() {
-      console.log('[AuthContext] Attempting getInitialSession() using createClient...');
+      console.log('[AuthContext] Attempting getInitialSession() using createClient with timeout...');
       try {
-          // createClient читает сессию из кук
-          const { data: sessionData, error } = await supabase.auth.getSession();
-          console.log('[AuthContext] getSession() Result:', { sessionData, error });
+          const { data: sessionData, error } = await promiseWithTimeout(
+            supabase.auth.getSession(),
+            7000, // 7 секунд таймаут
+            new Error('Supabase getSession timed out')
+          );
 
           if (!isMounted) return;
 
           if (error) {
-            console.error('[AuthContext] Error in getSession():', error.message);
+            console.error('[AuthContext] Error in getSession() (after timeout wrapper):', error.message);
           } else if (sessionData?.session) {
             const initialSession = sessionData.session;
             console.log('[AuthContext] Initial session found via getSession(), User ID:', initialSession.user.id);
@@ -81,10 +95,19 @@ export function AuthProvider({ children }) {
              }
           }
       } catch (catchError) {
-           console.error('[AuthContext] Exception during getInitialSession():', catchError);
+           if (catchError.message === 'Supabase getSession timed out') {
+               console.warn('[AuthContext] supabase.auth.getSession() timed out. Assuming no active session.');
+           } else {
+               console.error('[AuthContext] Exception during getInitialSession():', catchError);
+           }
+           // В случае любой ошибки (включая таймаут), если мы все еще смонтированы, очищаем пользователя/сессию
+           if (isMounted) {
+               setUser(null);
+               setSession(null);
+           }
       } finally {
           if (isMounted) {
-              console.log('[AuthContext] Setting loading = false after getInitialSession attempt.');
+              console.log('[AuthContext] Setting loading = false after getInitialSession attempt (success, error, or timeout).');
               setLoading(false);
           }
       }
