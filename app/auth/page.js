@@ -2,7 +2,8 @@
 
 import React, { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import HoldLoginButton from '../components/HoldLoginButton/HoldLoginButton';
+// import HoldLoginButton from '../components/HoldLoginButton/HoldLoginButton'; // Старый импорт
+import LoginButton from '../components/LoginButton/LoginButton'; // Новый импорт
 // import styles from './auth.module.css'; // <<< Убираем неиспользуемый импорт
 import Image from 'next/image'; // <<< Добавляем импорт Image
 import pageStyles from '../home.module.css'; // <<< Используем стили из home
@@ -62,7 +63,8 @@ export default function AuthPage() {
             <h2>Добро пожаловать во Вселенную Стримеров!</h2>
             <p>Авторизуйтесь, чтобы продолжить</p>
              {/* Кнопка сама разберется, что делать */}
-            <HoldLoginButton />
+            {/* <HoldLoginButton /> */}
+            <LoginButton />
         </div>
       </div>
     </div>

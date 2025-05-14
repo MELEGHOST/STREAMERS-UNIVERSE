@@ -3,7 +3,8 @@
 import React from 'react';
 // import { useRouter } from 'next/navigation'; // <<< Убираем неиспользуемый импорт
 import { useAuth } from './contexts/AuthContext';
-import HoldLoginButton from './components/HoldLoginButton/HoldLoginButton';
+// import HoldLoginButton from './components/HoldLoginButton/HoldLoginButton'; // Старый импорт
+import LoginButton from './components/LoginButton/LoginButton'; // Новый импорт
 import Image from 'next/image';
 import styles from './home.module.css'; // Используем стили для главной
 
@@ -48,10 +49,10 @@ export default function HomePage() {
                 </h2>
                 <p>
                     {isAuthenticated
-                        ? "Зажмите кнопку, чтобы войти в Меню"
-                        : "Зажмите кнопку, чтобы войти через Twitch"}
+                        ? "Нажмите кнопку, чтобы войти в Меню"
+                        : "Нажмите кнопку, чтобы войти через Twitch"}
                 </p>
-                <HoldLoginButton />
+                <LoginButton />
             </div>
         </div>
     </div>
