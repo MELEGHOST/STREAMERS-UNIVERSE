@@ -36,7 +36,7 @@ export default function AuthPage() {
   // Если isLoading, показываем лоадер.
   // Если НЕ isLoading и УЖЕ isAuthenticated, то useEffect выше должен был начать редирект.
   // В этом случае можно тоже показать лоадер, чтобы избежать мигания контента перед редиректом.
-  if (isLoading || (!isLoading && isAuthenticated)) {
+  if (isLoading) {
     return (
         <div className={pageStyles.loadingContainer}> 
              <div className="spinner"></div>
