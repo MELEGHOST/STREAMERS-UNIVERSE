@@ -279,21 +279,27 @@ const StyledWrapper = styled.div`
 
 // Переименовываем компонент
 const LoginButton = () => {
-  const { isAuthenticated, signInWithTwitch, isLoading } = useAuth();
+  const { signInWithTwitch, isAuthenticated, user, isLoading } = useAuth();
   const router = useRouter();
 
-  console.log('[LoginButton] RENDER', { isLoading, isAuthenticated });
+  // <<< Логируем, что мы получаем из useAuth >>>
+  console.log('[LoginButton] AuthContext values:', { 
+    signInWithTwitch: typeof signInWithTwitch, 
+    isAuthenticated, 
+    userId: user?.id,
+    isLoading 
+  });
 
   const handleClick = () => {
-    console.log('[LoginButton] handleClick triggered', { isLoading, isAuthenticated });
-    if (isLoading) return; 
-
-    if (isAuthenticated) {
-      console.log('[LoginButton] --- Navigating to /menu (CLICK) ---');
-      router.push('/menu');
+    // <<< Логируем перед вызовом signInWithTwitch >>>
+    console.log('[LoginButton] handleClick called. Attempting to call signInWithTwitch.');
+    if (typeof signInWithTwitch === 'function') {
+      signInWithTwitch().catch(error => {
+        // <<< Логируем ошибку, если signInWithTwitch выбросит исключение >>>
+        console.error('[LoginButton] Error calling signInWithTwitch:', error);
+      });
     } else {
-      console.log('[LoginButton] --- Calling signInWithTwitch (CLICK) ---');
-      signInWithTwitch();
+      console.error('[LoginButton] signInWithTwitch is not a function! Received:', signInWithTwitch);
     }
   };
 

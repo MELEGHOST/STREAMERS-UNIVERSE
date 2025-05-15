@@ -184,6 +184,12 @@ export function AuthProvider({ children }) {
              const userTwitchId = currentSession.user.user_metadata?.provider_id;
              console.log(`[AuthContext] Событие SIGNED_IN. User ID: ${userId}, Twitch ID: ${userTwitchId}`);
              
+             // Дополнительно проверяем и сбрасываем loading, если он еще true
+             if (loading) {
+                console.log('[AuthContext] SIGNED_IN event: Explicitly setting loading = false.');
+                setLoading(false);
+             }
+             
              // 1. Гарантируем создание/обновление профиля фоновым запросом
              if (userTwitchId && currentSession.access_token) {
                  console.log(`[AuthContext] Запускаем фоновый запрос к /api/twitch/user для ${userTwitchId} для гарантии создания/обновления профиля...`);
