@@ -3,7 +3,6 @@
 import React from 'react';
 import styled, { keyframes } from 'styled-components';
 import { useAuth } from '../../contexts/AuthContext';
-import { useRouter } from 'next/navigation';
 
 // --- Вставляем ТВОИ keyframes и стили --- 
 const wobble = keyframes`
@@ -280,7 +279,6 @@ const StyledWrapper = styled.div`
 // Переименовываем компонент
 const LoginButton = () => {
   const { signInWithTwitch, isAuthenticated, user, isLoading } = useAuth();
-  const router = useRouter();
 
   // <<< Логируем, что мы получаем из useAuth >>>
   console.log('[LoginButton] AuthContext values:', { 
