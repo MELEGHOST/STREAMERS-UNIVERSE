@@ -3,6 +3,7 @@
 import React from 'react';
 import styled, { keyframes } from 'styled-components';
 import { useAuth } from '../../contexts/AuthContext';
+import { useRouter } from 'next/navigation';
 
 // --- Вставляем ТВОИ keyframes и стили --- 
 const wobble = keyframes`
@@ -279,6 +280,7 @@ const StyledWrapper = styled.div`
 // Переименовываем компонент
 const LoginButton = () => {
   const { signInWithTwitch, isAuthenticated, user, isLoading } = useAuth();
+  const router = useRouter();
 
   // <<< Логируем, что мы получаем из useAuth >>>
   console.log('[LoginButton] AuthContext values:', { 
@@ -289,15 +291,18 @@ const LoginButton = () => {
   });
 
   const handleClick = () => {
-    // <<< Логируем перед вызовом signInWithTwitch >>>
-    console.log('[LoginButton] handleClick called. Attempting to call signInWithTwitch.');
-    if (typeof signInWithTwitch === 'function') {
-      signInWithTwitch().catch(error => {
-        // <<< Логируем ошибку, если signInWithTwitch выбросит исключение >>>
-        console.error('[LoginButton] Error calling signInWithTwitch:', error);
-      });
+    if (isAuthenticated) {
+      console.log('[LoginButton] User is authenticated. Navigating to /menu.');
+      router.push('/menu');
     } else {
-      console.error('[LoginButton] signInWithTwitch is not a function! Received:', signInWithTwitch);
+      console.log('[LoginButton] User is not authenticated. Attempting to call signInWithTwitch.');
+      if (typeof signInWithTwitch === 'function') {
+        signInWithTwitch().catch(error => {
+          console.error('[LoginButton] Error calling signInWithTwitch:', error);
+        });
+      } else {
+        console.error('[LoginButton] signInWithTwitch is not a function! Received:', signInWithTwitch);
+      }
     }
   };
 
@@ -318,9 +323,9 @@ const LoginButton = () => {
         >
           <span className="backdrop" />
           <span className="galaxy" />
-          <label className="text">
+          <span className="text">
             {buttonText}
-          </label>
+          </span>
         </button>
       </div>
     </StyledWrapper>
