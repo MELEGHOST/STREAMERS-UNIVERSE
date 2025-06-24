@@ -14,35 +14,40 @@ export default function AuthPage() {
   const router = useRouter();
 
   useEffect(() => {
-    // Этот эффект будет реагировать на изменение статуса аутентификации.
-    // Если загрузка завершилась и пользователь аутентифицирован,
-    // middleware уже должен был перенаправить его.
-    // Но если пользователь как-то попал сюда, будучи авторизованным, перенаправим его в меню.
+    // Если проверка статуса завершена и пользователь аутентифицирован,
+    // отправляем его в меню.
     if (!isLoading && isAuthenticated) {
-      console.log('[AuthPage] Пользователь уже аутентифицирован, перенаправление в /menu.');
-      router.replace('/menu'); // Используем replace, чтобы не добавлять /auth в историю браузера
+      console.log('[AuthPage] Пользователь аутентифицирован, перенаправление в /menu.');
+      router.replace('/menu');
     }
   }, [isLoading, isAuthenticated, router]);
 
-  // Пока идет проверка статуса, или если пользователь уже аутентифицирован
-  // и ждет редиректа, показываем лоадер.
-  if (isLoading || isAuthenticated) {
+  const StarryBackground = () => (
+    <div className={pageStyles.stars}></div>
+  );
+
+  // 1. Пока идет первоначальная проверка, показываем один лоадер.
+  if (isLoading) {
     return (
       <div className={pageStyles.loadingContainer}>
         <div className="spinner"></div>
-        <p>Проверка статуса...</p>
+        <p>Загрузка...</p>
       </div>
     );
   }
 
-  // <<< Используем ту же структуру, что и HomePage >>>
-  const StarryBackground = () => (
-      <div className={pageStyles.stars}>
-        {/* <div className={pageStyles.twinkling}></div> */}
+  // 2. Если проверка завершена и пользователь АВТОРИЗОВАН,
+  // значит, useEffect уже запустил редирект. Показываем другой лоадер.
+  if (isAuthenticated) {
+     return (
+      <div className={pageStyles.loadingContainer}>
+        <div className="spinner"></div>
+        <p>Перенаправление в меню...</p>
       </div>
-  );
+    );
+  }
 
-  // Если загрузка завершена и пользователь НЕ аутентифицирован,
+  // 3. Если проверка завершена и пользователь НЕ авторизован,
   // показываем страницу входа.
   return (
     <div className={pageStyles.container}> {/* Используем стили из home.module.css */} 
