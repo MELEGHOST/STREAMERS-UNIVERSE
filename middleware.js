@@ -1,91 +1,114 @@
-import { NextResponse } from 'next/server';
 import { createServerClient } from '@supabase/ssr';
+import { NextResponse } from 'next/server';
 
 export async function middleware(request) {
-  let response = NextResponse.next();
-  const { pathname } = request.nextUrl;
+  let response = NextResponse.next({
+    request: {
+      headers: request.headers,
+    },
+  });
 
-  // --- Создание Supabase Client для Middleware --- 
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-
-  if (!supabaseUrl || !supabaseAnonKey) {
-    console.error('[Middleware] ОШИБКА: Отсутствуют переменные окружения Supabase.');
-    // Без ключей Supabase не может работать, но заголовки безопасности установим
-  } 
-
-  const supabase = supabaseUrl && supabaseAnonKey ? createServerClient(
-    supabaseUrl,
-    supabaseAnonKey,
+  const supabase = createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
     {
       cookies: {
-        getAll: () => request.cookies.getAll(),
-        setAll: (cookiesToSet) => cookiesToSet.forEach(({ name, value, options }) => response.cookies.set(name, value, options)),
-        remove: (name, options) => response.cookies.set({ name, value: '', ...options, maxAge: 0 }),
+        get(name) {
+          return request.cookies.get(name)?.value;
+        },
+        set(name, value, options) {
+          request.cookies.set({
+            name,
+            value,
+            ...options,
+          });
+          response = NextResponse.next({
+            request: {
+              headers: request.headers,
+            },
+          });
+          response.cookies.set({
+            name,
+            value,
+            ...options,
+          });
+        },
+        remove(name, options) {
+          request.cookies.set({
+            name,
+            value: '',
+            ...options,
+          });
+          response = NextResponse.next({
+            request: {
+              headers: request.headers,
+            },
+          });
+          response.cookies.set({
+            name,
+            value: '',
+            ...options,
+          });
+        },
       },
     }
-  ) : null;
-  // --- Конец создания Supabase Client ---
+  );
 
-  // --- Получение пользователя Supabase --- 
-  let user = null;
-  if (supabase) {
-      try {
-        // getUser обновит сессию в куках, если нужно (передаем `response` в `setAll`)
-        const { data } = await supabase.auth.getUser(); 
-        user = data?.user;
-        // console.log('[Middleware] User:', user ? user.id : 'null');
-      } catch (e) {
-         console.error('[Middleware] Ошибка при вызове getUser:', e);
-      }
-  } else {
-      console.warn('[Middleware] Пропуск проверки Supabase из-за отсутствия ключей.');
-  }
-  // --- Конец получения пользователя ---
+  // Обновляем сессию. Это важно для Server-Side Components и для защиты роутов.
+  // getSession() вернет { session: null, user: null }, если пользователь не вошел.
+  const { data: { session } } = await supabase.auth.getSession();
+  const user = session?.user;
 
-  // --- Заголовки Безопасности (упрощенные для начала) --- 
-  response.headers.set('X-Content-Type-Options', 'nosniff');
-  response.headers.set('X-Frame-Options', 'SAMEORIGIN'); 
-  // CSP пока оставим базовым, чтобы не мешал
-  response.headers.set('Content-Security-Policy', "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://*; font-src 'self'; connect-src *;"); // Очень разрешающий CSP для начала
-  // --- Конец заголовков ---
+  const { pathname } = request.nextUrl;
 
-  // --- Логика Защиты Маршрутов --- 
-  const publicPaths = [
-    '/auth',                
-    '/auth/callback',       
-    '/',                    
+  // --- Логика Защиты Маршрутов ---
+  const protectedPaths = [
+    '/menu',
+    '/profile',
+    '/edit-profile',
+    '/settings',
+    '/achievements',
+    '/followers',
+    '/followings',
+    '/my-reviews',
+    '/reviews/create',
+    '/reviews/edit',
+    '/admin',
   ];
 
-  // Проверяем, является ли путь публичным (точное совпадение или начало)
-  const isPublic = publicPaths.some(path => pathname === path || (path !== '/' && pathname.startsWith(path + '/')));
+  const isProtected = protectedPaths.some(path => pathname.startsWith(path));
 
-  // Если путь НЕ публичный И пользователь НЕ аутентифицирован
-  if (!isPublic && !user) {
-    console.log(`[Middleware] Доступ к ${pathname} запрещен. Редирект на /auth.`);
-    const redirectUrl = new URL('/auth', request.url);
-    redirectUrl.searchParams.set('message', 'Требуется вход');
+  // Если пользователь пытается получить доступ к защищенному маршруту без сессии
+  if (isProtected && !user) {
+    console.log(`[Middleware] Доступ к защищенному маршруту ${pathname} запрещен. Редирект на /auth.`);
+    const redirectUrl = request.nextUrl.clone();
+    redirectUrl.pathname = '/auth';
     redirectUrl.searchParams.set('next', pathname); // Запоминаем, куда шел пользователь
     return NextResponse.redirect(redirectUrl);
   }
 
-  // Если пользователь аутентифицирован и пытается зайти на /auth
+  // Если аутентифицированный пользователь пытается зайти на /auth
   if (user && pathname === '/auth') {
     console.log('[Middleware] Авторизованный пользователь на /auth. Редирект на /menu.');
-    return NextResponse.redirect(new URL('/menu', request.url));
+    const redirectUrl = request.nextUrl.clone();
+    redirectUrl.pathname = '/menu';
+    redirectUrl.search = ''; // Очищаем параметры ?next=...
+    return NextResponse.redirect(redirectUrl);
   }
 
-  // console.log(`[Middleware] Доступ к ${pathname} разрешен.`);
-  // Возвращаем response, чтобы куки Supabase обновились
-  return response; 
+  return response;
 }
 
 export const config = {
   matcher: [
     /*
      * Сопоставляем все пути запросов, кроме служебных:
+     * - api (API routes)
+     * - _next/static (static files)
+     * - _next/image (image optimization files)
+     * - favicon.ico (favicon file)
+     * - images (папка с картинками в public)
      */
-    // Используем незахватывающую группу (?:...) для расширений favicon
-    '/((?!api|_next/static|_next/image|favicon\.(?:ico|png)|images/).*)',
+    '/((?!api|_next/static|_next/image|favicon.ico|images).*)',
   ],
 }; 
