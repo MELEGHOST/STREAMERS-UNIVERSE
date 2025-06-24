@@ -2,6 +2,8 @@ import { createServerClient } from '@supabase/ssr';
 import { NextResponse } from 'next/server';
 
 export async function middleware(request) {
+  // This `response` object will be modified by the `set` and `remove` functions
+  // and returned at the end of the middleware.
   let response = NextResponse.next({
     request: {
       headers: request.headers,
@@ -17,16 +19,13 @@ export async function middleware(request) {
           return request.cookies.get(name)?.value;
         },
         set(name, value, options) {
+          // If the cookie is set, update the request's cookies.
           request.cookies.set({
             name,
             value,
             ...options,
           });
-          response = NextResponse.next({
-            request: {
-              headers: request.headers,
-            },
-          });
+          // Also update the response's cookies.
           response.cookies.set({
             name,
             value,
@@ -34,15 +33,11 @@ export async function middleware(request) {
           });
         },
         remove(name, options) {
+          // If the cookie is removed, update the request's cookies.
           request.cookies.set({
             name,
             value: '',
             ...options,
-          });
-          response = NextResponse.next({
-            request: {
-              headers: request.headers,
-            },
           });
           response.cookies.set({
             name,
@@ -54,14 +49,13 @@ export async function middleware(request) {
     }
   );
 
-  // Обновляем сессию. Это важно для Server-Side Components и для защиты роутов.
-  // getSession() вернет { session: null, user: null }, если пользователь не вошел.
-  const { data: { session } } = await supabase.auth.getSession();
-  const user = session?.user;
+  // Refresh session if expired - required for Server Components
+  // https://supabase.com/docs/guides/auth/server-side/nextjs
+  const { data: { user } } = await supabase.auth.getUser();
 
   const { pathname } = request.nextUrl;
 
-  // --- Логика Защиты Маршрутов ---
+  // --- Route Protection Logic ---
   const protectedPaths = [
     '/menu',
     '/profile',
@@ -78,21 +72,21 @@ export async function middleware(request) {
 
   const isProtected = protectedPaths.some(path => pathname.startsWith(path));
 
-  // Если пользователь пытается получить доступ к защищенному маршруту без сессии
+  // If user tries to access a protected route without a session
   if (isProtected && !user) {
-    console.log(`[Middleware] Доступ к защищенному маршруту ${pathname} запрещен. Редирект на /auth.`);
+    console.log(`[Middleware] Access to protected route ${pathname} denied. Redirecting to /auth.`);
     const redirectUrl = request.nextUrl.clone();
     redirectUrl.pathname = '/auth';
-    redirectUrl.searchParams.set('next', pathname); // Запоминаем, куда шел пользователь
+    redirectUrl.searchParams.set('next', pathname); // Remember where the user was going
     return NextResponse.redirect(redirectUrl);
   }
 
-  // Если аутентифицированный пользователь пытается зайти на /auth
+  // If authenticated user tries to access /auth
   if (user && pathname === '/auth') {
-    console.log('[Middleware] Авторизованный пользователь на /auth. Редирект на /menu.');
+    console.log('[Middleware] Authenticated user on /auth. Redirecting to /menu.');
     const redirectUrl = request.nextUrl.clone();
     redirectUrl.pathname = '/menu';
-    redirectUrl.search = ''; // Очищаем параметры ?next=...
+    redirectUrl.search = ''; // Clear params like ?next=...
     return NextResponse.redirect(redirectUrl);
   }
 
@@ -102,12 +96,12 @@ export async function middleware(request) {
 export const config = {
   matcher: [
     /*
-     * Сопоставляем все пути запросов, кроме служебных:
+     * Match all request paths except for the ones starting with:
      * - api (API routes)
      * - _next/static (static files)
      * - _next/image (image optimization files)
      * - favicon.ico (favicon file)
-     * - images (папка с картинками в public)
+     * - images (public images folder)
      */
     '/((?!api|_next/static|_next/image|favicon.ico|images).*)',
   ],
