@@ -5,7 +5,7 @@ import { createServerClient } from '@supabase/ssr';
 export async function GET(request) {
   const { searchParams, origin } = new URL(request.url);
   const code = searchParams.get('code');
-  const next = searchParams.get('next') ?? '/menu'; // Куда редиректить после успеха
+  const next = searchParams.get('next') ?? '/';
 
   console.log('[Auth Callback] Обработка...', { code: !!code, next, origin });
 
@@ -73,9 +73,8 @@ export async function GET(request) {
       return NextResponse.redirect(`${origin}/auth?error=${encodeURIComponent(userErrorMessage)}&error_details=${encodeURIComponent(error.message)}`);
     }
 
-    // Успешно!
+    // Успешно! Перенаправляем на главную страницу.
     console.log('[Auth Callback] Сессия успешно получена! Перенаправление на:', next);
-    // Редирект на целевую страницу (или /menu)
     return NextResponse.redirect(`${origin}${next}`);
 
   } else {
