@@ -39,10 +39,27 @@ export default function MenuPage() {
     );
   }
 
-  // Редирект, если не авторизован (хотя middleware должен это делать)
-  if (!isAuthenticated) {
+  // Редирект, если загрузка завершена, и пользователь НЕ аутентифицирован.
+  // Эта проверка теперь безопасна, так как выполняется после `isLoading`.
+  if (!isLoading && !isAuthenticated) {
       router.push('/auth?next=/menu');
-      return null; 
+      return ( // Можно вернуть лоадер на время редиректа
+        <div className={pageStyles.loadingContainer}>
+           <p>Перенаправление на страницу входа...</p>
+        </div>
+      ); 
+  }
+
+  // Если пользователь аутентифицирован, но данных еще нет,
+  // можно показать заглушку или основной layout в состоянии загрузки.
+  // В данном случае, основной контент будет показан, так как !isLoading.
+  if (!user) {
+    // Эта ситуация не должна возникать, если isAuthenticated=true, но для надежности:
+    return (
+        <div className={pageStyles.loadingContainer}>
+            <p>Загрузка данных пользователя...</p>
+        </div>
+    );
   }
 
   return (
