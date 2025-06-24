@@ -9,7 +9,7 @@ import pageStyles from '../../styles/page.module.css';
 import { /*FaUserFriends,*/ FaSearch, FaCog, FaShieldAlt, FaCommentDots, FaUserCheck, FaUsers } from 'react-icons/fa';
 
 export default function MenuPage() {
-  const router = useRouter();
+  // const router = useRouter(); // <<< УДАЛЯЕМ
   const { user, isLoading, isAuthenticated, userRole } = useAuth();
 
   // 1. Пока контекст определяет статус пользователя, показываем лоадер.

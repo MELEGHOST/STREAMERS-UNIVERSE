@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { useRouter } from 'next/navigation';
+// import { useRouter } from 'next/navigation';
 import LoginButton from '../components/LoginButton/LoginButton';
 import Image from 'next/image';
 import pageStyles from '../home.module.css';
