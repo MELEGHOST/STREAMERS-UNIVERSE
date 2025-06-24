@@ -10,21 +10,30 @@ import pageStyles from '../home.module.css'; // <<< Используем сти�
 import { useAuth } from '../contexts/AuthContext'; // <<< Импортируем useAuth
 
 export default function AuthPage() {
-  const { isLoading, isAuthenticated, user } = useAuth(); // Добавил user для более явного лога
+  const { isLoading, isAuthenticated } = useAuth();
   const router = useRouter();
 
-  console.log('[AuthPage] Rendering...', { isLoading, isAuthenticated, userId: user?.id, provider: user?.app_metadata?.provider });
-
   useEffect(() => {
-    console.log('[AuthPage] useEffect check:', { isLoading, isAuthenticated, userId: user?.id });
+    // Этот эффект будет реагировать на изменение статуса аутентификации.
+    // Если загрузка завершилась и пользователь аутентифицирован,
+    // middleware уже должен был перенаправить его.
+    // Но если пользователь как-то попал сюда, будучи авторизованным, перенаправим его в меню.
     if (!isLoading && isAuthenticated) {
-      console.log('[AuthPage] User is authenticated, attempting redirect to /menu...');
-      router.push('/menu');
-    } else if (!isLoading && !isAuthenticated) {
-      console.log('[AuthPage] User is not authenticated, staying on auth page. Ready for login attempt.');
+      console.log('[AuthPage] Пользователь уже аутентифицирован, перенаправление в /menu.');
+      router.replace('/menu'); // Используем replace, чтобы не добавлять /auth в историю браузера
     }
-    // Добавил user в зависимости, чтобы реагировать на его изменение, если isAuthenticated обновится с задержкой
-  }, [isLoading, isAuthenticated, router, user]);
+  }, [isLoading, isAuthenticated, router]);
+
+  // Пока идет проверка статуса, или если пользователь уже аутентифицирован
+  // и ждет редиректа, показываем лоадер.
+  if (isLoading || isAuthenticated) {
+    return (
+      <div className={pageStyles.loadingContainer}>
+        <div className="spinner"></div>
+        <p>Проверка статуса...</p>
+      </div>
+    );
+  }
 
   // <<< Используем ту же структуру, что и HomePage >>>
   const StarryBackground = () => (
@@ -33,20 +42,8 @@ export default function AuthPage() {
       </div>
   );
 
-  // Если isLoading, показываем лоадер.
-  // Если НЕ isLoading и УЖЕ isAuthenticated, то useEffect выше должен был начать редирект.
-  // В этом случае можно тоже показать лоадер, чтобы избежать мигания контента перед редиректом.
-  if (isLoading) {
-    return (
-        <div className={pageStyles.loadingContainer}> 
-             <div className="spinner"></div>
-             <p>Загрузка Вселенной...</p>
-        </div>
-    );
-  }
-
-  // Если НЕ isLoading и НЕ isAuthenticated, значит, пользователь должен войти.
-  // Показываем контент для входа.
+  // Если загрузка завершена и пользователь НЕ аутентифицирован,
+  // показываем страницу входа.
   return (
     <div className={pageStyles.container}> {/* Используем стили из home.module.css */} 
       <StarryBackground />
