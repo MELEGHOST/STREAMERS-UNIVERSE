@@ -12,6 +12,27 @@ export default function MenuPage() {
   const router = useRouter();
   const { user, isLoading, isAuthenticated, userRole } = useAuth();
 
+  // 1. Пока контекст определяет статус пользователя, показываем лоадер.
+  if (isLoading) {
+    return (
+      <div className={pageStyles.loadingContainer}>
+        <div className="spinner"></div><p>Загрузка меню...</p>
+      </div>
+    );
+  }
+
+  // 2. Если загрузка завершена, но пользователь не аутентифицирован,
+  // middleware должен был уже сделать редирект. 
+  // Мы просто показываем заглушку, не выполняя навигацию.
+  if (!isAuthenticated) {
+      return (
+        <div className={pageStyles.loadingContainer}>
+           <p>Для доступа к этой странице требуется аутентификация.</p>
+        </div>
+      ); 
+  }
+
+  // С этого момента мы уверены, что user существует.
   const userTwitchProviderId = user?.user_metadata?.provider_id;
 
   // --- Формирование пунктов меню --- 
@@ -28,38 +49,6 @@ export default function MenuPage() {
   // Добавляем админскую панель, если роль admin
   if (userRole === 'admin') {
       menuItems.push({ href: '/admin/reviews', label: 'Модерация', icon: <FaShieldAlt />, isAdmin: true });
-  }
-
-  // --- Рендеринг --- 
-  if (isLoading) {
-    return (
-      <div className={pageStyles.loadingContainer}>
-        <div className="spinner"></div><p>Загрузка меню...</p>
-      </div>
-    );
-  }
-
-  // Редирект, если загрузка завершена, и пользователь НЕ аутентифицирован.
-  // Эта проверка теперь безопасна, так как выполняется после `isLoading`.
-  if (!isLoading && !isAuthenticated) {
-      router.push('/auth?next=/menu');
-      return ( // Можно вернуть лоадер на время редиректа
-        <div className={pageStyles.loadingContainer}>
-           <p>Перенаправление на страницу входа...</p>
-        </div>
-      ); 
-  }
-
-  // Если пользователь аутентифицирован, но данных еще нет,
-  // можно показать заглушку или основной layout в состоянии загрузки.
-  // В данном случае, основной контент будет показан, так как !isLoading.
-  if (!user) {
-    // Эта ситуация не должна возникать, если isAuthenticated=true, но для надежности:
-    return (
-        <div className={pageStyles.loadingContainer}>
-            <p>Загрузка данных пользователя...</p>
-        </div>
-    );
   }
 
   return (

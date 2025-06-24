@@ -1,33 +1,25 @@
 'use client';
 
-import React, { useEffect } from 'react';
+import React from 'react';
 import { useRouter } from 'next/navigation';
-// import HoldLoginButton from '../components/HoldLoginButton/HoldLoginButton'; // Старый импорт
-import LoginButton from '../components/LoginButton/LoginButton'; // Новый импорт
-// import styles from './auth.module.css'; // <<< Убираем неиспользуемый импорт
-import Image from 'next/image'; // <<< Добавляем импорт Image
-import pageStyles from '../home.module.css'; // <<< Используем стили из home
-import { useAuth } from '../contexts/AuthContext'; // <<< Импортируем useAuth
+import LoginButton from '../components/LoginButton/LoginButton';
+import Image from 'next/image';
+import pageStyles from '../home.module.css';
+import { useAuth } from '../contexts/AuthContext';
 
 export default function AuthPage() {
   const { isLoading, isAuthenticated } = useAuth();
-  const router = useRouter();
-
-  useEffect(() => {
-    // Если проверка статуса завершена и пользователь аутентифицирован,
-    // отправляем его в меню.
-    if (!isLoading && isAuthenticated) {
-      console.log('[AuthPage] Пользователь аутентифицирован, перенаправление в /menu.');
-      router.replace('/menu');
-    }
-  }, [isLoading, isAuthenticated, router]);
+  
+  // Клиентский редирект больше не нужен, им полностью управляет middleware.
 
   const StarryBackground = () => (
     <div className={pageStyles.stars}></div>
   );
 
-  // 1. Пока идет первоначальная проверка, показываем один лоадер.
-  if (isLoading) {
+  // Если isLoading=true, мы не знаем статус -> показываем лоадер.
+  // Если isAuthenticated=true, middleware должен перенаправить пользователя.
+  // Клиент просто показывает лоадер, ожидая этого редиректа.
+  if (isLoading || isAuthenticated) {
     return (
       <div className={pageStyles.loadingContainer}>
         <div className="spinner"></div>
@@ -36,21 +28,10 @@ export default function AuthPage() {
     );
   }
 
-  // 2. Если проверка завершена и пользователь АВТОРИЗОВАН,
-  // значит, useEffect уже запустил редирект. Показываем другой лоадер.
-  if (isAuthenticated) {
-     return (
-      <div className={pageStyles.loadingContainer}>
-        <div className="spinner"></div>
-        <p>Перенаправление в меню...</p>
-      </div>
-    );
-  }
-
-  // 3. Если проверка завершена и пользователь НЕ авторизован,
+  // Если загрузка завершена и пользователь НЕ авторизован,
   // показываем страницу входа.
   return (
-    <div className={pageStyles.container}> {/* Используем стили из home.module.css */} 
+    <div className={pageStyles.container}>
       <StarryBackground />
       <div className={pageStyles.content}>
         <Image 
@@ -64,8 +45,6 @@ export default function AuthPage() {
         <div className={pageStyles.loggedOutContent}> 
             <h2>Добро пожаловать во Вселенную Стримеров!</h2>
             <p>Авторизуйтесь, чтобы продолжить</p>
-             {/* Кнопка сама разберется, что делать */}
-            {/* <HoldLoginButton /> */}
             <LoginButton />
         </div>
       </div>
