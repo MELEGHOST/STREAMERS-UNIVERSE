@@ -9,7 +9,8 @@ const AuthContext = createContext(undefined);
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
   const [session, setSession] = useState(null);
-  const [loading, setLoading] = useState(true); // Всегда начинаем с true
+  const [userRole, setUserRole] = useState(null);
+  const [loading, setLoading] = useState(true);
   const [currentTheme, setCurrentTheme] = useState('dark');
   const router = useRouter();
 
@@ -38,6 +39,12 @@ export function AuthProvider({ children }) {
     });
   }, []);
 
+  const handleRedirect = useCallback(() => {
+    if (typeof window !== 'undefined' && window.location.pathname !== '/') {
+        router.push('/');
+    }
+  }, [router]);
+
   useEffect(() => {
     if (!supabase) {
       console.warn("[AuthContext] Supabase клиент не создан, аутентификация не работает.");
@@ -45,8 +52,6 @@ export function AuthProvider({ children }) {
       return;
     }
 
-    // При монтировании компонента, ставим loading в true.
-    // onAuthStateChange сам обработает и сессию, и loading.
     setLoading(true);
     
     // <<< Начало: Логика для реферальной ссылки >>>
@@ -71,28 +76,29 @@ export function AuthProvider({ children }) {
     const { data: authListener } = supabase.auth.onAuthStateChange(
       async (event, currentSession) => {
         console.log(`[AuthContext] ===> onAuthStateChange Event: ${event} <===`);
-
-        // INITIAL_SESSION и SIGNED_IN устанавливают сессию.
-        // SIGNED_OUT сбрасывает ее.
-        setSession(currentSession);
-        setUser(currentSession?.user ?? null);
         
-        // В любом случае, после первого ответа от Supabase, загрузка завершена.
-        setLoading(false);
-
-        if (event === 'SIGNED_OUT') {
-          // При выходе пользователя, перенаправляем его на главную
-          if (typeof window !== 'undefined' && window.location.pathname !== '/') {
-              router.push('/');
+        const sessionActive = currentSession?.user;
+        
+        setSession(currentSession);
+        setUser(sessionActive ?? null);
+        
+        if (sessionActive) {
+          // Если есть сессия, получаем роль
+          await fetchUserRole(); 
+          
+          if (event === 'SIGNED_IN') {
+             console.log(`[AuthContext] Пользователь вошел. User ID: ${sessionActive.id}`);
+             handlePostSignIn(currentSession);
+          }
+        } else {
+          // Если сессии нет (SIGNED_OUT), сбрасываем роль
+          setUserRole(null);
+          if (event === 'SIGNED_OUT') {
+            handleRedirect();
           }
         }
-        
-        if (event === 'SIGNED_IN' && currentSession) {
-          console.log(`[AuthContext] Пользователь вошел. User ID: ${currentSession.user.id}`);
-          
-          // Фоново обновляем профиль и обрабатываем реферала
-          handlePostSignIn(currentSession);
-        }
+
+        setLoading(false);
       }
     );
 
@@ -100,7 +106,27 @@ export function AuthProvider({ children }) {
       console.log('[AuthContext] Отписка от onAuthStateChange.');
       authListener?.subscription?.unsubscribe();
     };
-  }, [supabase, router]);
+  }, [supabase, handleRedirect]);
+
+  const fetchUserRole = async () => {
+    try {
+        const response = await fetch('/api/auth/check-admin');
+        if (!response.ok) {
+            // Не является ошибкой, если пользователь просто не админ (401)
+            if (response.status !== 401) {
+               console.error('[AuthContext] Ошибка при проверке роли, статус:', response.status);
+            }
+            setUserRole(null);
+            return;
+        }
+        const data = await response.json();
+        console.log(`[AuthContext] Роль пользователя успешно получена: ${data.role}`);
+        setUserRole(data.role);
+    } catch (error) {
+        console.error('[AuthContext] Исключение при запросе роли пользователя:', error);
+        setUserRole(null);
+    }
+  };
 
   const handlePostSignIn = async (currentSession) => {
     const userTwitchId = currentSession.user.user_metadata?.provider_id;
@@ -180,12 +206,13 @@ export function AuthProvider({ children }) {
     session,
     isAuthenticated: !!user,
     isLoading: loading,
+    userRole,
     supabase,
     signInWithTwitch,
     signOut,
     currentTheme,
     toggleTheme
-  }), [user, session, loading, supabase, signInWithTwitch, signOut, currentTheme, toggleTheme]);
+  }), [user, session, loading, userRole, supabase, signInWithTwitch, signOut, currentTheme, toggleTheme]);
   
   if (!supabase) {
       return (
