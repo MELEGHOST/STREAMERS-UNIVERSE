@@ -46,132 +46,41 @@ export function AuthProvider({ children }) {
   }, [router]);
 
   useEffect(() => {
-    if (!supabase) {
-      console.warn("[AuthContext] Supabase клиент не создан, аутентификация не работает.");
-      setLoading(false);
-      return;
-    }
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      console.log(`[AuthContext] ===> onAuthStateChange Event: ${event} <===`);
+      setSession(session);
+      setUser(session?.user ?? null);
 
-    setLoading(true);
-    
-    // <<< Начало: Логика для реферальной ссылки >>>
-    if (typeof window !== 'undefined') {
-      const urlParams = new URLSearchParams(window.location.search);
-      const referrerTwitchId = urlParams.get('ref');
-
-      if (referrerTwitchId) {
-        console.log(`[AuthContext] Найден ID реферрера в URL: ${referrerTwitchId}`);
+      if ((event === 'SIGNED_IN' || event === 'INITIAL_SESSION') && session?.user) {
+        console.log(`[AuthContext] Пользователь вошел. User ID: ${session.user.id}`);
         try {
-          localStorage.setItem('referrerTwitchId', referrerTwitchId);
-          // Очищаем параметр из URL
-          const newUrl = window.location.pathname + window.location.search.replace(/[?&]ref=[^&]+/, '').replace(/^&/, '?');
-          window.history.replaceState({}, document.title, newUrl);
-        } catch (storageError) {
-          console.error('[AuthContext] Не удалось сохранить ID реферрера в localStorage:', storageError);
-        }
-      }
-    }
-    // <<< Конец: Логика для реферальной ссылки >>>
-
-    const { data: authListener } = supabase.auth.onAuthStateChange(
-      async (event, currentSession) => {
-        console.log(`[AuthContext] ===> onAuthStateChange Event: ${event} <===`);
-        
-        const sessionActive = currentSession?.user;
-        
-        setSession(currentSession);
-        setUser(sessionActive ?? null);
-        
-        if (sessionActive) {
-          // Если есть сессия, получаем роль
-          await fetchUserRole(); 
-          
-          if (event === 'SIGNED_IN') {
-             console.log(`[AuthContext] Пользователь вошел. User ID: ${sessionActive.id}`);
-             handlePostSignIn(currentSession);
+          const response = await fetch('/api/auth/check-admin');
+          if (response.ok) {
+            const data = await response.json();
+            setUserRole(data.role);
+            console.log('[AuthContext] Роль пользователя установлена:', data.role);
+          } else {
+            console.error('[AuthContext] Ошибка при получении роли пользователя:', response.status);
+            setUserRole('user');
           }
-        } else {
-          // Если сессии нет (SIGNED_OUT), сбрасываем роль
-          setUserRole(null);
-          if (event === 'SIGNED_OUT') {
-            handleRedirect();
-          }
+        } catch (error) {
+          console.error('[AuthContext] Исключение при получении роли пользователя:', error);
+          setUserRole('user');
+        } finally {
+            setLoading(false);
         }
-
+      } else if (event === 'SIGNED_OUT') {
+        setUserRole(null);
+        setLoading(false);
+      } else {
         setLoading(false);
       }
-    );
+    });
 
     return () => {
-      console.log('[AuthContext] Отписка от onAuthStateChange.');
-      authListener?.subscription?.unsubscribe();
+      subscription?.unsubscribe();
     };
-  }, [supabase, handleRedirect]);
-
-  const fetchUserRole = async () => {
-    try {
-        const response = await fetch('/api/auth/check-admin');
-        if (!response.ok) {
-            // Не является ошибкой, если пользователь просто не админ (401)
-            if (response.status !== 401) {
-               console.error('[AuthContext] Ошибка при проверке роли, статус:', response.status);
-            }
-            setUserRole(null);
-            return;
-        }
-        const data = await response.json();
-        console.log(`[AuthContext] Роль пользователя успешно получена: ${data.role}`);
-        setUserRole(data.role);
-    } catch (error) {
-        console.error('[AuthContext] Исключение при запросе роли пользователя:', error);
-        setUserRole(null);
-    }
-  };
-
-  const handlePostSignIn = async (currentSession) => {
-    const userTwitchId = currentSession.user.user_metadata?.provider_id;
-    const accessToken = currentSession.access_token;
-
-    if (!userTwitchId || !accessToken) {
-        console.error('[AuthContext] Недостаточно данных для обработки после входа.');
-        return;
-    }
-
-    // 1. Гарантируем создание/обновление профиля
-    try {
-        await fetch(`/api/twitch/user?userId=${userTwitchId}&fetchProfile=true`, {
-            method: 'GET',
-            headers: { 'Authorization': `Bearer ${accessToken}` }
-        });
-    } catch (profileError) {
-        console.error(`[AuthContext] Ошибка фонового запроса на обновление профиля:`, profileError);
-    }
-    
-    // 2. Обрабатываем реферальную ссылку
-    const storedReferrerId = localStorage.getItem('referrerTwitchId');
-    if (storedReferrerId) {
-        try {
-            const response = await fetch('/api/profile/set-referrer', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${accessToken}`
-                },
-                body: JSON.stringify({ referrerTwitchId: storedReferrerId })
-            });
-
-            if (response.ok) {
-                console.log('[AuthContext] ID реферрера успешно обработан.');
-                localStorage.removeItem('referrerTwitchId');
-            } else {
-                const errorData = await response.json();
-                console.error('[AuthContext] Ошибка отправки реферрера на бэкенд:', errorData);
-            }
-        } catch (referrerError) {
-            console.error('[AuthContext] Исключение при отправке реферрера:', referrerError);
-        }
-    }
-  };
+  }, [supabase]);
 
   const signInWithTwitch = useCallback(async () => {
     if (!supabase) {
