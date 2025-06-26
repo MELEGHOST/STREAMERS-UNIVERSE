@@ -2,7 +2,6 @@
 
 import React, { createContext, useState, useEffect, useContext, useMemo, useCallback } from 'react';
 import { createClient } from '@supabase/supabase-js';
-import { useRouter } from 'next/navigation';
 
 const AuthContext = createContext(undefined);
 
