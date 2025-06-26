@@ -39,12 +39,6 @@ export function AuthProvider({ children }) {
     });
   }, []);
 
-  const handleRedirect = useCallback(() => {
-    if (typeof window !== 'undefined' && window.location.pathname !== '/') {
-        router.push('/');
-    }
-  }, [router]);
-
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       console.log(`[AuthContext] ===> onAuthStateChange Event: ${event} <===`);
