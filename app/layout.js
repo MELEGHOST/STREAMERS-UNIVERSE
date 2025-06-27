@@ -1,5 +1,5 @@
 import '../styles/globals.css';
-import { AuthProvider } from './contexts/AuthContext';
+import { Providers } from './providers';
 
 export const metadata = {
   title: 'Streamers Universe',
@@ -10,11 +10,11 @@ export default function RootLayout({ children }) {
   return (
     <html lang="ru">
       <body>
-        <AuthProvider>
+        <Providers>
           <main>
             {children}
           </main>
-        </AuthProvider>
+        </Providers>
       </body>
     </html>
   );
