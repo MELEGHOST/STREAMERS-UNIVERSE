@@ -2,7 +2,7 @@
 
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import pageStyles from '../../home.module.css';
+import pageStyles from '../home.module.css';
 
 export default function WelcomePage() {
   const router = useRouter();
