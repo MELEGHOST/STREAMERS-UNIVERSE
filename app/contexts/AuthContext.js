@@ -41,10 +41,11 @@ export function AuthProvider({ children }) {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       console.log(`[AuthContext] ===> onAuthStateChange Event: ${event} <===`);
       setSession(session);
-      setUser(session?.user ?? null);
+      const currentUser = session?.user ?? null;
+      setUser(currentUser);
 
-      if ((event === 'SIGNED_IN' || event === 'INITIAL_SESSION') && session?.user) {
-        console.log(`[AuthContext] Пользователь вошел. User ID: ${session.user.id}`);
+      if (currentUser) {
+        console.log(`[AuthContext] Пользователь вошел. User ID: ${currentUser.id}`);
         try {
           const response = await fetch('/api/auth/check-admin', {
             headers: {
@@ -56,21 +57,19 @@ export function AuthProvider({ children }) {
             setUserRole(data.role);
             console.log('[AuthContext] Роль пользователя установлена:', data.role);
           } else {
-            console.error('[AuthContext] Ошибка при получении роли пользователя:', response.status);
-            setUserRole('user');
+            console.error('[AuthContext] Ошибка при получении роли пользователя:', response.status, await response.text());
+            setUserRole('user'); // Fallback to 'user' on error
           }
         } catch (error) {
           console.error('[AuthContext] Исключение при получении роли пользователя:', error);
-          setUserRole('user');
-        } finally {
-            setLoading(false);
+          setUserRole('user'); // Fallback to 'user' on exception
         }
-      } else if (event === 'SIGNED_OUT') {
-        setUserRole(null);
-        setLoading(false);
       } else {
-        setLoading(false);
+        setUserRole(null);
       }
+      
+      // setLoading(false) должен быть вызван вне зависимости от того, есть юзер или нет
+      setLoading(false);
     });
 
     return () => {
