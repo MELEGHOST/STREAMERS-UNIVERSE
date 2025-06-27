@@ -3,8 +3,9 @@ import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '../contexts/AuthContext';
 import styles from '../../styles/page.module.css'; // Используем общие стили
+import RouteGuard from '../components/RouteGuard';
 
-export default function FollowersPage() {
+function FollowersPageContent() {
   const { isLoading, isAuthenticated } = useAuth();
   const router = useRouter();
   const title = "Последователи";
@@ -40,5 +41,13 @@ export default function FollowersPage() {
         &larr; Назад в меню
       </button>
     </div>
+  );
+}
+
+export default function FollowersPage() {
+  return (
+    <RouteGuard>
+      <FollowersPageContent />
+    </RouteGuard>
   );
 } 

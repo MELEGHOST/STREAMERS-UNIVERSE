@@ -9,6 +9,7 @@ import { useAuth } from '../contexts/AuthContext';
 // import SocialLinkButton from '../components/SocialLinkButton/SocialLinkButton'; // <<< Удаляем старый импорт
 import StyledSocialButton from '../components/StyledSocialButton/StyledSocialButton';
 import Image from 'next/image'; // <<< Добавляем Image
+import RouteGuard from '../components/RouteGuard';
 
 // Функция для перевода типа канала
 const translateBroadcasterType = (type) => {
@@ -20,7 +21,7 @@ const translateBroadcasterType = (type) => {
   }
 };
 
-function ProfilePage() {
+function ProfilePageContent() {
   const router = useRouter();
   const { user, isLoading, isAuthenticated, supabase } = useAuth();
 
@@ -348,6 +349,12 @@ function ProfilePage() {
 
     </div>
   );
-} 
+}
 
-export default ProfilePage; 
+export default function ProfilePage() {
+  return (
+    <RouteGuard>
+      <ProfilePageContent />
+    </RouteGuard>
+  );
+} 

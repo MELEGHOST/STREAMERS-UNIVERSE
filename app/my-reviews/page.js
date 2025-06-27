@@ -7,6 +7,7 @@ import Image from 'next/image';
 import { useAuth } from '../contexts/AuthContext';
 import styles from './my-reviews.module.css'; // Стили создадим позже
 import pageStyles from '../../styles/page.module.css'; // Общие стили
+import RouteGuard from '../components/RouteGuard';
 
 // Функция форматирования даты (можно вынести в utils)
 const formatDate = (dateString) => {
@@ -16,7 +17,7 @@ const formatDate = (dateString) => {
   } catch { return 'Неверная дата'; }
 };
 
-export default function MyReviewsPage() {
+function MyReviewsPageContent() {
     const router = useRouter();
     const { supabase, isAuthenticated, user } = useAuth(); // Добавил user для получения token
     const [reviews, setReviews] = useState([]);
@@ -204,4 +205,12 @@ export default function MyReviewsPage() {
             )}
         </div>
     );
+}
+
+export default function MyReviewsPage() {
+    return (
+        <RouteGuard>
+            <MyReviewsPageContent />
+        </RouteGuard>
+    )
 } 

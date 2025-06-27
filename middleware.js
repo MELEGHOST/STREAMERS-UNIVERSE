@@ -49,50 +49,9 @@ export async function middleware(request) {
     }
   );
 
-  // Refresh session if expired - required for Server Components
-  // https://supabase.com/docs/guides/auth/server-side/nextjs
-  const { data: { user } } = await supabase.auth.getUser();
-
-  const { pathname } = request.nextUrl;
-
-  // --- Route Protection Logic ---
-  const protectedPaths = [
-    // '/menu', // <-- Временно убираем меню из-под серверной защиты
-    '/profile',
-    '/edit-profile',
-    '/settings',
-    '/achievements',
-    '/followers',
-    '/followings',
-    '/my-reviews',
-    '/reviews/create',
-    '/reviews/edit',
-    '/admin',
-  ];
-
-  const isProtected = protectedPaths.some(path => pathname.startsWith(path));
-
-  // If user tries to access a protected route without a session
-  if (isProtected && !user) {
-    console.log(`[Middleware] Access to protected route ${pathname} denied. Redirecting to /auth.`);
-    const redirectUrl = request.nextUrl.clone();
-    redirectUrl.pathname = '/auth';
-    redirectUrl.searchParams.set('next', pathname); // Remember where the user was going
-    return NextResponse.redirect(redirectUrl);
-  }
-
-  // Убираем редирект для уже аутентифицированных пользователей со страницы /auth
-  // Это предотвращает гонку состояний с OAuth callback'ом.
-  // Коллбэк сам отвечает за финальный редирект.
-  /*
-  if (user && pathname === '/auth') {
-    console.log('[Middleware] Authenticated user on /auth. Redirecting to /menu.');
-    const redirectUrl = request.nextUrl.clone();
-    redirectUrl.pathname = '/menu';
-    redirectUrl.search = ''; // Clear params like ?next=...
-    return NextResponse.redirect(redirectUrl);
-  }
-  */
+  // Единственная задача middleware - обновлять сессию пользователя.
+  // Вся логика защиты перенесена на клиент в компонент RouteGuard.
+  await supabase.auth.getUser();
 
   return response;
 }

@@ -4,8 +4,9 @@ import { useRouter } from 'next/navigation';
 import { useAuth } from '../contexts/AuthContext';
 import styles from './edit-profile.module.css';
 import pageStyles from '../../styles/page.module.css';
+import RouteGuard from '../components/RouteGuard';
 
-export default function EditProfilePage() {
+function EditProfilePageContent() {
   const { user, isLoading, isAuthenticated, supabase } = useAuth();
   const router = useRouter();
   const title = "Редактирование профиля";
@@ -319,5 +320,13 @@ export default function EditProfilePage() {
          &larr; Назад в профиль
       </button>
     </div>
+  );
+}
+
+export default function EditProfilePage() {
+  return (
+    <RouteGuard>
+      <EditProfilePageContent />
+    </RouteGuard>
   );
 }

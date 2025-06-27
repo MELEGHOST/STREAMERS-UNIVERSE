@@ -6,8 +6,9 @@ import { useAuth } from '../contexts/AuthContext';
 import styles from './settings.module.css';
 import pageStyles from '../../styles/page.module.css';
 import { FaArrowLeft, FaPalette, FaLanguage, FaFont, FaClock } from 'react-icons/fa'; // Иконки
+import RouteGuard from '../components/RouteGuard';
 
-export default function SettingsPage() {
+function SettingsPageContent() {
   const router = useRouter();
   const { isLoading: authLoading, isAuthenticated, currentTheme, toggleTheme } = useAuth();
 
@@ -70,5 +71,13 @@ export default function SettingsPage() {
 
       </div>
     </div>
+  );
+}
+
+export default function SettingsPage() {
+  return (
+    <RouteGuard>
+      <SettingsPageContent />
+    </RouteGuard>
   );
 } 

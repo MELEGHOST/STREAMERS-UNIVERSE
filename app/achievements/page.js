@@ -5,6 +5,7 @@ import useSWR from 'swr';
 import { useAuth } from '../contexts/AuthContext';
 import styles from './achievements.module.css';
 import pageStyles from '../../styles/page.module.css';
+import RouteGuard from '../components/RouteGuard';
 
 // --- Фетчер для SWR --- 
 const fetcher = async (url, token) => {
@@ -41,7 +42,7 @@ function AchievementCard({ achievement }) {
     );
 }
 
-export default function AchievementsPage() {
+function AchievementsPageContent() {
   const { /* user, */ isLoading: authLoading, isAuthenticated, supabase } = useAuth();
   const router = useRouter();
   const [activeTab, setActiveTab] = useState('all'); // Начнем со всех
@@ -143,4 +144,12 @@ export default function AchievementsPage() {
        </button>
     </div>
   );
+}
+
+export default function AchievementsPage() {
+    return (
+        <RouteGuard>
+            <AchievementsPageContent />
+        </RouteGuard>
+    )
 } 

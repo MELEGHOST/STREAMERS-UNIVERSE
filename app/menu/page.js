@@ -1,44 +1,20 @@
 'use client';
 
-import { useEffect } from 'react';
-import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
 import { useAuth } from '../contexts/AuthContext';
 import styles from './menu.module.css';
 import pageStyles from '../../styles/page.module.css';
-import { /*FaUserFriends,*/ FaSearch, FaCog, FaShieldAlt, FaCommentDots, FaUserCheck, FaUsers } from 'react-icons/fa';
+import { FaSearch, FaCog, FaShieldAlt, FaCommentDots, FaUserCheck, FaUsers } from 'react-icons/fa';
 
 export default function MenuPage() {
-  const router = useRouter();
-  const { user, isLoading, isAuthenticated, userRole } = useAuth();
+  const { user, userRole } = useAuth();
 
-  useEffect(() => {
-    // Если загрузка завершена, а пользователь все еще не аутентифицирован,
-    // отправляем его на страницу входа.
-    if (!isLoading && !isAuthenticated) {
-      console.log('[MenuPage] Пользователь не аутентифицирован. Перенаправление на /auth');
-      router.replace('/auth');
-    }
-  }, [isLoading, isAuthenticated, router]);
-
-  // Пока контекст определяет статус или если юзер не залогинен, показываем лоадер.
-  // Это предотвратит моргание контента перед редиректом.
-  if (isLoading || !isAuthenticated) {
-    return (
-      <div className={pageStyles.loadingContainer}>
-        <div className="spinner"></div><p>Проверка доступа...</p>
-      </div>
-    );
-  }
-
-  // С этого момента мы уверены, что user существует.
+  // С этого момента мы уверены, что user существует, т.к. сюда пускает только callback.
   const userTwitchProviderId = user?.user_metadata?.provider_id;
 
   // --- Формирование пунктов меню --- 
   const menuItems = [
-    // Убираем "Главная"
-    // { href: '/home', label: 'Главная', icon: <FaHome /> }, 
     { href: '/search', label: 'Поиск', icon: <FaSearch /> },
     { href: '/reviews/create', label: 'Отзывы', icon: <FaCommentDots /> },
     { href: '/followings', label: 'Вдохновители', icon: <FaUserCheck /> },
@@ -79,12 +55,6 @@ export default function MenuPage() {
                       <span className={styles.userName}>{user?.user_metadata?.name || user?.user_metadata?.user_name || 'Профиль'}</span>
                   </Link>
               )}
-              {/* Убираем кнопку выхода */}
-              {/* 
-              <button onClick={handleLogout} className={styles.logoutButton} title="Выйти">
-                  <FaSignOutAlt />
-              </button> 
-              */}
           </nav>
       </header>
 
