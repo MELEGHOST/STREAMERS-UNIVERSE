@@ -296,11 +296,9 @@ const LoginButton = () => {
   if (isAuthenticated) {
     return (
       <StyledWrapper>
-          <Link href="/menu" passHref legacyBehavior>
-            <a className="space-button">
-                <span className="galaxy"></span>
-                <span className="text">Войти в меню</span>
-            </a>
+          <Link href="/menu" className="space-button">
+              <span className="galaxy"></span>
+              <span className="text">Войти в меню</span>
           </Link>
       </StyledWrapper>
     );
