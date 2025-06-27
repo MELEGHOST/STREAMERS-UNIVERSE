@@ -10,7 +10,7 @@
   },
   "dependencies": {
     "@supabase/ssr": "^0.6.1",
-    "@supabase/supabase-js": "^2.45.4",
+    "@supabase/supabase-js": "^2.45.5",
     "@twurple/api": "^7.3.0",
     "@twurple/auth": "^7.3.0",
     "jose": "^6.0.10",
