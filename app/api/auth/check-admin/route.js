@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { createServerClient } from '@supabase/ssr';
+import { createClient } from '@supabase/supabase-js';
 
 export async function GET(request) {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -17,8 +17,8 @@ export async function GET(request) {
     return NextResponse.json({ error: 'Отсутствует токен авторизации' }, { status: 401 });
   }
 
-  // Создаем клиент с SERVICE KEY для запроса с правами админа
-  const supabaseAdmin = createServerClient(
+  // Создаем стандартный клиент с SERVICE KEY
+  const supabaseAdmin = createClient(
       supabaseUrl, 
       supabaseServiceKey,
       {

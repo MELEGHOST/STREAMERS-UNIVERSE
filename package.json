@@ -9,7 +9,7 @@
     "lint": "next lint"
   },
   "dependencies": {
-    "@supabase/ssr": "^0.5.0",
+    "@supabase/ssr": "^0.5.1",
     "@supabase/supabase-js": "^2.44.4",
     "@twurple/api": "^7.2.1",
     "@twurple/auth": "^7.2.1",
