@@ -3,7 +3,6 @@
 import React from 'react';
 import styled, { keyframes } from 'styled-components';
 import { useAuth } from '../../contexts/AuthContext';
-import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 
 // --- Вставляем ТВОИ keyframes и стили --- 

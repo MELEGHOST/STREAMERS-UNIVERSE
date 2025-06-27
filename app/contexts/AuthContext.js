@@ -16,7 +16,7 @@ export function AuthProvider({ children }) {
     const savedTheme = localStorage.getItem('theme') || 'dark';
     setCurrentTheme(savedTheme);
     document.body.className = savedTheme + '-theme';
-  }, [supabase]);
+  }, []);
 
   const toggleTheme = useCallback(() => {
     setCurrentTheme((prevTheme) => {
@@ -65,7 +65,7 @@ export function AuthProvider({ children }) {
     return () => {
       subscription?.unsubscribe();
     };
-  }, [supabase]);
+  }, []);
 
   const signInWithTwitch = useCallback(async () => {
     console.log('[AuthContext] Попытка входа через Twitch...');
@@ -81,12 +81,12 @@ export function AuthProvider({ children }) {
       console.error('[AuthContext] Ошибка при вызове signInWithOAuth:', error);
       throw error;
     }
-  }, [supabase]);
+  }, []);
 
   const signOut = useCallback(async () => {
     console.log('[AuthContext] Выход из системы...');
     await supabase.auth.signOut();
-  }, [supabase]);
+  }, []);
 
   const value = useMemo(() => ({
     user,
@@ -99,7 +99,7 @@ export function AuthProvider({ children }) {
     signOut,
     currentTheme,
     toggleTheme
-  }), [user, session, loading, userRole, supabase, signInWithTwitch, signOut, currentTheme, toggleTheme]);
+  }), [user, session, loading, userRole, signInWithTwitch, signOut, currentTheme, toggleTheme]);
   
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
