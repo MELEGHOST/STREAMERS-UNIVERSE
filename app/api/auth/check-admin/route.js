@@ -1,39 +1,23 @@
 import { NextResponse } from 'next/server';
 import { createServerClient } from '@supabase/ssr';
-import { cookies } from 'next/headers';
 
-export async function GET() {
-  const cookieStore = cookies();
+export async function GET(request) {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
   const supabaseServiceKey = process.env.SUPABASE_SERVICE_KEY;
 
-  if (!supabaseUrl || !supabaseAnonKey || !supabaseServiceKey) {
+  if (!supabaseUrl || !supabaseServiceKey) {
     console.error('[API /check-admin] ОШИБКА: Отсутствуют переменные окружения Supabase.');
     return NextResponse.json({ error: 'Ошибка конфигурации сервера' }, { status: 500 });
   }
+  
+  const authHeader = request.headers.get('Authorization');
+  const jwt = authHeader?.split(' ')[1];
 
-  // 1. Создаем клиент с ANON KEY чтобы получить пользователя
-  const supabaseUserClient = createServerClient(
-    supabaseUrl,
-    supabaseAnonKey,
-    {
-      cookies: {
-        get: (name) => cookieStore.get(name)?.value,
-      },
-    }
-  );
-
-  const { data: { user }, error: authError } = await supabaseUserClient.auth.getUser();
-
-  if (authError || !user) {
-    console.warn('[API /check-admin] Пользователь не аутентифицирован или ошибка:', authError?.message);
-    return NextResponse.json({ isAdmin: false, role: null, error: 'Пользователь не аутентифицирован' }, { status: 401 });
+  if (!jwt) {
+    return NextResponse.json({ error: 'Отсутствует токен авторизации' }, { status: 401 });
   }
 
-  console.log(`[API /check-admin] Проверка админ-прав для пользователя: ${user.id}`);
-
-  // 2. Создаем клиент с SERVICE KEY для запроса с правами админа
+  // Создаем клиент с SERVICE KEY для запроса с правами админа
   const supabaseAdmin = createServerClient(
       supabaseUrl, 
       supabaseServiceKey,
@@ -45,13 +29,23 @@ export async function GET() {
       }
   );
 
+  // 1. Получаем пользователя по JWT
+  const { data: { user }, error: authError } = await supabaseAdmin.auth.getUser(jwt);
+
+  if (authError || !user) {
+    console.warn('[API /check-admin] Пользователь не аутентифицирован или ошибка по токену:', authError?.message);
+    return NextResponse.json({ isAdmin: false, role: null, error: 'Пользователь не аутентифицирован' }, { status: 401 });
+  }
+
+  console.log(`[API /check-admin] Проверка админ-прав для пользователя: ${user.id}`);
+
   try {
-    // 3. Используем админ-клиент для запроса к таблице 'admin_users'
+    // 2. Используем админ-клиент для запроса к таблице 'admin_users'
     const { data: adminData, error: dbError } = await supabaseAdmin
       .from('admin_users')
-      .select('role') // Выбираем только роль
+      .select('role')
       .eq('user_id', user.id)
-      .maybeSingle(); // Ожидаем одного или ноль результатов
+      .maybeSingle();
 
     if (dbError) {
       console.error('[API /check-admin] Ошибка запроса к admin_users:', dbError);
@@ -59,11 +53,9 @@ export async function GET() {
     }
 
     if (adminData) {
-      // Пользователь найден в таблице админов
       console.log(`[API /check-admin] Пользователь ${user.id} является админом. Роль: ${adminData.role}`);
       return NextResponse.json({ isAdmin: true, role: adminData.role });
     } else {
-      // Пользователь не найден, значит он обычный юзер
       console.log(`[API /check-admin] Пользователь ${user.id} НЕ является админом.`);
       return NextResponse.json({ isAdmin: false, role: 'user' });
     }

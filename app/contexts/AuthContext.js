@@ -46,7 +46,11 @@ export function AuthProvider({ children }) {
       if ((event === 'SIGNED_IN' || event === 'INITIAL_SESSION') && session?.user) {
         console.log(`[AuthContext] Пользователь вошел. User ID: ${session.user.id}`);
         try {
-          const response = await fetch('/api/auth/check-admin');
+          const response = await fetch('/api/auth/check-admin', {
+            headers: {
+              'Authorization': `Bearer ${session.access_token}`,
+            },
+          });
           if (response.ok) {
             const data = await response.json();
             setUserRole(data.role);
