@@ -1,7 +1,7 @@
 'use client';
 
 import React, { createContext, useState, useEffect, useContext, useMemo, useCallback } from 'react';
-import { createClient } from '@supabase/supabase-js';
+import { supabase } from '../utils/supabase/client';
 
 const AuthContext = createContext(undefined);
 
@@ -12,21 +12,11 @@ export function AuthProvider({ children }) {
   const [loading, setLoading] = useState(true);
   const [currentTheme, setCurrentTheme] = useState('dark');
 
-  const supabase = useMemo(() => {
-    const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-    const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-    if (!url || !key) {
-      console.error("[AuthContext] КРИТИЧЕСКАЯ ОШИБКА: Отсутствуют NEXT_PUBLIC_SUPABASE_URL или NEXT_PUBLIC_SUPABASE_ANON_KEY!");
-      return null;
-    }
-    return createClient(url, key);
-  }, []);
-
   useEffect(() => {
     const savedTheme = localStorage.getItem('theme') || 'dark';
     setCurrentTheme(savedTheme);
     document.body.className = savedTheme + '-theme';
-  }, []);
+  }, [supabase]);
 
   const toggleTheme = useCallback(() => {
     setCurrentTheme((prevTheme) => {
@@ -78,17 +68,11 @@ export function AuthProvider({ children }) {
   }, [supabase]);
 
   const signInWithTwitch = useCallback(async () => {
-    if (!supabase) {
-      console.error("[AuthContext] signInWithTwitch: Supabase клиент недоступен!");
-      throw new Error("Supabase client not available");
-    }
     console.log('[AuthContext] Попытка входа через Twitch...');
 
     const { error } = await supabase.auth.signInWithOAuth({
       provider: 'twitch',
       options: {
-        // Supabase автоматически использует текущий URL, если redirectTo не указан.
-        // Для OAuth callback, нужно указать путь, который мы настроили в Supabase UI.
         redirectTo: `${window.location.origin}/auth/callback`,
       },
     });
@@ -100,7 +84,6 @@ export function AuthProvider({ children }) {
   }, [supabase]);
 
   const signOut = useCallback(async () => {
-    if (!supabase) return;
     console.log('[AuthContext] Выход из системы...');
     await supabase.auth.signOut();
   }, [supabase]);
@@ -118,16 +101,6 @@ export function AuthProvider({ children }) {
     toggleTheme
   }), [user, session, loading, userRole, supabase, signInWithTwitch, signOut, currentTheme, toggleTheme]);
   
-  if (!supabase) {
-      return (
-         <div style={{ padding: '20px', textAlign: 'center' }}>
-            <h1>Ошибка конфигурации</h1>
-            <p>Не удалось подключиться к сервису аутентификации.</p>
-            <p>Пожалуйста, проверьте переменные окружения.</p>
-         </div>
-      );
-  }
-
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
 
