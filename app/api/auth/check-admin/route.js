@@ -37,28 +37,32 @@ export async function GET(request) {
     return NextResponse.json({ isAdmin: false, role: null, error: 'Пользователь не аутентифицирован' }, { status: 401 });
   }
 
-  console.log(`[API /check-admin] Проверка админ-прав для пользователя: ${user.id}`);
+  console.log(`[API /check-admin] Проверка роли для пользователя: ${user.id}`);
 
   try {
-    // 2. Используем админ-клиент для запроса к таблице 'admin_users'
-    const { data: adminData, error: dbError } = await supabaseAdmin
-      .from('admin_users')
+    // 2. ИЩЕМ РОЛЬ В ТАБЛИЦЕ 'profiles'
+    const { data: profileData, error: dbError } = await supabaseAdmin
+      .from('profiles')
       .select('role')
-      .eq('user_id', user.id)
-      .maybeSingle();
+      .eq('id', user.id)
+      .single();
 
     if (dbError) {
-      console.error('[API /check-admin] Ошибка запроса к admin_users:', dbError);
-      return NextResponse.json({ error: 'Ошибка базы данных при проверке прав' }, { status: 500 });
+      console.error('[API /check-admin] Ошибка запроса к profiles:', dbError);
+      // Если профиля еще нет, это не ошибка. Просто у юзера нет роли.
+      if (dbError.code === 'PGRST116') { // 'single() row not found'
+          console.log(`[API /check-admin] Профиль для пользователя ${user.id} еще не создан.`);
+          return NextResponse.json({ isAdmin: false, role: 'user' });
+      }
+      return NextResponse.json({ error: 'Ошибка базы данных при проверке роли' }, { status: 500 });
     }
+    
+    const userRole = profileData?.role || 'user';
+    const isAdmin = userRole === 'admin' || userRole === 'admin/streamer';
 
-    if (adminData) {
-      console.log(`[API /check-admin] Пользователь ${user.id} является админом. Роль: ${adminData.role}`);
-      return NextResponse.json({ isAdmin: true, role: adminData.role });
-    } else {
-      console.log(`[API /check-admin] Пользователь ${user.id} НЕ является админом.`);
-      return NextResponse.json({ isAdmin: false, role: 'user' });
-    }
+    console.log(`[API /check-admin] Роль пользователя из profiles: ${userRole}. Является админом: ${isAdmin}`);
+    
+    return NextResponse.json({ isAdmin, role: userRole });
 
   } catch (error) {
     console.error('[API /check-admin] Непредвиденная ошибка:', error);

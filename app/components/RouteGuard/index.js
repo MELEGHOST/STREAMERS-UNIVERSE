@@ -5,20 +5,31 @@ import { useRouter } from 'next/navigation';
 import { useAuth } from '../../contexts/AuthContext';
 import pageStyles from '../../../styles/page.module.css';
 
-export default function RouteGuard({ children }) {
+export default function RouteGuard({ children, requiredRole }) {
   const router = useRouter();
-  const { isLoading, isAuthenticated } = useAuth();
+  const { isLoading, isAuthenticated, userRole } = useAuth();
 
   useEffect(() => {
-    if (!isLoading && !isAuthenticated) {
+    if (isLoading) return; // Ничего не делаем, пока идет загрузка
+
+    // Если не аутентифицирован
+    if (!isAuthenticated) {
       console.log('[RouteGuard] Пользователь не аутентифицирован. Перенаправление на /auth');
-      // Запоминаем, куда пользователь хотел попасть
       const nextPath = window.location.pathname;
       router.replace(`/auth?next=${nextPath}`);
+      return;
     }
-  }, [isLoading, isAuthenticated, router]);
 
-  if (isLoading || !isAuthenticated) {
+    // Если требуется определенная роль, но у пользователя ее нет
+    if (requiredRole && userRole !== requiredRole) {
+        console.log(`[RouteGuard] Доступ запрещен. Требуется роль: ${requiredRole}, у пользователя: ${userRole}. Перенаправление на /menu`);
+        router.replace('/menu');
+    }
+
+  }, [isLoading, isAuthenticated, userRole, requiredRole, router]);
+
+  // Показываем лоадер, пока идет проверка
+  if (isLoading || !isAuthenticated || (requiredRole && userRole !== requiredRole)) {
     return (
       <div className={pageStyles.container}>
           <div className={pageStyles.loadingContainer}>

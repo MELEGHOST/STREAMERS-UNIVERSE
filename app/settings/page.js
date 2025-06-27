@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useAuth } from '../contexts/AuthContext';
 import styles from './settings.module.css';
 import pageStyles from '../../styles/page.module.css';
-import { FaArrowLeft, FaPalette, FaLanguage, FaFont, FaClock } from 'react-icons/fa'; // Иконки
+import { FaArrowLeft, FaPalette, FaLanguage, FaFont, FaClock, FaSignOutAlt } from 'react-icons/fa'; // Иконки
 import RouteGuard from '../components/RouteGuard';
 
 function SettingsPageContent() {
@@ -18,6 +18,11 @@ function SettingsPageContent() {
       router.replace('/');
     }
   }, [authLoading, isAuthenticated, router]);
+
+  // Функция выхода теперь просто редиректит на серверный эндпоинт
+  const handleLogout = () => {
+    router.push('/auth/logout');
+  };
 
   if (authLoading || !isAuthenticated) {
     return <div className={pageStyles.loadingContainer}><div className="spinner"></div></div>;
@@ -69,6 +74,11 @@ function SettingsPageContent() {
           <span className={styles.settingValue}>Авто (скоро...)</span>
         </div>
 
+        {/* Кнопка выхода */}
+        <button onClick={handleLogout} className={`${styles.settingsItem} ${styles.logoutButton}`}>
+          <FaSignOutAlt className={styles.itemIcon} />
+          <span className={styles.itemName}>Выйти из аккаунта</span>
+        </button>
       </div>
     </div>
   );

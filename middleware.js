@@ -34,20 +34,21 @@ export async function middleware(request) {
         },
         remove(name, options) {
           // If the cookie is removed, update the request's cookies.
-          request.cookies.set({
-            name,
-            value: '',
-            ...options,
-          });
-          response.cookies.set({
-            name,
-            value: '',
-            ...options,
-          });
+          request.cookies.set({ name, value: '', ...options });
+          response.cookies.set({ name, value: '', ...options });
         },
       },
     }
   );
+
+  // Если пользователь выходит, удаляем его куки
+  if (request.nextUrl.pathname === '/auth/logout') {
+    await supabase.auth.signOut();
+    // И редиректим на главную
+    return NextResponse.redirect(new URL('/', request.url), {
+        status: 302,
+    });
+  }
 
   // Единственная задача middleware - обновлять сессию пользователя.
   // Вся логика защиты перенесена на клиент в компонент RouteGuard.

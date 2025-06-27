@@ -6,6 +6,9 @@ import { useAuth } from '../../contexts/AuthContext';
 import styles from './admin-reviews.module.css'; // Стили создадим позже
 import pageStyles from '../../../styles/page.module.css'; // Исправленный путь
 import Image from 'next/image';
+import RouteGuard from '../../../components/RouteGuard';
+import Link from 'next/link';
+import { FaArrowLeft } from 'react-icons/fa';
 
 // Функция форматирования даты (можно вынести)
 const formatDate = (dateString) => {
@@ -15,45 +18,35 @@ const formatDate = (dateString) => {
   } catch { return 'Неверная дата'; }
 };
 
-export default function AdminReviewsPage() {
+function AdminReviewsPageContent() {
     const router = useRouter();
     const { supabase, isAuthenticated, userRole, user } = useAuth();
     const [reviews, setReviews] = useState([]);
-    const [loadingReviews, setLoadingReviews] = useState(true);
+    const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
     const [updatingId, setUpdatingId] = useState(null); // ID отзыва, который обновляется
 
     const isAdminUser = userRole === 'admin';
 
-    const fetchPendingReviews = useCallback(async () => {
-        if (!isAdminUser || !supabase) return;
-        setLoadingReviews(true);
-        setError(null);
-        console.log('[AdminReviews] Fetching pending reviews...');
-        
-        try {
-            const session = await supabase.auth.getSession();
-            const token = session.data.session?.access_token;
-            if (!token) throw new Error('Auth token not found');
+    useEffect(() => {
+        const fetchReviews = async () => {
+            setLoading(true);
+            const { data, error } = await supabase
+                .from('reviews')
+                .select(`*, profiles(twitch_user_name)`)
+                .eq('moderation_status', 'pending');
 
-            const response = await fetch('/api/admin/reviews?status=pending', {
-                headers: { 'Authorization': `Bearer ${token}` }
-            });
-
-            if (!response.ok) {
-                 const errorData = await response.json();
-                 throw new Error(errorData.error || `Failed to fetch: ${response.statusText}`);
+            if (error) {
+                console.error("Ошибка при загрузке отзывов на модерацию:", error);
+                // Тут можно было бы показать состояние ошибки
+            } else {
+                setReviews(data);
             }
-            const data = await response.json();
-            setReviews(data);
-            console.log(`[AdminReviews] Fetched ${data.length} pending reviews.`);
-        } catch (err) {
-            console.error('[AdminReviews] Error fetching reviews:', err);
-            setError(err.message || 'Failed to load reviews.');
-        } finally {
-            setLoadingReviews(false);
-        }
-    }, [isAdminUser, supabase]);
+            setLoading(false); // Устанавливаем в false в любом случае
+        };
+
+        fetchReviews();
+    }, [supabase]);
 
     const updateReviewStatus = useCallback(async (reviewId, newStatus) => {
         if (!reviewId || !newStatus || !isAuthenticated || !supabase || !user) {
@@ -105,9 +98,9 @@ export default function AdminReviewsPage() {
             console.warn('[AdminReviews] User is not admin. Redirecting...');
             router.push('/menu'); // Или на главную, или показать 403
         } else if (isAdminUser) {
-            fetchPendingReviews();
+            // fetchPendingReviews();
         }
-    }, [isAuthenticated, isAdminUser, router, fetchPendingReviews]);
+    }, [isAuthenticated, isAdminUser, router]);
 
     // --- Рендеринг ---
     if (!isAuthenticated || (!isAdminUser && !isAuthenticated)) { // Показываем загрузку, пока идет проверка прав
@@ -121,22 +114,29 @@ export default function AdminReviewsPage() {
     
     return (
         <div className={pageStyles.container}>
-            <h1 className={styles.title}>Модерация Отзывов</h1>
+            <div className={styles.adminHeader}>
+                <Link href="/menu" className={styles.backButton}>
+                    <FaArrowLeft /> Назад в меню
+                </Link>
+                <h1 className={styles.title}>Модерация отзывов</h1>
+            </div>
             
             {error && <p className={pageStyles.errorMessage}>{error}</p>}
 
-            {loadingReviews && (
+            {loading && (
                  <div className={pageStyles.loadingContainer}>
                      <div className="spinner"></div>
                      <p>Загрузка отзывов...</p>
                  </div>
             )}
 
-            {!loadingReviews && reviews.length === 0 && (
-                <p className={styles.noReviewsMessage}>Нет отзывов, ожидающих модерации.</p>
+            {reviews.length === 0 && (
+                <div className={styles.noReviews}>
+                    <p>Нет отзывов, ожидающих модерации. Свобода!</p>
+                </div>
             )}
 
-            {!loadingReviews && reviews.length > 0 && (
+            {!loading && reviews.length > 0 && (
                 <div className={styles.reviewsGrid}> 
                     {reviews.map((review) => (
                         <div 
@@ -211,4 +211,12 @@ export default function AdminReviewsPage() {
             )}
         </div>
     );
+}
+
+export default function AdminReviewsPage() {
+    return (
+        <RouteGuard requiredRole="admin">
+            <AdminReviewsPageContent />
+        </RouteGuard>
+    )
 } 
