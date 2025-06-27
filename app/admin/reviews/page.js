@@ -6,7 +6,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import styles from './admin-reviews.module.css'; // Стили создадим позже
 import pageStyles from '../../../styles/page.module.css'; // Исправленный путь
 import Image from 'next/image';
-import RouteGuard from '../../../components/RouteGuard';
+import RouteGuard from '../../components/RouteGuard';
 import Link from 'next/link';
 import { FaArrowLeft } from 'react-icons/fa';
 
