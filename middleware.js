@@ -81,7 +81,10 @@ export async function middleware(request) {
     return NextResponse.redirect(redirectUrl);
   }
 
-  // If authenticated user tries to access /auth
+  // Убираем редирект для уже аутентифицированных пользователей со страницы /auth
+  // Это предотвращает гонку состояний с OAuth callback'ом.
+  // Коллбэк сам отвечает за финальный редирект.
+  /*
   if (user && pathname === '/auth') {
     console.log('[Middleware] Authenticated user on /auth. Redirecting to /menu.');
     const redirectUrl = request.nextUrl.clone();
@@ -89,6 +92,7 @@ export async function middleware(request) {
     redirectUrl.search = ''; // Clear params like ?next=...
     return NextResponse.redirect(redirectUrl);
   }
+  */
 
   return response;
 }
