@@ -5,34 +5,26 @@ import { cookies } from 'next/headers';
 export async function GET() {
   const cookieStore = cookies();
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const supabaseServiceKey = process.env.SUPABASE_SERVICE_KEY; // Используем SERVICE KEY для админских проверок
+  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  const supabaseServiceKey = process.env.SUPABASE_SERVICE_KEY;
 
-  if (!supabaseUrl || !supabaseServiceKey) {
-    console.error('[API /check-admin] ОШИБКА: Отсутствуют URL/Service Key Supabase.');
+  if (!supabaseUrl || !supabaseAnonKey || !supabaseServiceKey) {
+    console.error('[API /check-admin] ОШИБКА: Отсутствуют переменные окружения Supabase.');
     return NextResponse.json({ error: 'Ошибка конфигурации сервера' }, { status: 500 });
   }
 
-  // Создаем серверный клиент Supabase с SERVICE KEY
-  // Провайдер кук здесь не так важен, так как мы проверяем пользователя по сессии, полученной ранее,
-  // но для единообразия создадим его
-  const supabase = createServerClient(
+  // 1. Создаем клиент с ANON KEY чтобы получить пользователя
+  const supabaseUserClient = createServerClient(
     supabaseUrl,
-    supabaseServiceKey, // ВАЖНО: Используем SERVICE KEY!
+    supabaseAnonKey,
     {
       cookies: {
         get: (name) => cookieStore.get(name)?.value,
-        // set/remove не нужны, так как service key не устанавливает сессию
       },
-      // Отключаем авто-обновление токена для сервисного ключа
-      auth: {
-         autoRefreshToken: false,
-         persistSession: false,
-      }
     }
   );
 
-  // Получаем пользователя из сессии (установленной ранее через ANON KEY)
-  const { data: { user }, error: authError } = await supabase.auth.getUser();
+  const { data: { user }, error: authError } = await supabaseUserClient.auth.getUser();
 
   if (authError || !user) {
     console.warn('[API /check-admin] Пользователь не аутентифицирован или ошибка:', authError?.message);
@@ -41,9 +33,21 @@ export async function GET() {
 
   console.log(`[API /check-admin] Проверка админ-прав для пользователя: ${user.id}`);
 
+  // 2. Создаем клиент с SERVICE KEY для запроса с правами админа
+  const supabaseAdmin = createServerClient(
+      supabaseUrl, 
+      supabaseServiceKey,
+      {
+        auth: {
+           autoRefreshToken: false,
+           persistSession: false,
+        }
+      }
+  );
+
   try {
-    // Ищем пользователя в таблице admin_users
-    const { data: adminData, error: dbError } = await supabase
+    // 3. Используем админ-клиент для запроса к таблице 'admin_users'
+    const { data: adminData, error: dbError } = await supabaseAdmin
       .from('admin_users')
       .select('role') // Выбираем только роль
       .eq('user_id', user.id)
@@ -59,9 +63,9 @@ export async function GET() {
       console.log(`[API /check-admin] Пользователь ${user.id} является админом. Роль: ${adminData.role}`);
       return NextResponse.json({ isAdmin: true, role: adminData.role });
     } else {
-      // Пользователь не найден
+      // Пользователь не найден, значит он обычный юзер
       console.log(`[API /check-admin] Пользователь ${user.id} НЕ является админом.`);
-      return NextResponse.json({ isAdmin: false, role: null });
+      return NextResponse.json({ isAdmin: false, role: 'user' });
     }
 
   } catch (error) {
