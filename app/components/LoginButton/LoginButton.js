@@ -4,6 +4,7 @@ import React from 'react';
 import styled, { keyframes } from 'styled-components';
 import { useAuth } from '../../contexts/AuthContext';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 
 // --- Вставляем ТВОИ keyframes и стили --- 
 const wobble = keyframes`
@@ -280,18 +281,6 @@ const StyledWrapper = styled.div`
 // Переименовываем компонент
 const LoginButton = () => {
   const { signInWithTwitch, isAuthenticated, isLoading } = useAuth();
-  const router = useRouter();
-
-  const handleClick = () => {
-    console.log(`[LoginButton] Кнопка нажата. isAuthenticated: ${isAuthenticated}`);
-    if (isAuthenticated) {
-      console.log('[LoginButton] Пользователь уже аутентифицирован. Перенаправление в /menu...');
-      router.push('/menu');
-    } else {
-      console.log('[LoginButton] Пользователь не аутентифицирован. Запускаем signInWithTwitch...');
-      signInWithTwitch();
-    }
-  };
   
   // Кнопка не должна ничего делать, пока контекст не загружен.
   if (isLoading) {
@@ -304,13 +293,26 @@ const LoginButton = () => {
     );
   }
 
+  // Если пользователь аутентифицирован, показываем ССЫЛКУ, стилизованную под кнопку
+  if (isAuthenticated) {
+    return (
+      <StyledWrapper>
+          <Link href="/menu" passHref legacyBehavior>
+            <a className="space-button">
+                <span className="galaxy"></span>
+                <span className="text">Войти в меню</span>
+            </a>
+          </Link>
+      </StyledWrapper>
+    );
+  }
+
+  // Если пользователь НЕ аутентифицирован, показываем кнопку для входа
   return (
     <StyledWrapper>
-        <button onClick={handleClick} className="space-button">
+        <button onClick={() => signInWithTwitch()} className="space-button">
             <span className="galaxy"></span>
-            <span className="text">
-              {isAuthenticated ? 'Войти в меню' : 'Войти через Twitch'}
-            </span>
+            <span className="text">Войти через Twitch</span>
         </button>
     </StyledWrapper>
   );
