@@ -279,55 +279,39 @@ const StyledWrapper = styled.div`
 
 // Переименовываем компонент
 const LoginButton = () => {
-  const { signInWithTwitch, isAuthenticated, user, isLoading } = useAuth();
+  const { signInWithTwitch, isAuthenticated, isLoading } = useAuth();
   const router = useRouter();
 
-  // <<< Логируем, что мы получаем из useAuth >>>
-  console.log('[LoginButton] AuthContext values:', { 
-    signInWithTwitch: typeof signInWithTwitch, 
-    isAuthenticated, 
-    userId: user?.id,
-    isLoading 
-  });
-
   const handleClick = () => {
+    console.log(`[LoginButton] Кнопка нажата. isAuthenticated: ${isAuthenticated}`);
     if (isAuthenticated) {
-      console.log('[LoginButton] User is authenticated. Navigating to /menu.');
+      console.log('[LoginButton] Пользователь уже аутентифицирован. Перенаправление в /menu...');
       router.push('/menu');
     } else {
-      console.log('[LoginButton] User is not authenticated. Attempting to call signInWithTwitch.');
-      if (typeof signInWithTwitch === 'function') {
-        signInWithTwitch().catch(error => {
-          console.error('[LoginButton] Error calling signInWithTwitch:', error);
-        });
-      } else {
-        console.error('[LoginButton] signInWithTwitch is not a function! Received:', signInWithTwitch);
-      }
+      console.log('[LoginButton] Пользователь не аутентифицирован. Запускаем signInWithTwitch...');
+      signInWithTwitch();
     }
   };
-
-  const buttonText = isLoading
-    ? 'Загрузка...'
-    : isAuthenticated
-      ? 'Войти в меню'
-      : 'Войти через Twitch';
+  
+  // Кнопка не должна ничего делать, пока контекст не загружен.
+  if (isLoading) {
+    return (
+      <StyledWrapper>
+          <button className="space-button" disabled>
+              <span className="text">Загрузка...</span>
+          </button>
+      </StyledWrapper>
+    );
+  }
 
   return (
     <StyledWrapper>
-      <div className="galaxy-button">
-        <button
-          className={`space-button`} 
-          onClick={handleClick}
-          aria-label={buttonText}
-          disabled={isLoading}
-        >
-          <span className="backdrop" />
-          <span className="galaxy" />
-          <span className="text">
-            {buttonText}
-          </span>
+        <button onClick={handleClick} className="space-button">
+            <span className="galaxy"></span>
+            <span className="text">
+              {isAuthenticated ? 'Войти в меню' : 'Войти через Twitch'}
+            </span>
         </button>
-      </div>
     </StyledWrapper>
   );
 };
