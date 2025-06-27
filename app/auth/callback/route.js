@@ -73,9 +73,9 @@ export async function GET(request) {
       return NextResponse.redirect(`${origin}/auth?error=${encodeURIComponent(userErrorMessage)}&error_details=${encodeURIComponent(error.message)}`);
     }
 
-    // Успешно! Перенаправляем на промежуточную страницу для синхронизации клиента.
-    console.log('[Auth Callback] Сессия успешно получена! Перенаправление на /welcome');
-    return NextResponse.redirect(`${origin}/welcome`);
+    // Успешно! Перенаправляем напрямую в меню.
+    console.log('[Auth Callback] Сессия успешно получена! Перенаправление на /menu');
+    return NextResponse.redirect(`${origin}/menu`);
 
   } else {
      console.error('[Auth Callback] Параметр "code" отсутствует в запросе.');

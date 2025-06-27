@@ -1,6 +1,7 @@
 'use client';
 
-// import { useRouter } from 'next/navigation'; // <<< УДАЛЯЕМ
+import { useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
 import { useAuth } from '../contexts/AuthContext';
@@ -9,27 +10,26 @@ import pageStyles from '../../styles/page.module.css';
 import { /*FaUserFriends,*/ FaSearch, FaCog, FaShieldAlt, FaCommentDots, FaUserCheck, FaUsers } from 'react-icons/fa';
 
 export default function MenuPage() {
-  // const router = useRouter(); // <<< УДАЛЯЕМ
+  const router = useRouter();
   const { user, isLoading, isAuthenticated, userRole } = useAuth();
 
-  // 1. Пока контекст определяет статус пользователя, показываем лоадер.
-  if (isLoading) {
+  useEffect(() => {
+    // Если загрузка завершена, а пользователь все еще не аутентифицирован,
+    // отправляем его на страницу входа.
+    if (!isLoading && !isAuthenticated) {
+      console.log('[MenuPage] Пользователь не аутентифицирован. Перенаправление на /auth');
+      router.replace('/auth');
+    }
+  }, [isLoading, isAuthenticated, router]);
+
+  // Пока контекст определяет статус или если юзер не залогинен, показываем лоадер.
+  // Это предотвратит моргание контента перед редиректом.
+  if (isLoading || !isAuthenticated) {
     return (
       <div className={pageStyles.loadingContainer}>
-        <div className="spinner"></div><p>Загрузка меню...</p>
+        <div className="spinner"></div><p>Проверка доступа...</p>
       </div>
     );
-  }
-
-  // 2. Если загрузка завершена, но пользователь не аутентифицирован,
-  // middleware должен был уже сделать редирект. 
-  // Мы просто показываем заглушку, не выполняя навигацию.
-  if (!isAuthenticated) {
-      return (
-        <div className={pageStyles.loadingContainer}>
-           <p>Для доступа к этой странице требуется аутентификация.</p>
-        </div>
-      ); 
   }
 
   // С этого момента мы уверены, что user существует.

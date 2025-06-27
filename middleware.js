@@ -57,7 +57,7 @@ export async function middleware(request) {
 
   // --- Route Protection Logic ---
   const protectedPaths = [
-    '/menu',
+    // '/menu', // <-- Временно убираем меню из-под серверной защиты
     '/profile',
     '/edit-profile',
     '/settings',
