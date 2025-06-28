@@ -1,23 +1,15 @@
 'use client';
 
-import { useState, useEffect /*, useCallback */ } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import useSWR from 'swr';
-// import Link from 'next/link'; // НЕ ИСПОЛЬЗУЕТСЯ
 import Image from 'next/image';
 import CyberAvatar from '../../components/CyberAvatar';
 import styles from '../profile.module.css';
 import pageStyles from '../../../styles/page.module.css';
 import { useAuth } from '../../contexts/AuthContext';
 import { pluralize } from '../../utils/pluralize';
-// Возвращаем StyledSocialButton
-// import StyledSocialButton from '../../components/StyledSocialButton/StyledSocialButton';
-// import { FaYoutube, FaTiktok } from 'react-icons/fa'; // Убрали Twitch, Discord
-// import { SiBoosty } from "react-icons/si"; // Иконка для Boosty
-// import DiscordButton from '../../components/SocialButtons/DiscordButton'; // Импорт новой кнопки Discord
-// import TelegramButton from '../../components/SocialButtons/TelegramButton'; // Импорт новой кнопки Telegram
 
-// <<< Импортируем новые компоненты кнопок >>>
 import VkButton from '../../components/SocialButtons/VkButton';
 import TwitchButton from '../../components/SocialButtons/TwitchButton';
 import YoutubeButton from '../../components/SocialButtons/YoutubeButton';
@@ -26,9 +18,18 @@ import TelegramButton from '../../components/SocialButtons/TelegramButton';
 import TiktokButton from '../../components/SocialButtons/TiktokButton';
 import BoostyButton from '../../components/SocialButtons/BoostyButton';
 import YandexMusicButton from '../../components/SocialButtons/YandexMusicButton';
-
-// Импортируем наш новый виджет
 import StatisticsWidget from '../../components/ProfileWidgets/StatisticsWidget';
+
+const socialButtonComponents = {
+    vk: VkButton,
+    twitch: TwitchButton,
+    youtube: YoutubeButton,
+    discord: DiscordButton,
+    telegram: TelegramButton,
+    tiktok: TiktokButton,
+    boosty: BoostyButton,
+    yandex: YandexMusicButton,
+};
 
 const translateBroadcasterType = (type) => {
   switch (type) {
@@ -65,7 +66,6 @@ const formatDate = (dateString) => {
   } catch { return 'Неверная дата'; }
 };
 
-// --- Фетчер для SWR ---
 const fetcher = async (url, token) => {
     const headers = {};
     if (token) {
@@ -80,9 +80,9 @@ const fetcher = async (url, token) => {
             exists: res.status !== 404
         };
         console.error(`[SWR fetcher] ${errorInfo.message}`);
-        throw errorInfo; // SWR будет ловить это в error
+        throw errorInfo;
     }
-    return res.json(); // Возвращаем данные
+    return res.json();
 };
 
 export default function UserProfilePage() {
@@ -92,28 +92,9 @@ export default function UserProfilePage() {
 
   const { user, isAuthenticated, supabase, isLoading: authIsLoading, signOut } = useAuth();
   
-  // --- Debug Log: Проверка данных из useAuth ---
-  console.log('[UserProfilePage] Auth Context State:', { 
-      authIsLoading, 
-      isAuthenticated, 
-      userId: user?.id, 
-      userMeta: user?.user_metadata 
-  });
-
-  // Вычисляем isOwnProfile *после* проверки authIsLoading
   const currentUserTwitchId = !authIsLoading ? user?.user_metadata?.provider_id : undefined;
   const isOwnProfile = !authIsLoading && !!currentUserTwitchId && currentUserTwitchId === profileTwitchId;
   
-  // --- Debug Log: Проверка вычисления isOwnProfile ---
-  console.log('[UserProfilePage] isOwnProfile Calculation:', {
-      authIsLoading,
-      currentUserTwitchId,
-      profileTwitchId,
-      comparisonResult: currentUserTwitchId === profileTwitchId,
-      final_isOwnProfile: isOwnProfile
-  });
-
-  // --- Получаем токен для запроса --- 
   const [authToken, setAuthToken] = useState(null);
   useEffect(() => {
       const getToken = async () => {
@@ -134,7 +115,6 @@ export default function UserProfilePage() {
       }
   }, [isAuthenticated, supabase, authIsLoading]);
 
-  // --- Запрос данных через SWR ---
   const apiUrl = `/api/twitch/user?userId=${profileTwitchId}&fetchProfile=true`;
   const { data: apiData, error: apiError, isLoading: dataIsLoading } = useSWR(
       profileTwitchId ? [apiUrl, authToken] : null, 
@@ -143,57 +123,25 @@ export default function UserProfilePage() {
           revalidateOnFocus: true, 
           revalidateOnReconnect: true,
           shouldRetryOnError: false, 
-          onError: (err) => { console.error('[useSWR onError]', err); },
-          onSuccess: (data) => { console.log('[useSWR onSuccess] Data received:', data); }
       }
   );
   
-  // --- Debug Log: Проверка данных от API ---
-  console.log('[UserProfilePage] SWR State:', {
-      dataIsLoading,
-      apiData,
-      apiError
-  });
-
-  // --- Обработка состояния загрузки и ошибок SWR ---
   const loadingProfile = (!profileTwitchId || authIsLoading || dataIsLoading);
   const error = apiError ? (apiError.message || "Неизвестная ошибка загрузки данных") : null;
   const profileExists = apiError ? apiError.exists !== false : !!apiData?.twitch_user;
   
-  // --- Извлекаем данные из ответа SWR ---
   const twitchUserData = apiData?.twitch_user || null;
   const profileData = apiData?.profile || null;
   const videos = apiData?.twitch_user?.videos || [];
   const isRegistered = !!profileData;
 
-  // --- Получаем роль/роли из профиля --- 
   const userRolesString = isRegistered ? profileData?.role : null;
   const userRolesArray = userRolesString?.split(',').map(role => role.trim().toLowerCase()).filter(Boolean) || [];
   const isAdmin = userRolesArray.includes('admin');
 
-  // --- Debug Log: Финальные данные перед рендером ---
-  console.log('[UserProfilePage] Final state before render:', {
-      profileTwitchId,
-      authIsLoading,
-      currentUserTwitchId,
-      isOwnProfile,
-      dataIsLoading,
-      loadingProfile,
-      profileExists,
-      isRegistered,
-      twitchUserDataExists: !!twitchUserData,
-      profileDataExists: !!profileData,
-      profileDataReceived: profileData,
-      userRolesString,
-      userRolesArray,
-      isAdmin,
-      error
-  });
-
   const profileWidget = profileData?.profile_widget;
 
   if (loadingProfile) {
-      console.log('[UserProfilePage] Rendering loading state...');
       return (
           <div className={pageStyles.loadingContainer}> 
               <div className="spinner"></div>
@@ -242,7 +190,7 @@ export default function UserProfilePage() {
 
   const handleLogout = async () => {
     await signOut();
-    router.push('/'); // Редирект на главную после выхода
+    router.push('/');
   };
 
   return (
@@ -328,6 +276,21 @@ export default function UserProfilePage() {
                      <p>💼 Статус: {translateBroadcasterType(broadcasterType)}</p>
                 )}
               </div>
+              
+              {profileSocialLinks && Object.keys(profileSocialLinks).length > 0 && (
+                <div className={styles.socialLinksContainer}>
+                  {Object.entries(profileSocialLinks).map(([key, value]) => {
+                    const ButtonComponent = socialButtonComponents[key.toLowerCase()];
+                    if (ButtonComponent && value) {
+                      const props = key.toLowerCase() === 'twitch' 
+                        ? { value: value }
+                        : { href: value };
+                      return <ButtonComponent key={key} {...props} />;
+                    }
+                    return null;
+                  })}
+                </div>
+              )}
           </div>
 
           <div className={styles.rightColumn}>

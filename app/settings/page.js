@@ -12,7 +12,7 @@ import { useTranslation } from 'react-i18next';
 function SettingsPageContent() {
   const router = useRouter();
   const { t, i18n } = useTranslation();
-  const { isLoading: authLoading, isAuthenticated, currentTheme, toggleTheme, signOut } = useAuth();
+  const { isLoading: authLoading, isAuthenticated, currentTheme, toggleTheme } = useAuth();
   const [isLanguageDropdownOpen, setLanguageDropdownOpen] = useState(false);
 
   const changeLanguage = (lng) => {
