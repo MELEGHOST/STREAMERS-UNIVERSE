@@ -1,8 +1,8 @@
 import '../styles/globals.css';
 import { Providers } from './providers';
 import I18nProvider from './components/I18nProvider';
-// import { Analytics } from '@vercel/analytics/react';
-// import { SpeedInsights } from "@vercel/speed-insights/next"
+import { Analytics } from '@vercel/analytics/react';
+import { SpeedInsights } from "@vercel/speed-insights/next"
 
 export const metadata = {
   title: 'Streamers Universe',
@@ -18,8 +18,8 @@ export default function RootLayout({ children }) {
             <main>
               {children}
             </main>
-            {/* <Analytics /> */}
-            {/* <SpeedInsights /> */}
+            <Analytics />
+            <SpeedInsights />
           </Providers>
         </I18nProvider>
       </body>
