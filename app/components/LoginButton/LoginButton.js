@@ -7,18 +7,18 @@ import styles from './LoginButton.module.css';
 import { useTranslation } from 'react-i18next';
 
 const LoginButton = () => {
-  const { t } = useTranslation('common');
-  const { user, loading, login, logout } = useAuth();
+  const { t, i18n } = useTranslation('common');
+  const { user, loading, signInWithTwitch, signOut } = useAuth();
 
   const handleLogin = async () => {
-    login();
+    await signInWithTwitch();
   };
 
-  const handleLogout = () => {
-    logout();
+  const handleLogout = async () => {
+    await signOut();
   };
 
-  if (loading) {
+  if (loading || !i18n.isInitialized) {
     return (
       <div className={styles.wrapper}>
         <button className={styles.spaceButton} disabled>
