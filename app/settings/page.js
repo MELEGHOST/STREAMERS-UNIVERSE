@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useAuth } from '../contexts/AuthContext';
 import styles from './settings.module.css';
 import pageStyles from '../../styles/page.module.css';
-import { FaArrowLeft, FaPalette, FaLanguage, FaFont, FaClock, FaUser, FaBell, FaShieldAlt } from 'react-icons/fa'; // Иконки
+import { FaArrowLeft, FaPalette } from 'react-icons/fa'; // Иконки
 import RouteGuard from '../components/RouteGuard';
 
 function SettingsPageContent() {
@@ -58,7 +58,7 @@ function SettingsPageContent() {
         {/* --- Другие настройки (пока заглушки) --- */}
         <div className={`${styles.settingItem} ${styles.disabledSetting}`}>
           <div className={styles.settingInfo}>
-            <FaLanguage className={styles.settingIcon} />
+            <FaPalette className={styles.settingIcon} />
             <span className={styles.settingLabel}>Язык интерфейса</span>
           </div>
           <span className={styles.settingValue}>Русский (скоро...)</span>
@@ -66,7 +66,7 @@ function SettingsPageContent() {
 
         <div className={`${styles.settingItem} ${styles.disabledSetting}`}>
           <div className={styles.settingInfo}>
-            <FaFont className={styles.settingIcon} />
+            <FaPalette className={styles.settingIcon} />
             <span className={styles.settingLabel}>Шрифт</span>
           </div>
           <span className={styles.settingValue}>Стандартный (скоро...)</span>
@@ -74,7 +74,7 @@ function SettingsPageContent() {
 
         <div className={`${styles.settingItem} ${styles.disabledSetting}`}>
           <div className={styles.settingInfo}>
-            <FaClock className={styles.settingIcon} />
+            <FaPalette className={styles.settingIcon} />
             <span className={styles.settingLabel}>Часовой пояс</span>
           </div>
           <span className={styles.settingValue}>Авто (скоро...)</span>
