@@ -38,6 +38,7 @@ export function AuthProvider({ children }) {
         console.log(`[AuthContext] Пользователь вошел. User ID: ${currentUser.id}`);
         try {
           const response = await fetch('/api/auth/check-admin', {
+            method: 'POST',
             headers: {
               'Authorization': `Bearer ${session.access_token}`,
             },

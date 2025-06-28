@@ -87,7 +87,7 @@ export default function UserProfilePage() {
   const params = useParams();
   const profileTwitchId = params.twitchId;
 
-  const { user, isAuthenticated, supabase, isLoading: authIsLoading } = useAuth();
+  const { user, isAuthenticated, supabase, isLoading: authIsLoading, signOut } = useAuth();
   
   // --- Debug Log: Проверка данных из useAuth ---
   console.log('[UserProfilePage] Auth Context State:', { 
@@ -235,6 +235,11 @@ export default function UserProfilePage() {
     }
   };
 
+  const handleLogout = async () => {
+    await signOut();
+    router.push('/'); // Редирект на главную после выхода
+  };
+
   return (
     <div className={styles.container}> 
       <div className={styles.topBar}>
@@ -260,6 +265,11 @@ export default function UserProfilePage() {
                {isOwnProfile && (
                    <button onClick={() => router.push('/edit-profile')} className={`${styles.actionButton} ${styles.editButton}`} title="Редактировать">
                        ⚙️ Редакт.
+                   </button>
+               )}
+               {isOwnProfile && (
+                   <button onClick={handleLogout} className={`${styles.actionButton} ${styles.logoutButton}`}>
+                        🚪 Выйти
                    </button>
                )}
                {isOwnProfile && !isRegistered && (

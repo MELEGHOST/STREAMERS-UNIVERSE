@@ -1,0 +1,14 @@
+{
+    "settingsTitle": "Настройки",
+    "backButton": "Назад",
+    "themeSetting": "Тема оформления",
+    "themeLight": "Светлая",
+    "themeDark": "Темная",
+    "languageSetting": "Язык интерфейса",
+    "fontSetting": "Шрифт",
+    "timezoneSetting": "Часовой пояс",
+    "languageNameRu": "Русский",
+    "languageNameEn": "Английский",
+    "fontValue": "Стандартный (скоро...)",
+    "timezoneValue": "Авто (скоро...)"
+} 

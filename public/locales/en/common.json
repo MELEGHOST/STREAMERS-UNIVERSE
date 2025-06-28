@@ -1,0 +1,14 @@
+{
+    "settingsTitle": "Settings",
+    "backButton": "Back",
+    "themeSetting": "Theme",
+    "themeLight": "Light",
+    "themeDark": "Dark",
+    "languageSetting": "Interface Language",
+    "fontSetting": "Font",
+    "timezoneSetting": "Timezone",
+    "languageNameRu": "Russian",
+    "languageNameEn": "English",
+    "fontValue": "Standard (soon...)",
+    "timezoneValue": "Auto (soon...)"
+} 

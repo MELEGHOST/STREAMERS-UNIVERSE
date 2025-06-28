@@ -1,3 +1,8 @@
+import { SpeedInsights } from "@vercel/speed-insights/next"
+import { Analytics } from '@vercel/analytics/react';
+import { AuthProvider } from './contexts/AuthContext';
+import '../i18n';
+
 import '../styles/globals.css';
 import { Providers } from './providers';
 import StyledComponentsRegistry from './lib/registry';

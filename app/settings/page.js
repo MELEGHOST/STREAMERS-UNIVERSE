@@ -1,16 +1,24 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '../contexts/AuthContext';
 import styles from './settings.module.css';
 import pageStyles from '../../styles/page.module.css';
 import { FaArrowLeft, FaPalette } from 'react-icons/fa'; // Иконки
 import RouteGuard from '../components/RouteGuard';
+import { useTranslation } from 'react-i18next';
 
 function SettingsPageContent() {
   const router = useRouter();
+  const { t, i18n } = useTranslation();
   const { isLoading: authLoading, isAuthenticated, currentTheme, toggleTheme, signOut } = useAuth();
+  const [isLanguageDropdownOpen, setLanguageDropdownOpen] = useState(false);
+
+  const changeLanguage = (lng) => {
+    i18n.changeLanguage(lng);
+    setLanguageDropdownOpen(false);
+  };
 
   // Редирект, если не авторизован
   useEffect(() => {
@@ -19,83 +27,67 @@ function SettingsPageContent() {
     }
   }, [authLoading, isAuthenticated, router]);
 
-  const handleLogout = async () => {
-    console.log('[SettingsPage] Выполняется выход...');
-    await signOut();
-    console.log('[SettingsPage] Выход завершен, перенаправление на главную...');
-    router.push('/');
-  };
-
-  const handleGoToProfile = () => {
-    router.push('/menu');
-  };
-
   if (authLoading || !isAuthenticated) {
     return <div className={pageStyles.loadingContainer}><div className="spinner"></div></div>;
   }
 
   return (
-    <div className={pageStyles.container}>
-      <div className={styles.header}>
+    <div className={styles.settingsContainer}>
+      <div className={styles.settingsHeader}>
         <button onClick={() => router.back()} className={styles.backButton}>
-          <FaArrowLeft /> Назад
+          <FaArrowLeft /> {t('backButton')}
         </button>
-        <h1 className={styles.title}>Настройки</h1>
+        <h1 className={styles.header}>{t('settingsTitle')}</h1>
       </div>
 
       <div className={styles.settingsList}>
-        {/* --- Переключатель темы --- */}
+        {/* Настройка темы */}
         <div className={styles.settingItem}>
           <div className={styles.settingInfo}>
             <FaPalette className={styles.settingIcon} />
-            <span className={styles.settingLabel}>Тема оформления</span>
+            <span className={styles.settingLabel}>{t('themeSetting')}</span>
           </div>
           <button onClick={toggleTheme} className={styles.themeToggleButton}>
-            {currentTheme === 'dark' ? 'Светлая' : 'Темная'}
+            {currentTheme === 'dark' ? t('themeLight') : t('themeDark')}
           </button>
         </div>
 
-        {/* --- Другие настройки (пока заглушки) --- */}
+        {/* Настройка языка */}
+        <div className={styles.settingItem}>
+          <div className={styles.settingInfo}>
+            <FaPalette className={styles.settingIcon} />
+            <span className={styles.settingLabel}>{t('languageSetting')}</span>
+          </div>
+          <div className={styles.languageSelector}>
+            <button 
+              onClick={() => setLanguageDropdownOpen(!isLanguageDropdownOpen)} 
+              className={styles.languageToggleButton}
+            >
+              {i18n.language === 'ru' ? t('languageNameRu') : t('languageNameEn')}
+            </button>
+            {isLanguageDropdownOpen && (
+              <div className={styles.languageDropdown}>
+                <button onClick={() => changeLanguage('ru')}>{t('languageNameRu')}</button>
+                <button onClick={() => changeLanguage('en')}>{t('languageNameEn')}</button>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Другие настройки */}
         <div className={`${styles.settingItem} ${styles.disabledSetting}`}>
           <div className={styles.settingInfo}>
             <FaPalette className={styles.settingIcon} />
-            <span className={styles.settingLabel}>Язык интерфейса</span>
+            <span className={styles.settingLabel}>{t('fontSetting')}</span>
           </div>
-          <span className={styles.settingValue}>Русский (скоро...)</span>
+          <span className={styles.settingValue}>{t('fontValue')}</span>
         </div>
-
         <div className={`${styles.settingItem} ${styles.disabledSetting}`}>
           <div className={styles.settingInfo}>
             <FaPalette className={styles.settingIcon} />
-            <span className={styles.settingLabel}>Шрифт</span>
+            <span className={styles.settingLabel}>{t('timezoneSetting')}</span>
           </div>
-          <span className={styles.settingValue}>Стандартный (скоро...)</span>
-        </div>
-
-        <div className={`${styles.settingItem} ${styles.disabledSetting}`}>
-          <div className={styles.settingInfo}>
-            <FaPalette className={styles.settingIcon} />
-            <span className={styles.settingLabel}>Часовой пояс</span>
-          </div>
-          <span className={styles.settingValue}>Авто (скоро...)</span>
-        </div>
-
-        {/* Кнопка выхода */}
-        <div className={styles.settingsSection}>
-          <h2 className={styles.sectionTitle}>Аккаунт</h2>
-          <button
-            onClick={handleLogout}
-            className={`${styles.settingsButton} ${styles.logoutButton}`}
-          >
-            Выйти из аккаунта
-          </button>
-        </div>
-
-        <div className={styles.settingsSection}>
-          <h2 className={styles.sectionTitle}>Профиль</h2>
-          <button onClick={handleGoToProfile} className={styles.settingsButton}>
-            Перейти в профиль
-          </button>
+          <span className={styles.settingValue}>{t('timezoneValue')}</span>
         </div>
       </div>
     </div>
