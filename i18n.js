@@ -3,11 +3,16 @@ import { initReactI18next } from 'react-i18next';
 import LanguageDetector from 'i18next-browser-languagedetector';
 import Backend from 'i18next-http-backend';
 
-i18n
+const i18nInstance = i18n
   .use(Backend)
-  .use(LanguageDetector)
-  .use(initReactI18next)
-  .init({
+  .use(initReactI18next);
+
+// Подключаем LanguageDetector только на стороне клиента
+if (typeof window !== 'undefined') {
+  i18nInstance.use(LanguageDetector);
+}
+
+i18nInstance.init({
     fallbackLng: 'ru',
     debug: process.env.NODE_ENV === 'development',
     ns: ['common'],
