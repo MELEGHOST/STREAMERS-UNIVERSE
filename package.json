@@ -10,14 +10,17 @@
   },
   "dependencies": {
     "@supabase/ssr": "^0.6.1",
-    "@supabase/supabase-js": "^2.47.7",
+    "@supabase/supabase-js": "^2.47.8",
     "@twurple/api": "^7.3.0",
     "@twurple/auth": "^7.3.0",
+    "@vercel/analytics": "^1.5.0",
+    "@vercel/speed-insights": "^1.2.0",
     "i18next": "^25.2.1",
     "i18next-browser-languagedetector": "^8.2.0",
+    "i18next-http-backend": "^3.0.2",
     "jose": "^6.0.11",
     "lodash": "^4.17.21",
-    "next": "15.3.3",
+    "next": "15.3.4",
     "openai": "^4.52.7",
     "react": "^19.0.0-rc",
     "react-dom": "^19.0.0-rc",
@@ -30,6 +33,6 @@
   },
   "devDependencies": {
     "eslint": "9.29.0",
-    "eslint-config-next": "15.3.3"
+    "eslint-config-next": "15.3.4"
   }
 }

@@ -20,6 +20,7 @@ function EditProfilePageContent() {
   const [youtubeLink, setYoutubeLink] = useState('');
   const [yandexMusicLink, setYandexMusicLink] = useState('');
   const [isMusician, setIsMusician] = useState(false);
+  const [profileWidget, setProfileWidget] = useState('default');
 
   const [telegramLink, setTelegramLink] = useState('');
 
@@ -39,7 +40,7 @@ function EditProfilePageContent() {
     try {
       const { data, error: fetchError } = await supabase
         .from('user_profiles')
-        .select('birthday, social_links, description')
+        .select('birthday, social_links, description, profile_widget')
         .eq('user_id', user.id)
         .maybeSingle();
 
@@ -51,6 +52,7 @@ function EditProfilePageContent() {
         console.log(`[${title}] Данные профиля загружены:`, data);
         setBirthday(data.birthday || '');
         setDescription(data.description || '');
+        setProfileWidget(data.profile_widget || 'default');
 
         if (data.social_links && typeof data.social_links === 'object') {
           const links = data.social_links;
@@ -124,6 +126,7 @@ function EditProfilePageContent() {
       birthday: birthday || null,
       description: description || null,
       social_links: socialLinksData,
+      profile_widget: profileWidget,
     };
 
     try {
@@ -191,6 +194,22 @@ function EditProfilePageContent() {
       {successMessage && <div className={styles.successMessage}>{successMessage}</div>}
 
       <form onSubmit={handleSave} className={styles.form}>
+        <fieldset className={styles.fieldset}>
+          <legend className={styles.legend}>Кастомизация профиля</legend>
+          <div className={styles.formGroup}>
+            <label htmlFor="profileWidget" className={styles.label}>Виджет на странице профиля:</label>
+            <select
+              id="profileWidget"
+              value={profileWidget}
+              onChange={(e) => setProfileWidget(e.target.value)}
+              className={styles.select}
+            >
+              <option value="default">По умолчанию</option>
+              <option value="statistics">Статистика</option>
+            </select>
+          </div>
+        </fieldset>
+
         <fieldset className={styles.fieldset}>
           <legend className={styles.legend}>Основная информация</legend>
           <div className={styles.formGroup}>

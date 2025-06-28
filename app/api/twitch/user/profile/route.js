@@ -34,34 +34,20 @@ export async function PUT(request) {
         return NextResponse.json({ error: 'Unauthorized: Invalid token' }, { status: 401 });
     }
 
-    let requestData;
-    try {
-        requestData = await request.json();
-        console.log('[API /api/twitch/user/profile] Received data:', requestData);
-    } catch (error) {
-        console.error('[API /api/twitch/user/profile] Error parsing request body:', error);
-        return NextResponse.json({ error: 'Invalid request body' }, { status: 400 });
-    }
+    const body = await request.json();
+    const { birthday, description, social_links, profile_widget } = body;
 
-    const { birthday, description, social_links } = requestData;
-
-    // Подготовка данных для обновления
-    // Обновляем только те поля, которые пришли в запросе
     const dataToUpdate = {
         updated_at: new Date().toISOString(),
     };
-    if (birthday !== undefined) dataToUpdate.birthday = birthday; // Позволяем установить null, если пришел null
+    if (birthday !== undefined) dataToUpdate.birthday = birthday;
     if (description !== undefined) dataToUpdate.description = description;
-    if (social_links !== undefined) dataToUpdate.social_links = social_links; // Должен быть объектом или null
+    if (social_links !== undefined) dataToUpdate.social_links = social_links;
+    if (profile_widget !== undefined) dataToUpdate.profile_widget = profile_widget;
 
-    if (Object.keys(dataToUpdate).length === 1) { // Только updated_at
-        console.warn('[API /api/twitch/user/profile] No fields to update provided.');
-        // Можно вернуть 200 OK, т.к. технически запрос обработан, но ничего не изменилось
+    if (Object.keys(dataToUpdate).length === 1) {
         return NextResponse.json({ message: 'No update needed' }, { status: 200 });
-        // Или вернуть ошибку, если считаем это некорректным запросом
-        // return NextResponse.json({ error: 'No fields to update provided' }, { status: 400 });
     }
-
 
     console.log(`[API /api/twitch/user/profile] Updating profile for user ${userId} with data:`, dataToUpdate);
 
@@ -74,30 +60,13 @@ export async function PUT(request) {
             .single(); // Ожидаем одну запись
 
         if (error) {
-            console.error(`[API /api/twitch/user/profile] Supabase update error for user ${userId}:`, error);
-            // Проверяем специфичные ошибки Supabase
-             if (error.code === 'PGRST116' && error.message.includes('returned 0 rows')) {
-                 // Это странно, профиль должен существовать, если юзер авторизован
-                 console.error(`[API /api/twitch/user/profile] Profile not found for user ${userId} during update.`);
-                 return NextResponse.json({ error: 'Profile not found' }, { status: 404 });
-             }
-            return NextResponse.json({ error: `Database update error: ${error.message}` }, { status: 500 });
+            console.error(`[API /api/twitch/user/profile] Error updating profile:`, error);
+            return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
         }
 
-        if (!data) {
-             // Сценарий, когда .single() не вернул ни данных, ни ошибки (маловероятно с .update, но на всякий)
-             console.error(`[API /api/twitch/user/profile] Supabase update returned no data and no error for user ${userId}.`);
-             return NextResponse.json({ error: 'Failed to update profile, unexpected response from database.' }, { status: 500 });
-         }
-
-        console.log(`[API /api/twitch/user/profile] Profile for user ${userId} updated successfully:`, data);
-        return NextResponse.json({ message: 'Profile updated successfully', profile: data }, { status: 200 });
-
-    } catch (dbError) {
-        // Ловим любые другие ошибки (например, сетевые)
-        console.error(`[API /api/twitch/user/profile] Unexpected error during database operation for user ${userId}:`, dbError);
-        return NextResponse.json({ error: 'An unexpected error occurred during profile update.' }, { status: 500 });
+        return NextResponse.json(data, { status: 200 });
+    } catch (error) {
+        console.error(`[API /api/twitch/user/profile] Error updating profile:`, error);
+        return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
     }
 }
-
-export const dynamic = 'force-dynamic'; 

@@ -205,12 +205,12 @@ export async function GET(request) {
           // 2. Если нашли Supabase User ID, ищем профиль в user_profiles
           const { data: profile, error: profileError } = await supabaseAdmin
               .from('user_profiles')
-              .select('*') 
+              .select('description, role, social_links, profile_widget')
               .eq('user_id', supabaseUserIdFromTwitchId)
-              .maybeSingle(); 
+              .maybeSingle();
 
-          if (profileError && profileError.code !== 'PGRST116') {
-              console.error(`[API /api/twitch/user] Error fetching profile for user_id ${supabaseUserIdFromTwitchId}:`, profileError);
+          if (profileError) {
+              console.error(`[API /user] Ошибка получения профиля из БД для ${userId}:`, profileError);
           } else if (profile) {
               profileData = profile; 
               console.log(`[API /api/twitch/user] User profile found in Supabase for user_id ${supabaseUserIdFromTwitchId}`);
