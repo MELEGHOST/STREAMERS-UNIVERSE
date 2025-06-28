@@ -5,6 +5,7 @@ import { useAuth } from '../contexts/AuthContext';
 import styles from '../../styles/page.module.css'; // Используем общие стили
 import RouteGuard from '../components/RouteGuard';
 import Link from 'next/link';
+import Image from 'next/image';
 
 function FollowingsPageContent() {
   const { isLoading: isAuthLoading, isAuthenticated } = useAuth();
@@ -69,7 +70,13 @@ function FollowingsPageContent() {
         {channels.length > 0 ? (
           channels.map(channel => (
             <Link key={channel.id} href={`/profile/${channel.login}`} className={styles.channelCard}>
-              <img src={channel.profilePictureUrl} alt={channel.displayName} className={styles.channelAvatar} />
+              <Image 
+                src={channel.profilePictureUrl} 
+                alt={channel.displayName} 
+                width={80}
+                height={80}
+                className={styles.channelAvatar} 
+              />
               <div className={styles.channelInfo}>
                 <span className={styles.channelName}>{channel.displayName}</span>
                 {channel.isLive && <span className={styles.liveIndicator}>В ЭФИРЕ</span>}
