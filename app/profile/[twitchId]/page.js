@@ -187,19 +187,6 @@ export default function UserProfilePage() {
       error
   });
 
-  const handleLogout = async () => {
-       if (!supabase) return;
-       try {
-           await supabase.auth.signOut();
-           console.log('[UserProfilePage] Logout successful, redirecting to /auth...');
-           router.push('/auth'); // <<< Редирект на страницу входа
-           router.refresh(); // <<< Дополнительно обновляем страницу, чтобы сбросить состояние
-       } catch (error) { 
-           console.error('Logout error:', error);
-           // TODO: Показать пользователю сообщение об ошибке выхода?
-       }
-   };
-
   if (loadingProfile) {
       console.log('[UserProfilePage] Rendering loading state...');
       return (
@@ -275,21 +262,11 @@ export default function UserProfilePage() {
                        ⚙️ Редакт.
                    </button>
                )}
-               {isOwnProfile && (
-                   <button onClick={handleLogout} className={`${styles.actionButton} ${styles.logoutButton}`} title="Выйти">
-                       🚪 Выйти
+               {isOwnProfile && !isRegistered && (
+                   <button onClick={handleInvite} className={styles.actionButton}>
+                       🤝 Пригласить на Streamers Universe
                    </button>
                )}
-               {!isOwnProfile && isRegistered && isAuthenticated && (
-                   <button onClick={() => alert('Скоро!')} className={`${styles.actionButton} ${styles.followButton}`} title="Подписаться">
-                       ➕ Подписаться
-                   </button>
-               )}
-               {!isOwnProfile && !isRegistered && (
-                    <button onClick={handleInvite} className={`${styles.actionButton} ${styles.inviteButton}`} title="Пригласить в Streamers Universe">
-                        💌 Пригласить
-                    </button>
-                )}
           </div>
       </div>
 

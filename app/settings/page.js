@@ -10,7 +10,7 @@ import RouteGuard from '../components/RouteGuard';
 
 function SettingsPageContent() {
   const router = useRouter();
-  const { isLoading: authLoading, isAuthenticated, currentTheme, toggleTheme } = useAuth();
+  const { isLoading: authLoading, isAuthenticated, currentTheme, toggleTheme, user, signOut } = useAuth();
 
   // Редирект, если не авторизован
   useEffect(() => {
@@ -19,9 +19,11 @@ function SettingsPageContent() {
     }
   }, [authLoading, isAuthenticated, router]);
 
-  // Функция выхода теперь просто редиректит на серверный эндпоинт
-  const handleLogout = () => {
-    router.push('/auth/logout');
+  const handleLogout = async () => {
+    console.log('[SettingsPage] Выполняется выход...');
+    await signOut();
+    console.log('[SettingsPage] Выход завершен, перенаправление на главную...');
+    router.push('/');
   };
 
   if (authLoading || !isAuthenticated) {
@@ -75,10 +77,15 @@ function SettingsPageContent() {
         </div>
 
         {/* Кнопка выхода */}
-        <button onClick={handleLogout} className={`${styles.settingsItem} ${styles.logoutButton}`}>
-          <FaSignOutAlt className={styles.itemIcon} />
-          <span className={styles.itemName}>Выйти из аккаунта</span>
-        </button>
+        <div className={styles.settingsSection}>
+          <h2 className={styles.sectionTitle}>Аккаунт</h2>
+          <button
+            onClick={handleLogout}
+            className={`${styles.settingsButton} ${styles.logoutButton}`}
+          >
+            Выйти из аккаунта
+          </button>
+        </div>
       </div>
     </div>
   );

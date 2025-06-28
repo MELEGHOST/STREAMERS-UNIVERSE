@@ -41,15 +41,6 @@ export async function middleware(request) {
     }
   );
 
-  // Если пользователь выходит, удаляем его куки
-  if (request.nextUrl.pathname === '/auth/logout') {
-    await supabase.auth.signOut();
-    // И редиректим на главную
-    return NextResponse.redirect(new URL('/', request.url), {
-        status: 302,
-    });
-  }
-
   // Единственная задача middleware - обновлять сессию пользователя.
   // Вся логика защиты перенесена на клиент в компонент RouteGuard.
   await supabase.auth.getUser();
