@@ -14,11 +14,11 @@ export default function RootLayout({ children }) {
     <html lang="ru">
       <body>
         <StyledComponentsRegistry>
-          <Providers>
+          {/* <Providers> */}
             <main>
               {children}
             </main>
-          </Providers>
+          {/* </Providers> */}
         </StyledComponentsRegistry>
       </body>
     </html>
