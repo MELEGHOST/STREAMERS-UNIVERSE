@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '../../contexts/AuthContext';
-import Select from 'react-select';
+// import Select from 'react-select';
 import Image from 'next/image';
 import { reviewCategories, movieGenres } from '../categories';
 import styles from './create-review.module.css';
@@ -480,19 +480,18 @@ export default function CreateReviewPage() {
 
                 {isMovieOrSeries ? (
                     <div className={styles.formGroup}>
-                        <label htmlFor="genres" className={styles.label}>Жанры *</label>
-                        <Select
+                        <label htmlFor="genres" className={styles.label}>Жанры</label>
+                        {/* <Select
                             id="genres"
                             isMulti
                             options={genreOptions}
                             value={selectedGenres}
                             onChange={setSelectedGenres}
                             placeholder="Выберите жанры..."
-                            className={`${styles.reactSelectContainer} react-select-container`}
                             styles={selectStyles}
-                            required
-                            isDisabled={isSubmitting || isGeneratingFull || authLoading}
-                        />
+                            className={`${styles.reactSelectContainer} react-select-container`}
+                            classNamePrefix="react-select"
+                        /> */}
                     </div>
                 ) : category ? (
                     <div className={styles.formGroup}>
