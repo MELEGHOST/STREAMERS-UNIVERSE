@@ -29,7 +29,7 @@
     "react-i18next": "^15.5.3",
     "react-icons": "^5.5.0",
     "react-select": "^5.10.1",
-    "styled-components": "^6.1.11",
+    "styled-components": "^6.1.19",
     "swr": "^2.3.3",
     "ytdl-core": "^4.11.5"
   },
@@ -38,7 +38,7 @@
     "react-dom": "19.0.0-rc.0"
   },
   "devDependencies": {
-    "eslint": "^8",
+    "eslint": "9.29.0",
     "eslint-config-next": "15.3.4",
     "eslint-config-prettier": "^10.1.5",
     "prettier": "^3.5.0"
