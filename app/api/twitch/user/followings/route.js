@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
-import { getTwitchClientWithToken } from '../../../utils/twitchClient';
-import { verifyJwt } from '../../../utils/jwt';
+import { getTwitchClientWithToken } from '../../../../utils/twitchClient';
+import { verifyJwt } from '../../../../utils/jwt';
 
 export async function GET() {
   try {
