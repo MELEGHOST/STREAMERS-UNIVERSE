@@ -1,8 +1,7 @@
 'use client';
 
-import { useEffect } from 'react';
-import i18n from 'i18next';
 import { I18nextProvider, initReactI18next } from 'react-i18next';
+import i18n from 'i18next';
 import en from '../../public/locales/en/common.json';
 import ru from '../../public/locales/ru/common.json';
 import uk from '../../public/locales/uk/common.json';
