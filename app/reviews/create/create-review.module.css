@@ -158,86 +158,6 @@
     border: 1px solid #2E7D32;
 }
 
-/* Стили для react-select */
-.react-select-container .react-select__control {
-    background-color: var(--tg-theme-secondary-bg-color) !important;
-    border: 1px solid var(--tg-theme-hint-color) !important;
-    border-radius: 8px !important;
-    min-height: 48px; /* Совпадаем по высоте с другими полями */
-    box-shadow: none !important; /* Убираем дефолтную тень */
-    color: var(--tg-theme-text-color) !important;
-}
-
-.react-select-container .react-select__control--is-focused {
-    border-color: var(--tg-theme-button-color) !important;
-    box-shadow: 0 0 0 2px rgba(var(--tg-theme-button-rgb), 0.3) !important;
-}
-
-.react-select-container .react-select__value-container {
-    padding: 0 15px !important; /* Выравниваем паддинг */
-}
-
-.react-select-container .react-select__placeholder {
-    color: var(--tg-theme-hint-color) !important;
-    margin: 0 !important; /* Убираем лишние отступы */
-    padding: 0 !important;
-}
-
-.react-select-container .react-select__input-container {
-    color: var(--tg-theme-text-color) !important;
-    margin: 0 !important;
-    padding: 0 !important;
-}
-
-.react-select-container .react-select__single-value {
-    color: var(--tg-theme-text-color) !important;
-}
-
-.react-select-container .react-select__menu {
-    background-color: var(--tg-theme-secondary-bg-color) !important;
-    border: 1px solid var(--tg-theme-hint-color) !important;
-    border-radius: 8px !important;
-    z-index: 10; /* Чтобы меню было поверх других элементов */
-}
-
-.react-select-container .react-select__option {
-    background-color: var(--tg-theme-secondary-bg-color) !important;
-    color: var(--tg-theme-text-color) !important;
-    cursor: pointer;
-}
-
-.react-select-container .react-select__option--is-focused {
-    background-color: var(--tg-theme-button-color) !important;
-    color: var(--tg-theme-button-text-color) !important;
-}
-
-.react-select-container .react-select__option--is-selected {
-    background-color: var(--tg-theme-accent-text-color) !important; /* Цвет выделенного элемента */
-    color: var(--tg-theme-button-text-color) !important;
-}
-
-.react-select-container .react-select__multi-value {
-    background-color: var(--tg-theme-accent-text-color) !important;
-    border-radius: 4px !important;
-    color: var(--tg-theme-button-text-color) !important;
-}
-
-.react-select-container .react-select__multi-value__label {
-    color: var(--tg-theme-button-text-color) !important;
-    padding: 2px 6px !important;
-}
-
-.react-select-container .react-select__multi-value__remove {
-    color: var(--tg-theme-button-text-color) !important;
-    cursor: pointer;
-    border-radius: 0 4px 4px 0 !important;
-}
-
-.react-select-container .react-select__multi-value__remove:hover {
-    background-color: var(--tg-theme-destructive-text-color) !important;
-    color: white !important;
-}
-
 /* Адаптивность */
 @media (max-width: 768px) {
     /* Дополнительные стили для планшетов, если нужны */
@@ -408,4 +328,32 @@
 .textareaField {
     min-height: 120px;
     resize: vertical;
+}
+
+.error {
+  color: #ff4d4d;
+  font-size: 0.8rem;
+  margin-top: 5px;
+  min-height: 1rem;
+}
+
+.select {
+  background: rgba(25, 25, 35, 0.8);
+  border: 1px solid #4f4f4f;
+  border-radius: 8px;
+  color: #e0e0e0;
+  padding: 10px;
+  font-size: 1rem;
+  width: 100%;
+  transition: all 0.3s ease;
+  appearance: none; /* Remove default arrow */
+  background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23e0e0e0' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
+  background-repeat: no-repeat;
+  background-position: right 10px center;
+  background-size: 1em;
+}
+
+.select:focus {
+  outline: none;
+  box-shadow: 0 0 5px rgba(0, 255, 255, 0.5);
 } 
