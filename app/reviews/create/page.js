@@ -446,9 +446,6 @@ export default function CreateReviewPage() {
         }
     }, [user, category, title, text, rating, subcategory, selectedGenres, ageRating, imageUrl, imageFile, isMovieOrSeries, supabase, router]);
 
-    const categoryOptions = Object.keys(reviewCategories).map(cat => ({ value: cat, label: cat }));
-    const selectStyles = useMemo(() => reactSelectStyles(currentTheme === 'dark'), [currentTheme]);
-
     return (
         <div className={styles.container}>
             {error && <p className={styles.errorMessage}>{error}</p>}
@@ -471,8 +468,8 @@ export default function CreateReviewPage() {
                         disabled={isSubmitting || isGeneratingFull || authLoading}
                     >
                         <option value="">Выберите категорию</option>
-                        {categoryOptions.map((cat) => (
-                            <option key={cat.value} value={cat.value}>{cat.label}</option>
+                        {Object.keys(reviewCategories).map((cat) => (
+                            <option key={cat} value={cat}>{cat}</option>
                         ))}
                     </select>
                 </div>
@@ -480,17 +477,6 @@ export default function CreateReviewPage() {
                 {isMovieOrSeries ? (
                     <div className={styles.formGroup}>
                         <label htmlFor="genres" className={styles.label}>Жанры</label>
-                        {/* <Select
-                            id="genres"
-                            isMulti
-                            options={genreOptions}
-                            value={selectedGenres}
-                            onChange={setSelectedGenres}
-                            placeholder="Выберите жанры..."
-                            styles={selectStyles}
-                            className={`${styles.reactSelectContainer} react-select-container`}
-                            classNamePrefix="react-select"
-                        /> */}
                     </div>
                 ) : category ? (
                     <div className={styles.formGroup}>
