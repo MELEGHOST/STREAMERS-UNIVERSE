@@ -2,7 +2,7 @@ import '../i18n';
 
 import '../styles/globals.css';
 import { Providers } from './providers';
-// import StyledComponentsRegistry from './lib/registry';
+import StyledComponentsRegistry from './lib/registry';
 
 export const metadata = {
   title: 'Streamers Universe',
@@ -13,13 +13,13 @@ export default function RootLayout({ children }) {
   return (
     <html lang="ru">
       <body>
-        {/* <StyledComponentsRegistry> */}
+        <StyledComponentsRegistry>
           <Providers>
             <main>
               {children}
             </main>
           </Providers>
-        {/* </StyledComponentsRegistry> */}
+        </StyledComponentsRegistry>
       </body>
     </html>
   );
