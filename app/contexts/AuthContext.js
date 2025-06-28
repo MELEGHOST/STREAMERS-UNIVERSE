@@ -1,24 +1,24 @@
 'use client';
 
-import React, { createContext, useState, useEffect, useContext, useMemo, useCallback } from 'react';
+import React from 'react';
 import { supabase } from '../utils/supabase/client';
 
-const AuthContext = createContext(undefined);
+const AuthContext = React.createContext(undefined);
 
 export function AuthProvider({ children }) {
-  const [user, setUser] = useState(null);
-  const [session, setSession] = useState(null);
-  const [userRole, setUserRole] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [currentTheme, setCurrentTheme] = useState('dark');
+  const [user, setUser] = React.useState(null);
+  const [session, setSession] = React.useState(null);
+  const [userRole, setUserRole] = React.useState(null);
+  const [loading, setLoading] = React.useState(true);
+  const [currentTheme, setCurrentTheme] = React.useState('dark');
 
-  useEffect(() => {
+  React.useEffect(() => {
     const savedTheme = localStorage.getItem('theme') || 'dark';
     setCurrentTheme(savedTheme);
     document.body.className = savedTheme + '-theme';
   }, []);
 
-  const toggleTheme = useCallback(() => {
+  const toggleTheme = React.useCallback(() => {
     setCurrentTheme((prevTheme) => {
       const newTheme = prevTheme === 'dark' ? 'light' : 'dark';
       localStorage.setItem('theme', newTheme);
@@ -27,7 +27,7 @@ export function AuthProvider({ children }) {
     });
   }, []);
 
-  useEffect(() => {
+  React.useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       console.log(`[AuthContext] ===> onAuthStateChange Event: ${event} <===`);
       setSession(session);
@@ -68,7 +68,7 @@ export function AuthProvider({ children }) {
     };
   }, []);
 
-  const signInWithTwitch = useCallback(async () => {
+  const signInWithTwitch = React.useCallback(async () => {
     console.log('[AuthContext] Попытка входа через Twitch...');
 
     const { error } = await supabase.auth.signInWithOAuth({
@@ -84,12 +84,12 @@ export function AuthProvider({ children }) {
     }
   }, []);
 
-  const signOut = useCallback(async () => {
+  const signOut = React.useCallback(async () => {
     console.log('[AuthContext] Выход из системы...');
     await supabase.auth.signOut();
   }, []);
 
-  const value = useMemo(() => ({
+  const value = React.useMemo(() => ({
     user,
     session,
     isAuthenticated: !!user,
@@ -106,7 +106,7 @@ export function AuthProvider({ children }) {
 }
 
 export const useAuth = () => {
-  const context = useContext(AuthContext);
+  const context = React.useContext(AuthContext);
   if (context === undefined) {
     throw new Error('useAuth должен использоваться внутри AuthProvider');
   }
