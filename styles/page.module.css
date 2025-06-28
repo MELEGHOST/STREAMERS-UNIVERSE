@@ -99,4 +99,78 @@
     border-width: 2px;
     margin-right: 8px;
   }
+
+  .profileSection p {
+    margin: 5px 0;
+    font-size: 1rem;
+  }
+
+  /* Стили для страницы Вдохновителей (Followings) */
+  .channelsGrid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+    gap: 20px;
+    width: 100%;
+    margin-top: 20px;
+  }
+
+  .channelCard {
+    background-color: #2a2a3a;
+    border-radius: 12px;
+    padding: 15px;
+    text-decoration: none;
+    color: #e0e0e0;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    display: flex;
+    flex-direction: column;
+    border: 1px solid #3a3a4a;
+  }
+
+  .channelCard:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 5px 15px rgba(0, 255, 255, 0.2);
+  }
+
+  .channelAvatar {
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    margin-bottom: 15px;
+    align-self: center;
+    border: 3px solid #4f4f4f;
+  }
+
+  .channelInfo {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    margin-bottom: 10px;
+  }
+
+  .channelName {
+    font-weight: bold;
+    font-size: 1.1rem;
+  }
+
+  .liveIndicator {
+    background-color: #e91916;
+    color: white;
+    padding: 3px 8px;
+    border-radius: 4px;
+    font-size: 0.7rem;
+    font-weight: bold;
+  }
+
+  .streamTitle {
+    font-size: 0.9rem;
+    color: #b0b0b0;
+    text-align: center;
+    line-height: 1.3;
+    margin: 0;
+  }
+
+  .errorText {
+    color: #ff4d4d;
+  }
  
