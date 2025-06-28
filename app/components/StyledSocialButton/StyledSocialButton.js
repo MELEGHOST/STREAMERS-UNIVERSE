@@ -1,8 +1,8 @@
 'use client';
 
 import React from 'react';
-import styled from 'styled-components';
-import Link from 'next/link'; // Используем Link из Next.js
+import Link from 'next/link';
+import styles from './StyledSocialButton.module.css'; // Импортируем CSS-модуль
 
 // --- Конфигурация платформ ---
 const platformData = {
@@ -87,53 +87,53 @@ const StyledSocialButton = ({ platform, url }) => {
   // Определяем, нужно ли делать ссылку активной
   const isLinkActive = platform !== 'discord' || (typeof finalUrl === 'string' && finalUrl.startsWith('http'));
 
+  // Используем обычный div и передаем CSS-переменную через style
   return (
-    <StyledWrapper style={{ '--color': config.color }}>
-      <div className="tooltip-container">
-        <div className="tooltip">
-          <div className="profile">
-            <div className="user">
-              <div className="img">{config.iconLetter}</div>
+    <div style={{ '--color': config.color }}>
+      <div className={styles.tooltipContainer}>
+        <div className={styles.tooltip}>
+          <div className={styles.profile}>
+            <div className={styles.user}>
+              <div className={styles.img}>{config.iconLetter}</div>
               <div className="details">
-                <div className="name">{config.tooltipName}</div>
-                <div className="username">{config.label}</div>
+                <div className={styles.name}>{config.tooltipName}</div>
+                <div className={styles.username}>{config.label}</div>
               </div>
             </div>
-            <div className="about">{config.tooltipDetail}</div>
+            <div className={styles.about}>{config.tooltipDetail}</div>
           </div>
         </div>
-        <div className="text-wrapper"> { /* Переименовал обертку для ясности */}
-          {/* Используем Link или span в зависимости от isLinkActive */}
+        <div className={styles.textWrapper}>
           {isLinkActive ? (
-            <Link href={finalUrl} target="_blank" rel="noopener noreferrer" className="icon">
+            <Link href={finalUrl} target="_blank" rel="noopener noreferrer" className={styles.icon}>
               <ButtonContent config={config} />
             </Link>
           ) : (
-            <span className="icon" title={`Discord: ${url}`}>
+            <span className={styles.icon} title={`Discord: ${url}`}>
               <ButtonContent config={config} />
             </span>
           )}
         </div>
       </div>
-    </StyledWrapper>
+    </div>
   );
 }
 
 // Выносим повторяющееся содержимое кнопки в отдельный компонент
 const ButtonContent = ({ config }) => (
   <>
-    <div className="layer">
+    <div className={styles.layer}>
       <span />
       <span />
       <span />
       <span />
-      <span className="svg-container">
+      <span className={styles.svgContainer}>
         <svg
           xmlnsXlink="http://www.w3.org/1999/xlink"
           xmlns="http://www.w3.org/2000/svg"
           version="1.1"
           viewBox={config.viewBox || '0 0 24 24'}
-          className="svg-icon"
+          className={styles.svgIcon}
         >
           {config.svgPath ? (
              <path d={config.svgPath} />
@@ -143,217 +143,8 @@ const ButtonContent = ({ config }) => (
         </svg>
       </span>
     </div>
-    <div className="text-label">{config.label}</div> { /* Класс для текста под иконкой */}
+    <div className={styles.textLabel}>{config.label}</div>
   </>
 );
-
-// --- Стили styled-components --- 
-const StyledWrapper = styled.div`
-  /* Базовые стили контейнера и тултипа (как в примерах) */
-  .tooltip-container {
-    --color: ${props => props.style?.['--color'] || '#ccc'}; /* Берем цвет из inline style */
-    --border: hsla(from var(--color) h s l / 0.25);
-    position: relative;
-    cursor: pointer;
-    transition: all 0.2s;
-    font-size: 17px;
-    border-radius: 10px; /* У тултипа */
-  }
-
-  .tooltip {
-    position: absolute;
-    top: 0;
-    left: 50%;
-    transform: translateX(-50%);
-    padding: 10px;
-    opacity: 0;
-    pointer-events: none;
-    transition: all 0.3s;
-    border-radius: 15px;
-    background: hsla(from var(--color) h s l / 0.1);
-    box-shadow:
-      inset 5px 5px 5px rgba(0, 0, 0, 0.2),
-      inset -5px -5px 15px rgba(255, 255, 255, 0.1),
-      5px 5px 15px rgba(0, 0, 0, 0.3),
-      -5px -5px 15px rgba(255, 255, 255, 0.1);
-    width: max-content;
-    min-width: 180px;
-    z-index: 10; /* Чтобы тултип был поверх */
-  }
-
-  .profile {
-    border-radius: 10px 15px;
-    padding: 10px;
-    border: 1px solid var(--border);
-  }
-
-  .tooltip-container:hover .tooltip {
-    top: -150px; /* Позиция тултипа */
-    opacity: 1;
-    visibility: visible;
-    pointer-events: auto;
-  }
-  
-  /* Стили самой иконки-ссылки */
-  .icon {
-    text-decoration: none;
-    color: #fff;
-    display: block;
-    position: relative;
-  }
-  
-  /* Стили слоя анимации */
-  .layer {
-    width: 70px; /* Фиксированный размер кнопки */
-    height: 70px;
-    transition: transform 0.3s;
-  }
-  .icon:hover .layer {
-    transform: rotate(-35deg) skew(20deg);
-  }
-  
-  /* Стили каждого слоя span (для эффекта) */
-  .layer span {
-    position: absolute;
-    top: 0;
-    left: 0;
-    height: 100%;
-    width: 100%;
-    border: 2px solid var(--color); /* Тонкая цветная рамка */
-    border-radius: 50%; /* Всегда круглые */
-    transition: all 0.3s;
-    padding: 13px; /* Добавляем padding обратно */
-    background: var(--color); /* Белый фон кнопки */
-    box-shadow:
-      inset 5px 5px 5px rgba(0, 0, 0, 0.2),
-      inset -5px -5px 15px rgba(255, 255, 255, 0.1),
-      5px 5px 15px rgba(0, 0, 0, 0.2),
-      -5px -5px 10px rgba(255, 255, 255, 0.05);
-  }
-  
-  /* Эффект слоев при наведении */
-  .icon:hover .layer span {
-    border-radius: 10px; /* БЫЛО С ИЗМЕНЕНИЕМ */
-  }
-  .icon:hover .layer span:nth-child(1) {
-    opacity: 0.2;
-  }
-  .icon:hover .layer span:nth-child(2) {
-    opacity: 0.4;
-    transform: translate(5px, -5px);
-  }
-  .icon:hover .layer span:nth-child(3) {
-    opacity: 0.6;
-    transform: translate(10px, -10px);
-  }
-  .icon:hover .layer span:nth-child(4) {
-    opacity: 0.8;
-    transform: translate(15px, -15px);
-  }
-  .icon:hover .layer span:nth-child(5) {
-    opacity: 1;
-    transform: translate(20px, -20px);
-  }
-  .icon:hover .layer span.svg-container {
-    opacity: 1;
-    transform: translate(12px, -12px); /* Пятый слой (иконка) смещается больше всех */
-    box-shadow: 
-      inset 2px 2px 3px rgba(255, 255, 255, 0.6),
-      inset -2px -2px 3px rgba(0, 0, 0, 0.2),
-      2px 2px 5px rgba(0, 0, 0, 0.2);
-  }
-  
-  /* Контейнер для SVG внутри последнего слоя */
-  .layer span.svg-container {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: 10px; /* Отступы внутри кнопки */
-    overflow: hidden; /* Обрезаем SVG, если он больше */
-    box-shadow:
-      inset 3px 3px 5px rgba(0, 0, 0, 0.1),
-      inset -3px -3px 5px rgba(255, 255, 255, 0.7);
-  }
-  
-  /* Стили самого SVG */
-  .svg-icon {
-     width: 70%; /* Размер иконки внутри */
-     height: 70%;
-     transition: fill 0.2s ease;
-  }
-  .svg-icon path {
-      fill: white; /* Иконка белая */
-      transition: fill 0.2s ease;
-  }
-  
-  .icon:hover .svg-icon path {
-      fill: #fff; /* При наведении делаем иконку белой */
-  }
-  .icon:hover .layer span.svg-container {
-      background: var(--color); /* Фон кнопки при наведении меняется на цвет платформы */
-      border-color: transparent; /* Убираем рамку при наведении */
-  }
-
-  /* Стили текста под иконкой */
-  .text-label {
-    position: absolute;
-    left: 50%;
-    bottom: -5px; /* Немного ниже */
-    opacity: 0;
-    font-weight: 700;
-    font-size: 14px; /* Мельче */
-    color: var(--color); /* Используем переменную темы */
-    transform: translateX(-50%);
-    transition:
-      bottom 0.3s ease,
-      opacity 0.3s ease;
-    white-space: nowrap;
-    pointer-events: none; /* Чтобы не мешал */
-  }
-  .icon:hover .text-label {
-    bottom: -35px;
-    opacity: 1;
-  }
-
-  /* Стили тултипа (как в примерах) */
-  .user {
-    display: flex;
-    gap: 10px;
-    align-items: center;
-  }
-  .img {
-    width: 50px;
-    height: 50px;
-    font-size: 25px;
-    font-weight: 700;
-    border: 1px solid var(--border);
-    border-radius: 10px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background: var(--color);
-    color: white;
-  }
-  .name {
-    font-size: 17px;
-    font-weight: 700;
-    color: #ffffff;
-  }
-  .details {
-    display: flex;
-    flex-direction: column;
-    gap: 0;
-    color: var(--color);
-  }
-  .username {
-      font-size: 0.9em;
-      color: #aaa; /* Серый цвет юзернейма */
-  }
-  .about {
-    color: rgba(255, 255, 255, 0.7);
-    padding-top: 5px;
-    font-size: 0.85em;
-  }
-`;
 
 export default StyledSocialButton; 

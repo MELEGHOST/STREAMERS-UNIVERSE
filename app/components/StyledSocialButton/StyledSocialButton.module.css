@@ -1,0 +1,185 @@
+/* Базовые стили контейнера и тултипа */
+.tooltipContainer {
+  --border: hsla(from var(--color) h s l / 0.25);
+  position: relative;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-size: 17px;
+  border-radius: 10px; /* У тултипа */
+}
+
+.tooltip {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 10px;
+  opacity: 0;
+  pointer-events: none;
+  transition: all 0.3s;
+  border-radius: 15px;
+  background: hsla(from var(--color) h s l / 0.1);
+  box-shadow:
+    inset 5px 5px 5px rgba(0, 0, 0, 0.2),
+    inset -5px -5px 15px rgba(255, 255, 255, 0.1),
+    5px 5px 15px rgba(0, 0, 0, 0.3),
+    -5px -5px 15px rgba(255, 255, 255, 0.1);
+  width: max-content;
+  min-width: 180px;
+  z-index: 10; /* Чтобы тултип был поверх */
+}
+
+.profile {
+  border-radius: 10px 15px;
+  padding: 10px;
+  border: 1px solid var(--border);
+}
+
+.tooltipContainer:hover .tooltip {
+  top: -150px; /* Позиция тултипа */
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+}
+
+/* Стили самой иконки-ссылки */
+.icon {
+  text-decoration: none;
+  color: #fff;
+  display: block;
+  position: relative;
+}
+
+/* Стили слоя анимации */
+.layer {
+  width: 70px; /* Фиксированный размер кнопки */
+  height: 70px;
+  transition: transform 0.3s;
+}
+
+.icon:hover .layer {
+  transform: rotate(-35deg) skew(20deg);
+}
+
+/* Стили каждого слоя span (для эффекта) */
+.layer span {
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 100%;
+  width: 100%;
+  border: 2px solid var(--color); /* Тонкая цветная рамка */
+  border-radius: 50%; /* Всегда круглые */
+  transition: all 0.3s;
+  padding: 13px; /* Добавляем padding обратно */
+  background: var(--color); /* Белый фон кнопки */
+  box-shadow:
+    inset 5px 5px 5px rgba(0, 0, 0, 0.2),
+    inset -5px -5px 15px rgba(255, 255, 255, 0.1),
+    5px 5px 15px rgba(0, 0, 0, 0.2),
+    -5px -5px 10px rgba(255, 255, 255, 0.05);
+}
+
+/* Эффект слоев при наведении */
+.icon:hover .layer span {
+  border-radius: 10px;
+}
+
+.icon:hover .layer span:nth-child(1) {
+  opacity: 0.2;
+}
+
+.icon:hover .layer span:nth-child(2) {
+  opacity: 0.4;
+  transform: translate(5px, -5px);
+}
+
+.icon:hover .layer span:nth-child(3) {
+  opacity: 0.6;
+  transform: translate(10px, -10px);
+}
+
+.icon:hover .layer span:nth-child(4) {
+  opacity: 0.8;
+  transform: translate(15px, -15px);
+}
+
+.icon:hover .layer span:nth-child(5) {
+  opacity: 1;
+  transform: translate(20px, -20px);
+}
+
+/* Стили для SVG и контейнера */
+.svgContainer {
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 100%;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white; /* Цвет иконки */
+}
+
+.svgIcon {
+  width: 65%; /* Размер иконки относительно контейнера */
+  height: 65%;
+  fill: currentColor;
+}
+
+
+/* Текст под иконкой */
+.textLabel {
+  text-align: center;
+  margin-top: 80px; /* Отступ от круглой кнопки */
+  font-size: 14px;
+  color: var(--foreground-secondary); /* Цвет текста */
+  font-weight: 500;
+  width: 70px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis; /* Если текст не влезает */
+}
+
+
+/* Дополнительные стили для тултипа */
+.tooltip .profile .user {
+  display: flex;
+  gap: 10px;
+}
+
+.tooltip .profile .user .img {
+  width: 50px;
+  height: 50px;
+  border-radius: 5px;
+  background: var(--color);
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 24px;
+  font-weight: bold;
+}
+
+.tooltip .profile .user .details .name {
+  font-weight: bold;
+  font-size: 1.1em;
+  color: var(--foreground-primary);
+}
+
+.tooltip .profile .user .details .username {
+  font-weight: bold;
+  font-size: 0.9em;
+  color: var(--color);
+}
+
+.tooltip .profile .about {
+  margin-top: 10px;
+  font-size: 0.9em;
+  color: var(--foreground-secondary);
+}
+.textWrapper {
+  /* This class is used in the JS but seems to only be a semantic wrapper.
+     If it needs styles, they can be added here. */
+} 
