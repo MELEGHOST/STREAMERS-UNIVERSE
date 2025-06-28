@@ -16,5 +16,6 @@
     "profile": "Profile",
     "logout": "Logout",
     "login": "Login",
-    "loading": "Loading..."
+    "loading": "Loading...",
+    "enterMenu": "Enter Menu"
 } 
