@@ -1,0 +1,11 @@
+# Ignore artifacts:
+node_modules
+.next
+.vercel
+coverage
+
+# Ignore generated files:
+package-lock.json
+
+# Ignore config files
+next.config.mjs 

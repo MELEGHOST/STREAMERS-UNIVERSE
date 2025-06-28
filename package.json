@@ -6,7 +6,9 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "format": "prettier --write .",
+    "format:check": "prettier --check ."
   },
   "dependencies": {
     "@supabase/ssr": "^0.6.1",
@@ -33,7 +35,9 @@
   },
   "devDependencies": {
     "eslint": "9.29.0",
-    "eslint-config-next": "15.3.4"
+    "eslint-config-next": "15.3.4",
+    "eslint-config-prettier": "^10.1.5",
+    "prettier": "^3.6.2"
   },
   "overrides": {
     "react": "^19.1.0",
