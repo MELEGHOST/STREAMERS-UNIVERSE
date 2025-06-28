@@ -10,5 +10,11 @@
     "languageNameRu": "Русский",
     "languageNameEn": "Английский",
     "fontValue": "Стандартный (скоро...)",
-    "timezoneValue": "Авто (скоро...)"
+    "timezoneValue": "Авто (скоро...)",
+    "followers": "Подписчики",
+    "following": "Подписки",
+    "profile": "Профиль",
+    "logout": "Выйти",
+    "login": "Войти",
+    "loading": "Загрузка..."
 } 

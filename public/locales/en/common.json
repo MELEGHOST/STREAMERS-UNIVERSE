@@ -10,5 +10,11 @@
     "languageNameRu": "Russian",
     "languageNameEn": "English",
     "fontValue": "Standard (soon...)",
-    "timezoneValue": "Auto (soon...)"
+    "timezoneValue": "Auto (soon...)",
+    "followers": "Followers",
+    "following": "Following",
+    "profile": "Profile",
+    "logout": "Logout",
+    "login": "Login",
+    "loading": "Loading..."
 } 

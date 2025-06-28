@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '../contexts/AuthContext';
 import styles from './settings.module.css';
@@ -8,17 +8,12 @@ import pageStyles from '../../styles/page.module.css';
 import { FaArrowLeft, FaPalette } from 'react-icons/fa'; // Иконки
 import RouteGuard from '../components/RouteGuard';
 import { useTranslation } from 'react-i18next';
+import LanguageSwitcher from '../components/LanguageSwitcher/LanguageSwitcher';
 
 function SettingsPageContent() {
   const router = useRouter();
-  const { t, i18n } = useTranslation();
+  const { t } = useTranslation();
   const { isLoading: authLoading, isAuthenticated, currentTheme, toggleTheme } = useAuth();
-  const [isLanguageDropdownOpen, setLanguageDropdownOpen] = useState(false);
-
-  const changeLanguage = (lng) => {
-    i18n.changeLanguage(lng);
-    setLanguageDropdownOpen(false);
-  };
 
   // Редирект, если не авторизован
   useEffect(() => {
@@ -58,20 +53,7 @@ function SettingsPageContent() {
             <FaPalette className={styles.settingIcon} />
             <span className={styles.settingLabel}>{t('languageSetting')}</span>
           </div>
-          <div className={styles.languageSelector}>
-            <button 
-              onClick={() => setLanguageDropdownOpen(!isLanguageDropdownOpen)} 
-              className={styles.languageToggleButton}
-            >
-              {i18n.language === 'ru' ? t('languageNameRu') : t('languageNameEn')}
-            </button>
-            {isLanguageDropdownOpen && (
-              <div className={styles.languageDropdown}>
-                <button onClick={() => changeLanguage('ru')}>{t('languageNameRu')}</button>
-                <button onClick={() => changeLanguage('en')}>{t('languageNameEn')}</button>
-              </div>
-            )}
-          </div>
+          <LanguageSwitcher />
         </div>
 
         {/* Другие настройки */}
