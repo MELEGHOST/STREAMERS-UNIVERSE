@@ -5,12 +5,12 @@ import { useRouter } from 'next/navigation';
 import { useAuth } from '../contexts/AuthContext';
 import styles from './settings.module.css';
 import pageStyles from '../../styles/page.module.css';
-import { FaArrowLeft, FaPalette, FaLanguage, FaFont, FaClock, FaSignOutAlt } from 'react-icons/fa'; // Иконки
+import { FaArrowLeft, FaPalette, FaLanguage, FaFont, FaClock, FaUser, FaBell, FaShieldAlt } from 'react-icons/fa'; // Иконки
 import RouteGuard from '../components/RouteGuard';
 
 function SettingsPageContent() {
   const router = useRouter();
-  const { isLoading: authLoading, isAuthenticated, currentTheme, toggleTheme, user, signOut } = useAuth();
+  const { isLoading: authLoading, isAuthenticated, currentTheme, toggleTheme, signOut } = useAuth();
 
   // Редирект, если не авторизован
   useEffect(() => {
@@ -24,6 +24,10 @@ function SettingsPageContent() {
     await signOut();
     console.log('[SettingsPage] Выход завершен, перенаправление на главную...');
     router.push('/');
+  };
+
+  const handleGoToProfile = () => {
+    router.push('/menu');
   };
 
   if (authLoading || !isAuthenticated) {
@@ -84,6 +88,13 @@ function SettingsPageContent() {
             className={`${styles.settingsButton} ${styles.logoutButton}`}
           >
             Выйти из аккаунта
+          </button>
+        </div>
+
+        <div className={styles.settingsSection}>
+          <h2 className={styles.sectionTitle}>Профиль</h2>
+          <button onClick={handleGoToProfile} className={styles.settingsButton}>
+            Перейти в профиль
           </button>
         </div>
       </div>

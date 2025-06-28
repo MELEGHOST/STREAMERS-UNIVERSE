@@ -4,11 +4,6 @@ import { NextResponse } from 'next/server';
 
 export async function POST(request) {
   const cookieStore = cookies();
-  let response = NextResponse.next({
-    request: {
-      headers: request.headers,
-    },
-  });
 
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL,
