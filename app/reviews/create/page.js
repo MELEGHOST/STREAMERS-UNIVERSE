@@ -447,7 +447,6 @@ export default function CreateReviewPage() {
     }, [user, category, title, text, rating, subcategory, selectedGenres, ageRating, imageUrl, imageFile, isMovieOrSeries, supabase, router]);
 
     const categoryOptions = Object.keys(reviewCategories).map(cat => ({ value: cat, label: cat }));
-    const genreOptions = movieGenres.map(genre => ({ value: genre, label: genre }));
     const selectStyles = useMemo(() => reactSelectStyles(currentTheme === 'dark'), [currentTheme]);
 
     return (
