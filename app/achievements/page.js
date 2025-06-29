@@ -6,7 +6,6 @@ import { useAuth } from '../contexts/AuthContext';
 import styles from './achievements.module.css';
 import pageStyles from '../../styles/page.module.css';
 import RouteGuard from '../components/RouteGuard';
-import dynamic from 'next/dynamic';
 
 // --- Фетчер для SWR --- 
 const fetcher = async (url, token) => {
@@ -134,23 +133,10 @@ function AchievementsPageContent() {
   );
 }
 
-// --- Динамически импортируем контент ---
-const DynamicAchievementsPageContent = dynamic(
-  () => Promise.resolve(AchievementsPageContent), 
-  { 
-    ssr: false,
-    loading: () => (
-      <div className={pageStyles.loadingContainer}>
-        <div className="spinner"></div><p>Загрузка достижений...</p>
-      </div>
-    )
-  }
-);
-
 export default function AchievementsPage() {
     return (
         <RouteGuard>
-            <DynamicAchievementsPageContent />
+            <AchievementsPageContent />
         </RouteGuard>
     )
 } 
