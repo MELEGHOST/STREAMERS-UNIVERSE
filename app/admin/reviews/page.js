@@ -8,6 +8,7 @@ import pageStyles from '../../../styles/page.module.css'; // Исправлен�
 import Image from 'next/image';
 import Link from 'next/link';
 import { FaArrowLeft } from 'react-icons/fa';
+import dynamic from 'next/dynamic';
 
 // Функция форматирования даты (можно вынести)
 const formatDate = (dateString) => {
@@ -216,8 +217,21 @@ function AdminReviewsPageContent() {
     );
 }
 
+const DynamicAdminReviewsContent = dynamic(
+    () => Promise.resolve(AdminReviewsPageContent),
+    {
+        ssr: false,
+        loading: () => (
+            <div className={pageStyles.loadingContainer}>
+                <div className="spinner"></div>
+                <p>Загрузка модерации...</p>
+            </div>
+        )
+    }
+);
+
 export default function AdminReviewsPage() {
     return (
-        <AdminReviewsPageContent />
+        <DynamicAdminReviewsContent />
     )
 } 

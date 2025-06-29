@@ -5,6 +5,7 @@ import { useAuth } from '../contexts/AuthContext';
 import styles from './edit-profile.module.css';
 import pageStyles from '../../styles/page.module.css';
 import RouteGuard from '../components/RouteGuard';
+import dynamic from 'next/dynamic';
 
 function EditProfilePageContent() {
   const { user, isAuthenticated, supabase } = useAuth();
@@ -331,10 +332,22 @@ function EditProfilePageContent() {
   );
 }
 
+const DynamicEditProfileContent = dynamic(
+  () => Promise.resolve(EditProfilePageContent),
+  {
+    ssr: false,
+    loading: () => (
+      <div className={pageStyles.loadingContainer}>
+        <div className="spinner"></div><p>Загрузка редактора профиля...</p>
+      </div>
+    )
+  }
+);
+
 export default function EditProfilePage() {
   return (
     <RouteGuard>
-      <EditProfilePageContent />
+      <DynamicEditProfileContent />
     </RouteGuard>
   );
 }

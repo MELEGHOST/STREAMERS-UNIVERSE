@@ -3,8 +3,9 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '../contexts/AuthContext';
 import styles from '../../styles/page.module.css'; // Общие стили
+import dynamic from 'next/dynamic';
 
-export default function AdminPage() {
+function AdminPageContent() {
   const { isAuthenticated, user } = useAuth();
   const router = useRouter();
   const [checkingAdmin, setCheckingAdmin] = useState(true);
@@ -45,7 +46,6 @@ export default function AdminPage() {
     );
   }
 
-  // Если пользователь - админ
   return (
     <div className={styles.container}>
       <h1>Админ-панель</h1>
@@ -56,4 +56,21 @@ export default function AdminPage() {
       </button>
     </div>
   );
+}
+
+const DynamicAdminPageContent = dynamic(
+  () => Promise.resolve(AdminPageContent),
+  {
+    ssr: false,
+    loading: () => (
+      <div className={styles.loadingContainer}>
+        <div className="spinner"></div>
+        <p>Загрузка админ-панели...</p>
+      </div>
+    )
+  }
+);
+
+export default function AdminPage() {
+    return <DynamicAdminPageContent />;
 } 
