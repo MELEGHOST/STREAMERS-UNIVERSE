@@ -4,7 +4,7 @@ import { NextResponse } from 'next/server';
 
 // Этот эндпоинт будет вызываться на клиенте после логина,
 // чтобы убедиться, что для пользователя auth.users существует запись в public.profiles
-export async function POST(request) {
+export async function POST(_request) {
   const cookieStore = cookies();
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL,

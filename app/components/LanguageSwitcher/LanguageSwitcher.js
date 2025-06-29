@@ -2,7 +2,6 @@
 
 import { useTranslation } from 'react-i18next';
 import styles from './LanguageSwitcher.module.css';
-import { useRouter } from 'next/navigation';
 
 const languages = [
   { code: 'ru', name: 'Русский', flag: '🇷🇺' },
@@ -12,7 +11,6 @@ const languages = [
 
 const LanguageSwitcher = () => {
   const { i18n } = useTranslation();
-  const router = useRouter();
 
   const changeLanguage = (lng) => {
     i18n.changeLanguage(lng).then(() => {
