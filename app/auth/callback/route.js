@@ -29,21 +29,10 @@ export async function GET(request) {
             return cookieStore.get(name)?.value;
           },
           set(name, value, options) {
-            try {
-              cookieStore.set({ name, value, ...options });
-              if (name.includes('sb-') && name.includes('-auth-token')) {
-                 console.log(`[Auth Callback] Установлена кука сессии: ${name}`);
-              }
-            } catch (error) {
-              console.error(`[Auth Callback] Ошибка установки куки ${name}:`, error);
-            }
+            cookieStore.set({ name, value, ...options });
           },
           remove(name, options) {
-            try {
-              cookieStore.set({ name, value: '', ...options, maxAge: 0 });
-            } catch (error) {
-              console.error(`[Auth Callback] Ошибка удаления куки ${name}:`, error);
-            }
+            cookieStore.set({ name, value: '', ...options });
           },
         },
       }

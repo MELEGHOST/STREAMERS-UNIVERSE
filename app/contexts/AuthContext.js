@@ -28,17 +28,34 @@ export function AuthProvider({ children }) {
   }, []);
 
   useEffect(() => {
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      console.log(`[AuthContext] ===> onAuthStateChange Event: ${event} <===`);
-      setSession(session);
-      const currentUser = session?.user ?? null;
-      setUser(currentUser);
+    const getInitialSession = async () => {
+      // Получаем сессию при первоначальной загрузке
+      const { data } = await supabase.auth.getSession();
+      if (data.session) {
+        setSession(data.session);
+        setUser(data.session.user);
+      }
+      setLoading(false);
+    };
+    
+    getInitialSession();
 
-      if (currentUser) {
-        console.log(`[AuthContext] Пользователь вошел. User ID: ${currentUser.id}`);
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setSession(session);
+      setUser(session?.user ?? null);
+      // Роль будет обновлена ниже, если есть пользователь
+    });
+
+    return () => {
+      subscription?.unsubscribe();
+    };
+  }, []);
+
+  useEffect(() => {
+    const fetchUserRole = async () => {
+      if (user && session) {
+        console.log(`[AuthContext] Пользователь вошел. User ID: ${user.id}`);
         
-        // После успешной авторизации удаляем ID реферера из localStorage,
-        // так как он уже должен был быть обработан на бэкенде.
         if (localStorage.getItem('referrerId')) {
           console.log('[AuthContext] ID реферера найден и будет удален из localStorage.');
           localStorage.removeItem('referrerId');
@@ -57,24 +74,19 @@ export function AuthProvider({ children }) {
             console.log('[AuthContext] Роль пользователя установлена:', data.role);
           } else {
             console.error('[AuthContext] Ошибка при получении роли пользователя:', response.status, await response.text());
-            setUserRole('user'); // Fallback to 'user' on error
+            setUserRole('user');
           }
         } catch (error) {
           console.error('[AuthContext] Исключение при получении роли пользователя:', error);
-          setUserRole('user'); // Fallback to 'user' on exception
+          setUserRole('user');
         }
       } else {
         setUserRole(null);
       }
-      
-      // setLoading(false) должен быть вызван вне зависимости от того, есть юзер или нет
-      setLoading(false);
-    });
-
-    return () => {
-      subscription?.unsubscribe();
     };
-  }, []);
+    
+    fetchUserRole();
+  }, [user, session]);
 
   const signInWithTwitch = useCallback(async () => {
     console.log('[AuthContext] Попытка входа через Twitch...');
