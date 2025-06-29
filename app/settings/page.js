@@ -6,7 +6,6 @@ import { useAuth } from '../contexts/AuthContext';
 import styles from './settings.module.css';
 import pageStyles from '../../styles/page.module.css';
 import { FaArrowLeft, FaPalette } from 'react-icons/fa'; // Иконки
-import RouteGuard from '../components/RouteGuard';
 import { useTranslation } from 'react-i18next';
 import LanguageSwitcher from '../components/LanguageSwitcher/LanguageSwitcher';
 
@@ -138,8 +137,6 @@ function SettingsPageContent() {
 
 export default function SettingsPage() {
   return (
-    <RouteGuard>
-      <SettingsPageContent />
-    </RouteGuard>
+    <SettingsPageContent />
   );
 } 

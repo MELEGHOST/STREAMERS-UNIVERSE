@@ -6,6 +6,7 @@ import I18nProvider from './I18nProvider';
 import { Analytics } from '@vercel/analytics/react';
 import { SpeedInsights } from "@vercel/speed-insights/next"
 import ReferralHandler from './ReferralHandler';
+import RouteGuard from './RouteGuard';
 
 function FontManager() {
   useEffect(() => {
@@ -31,11 +32,13 @@ export default function ClientProviders({ children }) {
       <ReferralHandler />
       <I18nProvider>
         <Providers>
-          <main>
-            {children}
-          </main>
-          <Analytics />
-          <SpeedInsights />
+          <RouteGuard>
+            <main>
+              {children}
+            </main>
+            <Analytics />
+            <SpeedInsights />
+          </RouteGuard>
         </Providers>
       </I18nProvider>
     </Suspense>
