@@ -36,6 +36,14 @@ export function AuthProvider({ children }) {
 
       if (currentUser) {
         console.log(`[AuthContext] Пользователь вошел. User ID: ${currentUser.id}`);
+        
+        // После успешной авторизации удаляем ID реферера из localStorage,
+        // так как он уже должен был быть обработан на бэкенде.
+        if (localStorage.getItem('referrerId')) {
+          console.log('[AuthContext] ID реферера найден и будет удален из localStorage.');
+          localStorage.removeItem('referrerId');
+        }
+
         try {
           const response = await fetch('/api/auth/check-admin', {
             method: 'POST',

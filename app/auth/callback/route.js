@@ -50,36 +50,32 @@ export async function GET(request) {
     );
 
     console.log('[Auth Callback] Обмен кода на сессию...');
-    const { error } = await supabase.auth.exchangeCodeForSession(code);
+    const { data, error } = await supabase.auth.exchangeCodeForSession(code);
 
     if (error) {
-      // Улучшенное логирование ошибки
-      console.error('[Auth Callback] Ошибка обмена кода на сессию:', {
-          message: error.message,
-          status: error.status,
-          code: error.code, // Если есть код ошибки Supabase
-          details: error.cause, // Иногда тут детали
-          name: error.name,
-          fullError: error // Логируем весь объект ошибки
-      });
-      // Передаем более понятное сообщение пользователю, если возможно
-      let userErrorMessage = 'Не удалось войти.';
-      if (error.message.includes('invalid_grant')) {
-          userErrorMessage = 'Ошибка авторизации: Неверный или истекший код авторизации. Попробуйте снова.';
-      } else if (error.status === 403) {
-           userErrorMessage = 'Доступ запрещен. Проверьте настройки OAuth провайдера.';
-      }
-      // Редирект с улучшенным сообщением
-      return NextResponse.redirect(`${origin}/auth?error=${encodeURIComponent(userErrorMessage)}&error_details=${encodeURIComponent(error.message)}`);
+      console.error('[Auth Callback] Ошибка обмена кода на сессию:', error);
+      return NextResponse.redirect(`${origin}/?error=auth_error&error_description=${encodeURIComponent(error.message)}`);
+    }
+    
+    // После успешного входа, если был реферер, нужно его привязать
+    const referrerId = searchParams.get('referrer_id');
+    if (referrerId && data.user) {
+        // Вызываем API для сохранения реферера
+        // ВАЖНО: Тело запроса должно быть строкой
+        await fetch(`${origin}/api/profile/set-referrer`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${data.session.access_token}`
+            },
+            body: JSON.stringify({ referrerId: referrerId })
+        });
     }
 
-    // Успешно! Перенаправляем напрямую в меню.
-    console.log('[Auth Callback] Сессия успешно получена! Перенаправление на /menu');
-    return NextResponse.redirect(`${origin}/menu`);
-
+    return NextResponse.redirect(`${origin}${next}`);
   } else {
      console.error('[Auth Callback] Параметр "code" отсутствует в запросе.');
-     return NextResponse.redirect(`${origin}/auth?error=Ошибка+авторизации:+код+не+найден.`);
+     return NextResponse.redirect(`${origin}/?error=auth_error&error_description=code_not_found`);
   }
 }
 
