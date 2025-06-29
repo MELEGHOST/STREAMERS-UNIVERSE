@@ -5,17 +5,23 @@
     "themeLight": "Light",
     "themeDark": "Dark",
     "languageSetting": "Interface Language",
-    "fontSetting": "Font",
+    "fontSetting": "Font Settings",
     "timezoneSetting": "Timezone",
     "languageNameRu": "Russian",
     "languageNameEn": "English",
-    "fontValue": "Standard (soon...)",
+    "fontValue": "Roboto (soon...)",
     "timezoneValue": "Auto (soon...)",
     "followers": "Followers",
     "following": "Following",
-    "profile": "Profile",
+    "profile": {
+      "notWithUs": "User is not with us yet"
+    },
     "logout": "Logout",
     "login": "Login",
     "loading": "Loading...",
-    "enterMenu": "Enter Menu"
+    "enterMenu": "Enter Menu",
+    "inviteButton": {
+      "invite": "Invite {{name}}",
+      "copied": "Link copied!"
+    }
 } 

@@ -9,6 +9,7 @@ import styles from '../profile.module.css';
 import pageStyles from '../../../styles/page.module.css';
 import { useAuth } from '../../contexts/AuthContext';
 import { pluralize } from '../../utils/pluralize';
+import { useTranslation } from 'react-i18next';
 
 import VkButton from '../../components/SocialButtons/VkButton';
 import TwitchButton from '../../components/SocialButtons/TwitchButton';
@@ -19,6 +20,7 @@ import TiktokButton from '../../components/SocialButtons/TiktokButton';
 import BoostyButton from '../../components/SocialButtons/BoostyButton';
 import YandexMusicButton from '../../components/SocialButtons/YandexMusicButton';
 import StatisticsWidget from '../../components/ProfileWidgets/StatisticsWidget';
+import InviteButton from '../../components/InviteButton/InviteButton';
 
 const socialButtonComponents = {
     vk: VkButton,
@@ -89,6 +91,7 @@ export default function UserProfilePage() {
   const router = useRouter();
   const params = useParams();
   const profileTwitchId = params.twitchId;
+  const { t } = useTranslation();
 
   const { user, isAuthenticated, supabase, isLoading: authIsLoading, signOut } = useAuth();
   
@@ -172,22 +175,6 @@ export default function UserProfilePage() {
   const profileSocialLinks = isRegistered ? profileData?.social_links : null;
   const formattedDate = createdAt ? formatDate(createdAt) : 'Неизвестно';
 
-  const handleInvite = async () => {
-    if (!currentUserTwitchId) {
-        alert('Не удалось получить ваш Twitch ID для создания ссылки-приглашения.');
-        return;
-    }
-    const inviteUrl = `${window.location.origin}/auth?ref=${currentUserTwitchId}`;
-    try {
-      await navigator.clipboard.writeText(inviteUrl);
-      alert(`Ссылка-приглашение для ${displayName} скопирована в буфер обмена!\n${inviteUrl}`);
-    } catch (err) {
-      console.error('Ошибка копирования в буфер обмена:', err);
-      alert('Не удалось скопировать ссылку. Попробуйте скопировать ее вручную из консоли.');
-      console.log('Ссылка для приглашения:', inviteUrl);
-    }
-  };
-
   const handleLogout = async () => {
     await signOut();
     router.push('/');
@@ -225,11 +212,6 @@ export default function UserProfilePage() {
                         🚪 Выйти
                    </button>
                )}
-               {isOwnProfile && !isRegistered && (
-                   <button onClick={handleInvite} className={styles.actionButton}>
-                       🤝 Пригласить на Streamers Universe
-                   </button>
-               )}
           </div>
       </div>
 
@@ -248,20 +230,24 @@ export default function UserProfilePage() {
 
           <div className={styles.profileInfo}> 
               <h1 className={styles.displayName}>{displayName}</h1>
-              <p className={styles.loginName}>@{twitchUserData?.login}</p>
+              <p className={styles.loginName}>@{twitchUserData?.login || profileData?.twitch_login || '???'}</p>
               {isRegistered && userRolesArray.length > 0 && (
                   <p className={styles.userRole}>{userRolesArray.join(', ')}</p>
               )}
-              {!isRegistered && (
-                    <div className={styles.notRegisteredBadge}>
-                        <p>😥 Пользователь ещё не с нами</p>
-                        {!isOwnProfile && isAuthenticated && (
-                            <button onClick={handleInvite} className={styles.inlineInviteButton}>
-                                Пригласить!
-                            </button>
-                        )}
-                    </div>
-               )}
+              {!isRegistered ? (
+                <div className={styles.notRegistered}>
+                    <p>😢 {t('profile.notWithUs')}</p>
+                    <InviteButton targetUserName={displayName} />
+                </div>
+              ) : (
+                <div className={styles.socialLinks}>
+                    {profileSocialLinks && Object.entries(profileSocialLinks).map(([key, value]) => {
+                        if (!value) return null;
+                        const ButtonComponent = socialButtonComponents[key];
+                        return ButtonComponent ? <ButtonComponent key={key} url={value} /> : null;
+                    })}
+                </div>
+              )}
               <div className={styles.stats}>
                 {followersCount !== null && typeof followersCount !== 'undefined' && (
                     <p>👥 {followersCount.toLocaleString('ru-RU')} {pluralize(followersCount, 'фолловер', 'фолловера', 'фолловеров')}</p>
@@ -276,21 +262,6 @@ export default function UserProfilePage() {
                      <p>💼 Статус: {translateBroadcasterType(broadcasterType)}</p>
                 )}
               </div>
-              
-              {profileSocialLinks && Object.keys(profileSocialLinks).length > 0 && (
-                <div className={styles.socialLinksContainer}>
-                  {Object.entries(profileSocialLinks).map(([key, value]) => {
-                    const ButtonComponent = socialButtonComponents[key.toLowerCase()];
-                    if (ButtonComponent && value) {
-                      const props = key.toLowerCase() === 'twitch' 
-                        ? { value: value }
-                        : { href: value };
-                      return <ButtonComponent key={key} {...props} />;
-                    }
-                    return null;
-                  })}
-                </div>
-              )}
           </div>
 
           <div className={styles.rightColumn}>

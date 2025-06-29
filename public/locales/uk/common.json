@@ -5,17 +5,23 @@
     "themeLight": "Світла",
     "themeDark": "Темна",
     "languageSetting": "Мова інтерфейсу",
-    "fontSetting": "Шрифт",
+    "fontSetting": "Налаштування шрифту",
     "timezoneSetting": "Часовий пояс",
     "languageNameRu": "Російська",
     "languageNameEn": "Англійська",
-    "fontValue": "Стандартний (скоро...)",
-    "timezoneValue": "Авто (скоро...)",
+    "fontValue": "Roboto (незабаром...)",
+    "timezoneValue": "Авто (незабаром...)",
     "followers": "Підписники",
     "following": "Підписки",
-    "profile": "Профіль",
+    "profile": {
+      "notWithUs": "Користувач ще не з нами"
+    },
     "logout": "Вийти",
     "login": "Увійти",
     "loading": "Завантаження...",
-    "enterMenu": "Увійти в меню"
+    "enterMenu": "Увійти в меню",
+    "inviteButton": {
+      "invite": "Запросити {{name}}",
+      "copied": "Посилання скопійовано!"
+    }
 } 
