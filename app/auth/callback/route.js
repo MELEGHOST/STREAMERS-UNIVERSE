@@ -49,16 +49,26 @@ export async function GET(request) {
     // После успешного входа, если был реферер, нужно его привязать
     const referrerId = searchParams.get('referrer_id');
     if (referrerId && data.user) {
-        // Вызываем API для сохранения реферера
-        // ВАЖНО: Тело запроса должно быть строкой
-        await fetch(`${origin}/api/profile/set-referrer`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${data.session.access_token}`
-            },
-            body: JSON.stringify({ referrerId: referrerId })
-        });
+        try {
+            console.log(`[Auth Callback] Попытка привязать реферера ${referrerId} к пользователю ${data.user.id}`);
+            // Вызываем API для сохранения реферера
+            const response = await fetch(`${origin}/api/profile/set-referrer`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${data.session.access_token}`
+                },
+                body: JSON.stringify({ referrerId: referrerId })
+            });
+            if (!response.ok) {
+                const errorBody = await response.text();
+                console.error(`[Auth Callback] Ошибка API при привязке реферера: ${response.status}`, errorBody);
+            } else {
+                console.log(`[Auth Callback] Реферер ${referrerId} успешно привязан.`);
+            }
+        } catch (apiError) {
+            console.error('[Auth Callback] Исключение при вызове API для привязки реферера:', apiError);
+        }
     }
 
     return NextResponse.redirect(`${origin}${next}`);
