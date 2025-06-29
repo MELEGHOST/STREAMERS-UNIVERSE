@@ -14,19 +14,19 @@ const RouteGuard = ({ children }) => {
   const isProtectedRoute = protectedRoutes.some(route => pathname.startsWith(route));
 
   useEffect(() => {
-    // Не делать ничего, пока идет первоначальная загрузка контекста
+    // Ждем окончания загрузки данных об аутентификации
     if (isLoading) {
       return;
     }
 
-    // Если пользователь НЕ аутентифицирован и пытается зайти на защищенный роут
+    // Если пользователь НЕ аутентифицирован и пытается получить доступ к защищенному маршруту
     if (!isAuthenticated && isProtectedRoute) {
-      console.log(`[RouteGuard] Доступ к ${pathname} запрещен. Редирект на главную.`);
+      console.log(`[RouteGuard] Доступ к ${pathname} запрещен. Перенаправление на главную.`);
       router.replace('/');
     }
-  }, [isLoading, isAuthenticated, pathname, isProtectedRoute, router]);
+  }, [isLoading, isAuthenticated, isProtectedRoute, pathname, router]);
 
-  // Во время загрузки показывать спиннер ТОЛЬКО на защищенных страницах
+  // Во время загрузки показывать лоадер, чтобы избежать "моргания" контента
   if (isLoading && isProtectedRoute) {
     return (
       <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
@@ -35,20 +35,10 @@ const RouteGuard = ({ children }) => {
       </div>
     );
   }
-
-  // Если загрузка завершена и пользователь не авторизован, но находится на защищенном роуте,
-  // то он будет перенаправлен эффектом выше. Чтобы избежать моргания контента,
-  // можно вернуть null или лоадер.
-  if (!isLoading && !isAuthenticated && isProtectedRoute) {
-    return (
-        <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
-            <div className="spinner"></div>
-            <p>Перенаправление...</p>
-        </div>
-    );
-  }
-
-  return children;
+  
+  // Всегда рендерим дочерние элементы, чтобы не блокировать сборку.
+  // Логика редиректа отработает на клиенте, если это необходимо.
+  return <>{children}</>;
 };
 
 export default RouteGuard; 
