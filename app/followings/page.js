@@ -44,18 +44,50 @@ function FollowingsPageContent() {
     }
   }, [isAuthenticated]);
 
-  if (isAuthLoading || (isLoading && isAuthenticated)) {
+  // Централизованная логика рендеринга контента
+  const renderContent = () => {
+    if (isAuthLoading || isLoading) {
+      return (
+        <div className={styles.loadingContainer}>
+          <div className="spinner"></div><p>Загрузка списка вдохновителей...</p>
+        </div>
+      );
+    }
+
+    if (error) {
+      return <p className={styles.errorText}>Ошибка: {error}</p>;
+    }
+
+    if (channels.length === 0) {
+      return <p>Вы пока ни на кого не подписаны на Twitch.</p>;
+    }
+
     return (
-      <div className={styles.loadingContainer}>
-        <div className="spinner"></div><p>Загрузка списка вдохновителей...</p>
+      <div className={styles.channelsGrid}>
+        {channels.map(channel => (
+          <Link key={channel.id} href={`/profile/${channel.login}`} className={styles.channelCard}>
+            <Image 
+              src={channel.profilePictureUrl} 
+              alt={channel.displayName} 
+              width={80}
+              height={80}
+              className={styles.channelAvatar} 
+            />
+            <div className={styles.channelInfo}>
+              <span className={styles.channelName}>{channel.displayName}</span>
+              {channel.isLive && <span className={styles.liveIndicator}>В ЭФИРЕ</span>}
+            </div>
+            {channel.isLive && <p className={styles.streamTitle}>{channel.title}</p>}
+          </Link>
+        ))}
       </div>
     );
-  }
+  };
 
-  if (!isAuthenticated) {
+  if (!isAuthenticated && !isAuthLoading) {
     return (
       <div className={styles.loadingContainer}>
-        <p>Перенаправление на страницу входа...</p>
+        <div className="spinner"></div><p>Загрузка страницы...</p>
       </div>
     );
   }
@@ -64,30 +96,7 @@ function FollowingsPageContent() {
     <div className={styles.container}>
       <h1>{title}</h1>
       
-      {error && <p className={styles.errorText}>Ошибка: {error}</p>}
-      
-      <div className={styles.channelsGrid}>
-        {channels.length > 0 ? (
-          channels.map(channel => (
-            <Link key={channel.id} href={`/profile/${channel.login}`} className={styles.channelCard}>
-              <Image 
-                src={channel.profilePictureUrl} 
-                alt={channel.displayName} 
-                width={80}
-                height={80}
-                className={styles.channelAvatar} 
-              />
-              <div className={styles.channelInfo}>
-                <span className={styles.channelName}>{channel.displayName}</span>
-                {channel.isLive && <span className={styles.liveIndicator}>В ЭФИРЕ</span>}
-              </div>
-              {channel.isLive && <p className={styles.streamTitle}>{channel.title}</p>}
-            </Link>
-          ))
-        ) : (
-          !isLoading && <p>Вы пока ни на кого не подписаны на Twitch.</p>
-        )}
-      </div>
+      {renderContent()}
 
       <button onClick={() => router.push('/menu')} className={styles.backButton}>
         &larr; Назад в меню

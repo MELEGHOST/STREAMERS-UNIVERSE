@@ -1,9 +1,10 @@
 'use client';
 
-import { I18nextProvider, initReactI18next } from 'react-i18next';
 import i18n from 'i18next';
+import { I18nextProvider, initReactI18next } from 'react-i18next';
 import LanguageDetector from 'i18next-browser-languagedetector';
 import Backend from 'i18next-http-backend';
+import { useEffect } from 'react';
 
 // Инициализируем i18next только один раз
 if (!i18n.isInitialized) {
@@ -24,8 +25,10 @@ if (!i18n.isInitialized) {
     });
 }
 
-const I18nProvider = ({ children }) => {
-  return <I18nextProvider i18n={i18n}>{children}</I18nextProvider>;
-};
+export default function I18nProvider({ children }) {
+  useEffect(() => {
+    // This effect can be used to handle language changes or other i18n-related side effects.
+  }, []);
 
-export default I18nProvider; 
+  return <I18nextProvider i18n={i18n}>{children}</I18nextProvider>;
+} 

@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { verifyJwt } from '../../../../utils/jwt'; // Убедись, что путь правильный
+import { handleAchievementTrigger } from '../../../../utils/achievements'; // <<< Импортируем
 
 // Инициализация Supabase Admin Client (используем сервисный ключ)
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -63,6 +64,10 @@ export async function PUT(request) {
             console.error(`[API /api/twitch/user/profile] Error updating profile:`, error);
             return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
         }
+
+        // --- Запускаем проверку достижений ---
+        await handleAchievementTrigger(userId, 'PROFILE_UPDATED');
+        // ------------------------------------
 
         return NextResponse.json(data, { status: 200 });
     } catch (error) {
