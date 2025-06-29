@@ -28,65 +28,50 @@ export function AuthProvider({ children }) {
   }, []);
 
   useEffect(() => {
-    const getInitialSession = async () => {
-      // Получаем сессию при первоначальной загрузке
-      const { data } = await supabase.auth.getSession();
-      if (data.session) {
-        setSession(data.session);
-        setUser(data.session.user);
+    setLoading(true);
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      console.log(`[AuthContext] onAuthStateChange event: ${event}`, session);
+      setSession(session);
+      const currentUser = session?.user ?? null;
+      setUser(currentUser);
+
+      if (currentUser) {
+        try {
+            // Сначала синхронизируем профиль (создаем, если его нет)
+            const syncResponse = await fetch('/api/profile/sync', {
+              method: 'POST',
+              headers: { 'Authorization': `Bearer ${session.access_token}` },
+            });
+            
+            if (!syncResponse.ok) {
+                const errorData = await syncResponse.json();
+                throw new Error(errorData.error || 'Ошибка синхронизации профиля');
+            }
+            
+            const profileData = await syncResponse.json();
+            console.log('[AuthContext] Профиль синхронизирован:', profileData);
+            setUserRole(profileData.role || 'user');
+
+            // Теперь, когда профиль точно есть, можно безопасно удалять referrerId
+            if (localStorage.getItem('referrerId')) {
+              console.log('[AuthContext] ID реферера найден и будет удален из localStorage.');
+              localStorage.removeItem('referrerId');
+            }
+        } catch (error) {
+            console.error('[AuthContext] Исключение при синхронизации профиля или получении роли:', error);
+            // Если что-то пошло не так, ставим роль по-умолчанию, но не ломаем приложение
+            setUserRole('user');
+        }
+      } else {
+        setUserRole(null);
       }
       setLoading(false);
-    };
-    
-    getInitialSession();
-
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      setSession(session);
-      setUser(session?.user ?? null);
-      // Роль будет обновлена ниже, если есть пользователь
     });
 
     return () => {
       subscription?.unsubscribe();
     };
   }, []);
-
-  useEffect(() => {
-    const fetchUserRole = async () => {
-      if (user && session) {
-        console.log(`[AuthContext] Пользователь вошел. User ID: ${user.id}`);
-        
-        if (localStorage.getItem('referrerId')) {
-          console.log('[AuthContext] ID реферера найден и будет удален из localStorage.');
-          localStorage.removeItem('referrerId');
-        }
-
-        try {
-          const response = await fetch('/api/auth/check-admin', {
-            method: 'POST',
-            headers: {
-              'Authorization': `Bearer ${session.access_token}`,
-            },
-          });
-          if (response.ok) {
-            const data = await response.json();
-            setUserRole(data.role);
-            console.log('[AuthContext] Роль пользователя установлена:', data.role);
-          } else {
-            console.error('[AuthContext] Ошибка при получении роли пользователя:', response.status, await response.text());
-            setUserRole('user');
-          }
-        } catch (error) {
-          console.error('[AuthContext] Исключение при получении роли пользователя:', error);
-          setUserRole('user');
-        }
-      } else {
-        setUserRole(null);
-      }
-    };
-    
-    fetchUserRole();
-  }, [user, session]);
 
   const signInWithTwitch = useCallback(async () => {
     console.log('[AuthContext] Попытка входа через Twitch...');

@@ -16,7 +16,7 @@ const LanguageSwitcher = () => {
 
   const changeLanguage = (lng) => {
     i18n.changeLanguage(lng).then(() => {
-      router.refresh();
+      window.location.reload();
     });
   };
 
