@@ -9,7 +9,7 @@ export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
   const [session, setSession] = useState(null);
   const [userRole, setUserRole] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(true); // Всегда true в начале
   const [currentTheme, setCurrentTheme] = useState('dark');
 
   useEffect(() => {
@@ -27,64 +27,55 @@ export function AuthProvider({ children }) {
     });
   }, []);
 
-  useEffect(() => {
-    setLoading(true);
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      console.log(`[AuthContext] onAuthStateChange event: ${event}`, session);
-      setSession(session);
-      const currentUser = session?.user ?? null;
-      setUser(currentUser);
+  const syncAndSetUser = useCallback(async (session) => {
+    const currentUser = session?.user ?? null;
+    setUser(currentUser);
+    setSession(session);
 
-      if (currentUser) {
+    if (currentUser) {
         try {
-            // Сначала синхронизируем профиль (создаем, если его нет)
             const syncResponse = await fetch('/api/profile/sync', {
-              method: 'POST',
-              headers: { 'Authorization': `Bearer ${session.access_token}` },
+                method: 'POST',
+                headers: { 'Authorization': `Bearer ${session.access_token}` },
             });
-            
-            if (!syncResponse.ok) {
-                const errorData = await syncResponse.json();
-                throw new Error(errorData.error || 'Ошибка синхронизации профиля');
-            }
+            if (!syncResponse.ok) throw new Error('Ошибка синхронизации профиля');
             
             const profileData = await syncResponse.json();
-            console.log('[AuthContext] Профиль синхронизирован:', profileData);
             setUserRole(profileData.role || 'user');
-
-            // Теперь, когда профиль точно есть, можно безопасно удалять referrerId
+            
             if (localStorage.getItem('referrerId')) {
-              console.log('[AuthContext] ID реферера найден и будет удален из localStorage.');
-              localStorage.removeItem('referrerId');
+                localStorage.removeItem('referrerId');
             }
         } catch (error) {
-            console.error('[AuthContext] Исключение при синхронизации профиля или получении роли:', error);
-            // Если что-то пошло не так, ставим роль по-умолчанию, но не ломаем приложение
-            setUserRole('user');
+            console.error('[AuthContext] Ошибка при синхронизации:', error);
+            setUserRole('user'); // Фоллбэк
         }
-      } else {
+    } else {
         setUserRole(null);
-      }
-      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    const checkInitialSession = async () => {
+        const { data: { session } } = await supabase.auth.getSession();
+        await syncAndSetUser(session);
+        setLoading(false);
+    };
+
+    checkInitialSession();
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
+        await syncAndSetUser(session);
     });
 
     return () => {
       subscription?.unsubscribe();
     };
-  }, []);
+  }, [syncAndSetUser]);
 
   const signInWithTwitch = useCallback(async () => {
-    console.log('[AuthContext] Попытка входа через Twitch...');
-    
     const referrerId = localStorage.getItem('referrerId');
-    const queryParams = new URLSearchParams();
-
-    if (referrerId) {
-      console.log(`[AuthContext] Найден ID реферера: ${referrerId}. Добавляем в параметры.`);
-      queryParams.append('referrer_id', referrerId);
-    }
-
-    const { error } = await supabase.auth.signInWithOAuth({
+    await supabase.auth.signInWithOAuth({
       provider: 'twitch',
       options: {
         redirectTo: `${window.location.origin}/auth/callback`,
@@ -93,15 +84,9 @@ export function AuthProvider({ children }) {
         }
       },
     });
-
-    if (error) {
-      console.error('[AuthContext] Ошибка при вызове signInWithOAuth:', error);
-      throw error;
-    }
   }, []);
 
   const signOut = useCallback(async () => {
-    console.log('[AuthContext] Выход из системы...');
     await supabase.auth.signOut();
   }, []);
 
