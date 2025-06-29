@@ -7,7 +7,6 @@ import styles from '../../styles/page.module.css'; // Общие стили
 export default function AdminPage() {
   const { isAuthenticated, user } = useAuth();
   const router = useRouter();
-  const [, setIsAdmin] = useState(false);
   const [checkingAdmin, setCheckingAdmin] = useState(true);
 
   useEffect(() => {
