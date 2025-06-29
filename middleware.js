@@ -1,12 +1,21 @@
 import { createServerClient } from '@supabase/ssr';
 import { NextResponse } from 'next/server';
 
-export async function middleware(request) {
-  // This `response` object will be modified by the `set` and `remove` functions
-  // and returned at the end of the middleware.
-  let response = NextResponse.next({
+const protectedPaths = [
+  '/profile',
+  '/edit-profile',
+  '/settings',
+  '/my-reviews',
+  '/followers',
+  '/followings',
+  '/achievements',
+  '/admin',
+];
+
+export async function middleware(req) {
+  let res = NextResponse.next({
     request: {
-      headers: request.headers,
+      headers: req.headers,
     },
   });
 
@@ -16,36 +25,35 @@ export async function middleware(request) {
     {
       cookies: {
         get(name) {
-          return request.cookies.get(name)?.value;
+          return req.cookies.get(name)?.value;
         },
         set(name, value, options) {
-          // If the cookie is set, update the request's cookies.
-          request.cookies.set({
-            name,
-            value,
-            ...options,
-          });
-          // Also update the response's cookies.
-          response.cookies.set({
-            name,
-            value,
-            ...options,
-          });
+          req.cookies.set({ name, value, ...options });
+          res.cookies.set({ name, value, ...options });
         },
         remove(name, options) {
-          // If the cookie is removed, update the request's cookies.
-          request.cookies.set({ name, value: '', ...options });
-          response.cookies.set({ name, value: '', ...options });
+          req.cookies.set({ name, value: '', ...options });
+          res.cookies.set({ name, value: '', ...options });
         },
       },
     }
   );
 
-  // Единственная задача middleware - обновлять сессию пользователя.
-  // Вся логика защиты перенесена на клиент в компонент RouteGuard.
-  await supabase.auth.getUser();
+  const { data: { session } } = await supabase.auth.getSession();
+  const { pathname } = req.nextUrl;
 
-  return response;
+  // Если пользователь пытается зайти на /auth, перенаправляем его на главную
+  if (pathname === '/auth') {
+    return NextResponse.redirect(new URL('/', req.url));
+  }
+
+  // Если пользователь не авторизован и пытается зайти на защищенную страницу
+  if (!session && protectedPaths.some(path => pathname.startsWith(path))) {
+    console.log(`[Middleware] Unauthorized access to ${pathname}, redirecting to home.`);
+    return NextResponse.redirect(new URL('/', req.url));
+  }
+
+  return res;
 }
 
 export const config = {
