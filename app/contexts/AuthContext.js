@@ -70,11 +70,22 @@ export function AuthProvider({ children }) {
 
   const signInWithTwitch = useCallback(async () => {
     console.log('[AuthContext] Попытка входа через Twitch...');
+    
+    const referrerId = localStorage.getItem('referrerId');
+    const queryParams = new URLSearchParams();
+
+    if (referrerId) {
+      console.log(`[AuthContext] Найден ID реферера: ${referrerId}. Добавляем в параметры.`);
+      queryParams.append('referrer_id', referrerId);
+    }
 
     const { error } = await supabase.auth.signInWithOAuth({
       provider: 'twitch',
       options: {
         redirectTo: `${window.location.origin}/auth/callback`,
+        queryParams: {
+          referrer_id: referrerId || undefined,
+        }
       },
     });
 

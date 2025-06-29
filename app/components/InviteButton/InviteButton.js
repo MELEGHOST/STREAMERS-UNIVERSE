@@ -17,7 +17,7 @@ const InviteButton = ({ targetUserName }) => {
       return;
     }
 
-    const inviteUrl = `${window.location.origin}/auth?ref=${user.user_metadata.provider_id}`;
+    const inviteUrl = `${window.location.origin}/?ref=${user.user_metadata.provider_id}`;
     
     try {
       await navigator.clipboard.writeText(inviteUrl);
