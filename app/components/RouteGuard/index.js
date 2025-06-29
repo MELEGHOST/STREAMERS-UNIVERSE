@@ -26,7 +26,13 @@ const RouteGuard = ({ children }) => {
     }
   }, [isLoading, isAuthenticated, isProtectedRoute, pathname, router]);
 
-  // Во время загрузки показывать лоадер, чтобы избежать "моргания" контента
+  // Во время сборки/SSR (когда window не определен), просто рендерим дочерние элементы.
+  // Защита маршрутов будет работать на клиенте после гидратации.
+  if (typeof window === 'undefined') {
+    return <>{children}</>;
+  }
+
+  // На клиенте, во время загрузки, показываем лоадер для защищенных маршрутов
   if (isLoading && isProtectedRoute) {
     return (
       <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
@@ -36,8 +42,7 @@ const RouteGuard = ({ children }) => {
     );
   }
   
-  // Всегда рендерим дочерние элементы, чтобы не блокировать сборку.
-  // Логика редиректа отработает на клиенте, если это необходимо.
+  // Если загрузка завершена или маршрут не защищен, рендерим дочерние элементы.
   return <>{children}</>;
 };
 
