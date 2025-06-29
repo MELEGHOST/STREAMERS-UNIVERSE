@@ -1,17 +1,6 @@
 import { createServerClient } from '@supabase/ssr';
 import { NextResponse } from 'next/server';
 
-const protectedPaths = [
-  '/profile',
-  '/edit-profile',
-  '/settings',
-  '/my-reviews',
-  '/followers',
-  '/followings',
-  '/achievements',
-  '/admin',
-];
-
 export async function middleware(req) {
   let res = NextResponse.next({
     request: {
@@ -39,19 +28,9 @@ export async function middleware(req) {
     }
   );
 
-  const { data: { session } } = await supabase.auth.getSession();
-  const { pathname } = req.nextUrl;
-
-  // Если пользователь пытается зайти на /auth, перенаправляем его на главную
-  if (pathname === '/auth') {
-    return NextResponse.redirect(new URL('/', req.url));
-  }
-
-  // Если пользователь не авторизован и пытается зайти на защищенную страницу
-  if (!session && protectedPaths.some(path => pathname.startsWith(path))) {
-    console.log(`[Middleware] Unauthorized access to ${pathname}, redirecting to home.`);
-    return NextResponse.redirect(new URL('/', req.url));
-  }
+  // Единственная задача middleware - обновлять сессию пользователя.
+  // Вся логика защиты перенесена на клиент в компонент RouteGuard.
+  await supabase.auth.getUser();
 
   return res;
 }

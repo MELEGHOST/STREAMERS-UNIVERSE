@@ -7,7 +7,7 @@
 }
 
 .container {
-    padding: 20px;
+    padding: 80px 20px 20px; /* Add top padding to not overlap with back button */
     max-width: 600px;
     margin: 0 auto;
     color: var(--tg-theme-text-color);
@@ -356,4 +356,59 @@
 .select:focus {
   outline: none;
   box-shadow: 0 0 5px rgba(0, 255, 255, 0.5);
+}
+
+.titleContainer {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  
+  .titleContainer .input {
+    flex-grow: 1;
+  }
+  
+  .generateButton {
+    padding: 10px 15px;
+    border: none;
+    border-radius: 8px;
+    background-color: #8A2BE2; /* BlueViolet */
+    color: white;
+    font-weight: bold;
+    cursor: pointer;
+    transition: background-color 0.2s, transform 0.2s;
+    white-space: nowrap;
+  }
+  
+  .generateButton:hover:not(:disabled) {
+    background-color: #9932CC; /* MediumOrchid */
+    transform: scale(1.02);
+  }
+  
+  .generateButton:disabled {
+    background-color: #555;
+    cursor: not-allowed;
+  }
+
+  .generalError {
+    text-align: center;
+    margin-top: 15px;
+  }
+
+.backButton {
+  position: absolute;
+  top: 20px;
+  left: 20px;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: white;
+  padding: 10px 15px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background-color 0.2s;
+  font-size: 1rem;
+}
+
+.backButton:hover {
+  background: rgba(255, 255, 255, 0.2);
 } 
