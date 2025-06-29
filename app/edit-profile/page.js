@@ -7,7 +7,7 @@ import pageStyles from '../../styles/page.module.css';
 import RouteGuard from '../components/RouteGuard';
 
 function EditProfilePageContent() {
-  const { user, isLoading, isAuthenticated, supabase } = useAuth();
+  const { user, isAuthenticated, supabase } = useAuth();
   const router = useRouter();
   const title = "Редактирование профиля";
 

@@ -5,9 +5,9 @@ import { useAuth } from '../contexts/AuthContext';
 import styles from '../../styles/page.module.css'; // Общие стили
 
 export default function AdminPage() {
-  const { isLoading, isAuthenticated, user } = useAuth();
+  const { isAuthenticated, user } = useAuth();
   const router = useRouter();
-  const [isAdmin, setIsAdmin] = useState(false);
+  const [, setIsAdmin] = useState(false);
   const [checkingAdmin, setCheckingAdmin] = useState(true);
 
   useEffect(() => {
@@ -18,7 +18,6 @@ export default function AdminPage() {
           const response = await fetch('/api/auth/check-admin');
           if (response.ok) {
             const data = await response.json();
-            setIsAdmin(data.isAdmin);
             if (!data.isAdmin) {
                 console.warn('[Admin Page] User is not admin, redirecting to menu.');
                 router.push('/menu?error=not_admin');
