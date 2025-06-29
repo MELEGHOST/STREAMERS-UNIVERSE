@@ -79,14 +79,6 @@ function AchievementsPageContent() {
   const isLoading = authLoading || dataIsLoading;
   const error = apiError?.message || null;
 
-  // --- Обработка редиректа, если не авторизован (ПОСЛЕ ЗАВЕРШЕНИЯ ЗАГРУЗКИ) ---
-  useEffect(() => {
-    if (!authLoading && !isAuthenticated) {
-      console.log('[AchievementsPage] User not authenticated after loading, redirecting to /auth');
-      router.push('/auth?next=/achievements');
-    }
-  }, [authLoading, isAuthenticated, router]);
-
   // --- Извлекаем данные из ответа API ---
   const achievements = useMemo(() => apiData?.achievements || [], [apiData]);
   const myAchievements = useMemo(() => achievements.filter(ach => ach.is_unlocked), [achievements]);
@@ -98,11 +90,6 @@ function AchievementsPageContent() {
                <div className="spinner"></div><p>Загрузка достижений...</p>
            </div>
        );
-   }
-   // Если редирект еще не сработал, но пользователь не авторизован, ничего не рендерим
-   if (!isAuthenticated) { 
-       console.log('[AchievementsPage] Not authenticated, rendering null while redirecting...');
-       return null; 
    }
 
   return (

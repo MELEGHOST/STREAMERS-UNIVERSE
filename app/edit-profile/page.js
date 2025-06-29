@@ -89,17 +89,10 @@ function EditProfilePageContent() {
   }, [user, supabase, title]);
 
   useEffect(() => {
-    if (!isLoading && !isAuthenticated) {
-      console.log(`[${title}] Не аутентифицирован, редирект на /auth`);
-      router.push(`/auth?next=/edit-profile`);
-    } else if (isAuthenticated && user) {
+    if (isAuthenticated && user) {
       fetchProfileData();
-    } else if (!isLoading && isAuthenticated && !user) {
-      console.error(`[${title}] Пользователь аутентифицирован, но объект user отсутствует!`);
-      setError("Произошла ошибка аутентификации. Попробуйте перезайти.");
-      setLoadingProfileData(false);
     }
-  }, [isLoading, isAuthenticated, user, router, title, fetchProfileData]);
+  }, [isAuthenticated, user, fetchProfileData]);
 
   const handleSave = async (e) => {
     e.preventDefault();
@@ -174,16 +167,12 @@ function EditProfilePageContent() {
     }
   };
 
-  if (isLoading || loadingProfileData) {
+  if (loadingProfileData) {
     return (
       <div className={pageStyles.loadingContainer}>
-        <div className="spinner"></div><p>Загрузка редактора профиля...</p>
+        <div className="spinner"></div><p>Загрузка данных профиля...</p>
       </div>
     );
-  }
-
-  if (!isAuthenticated) {
-    return null;
   }
 
   return (

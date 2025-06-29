@@ -102,7 +102,10 @@ function AdminReviewsPageContent() {
     }, [isAuthenticated, isAdminUser, router]);
 
     // --- Рендеринг ---
-    if (!isAuthenticated || (!isAdminUser && !isAuthenticated)) { // Показываем загрузку, пока идет проверка прав
+    // Убираем эту проверку, так как RouteGuard уже выполняет эту роль.
+    // Это предотвращает блокировку рендеринга во время сборки.
+    /*
+    if (!isAuthenticated || (!isAdminUser && !isAuthenticated)) { 
         return (
             <div className={pageStyles.loadingContainer}>
                 <div className="spinner"></div>
@@ -110,6 +113,7 @@ function AdminReviewsPageContent() {
             </div>
         );
     }
+    */
     
     return (
         <div className={pageStyles.container}>

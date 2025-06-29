@@ -11,13 +11,6 @@ export default function AdminPage() {
   const [checkingAdmin, setCheckingAdmin] = useState(true);
 
   useEffect(() => {
-    if (!isLoading && !isAuthenticated) {
-      console.log('[Admin Page] Not authenticated, redirecting to auth');
-      router.push(`/auth?next=/admin`);
-    }
-  }, [isLoading, isAuthenticated, router]);
-
-  useEffect(() => {
     if (isAuthenticated && user) {
       const checkAdmin = async () => {
         setCheckingAdmin(true);
@@ -45,20 +38,11 @@ export default function AdminPage() {
     }
   }, [isAuthenticated, user, router]);
 
-  if (isLoading || checkingAdmin) {
+  if (checkingAdmin) {
     return (
       <div className={styles.loadingContainer}>
         <div className="spinner"></div>
-        <p>Проверка доступа...</p>
-      </div>
-    );
-  }
-
-  if (!isAuthenticated || !isAdmin) {
-    // Этот рендер не должен произойти из-за редиректов выше, но на всякий случай
-    return (
-      <div className={styles.loadingContainer}>
-        <p>Доступ запрещен или ошибка проверки...</p>
+        <p>Проверка роли администратора...</p>
       </div>
     );
   }
