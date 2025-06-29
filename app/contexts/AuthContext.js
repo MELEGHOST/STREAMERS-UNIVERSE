@@ -6,10 +6,10 @@ import { supabase } from '../utils/supabase/client';
 const AuthContext = createContext(undefined);
 
 export function AuthProvider({ children }) {
-  const [user, setUser] = useState(null);
   const [session, setSession] = useState(null);
+  const [user, setUser] = useState(null);
   const [userRole, setUserRole] = useState(null);
-  const [loading, setLoading] = useState(true); // Всегда true в начале
+  const [loading, setLoading] = useState(true);
   const [currentTheme, setCurrentTheme] = useState('dark');
 
   useEffect(() => {
@@ -27,55 +27,53 @@ export function AuthProvider({ children }) {
     });
   }, []);
 
-  const syncAndSetUser = useCallback(async (session) => {
-    const currentUser = session?.user ?? null;
-    setUser(currentUser);
-    setSession(session);
-
-    if (currentUser) {
-        try {
-            const syncResponse = await fetch('/api/profile/sync', {
-                method: 'POST',
-                headers: { 'Authorization': `Bearer ${session.access_token}` },
-            });
-            if (!syncResponse.ok) throw new Error('Ошибка синхронизации профиля');
-            
-            const profileData = await syncResponse.json();
-            setUserRole(profileData.role || 'user');
-            
-            if (localStorage.getItem('referrerId')) {
-                localStorage.removeItem('referrerId');
-            }
-        } catch (error) {
-            console.error('[AuthContext] Ошибка при синхронизации:', error);
-            setUserRole('user'); // Фоллбэк
-        }
-    } else {
-        setUserRole(null);
-    }
-  }, []);
-
   useEffect(() => {
-    const checkInitialSession = async () => {
-        const { data: { session } } = await supabase.auth.getSession();
-        await syncAndSetUser(session);
-        setLoading(false);
-    };
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      console.log(`[AuthContext] Auth event: ${event}`);
+      setSession(session);
+      const currentUser = session?.user ?? null;
+      setUser(currentUser);
 
-    checkInitialSession();
+      if (currentUser) {
+        try {
+          const syncResponse = await fetch('/api/profile/sync', {
+            method: 'POST',
+            headers: { 'Authorization': `Bearer ${session.access_token}` },
+          });
+          
+          if (!syncResponse.ok) {
+            const errorText = await syncResponse.text();
+            throw new Error(`Sync failed: ${errorText}`);
+          }
+          
+          const profileData = await syncResponse.json();
+          setUserRole(profileData.role || 'user');
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
-        await syncAndSetUser(session);
+          if (localStorage.getItem('referrerId')) {
+            console.log('[AuthContext] Referrer ID found, removing from localStorage.');
+            localStorage.removeItem('referrerId');
+          }
+        } catch (error) {
+          console.error('[AuthContext] Sync/Role fetch failed:', error);
+          setUserRole('user'); // Fallback
+        }
+      } else {
+        setUserRole(null);
+      }
+      
+      // Это безопасно, потому что этот коллбэк вызывается при первоначальной загрузке
+      // и устанавливает окончательное состояние загрузки.
+      setLoading(false);
     });
 
     return () => {
       subscription?.unsubscribe();
     };
-  }, [syncAndSetUser]);
+  }, []);
 
   const signInWithTwitch = useCallback(async () => {
     const referrerId = localStorage.getItem('referrerId');
-    await supabase.auth.signInWithOAuth({
+    const { error } = await supabase.auth.signInWithOAuth({
       provider: 'twitch',
       options: {
         redirectTo: `${window.location.origin}/auth/callback`,
@@ -84,6 +82,9 @@ export function AuthProvider({ children }) {
         }
       },
     });
+    if (error) {
+        console.error("Ошибка входа через Twitch:", error);
+    }
   }, []);
 
   const signOut = useCallback(async () => {
