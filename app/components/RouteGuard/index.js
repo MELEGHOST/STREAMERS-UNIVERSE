@@ -4,7 +4,6 @@ import { useEffect } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import { useAuth } from '../../contexts/AuthContext';
 
-const publicRoutes = ['/']; // Главная страница доступна всем
 const protectedRoutes = ['/menu', '/profile', '/edit-profile', '/settings', '/followers', '/followings', '/my-reviews', '/achievements', '/admin'];
 
 const RouteGuard = ({ children }) => {
