@@ -18,44 +18,6 @@ async function getUserReviewCount(userId) {
   return count;
 }
 
-// Функция для получения количества подписок пользователя на Twitch
-async function getTwitchFollowingCount(userId) {
-  // Мы должны получить токен доступа пользователя к Twitch из его сессии
-  const { data: user, error: userError } = await supabaseAdmin
-    .from('users') // Предполагаем, что у вас есть таблица users или профилей
-    .select('raw_user_meta_data') // Где хранятся данные от провайдера
-    .eq('id', userId)
-    .single();
-
-  if (userError || !user) {
-    console.error(`[Achievements] Could not find user ${userId} to get Twitch token.`, userError);
-    return 0;
-  }
-  
-  // Достаем токен доступа, который Supabase сохранил при аутентификации
-  const accessToken = user.raw_user_meta_data?.provider_token;
-
-  if (!accessToken) {
-    console.error(`[Achievements] Missing Twitch provider_token for user ${userId}.`);
-    return 0;
-  }
-
-  // Используем API Twitch для получения списка подписок
-  // Важно: этот запрос должен выполняться от имени пользователя, используя его токен
-  // Так как у нас нет прямого доступа к Twitch API здесь, мы предполагаем, 
-  // что у нас будет внутренний API или helper для этого.
-  // В данном случае, мы сделаем симуляцию, но в реальном проекте здесь будет вызов Twitch API.
-  // Для простоты, мы будем считать, что у нас есть другой способ получить это число.
-  // Например, через вызов нашего собственного API, который уже умеет это делать.
-  // Это более безопасный и правильный подход.
-  
-  // В нашем случае, мы сделаем "заглушку", так как прямого вызова Twitch API из этого утилитарного файла быть не должно.
-  // Логику подсчета мы перенесем в API-роут /api/twitch/user/followings
-
-  // Возвращаем -1, чтобы показать, что подсчет должен быть выполнен в другом месте.
-  return -1; 
-}
-
 // Функция для получения профиля пользователя
 async function getUserProfile(userId) {
     const { data, error } = await supabaseAdmin
