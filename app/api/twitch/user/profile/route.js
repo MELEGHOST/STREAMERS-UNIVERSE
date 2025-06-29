@@ -54,9 +54,9 @@ export async function PUT(request) {
 
     try {
         const { data, error } = await supabaseAdmin
-            .from('user_profiles')
+            .from('profiles')
             .update(dataToUpdate)
-            .eq('user_id', userId)
+            .eq('id', userId)
             .select() // Возвращаем обновленную запись
             .single(); // Ожидаем одну запись
 

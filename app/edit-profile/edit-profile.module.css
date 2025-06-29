@@ -246,4 +246,36 @@
 .saveButton:active:not(:disabled),
 .cancelButton:active {
   transform: scale(0.98);
+}
+
+.formGroup:last-child {
+    margin-bottom: 0;
+}
+
+/* Стили для селектора */
+.select {
+    width: 100%;
+    padding: 12px 15px;
+    background-color: var(--background-secondary);
+    color: var(--foreground-primary);
+    border: 1px solid var(--border-primary);
+    border-radius: var(--border-radius);
+    font-size: 1rem;
+    cursor: pointer;
+    appearance: none; /* Убираем стандартный вид */
+    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236B7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='m6 8 4 4 4-4'/%3e%3c/svg%3e");
+    background-position: right 0.7rem center;
+    background-repeat: no-repeat;
+    background-size: 1.25em;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.select:focus {
+    outline: none;
+    border-color: var(--accent-primary);
+    box-shadow: 0 0 0 2px var(--accent-primary-transparent, rgba(138, 79, 255, 0.2));
+}
+
+.button {
+    width: 100%;
 } 

@@ -31,12 +31,12 @@ function SettingsPageContent() {
     if (savedFontSize) {
       const size = parseInt(savedFontSize, 10);
       setFontSize(size);
-      document.documentElement.style.fontSize = `${size}px`;
+      document.documentElement.style.setProperty('--main-font-size', `${size}px`);
     }
 
     if (savedFontFamily) {
       setFontFamily(savedFontFamily);
-      document.documentElement.style.fontFamily = savedFontFamily;
+      document.documentElement.style.setProperty('--main-font-family', savedFontFamily);
     }
   }, []);
 
@@ -44,14 +44,14 @@ function SettingsPageContent() {
     const newSize = e.target.value;
     setFontSize(newSize);
     localStorage.setItem('fontSize', newSize);
-    document.documentElement.style.fontSize = `${newSize}px`;
+    document.documentElement.style.setProperty('--main-font-size', `${newSize}px`);
   };
 
   const handleFontFamilyChange = (e) => {
     const newFamily = e.target.value;
     setFontFamily(newFamily);
     localStorage.setItem('fontFamily', newFamily);
-    document.documentElement.style.fontFamily = newFamily;
+    document.documentElement.style.setProperty('--main-font-family', newFamily);
   };
 
   // Редирект, если не авторизован

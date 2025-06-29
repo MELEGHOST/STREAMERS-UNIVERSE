@@ -14,11 +14,11 @@ function FontManager() {
     const savedFontFamily = localStorage.getItem('fontFamily');
 
     if (savedFontSize) {
-      document.documentElement.style.fontSize = `${savedFontSize}px`;
+      document.documentElement.style.setProperty('--main-font-size', `${savedFontSize}px`);
     }
 
     if (savedFontFamily) {
-      document.documentElement.style.fontFamily = savedFontFamily;
+      document.documentElement.style.setProperty('--main-font-family', savedFontFamily);
     }
   }, []);
 

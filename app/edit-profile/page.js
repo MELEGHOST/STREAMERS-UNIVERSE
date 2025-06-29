@@ -39,9 +39,9 @@ function EditProfilePageContent() {
 
     try {
       const { data, error: fetchError } = await supabase
-        .from('user_profiles')
+        .from('profiles')
         .select('birthday, social_links, description, profile_widget')
-        .eq('user_id', user.id)
+        .eq('id', user.id)
         .maybeSingle();
 
       if (fetchError) {
