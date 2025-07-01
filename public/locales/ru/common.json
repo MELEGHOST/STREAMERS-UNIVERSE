@@ -23,5 +23,19 @@
     "inviteButton": {
       "invite": "Пригласить {{name}}",
       "copied": "Ссылка скопирована!"
-    }
+    },
+    "menu": {
+        "search": "Поиск",
+        "reviews": "Отзывы",
+        "followings": "Вдохновители",
+        "followers": "Последователи",
+        "settings": "Настройки",
+        "moderation": "Модерация",
+        "navigationMenu": "Меню навигации",
+        "profile": "Профиль"
+    },
+    "yourAvatar": "Ваш аватар",
+    "logoAlt": "Логотип Streamers Universe",
+    "appName": "Streamers Universe",
+    "footerRights": "© {{year}} Streamers Universe. Все права защищены?"
 } 

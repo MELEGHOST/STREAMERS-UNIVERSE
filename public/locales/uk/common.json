@@ -23,5 +23,19 @@
     "inviteButton": {
       "invite": "Запросити {{name}}",
       "copied": "Посилання скопійовано!"
-    }
+    },
+    "menu": {
+        "search": "Пошук",
+        "reviews": "Відгуки",
+        "followings": "Натхненники",
+        "followers": "Послідовники",
+        "settings": "Налаштування",
+        "moderation": "Модерація",
+        "navigationMenu": "Меню навігації",
+        "profile": "Профіль"
+    },
+    "yourAvatar": "Ваш аватар",
+    "logoAlt": "Логотип Streamers Universe",
+    "appName": "Streamers Universe",
+    "footerRights": "© {{year}} Streamers Universe. Всі права захищені?"
 } 

@@ -23,5 +23,19 @@
     "inviteButton": {
       "invite": "Invite {{name}}",
       "copied": "Link copied!"
-    }
+    },
+    "menu": {
+        "search": "Search",
+        "reviews": "Reviews",
+        "followings": "Inspirers",
+        "followers": "Followers",
+        "settings": "Settings",
+        "moderation": "Moderation",
+        "navigationMenu": "Navigation Menu",
+        "profile": "Profile"
+    },
+    "yourAvatar": "Your avatar",
+    "logoAlt": "Streamers Universe Logo",
+    "appName": "Streamers Universe",
+    "footerRights": "© {{year}} Streamers Universe. All rights reserved?"
 } 

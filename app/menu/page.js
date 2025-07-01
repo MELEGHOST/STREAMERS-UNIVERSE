@@ -6,25 +6,27 @@ import { useAuth } from '../contexts/AuthContext';
 import styles from './menu.module.css';
 import pageStyles from '../../styles/page.module.css';
 import { FaSearch, FaCog, FaShieldAlt, FaCommentDots, FaUserCheck, FaUsers } from 'react-icons/fa';
+import { useTranslation } from 'react-i18next';
 
 export default function MenuPage() {
   const { user, userRole } = useAuth();
+  const { t } = useTranslation();
 
   // С этого момента мы уверены, что user существует, т.к. сюда пускает только callback.
   const userTwitchProviderId = user?.user_metadata?.provider_id;
 
   // --- Формирование пунктов меню --- 
   const menuItems = [
-    { href: '/search', label: 'Поиск', icon: <FaSearch /> },
-    { href: '/reviews/create', label: 'Отзывы', icon: <FaCommentDots /> },
-    { href: '/followings', label: 'Вдохновители', icon: <FaUserCheck /> },
-    { href: '/followers', label: 'Последователи', icon: <FaUsers /> },
-    { href: '/settings', label: 'Настройки', icon: <FaCog /> },
+    { href: '/search', label: t('menu.search'), icon: <FaSearch /> },
+    { href: '/reviews/create', label: t('menu.reviews'), icon: <FaCommentDots /> },
+    { href: '/followings', label: t('menu.followings'), icon: <FaUserCheck /> },
+    { href: '/followers', label: t('menu.followers'), icon: <FaUsers /> },
+    { href: '/settings', label: t('menu.settings'), icon: <FaCog /> },
   ];
 
   // Добавляем админскую панель, если роль admin
   if (userRole === 'admin') {
-      menuItems.push({ href: '/admin/reviews', label: 'Модерация', icon: <FaShieldAlt />, isAdmin: true });
+      menuItems.push({ href: '/admin/reviews', label: t('menu.moderation'), icon: <FaShieldAlt />, isAdmin: true });
   }
 
   return (
@@ -34,32 +36,32 @@ export default function MenuPage() {
           <div className={styles.logoContainer}>
               {/* Ссылка только на картинке */}
               <Link href="/menu" passHref className={styles.logoImageLink}>
-                <Image src="/logo.png" alt="Streamers Universe Logo" width={40} height={40} priority /> 
+                <Image src="/logo.png" alt={t('logoAlt')} width={40} height={40} priority /> 
               </Link>
               {/* Текст без ссылки */}
-              <span className={styles.logoText}>Streamers Universe</span>
+              <span className={styles.logoText}>{t('appName')}</span>
           </div>
           
           {/* Навигация пользователя */} 
           <nav className={styles.userNav}>
               {userTwitchProviderId && (
-                  <Link href={`/profile/${userTwitchProviderId}`} className={styles.userLink} title="Перейти в профиль">
+                  <Link href={`/profile/${userTwitchProviderId}`} className={styles.userLink} title={t('menu.profile')}>
                       <Image 
                           src={user?.user_metadata?.avatar_url || '/default_avatar.png'} // TODO: Заменить fallback
-                          alt="Ваш аватар"
+                          alt={t('yourAvatar')}
                           width={36} 
                           height={36} 
                           className={styles.userAvatar}
                           unoptimized // Убрать, если next/image настроен
                       />
-                      <span className={styles.userName}>{user?.user_metadata?.name || user?.user_metadata?.user_name || 'Профиль'}</span>
+                      <span className={styles.userName}>{user?.user_metadata?.name || user?.user_metadata?.user_name || t('menu.profile')}</span>
                   </Link>
               )}
           </nav>
       </header>
 
       <main className={styles.mainContent}>
-          <h2 className={styles.mainTitle}>Меню навигации</h2>
+          <h2 className={styles.mainTitle}>{t('menu.navigationMenu')}</h2>
           <nav className={styles.mainNavGrid}>
               {menuItems.map((item) => (
                   <Link 
@@ -75,7 +77,7 @@ export default function MenuPage() {
       </main>
 
       <footer className={pageStyles.footer}>
-          <p>&copy; {new Date().getFullYear()} Streamers Universe. Все права защищены?</p>
+          <p>{t('footerRights', { year: new Date().getFullYear() })}</p>
       </footer>
     </div>
   );
