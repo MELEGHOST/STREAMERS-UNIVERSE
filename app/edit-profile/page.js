@@ -33,7 +33,7 @@ function EditProfilePageContent() {
     
     try {
       const { data, error: fetchError } = await supabase
-        .from('profiles')
+        .from('user_profiles')
         .select('birthday, social_links, description, profile_widget')
         .eq('id', user.id)
         .maybeSingle();
@@ -62,7 +62,7 @@ function EditProfilePageContent() {
   const handleSave = async (e) => {
     e.preventDefault();
     if (!user) {
-      setError({ key: 'edit_profile.userError' });
+      setError(t('edit_profile.userError'));
       return;
     }
 

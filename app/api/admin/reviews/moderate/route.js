@@ -20,7 +20,7 @@ async function isAdmin(token) {
         }
 
         const { data, error } = await supabaseAdmin
-            .from('profiles')
+            .from('user_profiles')
             .select('role')
             .eq('id', user.id)
             .single();

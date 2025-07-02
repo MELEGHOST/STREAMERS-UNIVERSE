@@ -1,6 +1,7 @@
 'use client';
 
-import React from 'react';
+import React, { useEffect, useState } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { useAuth } from './contexts/AuthContext';
 import HoldLoginButton from './components/HoldLoginButton/HoldLoginButton';
 import LoginButton from './components/LoginButton/LoginButton';
@@ -11,6 +12,15 @@ import { useTranslation } from 'react-i18next';
 export default function HomePage() {
   const { t } = useTranslation();
   const { isAuthenticated, isLoading } = useAuth();
+  const searchParams = useSearchParams();
+  const [error, setError] = useState('');
+
+  useEffect(() => {
+    const errorDescription = searchParams.get('error_description');
+    if (errorDescription) {
+      setError(errorDescription);
+    }
+  }, [searchParams]);
 
   // Простой компонент для звездного фона
   const StarryBackground = () => (
@@ -41,6 +51,8 @@ export default function HomePage() {
                 priority // Для LCP
             />
             
+            {error && <p className={styles.errorMessage}>{t('error')}: {error}</p>}
+
             <div className={styles.loggedOutContent}>
                 <h2>
                     {isAuthenticated 

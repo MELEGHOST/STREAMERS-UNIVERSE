@@ -53,12 +53,13 @@ export async function PUT(request) {
     console.log(`[API /api/twitch/user/profile] Updating profile for user ${userId} with data:`, dataToUpdate);
 
     try {
+        // 2. Обновляем или создаем профиль в нашей базе
+        // Мы используем upsert, чтобы создать профиль, если его нет, или обновить, если есть.
         const { data, error } = await supabaseAdmin
-            .from('profiles')
+            .from('user_profiles')
             .update(dataToUpdate)
             .eq('id', userId)
             .select() // Возвращаем обновленную запись
-            .single(); // Ожидаем одну запись
 
         if (error) {
             console.error(`[API /api/twitch/user/profile] Error updating profile:`, error);

@@ -54,7 +54,7 @@ export async function POST({ headers }) {
   // Используем обычный клиент, но с аутентификацией от имени сервиса, 
   // так как мы уже верифицировали пользователя.
   const { data: profile, error: profileError } = await supabaseAdmin
-    .from('profiles')
+    .from('user_profiles')
     .select('*')
     .eq('id', user.id)
     .single();
@@ -81,7 +81,7 @@ export async function POST({ headers }) {
   };
   
   const { data: createdProfile, error: createError } = await supabaseAdmin
-    .from('profiles')
+    .from('user_profiles')
     .insert(newUserProfile)
     .select()
     .single();
