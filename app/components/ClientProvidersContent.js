@@ -34,7 +34,7 @@ function FontManager() {
   return null;
 }
 
-export default function ClientProviders({ children }) {
+export default function ClientProvidersContent({ children }) {
   return (
     <Suspense fallback={<div>Loading...</div>}>
       <I18nProvider>

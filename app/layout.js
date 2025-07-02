@@ -1,6 +1,5 @@
 import '../styles/globals.css';
 import ClientProviders from './components/ClientProviders';
-import Header from './components/Header/Header';
 import StyledComponentsRegistry from './lib/StyledComponentsRegistry';
 
 export const metadata = {
@@ -13,10 +12,7 @@ export default function RootLayout({ children }) {
     <html>
       <body>
         <StyledComponentsRegistry>
-          <ClientProviders>
-            <Header />
-            <main>{children}</main>
-          </ClientProviders>
+          <ClientProviders>{children}</ClientProviders>
         </StyledComponentsRegistry>
       </body>
     </html>

@@ -5,16 +5,12 @@ import Image from 'next/image';
 import { useAuth } from '../contexts/AuthContext';
 import styles from './menu.module.css';
 import pageStyles from '../../styles/page.module.css';
-import { FaSearch, FaCog, FaShieldAlt, FaCommentDots, FaUserCheck, FaUsers, FaPen, FaTrophy, FaSignOutAlt } from 'react-icons/fa';
+import { FaSearch, FaCog, FaShieldAlt, FaCommentDots, FaUserCheck, FaUsers } from 'react-icons/fa';
 import { useTranslation } from 'react-i18next';
 
 export default function MenuPage() {
-  const { userRole, signOut } = useAuth();
+  const { user, userRole } = useAuth();
   const { t } = useTranslation();
-
-  const handleLogout = async () => {
-    await signOut();
-  };
 
   // С этого момента мы уверены, что user существует, т.к. сюда пускает только callback.
   const userTwitchProviderId = user?.user_metadata?.provider_id;
@@ -22,9 +18,7 @@ export default function MenuPage() {
   // --- Формирование пунктов меню --- 
   const menuItems = [
     { href: '/search', label: t('menu.search'), icon: <FaSearch /> },
-    { href: '/my-reviews', label: t('menu.myReviews'), icon: <FaCommentDots /> },
-    { href: '/edit-profile', label: t('menu.editProfile'), icon: <FaPen /> },
-    { href: '/achievements', label: t('menu.achievements'), icon: <FaTrophy /> },
+    { href: '/reviews/create', label: t('menu.reviews'), icon: <FaCommentDots /> },
     { href: '/followings', label: t('menu.followings'), icon: <FaUserCheck /> },
     { href: '/followers', label: t('menu.followers'), icon: <FaUsers /> },
     { href: '/settings', label: t('menu.settings'), icon: <FaCog /> },
@@ -32,14 +26,8 @@ export default function MenuPage() {
 
   // Добавляем админскую панель, если роль admin
   if (userRole === 'admin') {
-      menuItems.push({ href: '/admin/reviews', label: t('menu.moderation'), icon: <FaShieldAlt />, isSpecial: true });
+      menuItems.push({ href: '/admin/reviews', label: t('menu.moderation'), icon: <FaShieldAlt />, isAdmin: true });
   }
-
-  // Добавляем кнопку выхода последней
-  const allItems = [
-    ...menuItems,
-    { action: handleLogout, label: t('logout'), icon: <FaSignOutAlt />, isSpecial: true, isLogout: true }
-  ];
 
   return (
     <div className={pageStyles.container}>
@@ -73,28 +61,17 @@ export default function MenuPage() {
       </header>
 
       <main className={styles.mainContent}>
-          <h1 className={styles.mainTitle}>{t('menu.navigationMenu')}</h1>
+          <h2 className={styles.mainTitle}>{t('menu.navigationMenu')}</h2>
           <nav className={styles.mainNavGrid}>
-              {allItems.map((item) => (
-                  item.href ? (
-                      <Link
-                          key={item.href}
-                          href={item.href}
-                          className={`${styles.navCard} ${item.isSpecial ? styles.adminCard : ''}`}
-                      >
-                          <div className={styles.navCardIcon}>{item.icon}</div>
-                          <span className={styles.navCardLabel}>{item.label}</span>
-                      </Link>
-                  ) : (
-                      <button
-                          key="logout"
-                          onClick={item.action}
-                          className={`${styles.navCard} ${styles.adminCard}`}
-                      >
-                          <div className={styles.navCardIcon}>{item.icon}</div>
-                          <span className={styles.navCardLabel}>{item.label}</span>
-                      </button>
-                  )
+              {menuItems.map((item) => (
+                  <Link 
+                      key={item.href}
+                      href={item.href} 
+                      className={`${styles.navCard} ${item.isAdmin ? styles.adminCard : ''}`}
+                  >
+                      <div className={styles.navCardIcon}>{item.icon}</div>
+                      <span className={styles.navCardLabel}>{item.label}</span>
+                  </Link>
               ))}
           </nav>
       </main>
