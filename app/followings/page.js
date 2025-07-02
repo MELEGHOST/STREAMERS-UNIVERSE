@@ -76,12 +76,12 @@ function FollowingsPageContent() {
         <div className={pageStyles.container}>
             <header className={styles.header}>
                 <button onClick={() => router.back()} className={styles.backButton}>
-                    <FaArrowLeft /> {t('achievements_page.backButton')}
+                    <FaArrowLeft /> {t('common.back')}
                 </button>
                 <h1 className={styles.title}>{t('profile_page.followingsTitle')} ({followings.length})</h1>
             </header>
 
-            {error && <p className={pageStyles.errorMessage}>{'Ошибка: ' + error}</p>}
+            {error && <p className={pageStyles.errorMessage}>{t('common.error')}: {error}</p>}
 
             {followings.length > 0 ? (
                 <div className={styles.grid}>

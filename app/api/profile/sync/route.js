@@ -1,10 +1,17 @@
 import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
 import { NextResponse } from 'next/server';
+import { createClient } from '@supabase/supabase-js';
+
+// Админ-клиент для обновления метаданных пользователя
+const supabaseAdmin = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL,
+  process.env.SUPABASE_SERVICE_KEY
+);
 
 // Этот эндпоинт будет вызываться на клиенте после логина,
 // чтобы убедиться, что для пользователя auth.users существует запись в public.profiles
-export async function POST() {
+export async function POST(request) {
   const cookieStore = cookies();
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -18,30 +25,45 @@ export async function POST() {
     }
   );
 
-  const { data: { user }, error: userError } = await supabase.auth.getUser();
-
-  if (userError || !user) {
-    return NextResponse.json({ error: 'Пользователь не авторизован.' }, { status: 401 });
+  const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+  
+  if (sessionError || !session) {
+      return NextResponse.json({ error: 'Пользователь не авторизован.' }, { status: 401 });
   }
 
-  // 1. Проверяем, существует ли профиль
+  const user = session.user;
+  const providerToken = session.provider_token;
+
+  // --- ШАГ 1: Обновляем метаданные пользователя, чтобы сохранить provider_token ---
+  if (providerToken) {
+    const { data: updatedUser, error: updateUserError } = await supabaseAdmin.auth.admin.updateUserById(
+      user.id,
+      { user_metadata: { ...user.user_metadata, provider_token: providerToken } }
+    );
+    if (updateUserError) {
+        console.error(`[Sync Profile API] Ошибка обновления user_metadata для ${user.id}:`, updateUserError.message);
+        // Не фатальная ошибка, продолжаем выполнение
+    } else {
+        console.log(`[Sync Profile API] Успешно сохранен provider_token для ${user.id}`);
+    }
+  }
+
+  // --- ШАГ 2: Проверяем и создаем профиль в public.profiles ---
   const { data: profile, error: profileError } = await supabase
     .from('profiles')
     .select('*')
     .eq('id', user.id)
     .single();
 
-  if (profileError && profileError.code !== 'PGRST116') { // PGRST116 - 'No rows found'
+  if (profileError && profileError.code !== 'PGRST116') {
     console.error('[Sync Profile API] Ошибка при поиске профиля:', profileError);
     return NextResponse.json({ error: 'Ошибка базы данных при поиске профиля.' }, { status: 500 });
   }
 
-  // 2. Если профиль уже есть, возвращаем его
   if (profile) {
     return NextResponse.json(profile);
   }
 
-  // 3. Если профиля нет, создаем его
   const newUserProfile = {
     id: user.id,
     // Извлекаем данные из user_metadata, которые предоставляет Twitch

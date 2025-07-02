@@ -313,5 +313,12 @@
       "notRegistered": "Не зареєстрований у Streamers Universe",
       "noResults": "Нічого не знайдено за запитом \"{{query}}\".",
       "errorPrefix": "Помилка"
+    },
+    "common": {
+      "back": "Назад",
+      "error": "Помилка",
+      "loading": "Завантаження...",
+      "unknown": "Невідомо",
+      "invalidDate": "Невірна дата"
     }
 } 

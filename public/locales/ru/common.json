@@ -311,5 +311,12 @@
       "notRegistered": "Не зарегистрирован в Streamers Universe",
       "noResults": "Ничего не найдено по запросу \"{{query}}\".",
       "errorPrefix": "Ошибка"
+    },
+    "common": {
+      "back": "Назад",
+      "error": "Ошибка",
+      "loading": "Загрузка...",
+      "unknown": "Неизвестно",
+      "invalidDate": "Неверная дата"
     }
 } 

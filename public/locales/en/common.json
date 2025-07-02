@@ -312,5 +312,12 @@
       "notRegistered": "Not registered in Streamers Universe",
       "noResults": "No results found for \"{{query}}\".",
       "errorPrefix": "Error"
+    },
+    "common": {
+      "back": "Back",
+      "error": "Error",
+      "loading": "Loading...",
+      "unknown": "Unknown",
+      "invalidDate": "Invalid Date"
     }
 } 
