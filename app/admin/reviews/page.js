@@ -58,7 +58,7 @@ function AdminReviewsContent() {
         } finally {
             setLoading(false);
         }
-    }, [isAdminUser, supabase, t]);
+    }, [isAdminUser, supabase]);
 
     useEffect(() => {
         if (userRole === 'user') {

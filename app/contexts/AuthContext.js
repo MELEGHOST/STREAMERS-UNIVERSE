@@ -97,7 +97,7 @@ export function AuthProvider({ children }) {
     if (error) {
         console.error('Error signing out:', error);
     }
-  }, [supabase]);
+  }, []);
 
   const value = useMemo(() => ({
     user,
