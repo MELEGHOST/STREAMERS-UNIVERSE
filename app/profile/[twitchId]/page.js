@@ -166,6 +166,28 @@ export default function UserProfilePage() {
   const isAdmin = userRolesArray.includes('admin');
   const isStreamer = twitchUserData?.broadcaster_type === 'partner' || twitchUserData?.broadcaster_type === 'affiliate';
 
+  const getNicknameStyle = () => {
+    const adminColor = '#ffd700';
+    const streamerColor = '#9146ff';
+
+    if (isAdmin && isStreamer) {
+        return {
+            background: `linear-gradient(90deg, ${adminColor} 0%, ${streamerColor} 100%)`,
+            WebkitBackgroundClip: 'text',
+            WebkitTextFillColor: 'transparent',
+            backgroundClip: 'text',
+            textFillColor: 'transparent',
+            display: 'inline-block' // Необходимо для работы background-clip
+        };
+    } else if (isAdmin) {
+        return { color: adminColor };
+    } else if (isStreamer) {
+        return { color: streamerColor };
+    }
+    return {}; // Стиль по умолчанию
+  };
+
+  const nicknameStyle = getNicknameStyle();
   const profileWidget = profileData?.profile_widget;
 
   if (loadingProfile) {
@@ -254,14 +276,11 @@ export default function UserProfilePage() {
 
           <div className={styles.profileInfo}> 
               <h1 className={styles.displayName}>
-                {displayName}
+                <span style={nicknameStyle}>{displayName}</span>
                 {isAdmin && <RoleBadge role="admin" t={t} />}
                 {isStreamer && <RoleBadge role="streamer" t={t} />}
               </h1>
               <p className={styles.loginName}>@{twitchUserData?.login || profileData?.twitch_login || '???'}</p>
-              {isRegistered && userRolesArray.length > 0 && (
-                  <p className={styles.userRole}>{userRolesArray.join(', ')}</p>
-              )}
               {!isRegistered ? (
                 <div className={styles.notRegistered}>
                     <p>😢 {t('profile.notWithUs')}</p>

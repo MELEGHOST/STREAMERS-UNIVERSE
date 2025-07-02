@@ -1,0 +1,102 @@
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.75rem 1.5rem;
+  background-color: var(--background-secondary);
+  border-bottom: 1px solid var(--border-secondary);
+  width: 100%;
+  position: sticky;
+  top: 0;
+  z-index: 1000;
+}
+
+.left, .right {
+  flex: 1;
+}
+
+.right {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.logoContainer {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.75rem;
+  text-decoration: none;
+  color: var(--foreground-primary);
+  transition: opacity 0.2s ease;
+}
+
+.logoContainer:hover {
+  opacity: 0.85;
+}
+
+.logo {
+  width: 40px;
+  height: 40px;
+}
+
+.logoText {
+  font-size: 1.25rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.navigation {
+  display: flex;
+  justify-content: center;
+  gap: 1rem;
+}
+
+.navLink {
+  padding: 0.5rem 1rem;
+  font-size: 1rem;
+  font-weight: 500;
+  color: var(--foreground-secondary);
+  text-decoration: none;
+  border-radius: var(--border-radius);
+  transition: background-color 0.2s ease, color 0.2s ease;
+  white-space: nowrap;
+}
+
+.navLink:hover {
+  background-color: var(--background-tertiary);
+  color: var(--foreground-primary);
+}
+
+.navLink.active {
+  background-color: var(--accent-primary-muted);
+  color: var(--accent-primary);
+  font-weight: 600;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .logoText {
+    display: none;
+  }
+
+  .navigation {
+    flex: 1;
+    justify-content: center;
+  }
+
+  .left {
+    flex: 0;
+  }
+}
+
+@media (max-width: 640px) {
+  .header {
+    flex-direction: column;
+    gap: 1rem;
+    padding: 1rem;
+  }
+
+  .navigation {
+    width: 100%;
+    justify-content: space-around;
+  }
+} 
