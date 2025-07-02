@@ -1,10 +1,21 @@
+:root {
+  --speed: 0.6s;
+  --easing: linear(
+    0 0%, 0.1538 4.09%, 0.2926 8.29%, 0.4173 12.63%, 0.5282 17.12%,
+    0.6255 21.77%, 0.7099 26.61%, 0.782 31.67%, 0.8425 37%, 0.8887 42.23%,
+    0.9257 47.79%, 0.9543 53.78%, 0.9752 60.32%, 0.9883 67.11%, 0.9961 75%,
+    1 100%
+  );
+}
+
 .listItem {
   background: var(--background-secondary);
   position: relative;
   overflow: hidden;
+  min-width: var(--base-width, 80px);
   border-radius: 12px;
   border: 1px solid var(--border-primary);
-  transition: all 0.3s ease;
+  transition: background-color 0.3s ease;
 }
 
 .listItem::before, .listItem::after {
@@ -51,65 +62,75 @@
 .article {
   width: 100%;
   height: 100%;
+  position: relative;
+  font-family: monospace;
   display: flex;
   flex-direction: column;
   justify-content: flex-end;
-  gap: 0.5rem;
-  padding: 1.25rem;
-  padding-left: 1.75rem;
+  gap: 1rem;
+  padding: 1rem;
+  padding-left: 1.5rem;
+  overflow: hidden;
 }
 
-.title {
+.verticalTitle {
   position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%) rotate(-90deg);
-  transform-origin: center;
+  top: 1rem;
+  left: 0.5rem;
+  transform-origin: 0 50%;
+  rotate: 90deg;
   font-size: 0.9rem;
-  font-weight: 500;
+  font-weight: 300;
   text-transform: uppercase;
-  font-family: monospace;
   white-space: nowrap;
   opacity: 0.7;
-  transition: opacity 0.4s ease, transform 0.4s ease;
+  transition: opacity var(--speed) var(--easing);
 }
 
-.emojiIcon {
+.article > svg {
+  width: 24px;
+  height: 24px;
+  opacity: 0.6;
+  transition: opacity var(--speed) var(--easing);
+}
+
+.description {
+  font-size: 14px;
+  text-wrap: balance;
+  line-height: 1.3;
+  opacity: 0;
+  transition: opacity var(--speed) var(--easing);
+  color: var(--foreground-secondary);
+}
+
+.link {
   position: absolute;
   bottom: 1rem;
-  left: 50%;
-  transform: translateX(-50%);
-  font-size: 1.5rem;
-  opacity: 0.7;
-  transition: opacity 0.4s ease;
+  right: 1rem;
+  color: inherit;
+  text-decoration: none;
+  opacity: 0;
+  transition: opacity var(--speed) var(--easing);
 }
 
-.iconWrapper, .label, .description, .cta {
-  opacity: 0;
-  transform: translateY(10px);
-  transition: opacity 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94), transform 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
-  transition-delay: 0s;
+.link:is(:focus-visible, :hover) span {
+  text-decoration: underline;
+  text-underline-offset: 4px;
 }
 
-.listItem[data-active='true'] .title,
-.listItem[data-active='true'] .emojiIcon {
-  opacity: 0;
-  transform: translateY(10px) rotate(-90deg);
-}
-.listItem[data-active='true'] .title {
-  transform: translate(-50%, -50%) rotate(-90deg) translateY(-20px);
-}
-.listItem[data-active='true'] .emojiIcon {
+/* Active State */
+.listItem[data-active='true'] .verticalTitle {
   opacity: 0;
 }
 
-.listItem[data-active='true'] .iconWrapper,
-.listItem[data-active='true'] .label,
-.listItem[data-active='true'] .description,
-.listItem[data-active='true'] .cta {
+.listItem[data-active='true'] > .article > svg {
   opacity: 1;
-  transform: translateY(0);
-  transition-delay: 0.15s;
+}
+
+.listItem[data-active='true'] .description,
+.listItem[data-active='true'] .link {
+  opacity: 1;
+  transition-delay: calc(var(--speed) * 0.25);
 }
 
 .iconWrapper {
@@ -127,13 +148,6 @@
   font-size: 1.2rem;
   font-weight: 600;
   margin: 0;
-}
-
-.description {
-  font-size: 0.9rem;
-  line-height: 1.4;
-  opacity: 0.8;
-  color: var(--foreground-secondary);
 }
 
 .cta {

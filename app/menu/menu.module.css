@@ -87,14 +87,19 @@
 
 /* --- Основной контент меню --- */
 .mainContent {
-  padding: 0 1rem; /* Добавим небольшие отступы по бокам */
+  flex-grow: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
 }
 
 .mainTitle {
-  text-align: center;
+  font-size: 2.5rem;
   margin-bottom: 2rem;
-  font-size: 1.8rem;
   color: var(--foreground-primary);
+  text-align: center;
 }
 
 /* Сетка для карточек меню */
@@ -110,10 +115,10 @@
   gap: 8px;
   list-style-type: none;
   padding: 0;
-  margin: 2rem 0;
-  width: 100%;
-  max-width: 1200px;
-  height: 350px;
+  margin: 0;
+  height: 380px;
+  width: 900px;
+  max-width: calc(100% - 4rem);
   transition: grid-template-columns 0.6s linear(
     0 0%, 0.1538 4.09%, 0.2926 8.29%, 0.4173 12.63%, 0.5282 17.12%,
     0.6255 21.77%, 0.7099 26.61%, 0.782 31.67%, 0.8425 37%, 0.8887 42.23%,
