@@ -3,9 +3,9 @@
 import Link from 'next/link';
 import styles from './MenuCard.module.css';
 
-const MenuCard = ({ href, icon, label, description, isActive }) => {
+const MenuCard = ({ href, icon, emoji, label, description, isActive, onMouseMove }) => {
   return (
-    <li className={styles.listItem} data-active={isActive}>
+    <li className={styles.listItem} data-active={isActive} onMouseMove={onMouseMove}>
       <Link href={href} className={styles.linkWrapper}>
         <article className={styles.article}>
           {/* This is the vertical title for when the card is collapsed */}
@@ -16,6 +16,8 @@ const MenuCard = ({ href, icon, label, description, isActive }) => {
           <h4 className={styles.label}>{label}</h4>
           {description && <p className={styles.description}>{description}</p>}
           <span className={styles.cta}>Перейти &rarr;</span>
+
+          <div className={styles.emojiIcon}>{emoji}</div>
         </article>
       </Link>
     </li>

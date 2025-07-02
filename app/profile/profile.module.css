@@ -29,29 +29,26 @@
   text-align: center;
 }
 
-.profileSection {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 1.5rem;
-    width: 100%;
-    margin-top: 2rem;
-    text-align: center;
-}
-
-.avatarContainer {
-    display: flex;
-    justify-content: center;
-    width: 100%;
+.profileControls {
+  width: 100%;
 }
 
 .profileHeader {
     display: flex;
     flex-direction: row;
     align-items: center;
-    justify-content: center;
-    gap: 1.5rem;
+    gap: 2rem;
+    margin-bottom: 2rem;
     width: 100%;
+}
+
+.profileInfo {
+    text-align: left;
+}
+
+.rightControls {
+  display: flex;
+  gap: 0.75rem;
 }
 
 .profileAvatar {

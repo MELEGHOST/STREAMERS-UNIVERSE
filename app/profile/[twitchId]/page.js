@@ -11,7 +11,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { pluralize } from '../../utils/pluralize';
 import { useTranslation } from 'react-i18next';
 import Link from 'next/link';
-import { FaArrowLeft, FaShieldAlt, FaBookOpen, FaTrophy, FaEdit, FaSignOutAlt } from 'react-icons/fa';
+import { FaArrowLeft, FaShieldAlt, FaBookOpen, FaTrophy, FaEdit, FaSignOutAlt, FaCrown, FaMicrophone, FaUsers, FaCalendarAlt, FaBriefcase } from 'react-icons/fa';
 
 import VkButton from '../../components/SocialButtons/VkButton';
 import TwitchButton from '../../components/SocialButtons/TwitchButton';
@@ -259,16 +259,14 @@ export default function UserProfilePage() {
             </div>
         </div>
 
-        <section className={styles.profileSection}>
-            <div className={styles.avatarContainer}>
-                <CyberAvatar
-                    src={avatarUrl}
-                    alt={t('profile.avatarAlt', { name: displayName })}
-                    size={160}
-                />
-            </div>
+        <header className={styles.profileHeader}>
+            <CyberAvatar
+                src={avatarUrl}
+                alt={t('profile.avatarAlt', { name: displayName })}
+                size={160}
+            />
 
-            <div className={styles.infoContainer}>
+            <div className={styles.profileInfo}>
                 <h1 className={styles.nickname}>
                     <span style={nicknameStyle}>{displayName}</span>
                     {isAdmin && <RoleBadge role="admin" t={t} />}
@@ -304,7 +302,17 @@ export default function UserProfilePage() {
                     )}
                 </div>
             </div>
-        </section>
+        </header>
+
+        <div className={styles.widgetsContainer}>
+            {profileWidget === 'statistics' ? (
+                <StatisticsWidget twitchData={twitchUserData} profileData={profileData} />
+            ) : (
+                <div className={styles.widgetPlaceholder}>
+                    <p>{t('profile.selectWidget')}</p>
+                </div>
+            )}
+        </div>
 
         <div className={styles.profileDescription}>
             <h2>{t('profile.description')}</h2>
@@ -341,16 +349,6 @@ export default function UserProfilePage() {
                 </div>
             </div>
         )}
-
-        <div className={styles.rightColumn}>
-            {profileWidget === 'statistics' ? (
-                <StatisticsWidget twitchData={twitchUserData} profileData={profileData} />
-            ) : (
-                <div className={styles.defaultWidget}>
-                    <p>{t('profile.selectWidget')}</p>
-                </div>
-            )}
-        </div>
     </div>
   );
 } 

@@ -20,16 +20,16 @@ export default function MenuPage() {
 
   // --- Формирование пунктов меню --- 
   const menuItems = [
-    { name: 'search', href: '/search', label: t('menu.search'), description: t('menu.searchDesc') },
-    { name: 'reviews', href: '/reviews/create', label: t('menu.reviews'), description: t('menu.reviewsDesc') },
-    { name: 'followings', href: '/followings', label: t('menu.followings'), description: t('menu.followingsDesc') },
-    { name: 'followers', href: '/followers', label: t('menu.followers'), description: t('menu.followersDesc') },
-    { name: 'settings', href: '/settings', label: t('menu.settings'), description: t('menu.settingsDesc') },
+    { name: 'search', href: '/search', label: t('menu.search'), description: t('menu.searchDesc'), emoji: '🔍' },
+    { name: 'reviews', href: '/reviews/create', label: t('menu.reviews'), description: t('menu.reviewsDesc'), emoji: '✍️' },
+    { name: 'followings', href: '/followings', label: t('menu.followings'), description: t('menu.followingsDesc'), emoji: '👀' },
+    { name: 'followers', href: '/followers', label: t('menu.followers'), description: t('menu.followersDesc'), emoji: '👥' },
+    { name: 'settings', href: '/settings', label: t('menu.settings'), description: t('menu.settingsDesc'), emoji: '⚙️' },
   ];
 
   // Добавляем админскую панель, если роль admin
   if (userRole === 'admin') {
-      menuItems.push({ name: 'moderation', href: '/admin/reviews', label: t('menu.moderation'), description: t('menu.moderationDesc'), isAdmin: true });
+      menuItems.push({ name: 'moderation', href: '/admin/reviews', label: t('menu.moderation'), description: t('menu.moderationDesc'), isAdmin: true, emoji: '🛡️' });
   }
 
   const getGridTemplateColumns = () => {
@@ -75,15 +75,16 @@ export default function MenuPage() {
             onMouseLeave={() => setActiveIndex(null)}
           >
             {menuItems.map((item, index) => (
-              <li key={item.href} onMouseMove={() => setActiveIndex(index)}>
                 <MenuCard 
+                  key={item.href}
                   href={item.href} 
                   label={item.label}
                   icon={<MenuIcon name={item.name} />}
+                  emoji={item.emoji}
                   description={item.description}
                   isActive={index === activeIndex}
+                  onMouseMove={() => setActiveIndex(index)}
                 />
-              </li>
             ))}
           </ul>
       </main>
