@@ -10,6 +10,8 @@ import pageStyles from '../../../styles/page.module.css';
 import { useAuth } from '../../contexts/AuthContext';
 import { pluralize } from '../../utils/pluralize';
 import { useTranslation } from 'react-i18next';
+import Link from 'next/link';
+import { FaArrowLeft, FaShieldAlt, FaBookOpen, FaTrophy, FaEdit, FaSignOutAlt } from 'react-icons/fa';
 
 import VkButton from '../../components/SocialButtons/VkButton';
 import TwitchButton from '../../components/SocialButtons/TwitchButton';
@@ -227,137 +229,128 @@ export default function UserProfilePage() {
   };
 
   return (
-    <div className={styles.container}> 
-      <div className={styles.topBar}>
-          <button onClick={() => router.back()} className={styles.backButton}>
-              &larr; {t('profile.back')}
-          </button>
-          <div className={styles.actionButtons}>
-              {isOwnProfile && isRegistered && isAdmin && (
-                   <button onClick={() => router.push('/admin/reviews')} className={`${styles.actionButton} ${styles.adminButton}`} title={t('profile.adminPanelTitle')}>
-                       🛡️ {t('profile.adminPanel')}
-                   </button>
-               )}
-              {isOwnProfile && isRegistered && (
-                   <button onClick={() => router.push('/my-reviews')} className={`${styles.actionButton} ${styles.myReviewsButton}`} title={t('profile.myReviewsTitle')}>
-                       📝 {t('profile.myReviews')}
-                   </button>
-               )}
-               {isOwnProfile && isRegistered && (
-                   <button onClick={() => router.push('/achievements')} className={styles.actionButton} title={t('profile.achievementsTitle')}>
-                       🏆 {t('profile.achievements')}
-                   </button>
-               )}
-               {isOwnProfile && (
-                   <button onClick={() => router.push('/edit-profile')} className={`${styles.actionButton} ${styles.editButton}`} title={t('profile.editProfileTitle')}>
-                       ⚙️ {t('profile.editProfile')}
-                   </button>
-               )}
-               {isOwnProfile && (
-                   <button onClick={handleLogout} className={`${styles.actionButton} ${styles.logoutButton}`}>
-                        🚪 {t('profile.logout')}
-                   </button>
-               )}
-          </div>
-      </div>
+    <div className={styles.container}>
+        <div className={styles.profileControls}>
+            <button onClick={() => router.back()} className={styles.controlButton}>
+                <FaArrowLeft /> {t('profile.back')}
+            </button>
+            <div className={styles.rightControls}>
+                {isOwnProfile && (
+                    <>
+                        {isAdmin && (
+                            <Link href="/admin/reviews" className={`${styles.controlButton} ${styles.adminButton}`}>
+                                <FaShieldAlt /> {t('profile.adminPanel')}
+                            </Link>
+                        )}
+                        <Link href="/my-reviews" className={styles.controlButton}>
+                            <FaBookOpen /> {t('profile.myReviews')}
+                        </Link>
+                        <Link href="/achievements" className={styles.controlButton}>
+                            <FaTrophy /> {t('profile.achievements')}
+                        </Link>
+                        <Link href="/edit-profile" className={styles.controlButton}>
+                            <FaEdit /> {t('profile.edit')}
+                        </Link>
+                        <button onClick={handleLogout} className={styles.controlButton}>
+                            <FaSignOutAlt /> {t('logout')}
+                        </button>
+                    </>
+                )}
+            </div>
+        </div>
 
-      {error && <p className={styles.errorMessage}>{error}</p>}
-
-      <div className={styles.profileGrid}> 
-          <div className={styles.avatarContainer}>
-                <CyberAvatar 
+        <section className={styles.profileSection}>
+            <div className={styles.avatarContainer}>
+                <CyberAvatar
                     src={avatarUrl}
-                    alt={t('profile.avatarAlt', { name: displayName })} 
-                    size={240}
-                    priority={true} 
-                    className={styles.avatar}
+                    alt={t('profile.avatarAlt', { name: displayName })}
+                    size={160}
                 />
-          </div>
+            </div>
 
-          <div className={styles.profileInfo}> 
-              <h1 className={styles.displayName}>
-                <span style={nicknameStyle}>{displayName}</span>
-                {isAdmin && <RoleBadge role="admin" t={t} />}
-                {isStreamer && <RoleBadge role="streamer" t={t} />}
-              </h1>
-              <p className={styles.loginName}>@{twitchUserData?.login || profileData?.twitch_login || '???'}</p>
-              {!isRegistered ? (
-                <div className={styles.notRegistered}>
-                    <p>😢 {t('profile.notWithUs')}</p>
-                    <InviteButton targetUserName={displayName} />
+            <div className={styles.infoContainer}>
+                <h1 className={styles.nickname}>
+                    <span style={nicknameStyle}>{displayName}</span>
+                    {isAdmin && <RoleBadge role="admin" t={t} />}
+                    {isStreamer && <RoleBadge role="streamer" t={t} />}
+                </h1>
+                <p className={styles.loginName}>@{twitchUserData?.login || profileData?.twitch_login || '???'}</p>
+                {!isRegistered ? (
+                    <div className={styles.notRegistered}>
+                        <p>😢 {t('profile.notWithUs')}</p>
+                        <InviteButton targetUserName={displayName} />
+                    </div>
+                ) : (
+                    <div className={styles.socialLinks}>
+                        {profileSocialLinks && Object.entries(profileSocialLinks).map(([key, value]) => {
+                            if (!value) return null;
+                            const ButtonComponent = socialButtonComponents[key];
+                            return ButtonComponent ? <ButtonComponent key={key} url={value} /> : null;
+                        })}
+                    </div>
+                )}
+                <div className={styles.stats}>
+                    {followersCount !== null && typeof followersCount !== 'undefined' && (
+                        <p>👥 {followersCount.toLocaleString(t.language)} {pluralize(followersCount, t('profile.followers_one'), t('profile.followers_few'), t('profile.followers_many'))}</p>
+                    )}
+                    {viewCount !== null && typeof viewCount !== 'undefined' && (
+                        <p>👁️ {viewCount.toLocaleString(t.language)} {pluralize(viewCount, t('profile.views_one'), t('profile.views_few'), t('profile.views_many'))}</p>
+                    )}
+                    {createdAt && (
+                        <p>📅 {t('profile.onTwitchSince', { date: formattedDate })}</p>
+                    )}
+                    {broadcasterType && broadcasterType !== 'normal' && (
+                        <p>💼 {t('profile.status')}: {translateBroadcasterType(broadcasterType, t)}</p>
+                    )}
                 </div>
-              ) : (
-                <div className={styles.socialLinks}>
-                    {profileSocialLinks && Object.entries(profileSocialLinks).map(([key, value]) => {
-                        if (!value) return null;
-                        const ButtonComponent = socialButtonComponents[key];
-                        return ButtonComponent ? <ButtonComponent key={key} url={value} /> : null;
-                    })}
+            </div>
+        </section>
+
+        <div className={styles.profileDescription}>
+            <h2>{t('profile.description')}</h2>
+            <p>{profileDescription || t('profile.noDescription')}</p>
+        </div>
+
+        {videos && videos.length > 0 && (
+            <div className={styles.videosSection}>
+                <h2 className={styles.sectionTitle}>{t('profile.latestVideos')}</h2>
+                <div className={styles.videosGrid}>
+                    {videos.map(video => (
+                        <a key={video.id} href={video.url} target="_blank" rel="noopener noreferrer" className={styles.videoCard}>
+                            <Image 
+                                src={video.thumbnail_url.replace('%{width}', '320').replace('%{height}', '180')}
+                                alt={t('profile.videoThumbnailAlt', { title: video.title })}
+                                width={320} 
+                                height={180} 
+                                className={styles.videoThumbnail}
+                                onError={(e) => { e.target.style.display = 'none'; }} 
+                                unoptimized 
+                            />
+                            <div className={styles.videoInfo}>
+                                <h3 className={styles.videoTitle} title={video.title}>{video.title}</h3>
+                                <p className={styles.videoMeta}>
+                                    <span>{formatDate(video.created_at, t.language)}</span>
+                                    <span> | {formatDuration(video.duration)}</span>
+                                    {typeof video.view_count === 'number' && 
+                                        <span> | 👁️ {video.view_count.toLocaleString(t.language)}</span>
+                                    }
+                                </p>
+                            </div>
+                        </a>
+                    ))}
                 </div>
-              )}
-              <div className={styles.stats}>
-                {followersCount !== null && typeof followersCount !== 'undefined' && (
-                    <p>👥 {followersCount.toLocaleString(t.language)} {pluralize(followersCount, t('profile.followers_one'), t('profile.followers_few'), t('profile.followers_many'))}</p>
-                )}
-                {viewCount !== null && typeof viewCount !== 'undefined' && (
-                    <p>👁️ {viewCount.toLocaleString(t.language)} {pluralize(viewCount, t('profile.views_one'), t('profile.views_few'), t('profile.views_many'))}</p>
-                )}
-                 {createdAt && (
-                    <p>📅 {t('profile.onTwitchSince', { date: formattedDate })}</p>
-                )}
-                {broadcasterType && broadcasterType !== 'normal' && (
-                     <p>💼 {t('profile.status')}: {translateBroadcasterType(broadcasterType, t)}</p>
-                )}
-              </div>
-          </div>
+            </div>
+        )}
 
-          <div className={styles.rightColumn}>
-              {profileWidget === 'statistics' ? (
-                  <StatisticsWidget twitchData={twitchUserData} profileData={profileData} />
-              ) : (
-                  <div className={styles.defaultWidget}>
-                      <p>{t('profile.selectWidget')}</p>
-                  </div>
-              )}
-          </div>
-      </div>
-
-      <div className={styles.profileDescription}>
-         <h2>{t('profile.description')}</h2>
-         <p>{profileDescription || t('profile.noDescription')}</p>
-      </div>
-
-      {videos && videos.length > 0 && (
-          <div className={styles.videosSection}>
-              <h2 className={styles.sectionTitle}>{t('profile.latestVideos')}</h2>
-              <div className={styles.videosGrid}>
-                  {videos.map(video => (
-                      <a key={video.id} href={video.url} target="_blank" rel="noopener noreferrer" className={styles.videoCard}>
-                          <Image 
-                              src={video.thumbnail_url.replace('%{width}', '320').replace('%{height}', '180')}
-                              alt={t('profile.videoThumbnailAlt', { title: video.title })}
-                              width={320} 
-                              height={180} 
-                              className={styles.videoThumbnail}
-                              onError={(e) => { e.target.style.display = 'none'; }} 
-                              unoptimized 
-                          />
-                          <div className={styles.videoInfo}>
-                              <h3 className={styles.videoTitle} title={video.title}>{video.title}</h3>
-                              <p className={styles.videoMeta}>
-                                  <span>{formatDate(video.created_at, t.language)}</span>
-                                  <span> | {formatDuration(video.duration)}</span>
-                                  {typeof video.view_count === 'number' && 
-                                     <span> | 👁️ {video.view_count.toLocaleString(t.language)}</span>
-                                  }
-                              </p>
-                          </div>
-                      </a>
-                  ))}
-              </div>
-          </div>
-      )}
-      
+        <div className={styles.rightColumn}>
+            {profileWidget === 'statistics' ? (
+                <StatisticsWidget twitchData={twitchUserData} profileData={profileData} />
+            ) : (
+                <div className={styles.defaultWidget}>
+                    <p>{t('profile.selectWidget')}</p>
+                </div>
+            )}
+        </div>
     </div>
   );
 } 

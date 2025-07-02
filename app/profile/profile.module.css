@@ -29,15 +29,29 @@
   text-align: center;
 }
 
+.profileSection {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1.5rem;
+    width: 100%;
+    margin-top: 2rem;
+    text-align: center;
+}
+
+.avatarContainer {
+    display: flex;
+    justify-content: center;
+    width: 100%;
+}
+
 .profileHeader {
-  display: flex;
-  align-items: center;
-  gap: 1.5rem;
-  margin-bottom: 2rem;
-  padding: 1.5rem;
-  background-color: var(--background-secondary);
-  border-radius: var(--border-radius);
-  border: 1px solid var(--border-secondary);
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: center;
+    gap: 1.5rem;
+    width: 100%;
 }
 
 .profileAvatar {
@@ -583,13 +597,6 @@
   height: 100%;
   object-fit: cover;
   border-radius: var(--border-radius); /* Можно оставить или убрать, если у CyberAvatar свои стили */
-}
-
-.avatarContainer {
-  grid-area: avatar;
-  display: flex;
-  justify-content: center;
-  align-items: center;
 }
 
 .profileInfo {

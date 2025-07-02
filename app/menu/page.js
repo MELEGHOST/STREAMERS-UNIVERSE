@@ -9,6 +9,7 @@ import pageStyles from '../../styles/page.module.css';
 import { FaSearch, FaCog, FaShieldAlt, FaCommentDots, FaUserCheck, FaUsers } from 'react-icons/fa';
 import { useTranslation } from 'react-i18next';
 import MenuCard from '../components/MenuCard/MenuCard';
+import MenuIcon from '../components/MenuIcon/MenuIcon';
 
 export default function MenuPage() {
   const { user, userRole } = useAuth();
@@ -20,16 +21,16 @@ export default function MenuPage() {
 
   // --- Формирование пунктов меню --- 
   const menuItems = [
-    { href: '/search', label: t('menu.search'), description: t('menu.searchDesc'), icon: <FaSearch /> },
-    { href: '/reviews/create', label: t('menu.reviews'), description: t('menu.reviewsDesc'), icon: <FaCommentDots /> },
-    { href: '/followings', label: t('menu.followings'), description: t('menu.followingsDesc'), icon: <FaUserCheck /> },
-    { href: '/followers', label: t('menu.followers'), description: t('menu.followersDesc'), icon: <FaUsers /> },
-    { href: '/settings', label: t('menu.settings'), description: t('menu.settingsDesc'), icon: <FaCog /> },
+    { name: 'search', href: '/search', label: t('menu.search'), description: t('menu.searchDesc') },
+    { name: 'reviews', href: '/reviews/create', label: t('menu.reviews'), description: t('menu.reviewsDesc') },
+    { name: 'followings', href: '/followings', label: t('menu.followings'), description: t('menu.followingsDesc') },
+    { name: 'followers', href: '/followers', label: t('menu.followers'), description: t('menu.followersDesc') },
+    { name: 'settings', href: '/settings', label: t('menu.settings'), description: t('menu.settingsDesc') },
   ];
 
   // Добавляем админскую панель, если роль admin
   if (userRole === 'admin') {
-      menuItems.push({ href: '/admin/reviews', label: t('menu.moderation'), description: t('menu.moderationDesc'), icon: <FaShieldAlt />, isAdmin: true });
+      menuItems.push({ name: 'moderation', href: '/admin/reviews', label: t('menu.moderation'), description: t('menu.moderationDesc'), isAdmin: true });
   }
 
   const getGridTemplateColumns = () => {
@@ -43,7 +44,7 @@ export default function MenuPage() {
           <div className={styles.logoContainer}>
               {/* Ссылка только на картинке */}
               <Link href="/menu" passHref className={styles.logoImageLink}>
-                <Image src="/logo.png" alt={t('logoAlt')} width={40} height={40} priority /> 
+                <Image src="/logo.png" alt={t('logoAlt')} width={80} height={80} priority /> 
               </Link>
               {/* Текст без ссылки */}
               <span className={styles.logoText}>{t('appName')}</span>
@@ -56,8 +57,8 @@ export default function MenuPage() {
                       <Image 
                           src={user?.user_metadata?.avatar_url || '/default_avatar.png'} // TODO: Заменить fallback
                           alt={t('yourAvatar')}
-                          width={36} 
-                          height={36} 
+                          width={72} 
+                          height={72} 
                           className={styles.userAvatar}
                           unoptimized // Убрать, если next/image настроен
                       />
@@ -79,7 +80,7 @@ export default function MenuPage() {
                 <MenuCard 
                   href={item.href} 
                   label={item.label}
-                  icon={item.icon}
+                  icon={<MenuIcon name={item.name} />}
                   description={item.description}
                   isActive={index === activeIndex}
                 />

@@ -55,32 +55,35 @@
   flex-direction: column;
   justify-content: flex-end;
   gap: 0.5rem;
-  padding: 1rem;
+  padding: 1.25rem;
+  padding-left: 1.75rem;
 }
 
 .title {
   position: absolute;
-  top: 1.5rem;
-  left: 0rem;
-  transform-origin: 0 50%;
-  rotate: 90deg;
+  top: 45%;
+  left: -2rem;
+  transform-origin: 50% 50%;
+  rotate: -90deg;
   font-size: 0.9rem;
-  font-weight: 300;
+  font-weight: 500;
   text-transform: uppercase;
   font-family: monospace;
   white-space: nowrap;
   opacity: 0.7;
-  transition: opacity 0.4s ease;
+  transition: opacity 0.4s ease, transform 0.4s ease;
 }
 
 .iconWrapper, .label, .description, .cta {
   opacity: 0;
-  transition: opacity 0.5s ease;
+  transform: translateY(10px);
+  transition: opacity 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94), transform 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
   transition-delay: 0s;
 }
 
 .listItem[data-active='true'] .title {
   opacity: 0;
+  transform: translateX(-20px);
 }
 
 .listItem[data-active='true'] .iconWrapper,
@@ -88,7 +91,8 @@
 .listItem[data-active='true'] .description,
 .listItem[data-active='true'] .cta {
   opacity: 1;
-  transition-delay: 0.2s;
+  transform: translateY(0);
+  transition-delay: 0.15s;
 }
 
 .iconWrapper {
