@@ -230,5 +230,67 @@
             "noAchievements": "У цій категорії поки що немає досягнень.",
             "error": "Не вдалося завантажити досягнення: {{message}}"
         }
+    },
+    "achievements": {
+      "FIRST_REVIEW": {
+        "name": "Перший відгук",
+        "description": "Написати свій перший відгук про стрімера.",
+        "condition": "Написати 1 відгук"
+      },
+      "TEN_FOLLOWERS": {
+        "name": "10 Фоллловерів",
+        "description": "Зібрати 10 фоловерів на Twitch.",
+        "condition": "10+ фоловерів Twitch"
+      },
+      "TWITCH_AFFILIATE": {
+        "name": "Компаньйон Twitch",
+        "description": "Отримати статус компаньйона на Twitch.",
+        "condition": "Статус компаньйона Twitch"
+      },
+      "FIRST_STREAM": {
+        "name": "Перший стрім",
+        "description": "Провести першу трансляцію.",
+        "condition": "Провести трансляцію"
+      },
+      "ONE_HOUR_STREAM": {
+        "name": "Година в ефірі",
+        "description": "Набрати 1 годину перегляду ваших трансляцій.",
+        "condition": "1 година перегляду"
+      },
+      "SOCIAL_BUTTERFLY": {
+        "name": "Соціальний метелик",
+        "description": "Додати 3 або більше соціальні мережі у свій профіль.",
+        "condition": "3+ соціальних мереж"
+      }
+    },
+    "edit_profile": {
+      "title": "Редагування профілю",
+      "backButton": "Назад",
+      "customization": "Кастомізація профілю",
+      "widgetLabel": "Віджет на сторінці профілю:",
+      "widgetDefault": "За замовчуванням",
+      "widgetStatistics": "Статистика",
+      "basicInfo": "Основна інформація",
+      "birthdayLabel": "Дата народження:",
+      "bioLabel": "Опис профілю:",
+      "bioPlaceholder": "Розкажіть трохи про себе, свої захоплення та про що ваш канал...",
+      "socials": "Соціальні мережі",
+      "socialsPlaceholder": {
+        "vk": "https://vk.com/your_id",
+        "twitch": "https://twitch.tv/your_channel",
+        "discord": "username#1234 або посилання-запрошення",
+        "youtube": "https://youtube.com/c/your_channel",
+        "telegram": "@username або https://t.me/your_channel",
+        "tiktok": "https://tiktok.com/@your_username",
+        "boosty": "https://boosty.to/your_profile",
+        "yandex_music": "Посилання на ваш профіль музиканта"
+      },
+      "saveButton": "Зберегти",
+      "savingButton": "Збереження...",
+      "loadError": "Не вдалося завантажити дані профілю: {{message}}",
+      "userError": "Не вдалося отримати дані користувача для збереження.",
+      "sessionError": "Ваша сесія закінчилася. Будь ласка, увійдіть знову.",
+      "saveError": "Помилка збереження: {{message}}",
+      "successMessage": "Профіль успішно оновлено!"
     }
 } 

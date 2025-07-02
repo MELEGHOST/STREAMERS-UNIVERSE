@@ -229,5 +229,67 @@
             "noAchievements": "No achievements in this category yet.",
             "error": "Failed to load achievements: {{message}}"
         }
+    },
+    "achievements": {
+      "FIRST_REVIEW": {
+        "name": "First Review",
+        "description": "Write your first review for a streamer.",
+        "condition": "Write 1 review"
+      },
+      "TEN_FOLLOWERS": {
+        "name": "10 Followers",
+        "description": "Get 10 followers on Twitch.",
+        "condition": "10+ Twitch followers"
+      },
+      "TWITCH_AFFILIATE": {
+        "name": "Twitch Affiliate",
+        "description": "Achieve Twitch Affiliate status.",
+        "condition": "Twitch Affiliate status"
+      },
+      "FIRST_STREAM": {
+        "name": "First Stream",
+        "description": "Host your first stream.",
+        "condition": "Host a stream"
+      },
+      "ONE_HOUR_STREAM": {
+        "name": "Hour on Air",
+        "description": "Accumulate 1 hour of watch time on your streams.",
+        "condition": "1 hour of watch time"
+      },
+      "SOCIAL_BUTTERFLY": {
+        "name": "Social Butterfly",
+        "description": "Add 3 or more social networks to your profile.",
+        "condition": "3+ social networks"
+      }
+    },
+    "edit_profile": {
+      "title": "Edit Profile",
+      "backButton": "Back",
+      "customization": "Profile Customization",
+      "widgetLabel": "Widget on profile page:",
+      "widgetDefault": "Default",
+      "widgetStatistics": "Statistics",
+      "basicInfo": "Basic Information",
+      "birthdayLabel": "Date of birth:",
+      "bioLabel": "Profile description:",
+      "bioPlaceholder": "Tell us a little about yourself, your hobbies, and what your channel is about...",
+      "socials": "Social Networks",
+      "socialsPlaceholder": {
+        "vk": "https://vk.com/your_id",
+        "twitch": "https://twitch.tv/your_channel",
+        "discord": "username#1234 or invite link",
+        "youtube": "https://youtube.com/c/your_channel",
+        "telegram": "@username or https://t.me/your_channel",
+        "tiktok": "https://tiktok.com/@your_username",
+        "boosty": "https://boosty.to/your_profile",
+        "yandex_music": "Link to your musician profile"
+      },
+      "saveButton": "Save",
+      "savingButton": "Saving...",
+      "loadError": "Failed to load profile data: {{message}}",
+      "userError": "Failed to get user data to save.",
+      "sessionError": "Your session has expired. Please log in again.",
+      "saveError": "Failed to save: {{message}}",
+      "successMessage": "Profile updated successfully!"
     }
 } 

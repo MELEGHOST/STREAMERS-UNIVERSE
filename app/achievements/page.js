@@ -24,20 +24,20 @@ const fetcher = async (url, token) => {
 };
 
 // Компонент для отображения одного достижения
-function AchievementCard({ achievement }) {
+function AchievementCard({ achievement, t }) {
+    const nameKey = `achievements.${achievement.code}.name`;
+    const descriptionKey = `achievements.${achievement.code}.description`;
+    const conditionKey = `achievements.${achievement.code}.condition`;
+
     return (
         <div className={`${styles.achievementCard} ${achievement.is_unlocked ? styles.unlocked : styles.locked}`}>
             <div className={styles.achievementIcon}>{achievement.icon || '🏅'}</div>
             <div className={styles.achievementInfo}>
-                <h3 className={styles.achievementName}>{achievement.name}</h3>
-                <p className={styles.achievementDescription}>{achievement.description}</p>
-                {/* Условие берем из condition_description */} 
-                {achievement.condition_description && 
-                    <p className={styles.achievementCondition}>
-                        Условие: {achievement.condition_description}
-                    </p>}
-                 {/* Можно добавить отображение прогресса, если он есть и ачивка не разблокирована */}
-                 {/* achievement.trigger_type && achievement.trigger_value && !achievement.is_unlocked && ... */}
+                <h3 className={styles.achievementName}>{t(nameKey, achievement.name)}</h3>
+                <p className={styles.achievementDescription}>{t(descriptionKey, achievement.description)}</p>
+                <p className={styles.achievementCondition}>
+                    {t('achievements_page.condition')}: {t(conditionKey, achievement.condition_description)}
+                </p>
             </div>
         </div>
     );
@@ -109,14 +109,14 @@ function AchievementsPageContent() {
           className={`${styles.tabButton} ${activeTab === 'my' ? styles.activeTab : ''}`}
           onClick={() => setActiveTab('my')}
         >
-          Мои достижения ({myAchievements.length})
+          {t('achievements_page.myAchievements')} ({myAchievements.length})
         </button>
         {/* Вкладка "Все достижения" */}
         <button 
           className={`${styles.tabButton} ${activeTab === 'all' ? styles.activeTab : ''}`}
           onClick={() => setActiveTab('all')}
         >
-          Все достижения ({achievements.length})
+          {t('achievements_page.allAchievements')} ({achievements.length})
         </button>
       </div>
 
@@ -125,16 +125,16 @@ function AchievementsPageContent() {
       <div className={styles.achievementsList}>
          {activeTab === 'my' && (
              myAchievements.length === 0 
-                 ? <p className={styles.noAchievements}>У вас пока нет разблокированных достижений.</p>
-                 : myAchievements.map(ach => <AchievementCard key={ach.id} achievement={ach} />)
+                 ? <p className={styles.noAchievements}>{t('achievements_page.noUnlocked')}</p>
+                 : myAchievements.map(ach => <AchievementCard key={ach.id} achievement={ach} t={t} />)
          )}
          {activeTab === 'all' && (
-             achievements.map(ach => <AchievementCard key={ach.id} achievement={ach} />)
+             achievements.map(ach => <AchievementCard key={ach.id} achievement={ach} t={t} />)
          )}
       </div>
        
        <button onClick={() => router.back()} className={pageStyles.backButton} style={{ marginTop: '2rem' }}>
-           &larr; Назад
+           &larr; {t('achievements_page.backButton')}
        </button>
     </div>
   );
