@@ -6,7 +6,6 @@ import styles from './edit-profile.module.css';
 import pageStyles from '../../styles/page.module.css';
 import RouteGuard from '../components/RouteGuard';
 import { useTranslation } from 'react-i18next';
-import StyledSocialButton from '../components/StyledSocialButton/StyledSocialButton';
 
 function EditProfilePageContent() {
   const { user, isAuthenticated, supabase } = useAuth();
@@ -32,7 +31,6 @@ function EditProfilePageContent() {
   const [error, setError] = useState(null);
   const [successMessage, setSuccessMessage] = useState(null);
 
-  const [displayName, setDisplayName] = useState('');
   const [socialLinks, setSocialLinks] = useState({});
   const [availableLinks, setAvailableLinks] = useState([]);
 
@@ -106,25 +104,12 @@ function EditProfilePageContent() {
     }
   }, [isAuthenticated, user, fetchProfileData]);
 
-  const handleSocialLinkChange = (platform, value) => {
-    setSocialLinks(prev => ({ ...prev, [platform]: value }));
-  };
-
   const addSocialLink = (platform) => {
     if (!platform || socialLinks[platform] !== undefined) return;
     setSocialLinks(prev => ({ ...prev, [platform]: '' }));
     setAvailableLinks(prev => prev.filter(p => p !== platform));
   };
   
-  const removeSocialLink = (platform) => {
-    const newLinks = { ...socialLinks };
-    delete newLinks[platform];
-    setSocialLinks(newLinks);
-    if (!availableLinks.includes(platform)) {
-      setAvailableLinks(prev => [...prev, platform]);
-    }
-  };
-
   const handleSave = async (e) => {
     e.preventDefault();
     if (!user) {

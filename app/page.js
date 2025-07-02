@@ -1,7 +1,6 @@
 'use client';
 
-import React, { useEffect } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
+import React from 'react';
 import { useAuth } from './contexts/AuthContext';
 import HoldLoginButton from './components/HoldLoginButton/HoldLoginButton';
 import LoginButton from './components/LoginButton/LoginButton';
@@ -12,8 +11,6 @@ import { useTranslation } from 'react-i18next';
 export default function HomePage() {
   const { t } = useTranslation();
   const { isAuthenticated, isLoading } = useAuth();
-  const router = useRouter();
-  const searchParams = useSearchParams();
 
   // Простой компонент для звездного фона
   const StarryBackground = () => (

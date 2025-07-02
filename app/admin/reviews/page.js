@@ -5,7 +5,6 @@ import { useAuth } from '../../contexts/AuthContext';
 // import { supabaseAdmin } from '../../../utils/supabase/admin'; // Убрали импорт Admin клиента
 import styles from './admin-reviews.module.css'; // Стили создадим позже
 import pageStyles from '../../../styles/page.module.css'; // Исправленный путь
-import Image from 'next/image';
 import Link from 'next/link';
 import { FaArrowLeft } from 'react-icons/fa';
 import { useTranslation } from 'react-i18next';
@@ -19,7 +18,7 @@ const formatDate = (dateString) => {
 
 function AdminReviewsContent() {
     const router = useRouter();
-    const { supabase, isAuthenticated, userRole, user } = useAuth();
+    const { isAuthenticated, userRole } = useAuth();
     const [reviews, setReviews] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);

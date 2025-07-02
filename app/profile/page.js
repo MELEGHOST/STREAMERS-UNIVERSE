@@ -165,7 +165,7 @@ function ProfilePageContent() {
                 }
             };
             fetchReviews();
-        }, [twitchUserId]);
+        }, []);
 
         if (reviewsLoading) {
             return <div className={styles.loadingContainer}><div className="spinner"></div><p>{t('loading.generic')}</p></div>
@@ -178,7 +178,7 @@ function ProfilePageContent() {
                     <ul>
                         {reviews.map(review => (
                             <li key={review.id}>
-                                <strong>{review.author}:</strong> "{review.text}" ({'★'.repeat(review.rating)})
+                                <strong>{review.author}:</strong> &quot;{review.text}&quot; ({'★'.repeat(review.rating)})
                             </li>
                         ))}
                     </ul>
