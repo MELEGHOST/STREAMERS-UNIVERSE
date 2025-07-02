@@ -18,7 +18,7 @@ const formatDate = (dateString) => {
 
 function AdminReviewsContent() {
     const router = useRouter();
-    const { isAuthenticated, userRole } = useAuth();
+    const { userRole, supabase } = useAuth();
     const [reviews, setReviews] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
@@ -29,14 +29,28 @@ function AdminReviewsContent() {
 
     const fetchReviews = useCallback(async () => {
         if (!isAdminUser) {
-            setError("Access denied. You must be an admin."); // Это сообщение не должно показываться из-за RouteGuard
+            setError("Access denied. You must be an admin.");
             setLoading(false);
             return;
         }
+        
         setLoading(true);
+        setError(null);
+
         try {
-            const response = await fetch('/api/admin/reviews');
-            if (!response.ok) throw new Error('Failed to fetch reviews for moderation.');
+            const { data: { session } } = await supabase.auth.getSession();
+            if (!session) throw new Error("Authentication session not found.");
+            
+            const response = await fetch('/api/admin/reviews', {
+                headers: {
+                    'Authorization': `Bearer ${session.access_token}`
+                }
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.error || 'Failed to fetch reviews for moderation.');
+            }
             const data = await response.json();
             setReviews(data);
         } catch (err) {
@@ -44,13 +58,18 @@ function AdminReviewsContent() {
         } finally {
             setLoading(false);
         }
-    }, [isAdminUser]);
+    }, [isAdminUser, supabase, t]);
 
     useEffect(() => {
-        if (isAdminUser) {
+        if (userRole === 'user') {
+            // Если пользователь не админ, отправляем его в меню
+            router.push('/menu');
+        } else if (userRole === 'admin') {
+            // Если админ, загружаем отзывы
             fetchReviews();
         }
-    }, [isAdminUser, fetchReviews]);
+        // Если userRole еще null (идет загрузка), ничего не делаем, ждем
+    }, [userRole, fetchReviews, router]);
 
     const handleUpdateStatus = async (reviewId, newStatus) => {
         const confirmAction = window.confirm(
@@ -62,9 +81,15 @@ function AdminReviewsContent() {
 
         setUpdatingId(reviewId);
         try {
+            const { data: { session } } = await supabase.auth.getSession();
+            if (!session) throw new Error("Authentication session not found.");
+
             const response = await fetch(`/api/admin/reviews/moderate`, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: { 
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${session.access_token}`
+                },
                 body: JSON.stringify({ reviewId, status: newStatus }),
             });
             if (!response.ok) {
@@ -80,30 +105,6 @@ function AdminReviewsContent() {
         }
     };
 
-    useEffect(() => {
-        // Проверка прав доступа на клиенте
-        if (!isAuthenticated && !isAdminUser) {
-            console.warn('[AdminReviews] User is not admin. Redirecting...');
-            router.push('/menu'); // Или на главную, или показать 403
-        } else if (isAdminUser) {
-            // fetchPendingReviews();
-        }
-    }, [isAuthenticated, isAdminUser, router]);
-
-    // --- Рендеринг ---
-    // Убираем эту проверку, так как RouteGuard уже выполняет эту роль.
-    // Это предотвращает блокировку рендеринга во время сборки.
-    /*
-    if (!isAuthenticated || (!isAdminUser && !isAuthenticated)) { 
-        return (
-            <div className={pageStyles.loadingContainer}>
-                <div className="spinner"></div>
-                <p>Загрузка...</p>
-            </div>
-        );
-    }
-    */
-    
     if (loading) {
         return (
             <div className={pageStyles.loadingContainer}>
@@ -113,6 +114,18 @@ function AdminReviewsContent() {
         );
     }
     
+    // Если пользователь не админ, но загрузка завершилась (например, из-за ошибки)
+    if (!isAdminUser) {
+        return (
+            <div className={pageStyles.container}>
+                <p>{error || "Access Denied."}</p>
+                <Link href="/menu" className={styles.backLink}>
+                    <FaArrowLeft /> {t('admin_reviews.backToMenu')}
+                </Link>
+            </div>
+        )
+    }
+
     return (
         <div className={pageStyles.container}>
             <header className={styles.header}>

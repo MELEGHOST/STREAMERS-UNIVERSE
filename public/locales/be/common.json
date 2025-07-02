@@ -230,7 +230,8 @@
             "locked": "Заблакіраваныя",
             "progress": "Прагрэс: {{unlockedCount}} з {{totalCount}}",
             "noAchievements": "У гэтай катэгорыі пакуль няма дасягненняў.",
-            "error": "Не атрымалася загрузіць дасягненні: {{message}}"
+            "error": "Не атрымалася загрузіць дасягненні: {{message}}",
+            "condition": "Умова"
         },
         "followersTitle": "Мае паслядоўнікі",
         "followingsTitle": "Мае натхняльнікі",

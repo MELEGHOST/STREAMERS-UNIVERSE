@@ -88,11 +88,16 @@ export function AuthProvider({ children }) {
   }, []);
 
   const signOut = useCallback(async () => {
-    await supabase.auth.signOut();
+    // Сначала немедленно очищаем локальное состояние, чтобы UI отреагировал мгновенно
     setUser(null);
-    setUserRole(null);
     setSession(null);
-  }, []);
+    setUserRole(null);
+    // А затем отправляем запрос на выход из Supabase
+    const { error } = await supabase.auth.signOut();
+    if (error) {
+        console.error('Error signing out:', error);
+    }
+  }, [supabase]);
 
   const value = useMemo(() => ({
     user,

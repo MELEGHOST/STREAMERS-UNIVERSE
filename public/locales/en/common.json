@@ -228,11 +228,12 @@
             "unlocked": "Unlocked",
             "locked": "Locked",
             "progress": "Progress: {{unlockedCount}} of {{totalCount}}",
-            "noAchievements": "No achievements in this category yet.",
-            "error": "Failed to load achievements: {{message}}"
+            "noAchievements": "There are no achievements in this category yet.",
+            "error": "Failed to load achievements: {{message}}",
+            "condition": "Condition"
         },
         "followersTitle": "My Followers",
-        "followingsTitle": "My Followings",
+        "followingsTitle": "My Inspirations",
         "failedToFetch": "Failed to fetch data",
         "failedToFetchFollowers": "Failed to fetch followers list",
         "noFollowings": "You are not following anyone yet.",

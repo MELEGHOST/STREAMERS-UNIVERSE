@@ -230,7 +230,8 @@
             "locked": "Заблокированные",
             "progress": "Прогресс: {{unlockedCount}} из {{totalCount}}",
             "noAchievements": "В этой категории пока нет достижений.",
-            "error": "Не удалось загрузить достижения: {{message}}"
+            "error": "Не удалось загрузить достижения: {{message}}",
+            "condition": "Условие"
         },
         "followersTitle": "Мои последователи",
         "followingsTitle": "Мои вдохновители",

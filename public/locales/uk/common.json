@@ -230,10 +230,11 @@
             "locked": "Заблоковані",
             "progress": "Прогрес: {{unlockedCount}} з {{totalCount}}",
             "noAchievements": "У цій категорії поки що немає досягнень.",
-            "error": "Не вдалося завантажити досягнення: {{message}}"
+            "error": "Не вдалося завантажити досягнення: {{message}}",
+            "condition": "Умова"
         },
         "followersTitle": "Мої послідовники",
-        "followingsTitle": "Мої підписки",
+        "followingsTitle": "Мої натхненники",
         "failedToFetch": "Не вдалося завантажити дані",
         "failedToFetchFollowers": "Не вдалося завантажити список послідовників",
         "noFollowings": "Ви поки ні на кого не підписані.",

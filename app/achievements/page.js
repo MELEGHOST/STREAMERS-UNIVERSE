@@ -36,7 +36,7 @@ function AchievementCard({ achievement, t }) {
                 <h3 className={styles.achievementName}>{t(nameKey, achievement.name)}</h3>
                 <p className={styles.achievementDescription}>{t(descriptionKey, achievement.description)}</p>
                 <p className={styles.achievementCondition}>
-                    {t('achievements_page.condition')}: {t(conditionKey, achievement.condition_description)}
+                    {t('achievements_page.condition')}: {t(conditionKey)}
                 </p>
             </div>
         </div>
@@ -109,14 +109,14 @@ function AchievementsPageContent() {
           className={`${styles.tabButton} ${activeTab === 'my' ? styles.activeTab : ''}`}
           onClick={() => setActiveTab('my')}
         >
-          {t('achievements_page.myAchievements')} ({myAchievements.length})
+          {t('achievements_page.unlocked')} ({myAchievements.length})
         </button>
         {/* Вкладка "Все достижения" */}
         <button 
           className={`${styles.tabButton} ${activeTab === 'all' ? styles.activeTab : ''}`}
           onClick={() => setActiveTab('all')}
         >
-          {t('achievements_page.allAchievements')} ({achievements.length})
+          {t('achievements_page.all')} ({achievements.length})
         </button>
       </div>
 
@@ -125,7 +125,7 @@ function AchievementsPageContent() {
       <div className={styles.achievementsList}>
          {activeTab === 'my' && (
              myAchievements.length === 0 
-                 ? <p className={styles.noAchievements}>{t('achievements_page.noUnlocked')}</p>
+                 ? <p className={styles.noAchievements}>{t('achievements_page.noAchievements')}</p>
                  : myAchievements.map(ach => <AchievementCard key={ach.id} achievement={ach} t={t} />)
          )}
          {activeTab === 'all' && (
@@ -134,7 +134,7 @@ function AchievementsPageContent() {
       </div>
        
        <button onClick={() => router.back()} className={pageStyles.backButton} style={{ marginTop: '2rem' }}>
-           &larr; {t('achievements_page.backButton')}
+           &larr; {t('backButton')}
        </button>
     </div>
   );
