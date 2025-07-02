@@ -33,13 +33,9 @@ const socialButtonComponents = {
     yandex: YandexMusicButton,
 };
 
-const translateBroadcasterType = (type) => {
-  switch (type) {
-    case 'affiliate': return 'Компаньон';
-    case 'partner': return 'Партнёр';
-    case '': return 'Обычный';
-    default: return type || 'Неизвестно';
-  }
+const translateBroadcasterType = (type, t) => {
+    const key = `profile.broadcasterType.${type || 'normal'}`;
+    return t(key, { defaultValue: type || 'User' });
 };
 
 const formatDuration = (durationString) => {
@@ -61,11 +57,11 @@ const formatDuration = (durationString) => {
   return formatted.trim() || '0s';
 };
 
-const formatDate = (dateString) => {
-  if (!dateString) return 'Неизвестно';
+const formatDate = (dateString, locale) => {
+  if (!dateString) return t('common.unknown');
   try {
-    return new Date(dateString).toLocaleDateString('ru-RU', { year: 'numeric', month: 'long', day: 'numeric' });
-  } catch { return 'Неверная дата'; }
+    return new Date(dateString).toLocaleDateString(locale, { year: 'numeric', month: 'long', day: 'numeric' });
+  } catch { return t('common.invalidDate'); }
 };
 
 const fetcher = async (url, token) => {
@@ -173,7 +169,7 @@ export default function UserProfilePage() {
   const broadcasterType = twitchUserData?.broadcaster_type || profileData?.twitch_broadcaster_type;
   const profileDescription = isRegistered ? profileData?.description : twitchUserData?.description;
   const profileSocialLinks = isRegistered ? profileData?.social_links : null;
-  const formattedDate = createdAt ? formatDate(createdAt) : 'Неизвестно';
+  const formattedDate = createdAt ? formatDate(createdAt, t.language) : t('common.unknown');
 
   const handleLogout = async () => {
     await signOut();
@@ -184,32 +180,32 @@ export default function UserProfilePage() {
     <div className={styles.container}> 
       <div className={styles.topBar}>
           <button onClick={() => router.back()} className={styles.backButton}>
-              &larr; Назад
+              &larr; {t('profile.back')}
           </button>
           <div className={styles.actionButtons}>
               {isOwnProfile && isRegistered && isAdmin && (
-                   <button onClick={() => router.push('/admin/reviews')} className={`${styles.actionButton} ${styles.adminButton}`} title="Модерация">
-                       🛡️ Админ панель
+                   <button onClick={() => router.push('/admin/reviews')} className={`${styles.actionButton} ${styles.adminButton}`} title={t('profile.adminPanelTitle')}>
+                       🛡️ {t('profile.adminPanel')}
                    </button>
                )}
               {isOwnProfile && isRegistered && (
-                   <button onClick={() => router.push('/my-reviews')} className={`${styles.actionButton} ${styles.myReviewsButton}`} title="Мои отзывы">
-                       📝 Мои отзывы
+                   <button onClick={() => router.push('/my-reviews')} className={`${styles.actionButton} ${styles.myReviewsButton}`} title={t('profile.myReviewsTitle')}>
+                       📝 {t('profile.myReviews')}
                    </button>
                )}
                {isOwnProfile && isRegistered && (
-                   <button onClick={() => router.push('/achievements')} className={styles.actionButton} title="Достижения">
-                       🏆 Достижения
+                   <button onClick={() => router.push('/achievements')} className={styles.actionButton} title={t('profile.achievementsTitle')}>
+                       🏆 {t('profile.achievements')}
                    </button>
                )}
                {isOwnProfile && (
-                   <button onClick={() => router.push('/edit-profile')} className={`${styles.actionButton} ${styles.editButton}`} title="Редактировать">
-                       ⚙️ Редакт.
+                   <button onClick={() => router.push('/edit-profile')} className={`${styles.actionButton} ${styles.editButton}`} title={t('profile.editProfileTitle')}>
+                       ⚙️ {t('profile.editProfile')}
                    </button>
                )}
                {isOwnProfile && (
                    <button onClick={handleLogout} className={`${styles.actionButton} ${styles.logoutButton}`}>
-                        🚪 Выйти
+                        🚪 {t('profile.logout')}
                    </button>
                )}
           </div>
@@ -221,7 +217,7 @@ export default function UserProfilePage() {
           <div className={styles.avatarContainer}>
                 <CyberAvatar 
                     src={avatarUrl}
-                    alt={`Аватар ${displayName}`} 
+                    alt={t('profile.avatarAlt', { name: displayName })} 
                     size={120}
                     priority={true} 
                     className={styles.avatar}
@@ -250,16 +246,16 @@ export default function UserProfilePage() {
               )}
               <div className={styles.stats}>
                 {followersCount !== null && typeof followersCount !== 'undefined' && (
-                    <p>👥 {followersCount.toLocaleString('ru-RU')} {pluralize(followersCount, 'фолловер', 'фолловера', 'фолловеров')}</p>
+                    <p>👥 {followersCount.toLocaleString(t.language)} {pluralize(followersCount, t('profile.followers_one'), t('profile.followers_few'), t('profile.followers_many'))}</p>
                 )}
                 {viewCount !== null && typeof viewCount !== 'undefined' && (
-                    <p>👁️ {viewCount.toLocaleString('ru-RU')} {pluralize(viewCount, 'просмотр', 'просмотра', 'просмотров')}</p>
+                    <p>👁️ {viewCount.toLocaleString(t.language)} {pluralize(viewCount, t('profile.views_one'), t('profile.views_few'), t('profile.views_many'))}</p>
                 )}
                  {createdAt && (
-                    <p>📅 На Twitch с {formattedDate}</p>
+                    <p>📅 {t('profile.onTwitchSince', { date: formattedDate })}</p>
                 )}
                 {broadcasterType && broadcasterType !== 'normal' && (
-                     <p>💼 Статус: {translateBroadcasterType(broadcasterType)}</p>
+                     <p>💼 {t('profile.status')}: {translateBroadcasterType(broadcasterType, t)}</p>
                 )}
               </div>
           </div>
@@ -269,26 +265,26 @@ export default function UserProfilePage() {
                   <StatisticsWidget twitchData={twitchUserData} profileData={profileData} />
               ) : (
                   <div className={styles.defaultWidget}>
-                      <p>Выберите виджет в настройках профиля.</p>
+                      <p>{t('profile.selectWidget')}</p>
                   </div>
               )}
           </div>
       </div>
 
       <div className={styles.profileDescription}>
-         <h2>Описание</h2>
-         <p>{profileDescription || 'Пользователь пока ничего не рассказал о себе.'}</p>
+         <h2>{t('profile.description')}</h2>
+         <p>{profileDescription || t('profile.noDescription')}</p>
       </div>
 
       {videos && videos.length > 0 && (
           <div className={styles.videosSection}>
-              <h2 className={styles.sectionTitle}>Последние видео (VODs)</h2>
+              <h2 className={styles.sectionTitle}>{t('profile.latestVideos')}</h2>
               <div className={styles.videosGrid}>
                   {videos.map(video => (
                       <a key={video.id} href={video.url} target="_blank" rel="noopener noreferrer" className={styles.videoCard}>
                           <Image 
                               src={video.thumbnail_url.replace('%{width}', '320').replace('%{height}', '180')}
-                              alt={`Превью видео ${video.title}`}
+                              alt={t('profile.videoThumbnailAlt', { title: video.title })}
                               width={320} 
                               height={180} 
                               className={styles.videoThumbnail}
@@ -298,10 +294,10 @@ export default function UserProfilePage() {
                           <div className={styles.videoInfo}>
                               <h3 className={styles.videoTitle} title={video.title}>{video.title}</h3>
                               <p className={styles.videoMeta}>
-                                  <span>{formatDate(video.created_at)}</span>
+                                  <span>{formatDate(video.created_at, t.language)}</span>
                                   <span> | {formatDuration(video.duration)}</span>
                                   {typeof video.view_count === 'number' && 
-                                     <span> | 👁️ {video.view_count.toLocaleString('ru-RU')}</span>
+                                     <span> | 👁️ {video.view_count.toLocaleString(t.language)}</span>
                                   }
                               </p>
                           </div>
