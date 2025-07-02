@@ -2,10 +2,97 @@
   background: var(--background-secondary);
   position: relative;
   overflow: hidden;
-  min-width: var(--base-width, 80px);
   border-radius: 12px;
   border: 1px solid var(--border-primary);
-  transition: background-color 0.3s ease;
+  cursor: pointer;
+  transition: background-color 0.6s var(--easing);
+}
+
+.listItem[data-active='true'] {
+  background-color: rgba(145, 70, 255, 0.15);
+  backdrop-filter: blur(4px);
+}
+
+.linkWrapper {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  position: relative;
+  width: 100%;
+  height: 100%;
+  color: inherit;
+  text-decoration: none;
+  padding: 1.5rem 1rem;
+}
+
+/* Collapsed View */
+.collapsedView {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+  opacity: 1;
+  transition: opacity 0.5s var(--easing);
+}
+
+.listItem[data-active='true'] .collapsedView {
+  opacity: 0;
+}
+
+.collapsedView .icon {
+  width: 24px;
+  height: 24px;
+  opacity: 0.6;
+}
+
+.collapsedView .labelVertical {
+  writing-mode: vertical-rl;
+  transform: rotate(180deg);
+  text-transform: uppercase;
+  font-size: 0.9rem;
+  font-weight: 500;
+  font-family: monospace;
+  opacity: 0.7;
+  letter-spacing: 1px;
+}
+
+/* Expanded View */
+.expandedView {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  text-align: center;
+  gap: 1rem;
+  padding: 1.5rem 1rem;
+  opacity: 0;
+  transform: translateY(10px);
+  transition: opacity 0.5s var(--easing), transform 0.5s var(--easing);
+}
+
+.listItem[data-active='true'] .expandedView {
+  opacity: 1;
+  transform: translateY(0);
+  transition-delay: 0.2s;
+}
+
+.expandedView .labelHorizontal {
+  font-size: 1.5rem;
+  font-weight: 600;
+}
+
+.expandedView .description {
+  font-size: 0.9rem;
+  color: var(--foreground-secondary);
+}
+
+.expandedView .cta {
+  font-weight: 500;
+  color: var(--accent-primary);
+  margin-top: 1rem;
 }
 
 .listItem::before, .listItem::after {
@@ -36,17 +123,52 @@
   opacity: 1;
 }
 
-.linkWrapper {
-  display: block;
+.cardContent {
+  position: absolute;
+  top: 1.5rem;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+  opacity: 1;
+  transition: opacity 0.5s var(--easing);
+}
+
+.cardContent svg {
+  width: 24px;
+  height: 24px;
+  opacity: 0.6;
+}
+
+.verticalTitle {
+  writing-mode: vertical-rl;
+  transform: rotate(180deg);
+  text-transform: uppercase;
+  font-size: 0.9rem;
+  font-weight: 500;
+  font-family: monospace;
+  opacity: 0.7;
+  letter-spacing: 1px;
+}
+
+.gradientOverlay {
+  position: absolute;
+  inset: 0;
   width: 100%;
   height: 100%;
-  text-decoration: none;
-  color: inherit;
-  position: relative;
-  z-index: 1;
-  background-color: var(--background-secondary);
-  border-radius: inherit;
-  overflow: hidden;
+  background: conic-gradient(from 180deg at 50% 50%, #9146ff 0deg, #ffd700 180deg, #9146ff 360deg);
+  opacity: 0;
+  transition: opacity 0.6s var(--easing);
+}
+
+.listItem[data-active='true'] .cardContent {
+  opacity: 0;
+}
+
+.listItem[data-active='true'] .gradientOverlay {
+  opacity: 1;
 }
 
 .article {
@@ -61,27 +183,6 @@
   padding: 1rem;
   padding-left: 1.5rem;
   overflow: hidden;
-}
-
-.verticalTitle {
-  position: absolute;
-  top: 1rem;
-  left: 0.5rem;
-  transform-origin: 0 50%;
-  rotate: 90deg;
-  font-size: 0.9rem;
-  font-weight: 300;
-  text-transform: uppercase;
-  white-space: nowrap;
-  opacity: 0.7;
-  transition: opacity var(--speed) var(--easing);
-}
-
-.article > svg {
-  width: 24px;
-  height: 24px;
-  opacity: 0.6;
-  transition: opacity var(--speed) var(--easing);
 }
 
 .description {
