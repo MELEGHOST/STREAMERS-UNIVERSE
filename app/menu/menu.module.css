@@ -100,10 +100,30 @@
 /* Сетка для карточек меню */
 .mainNavGrid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); /* Адаптивные колонки */
-  gap: 1.5rem; /* Увеличим отступ */
-  list-style: none;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 1.5rem;
+  width: 100%;
+}
+
+.cardList {
+  display: grid;
+  gap: 8px;
+  list-style-type: none;
   padding: 0;
+  margin: 2rem 0;
+  width: 100%;
+  max-width: 1200px;
+  height: 350px;
+  transition: grid-template-columns 0.6s linear(
+    0 0%, 0.1538 4.09%, 0.2926 8.29%, 0.4173 12.63%, 0.5282 17.12%,
+    0.6255 21.77%, 0.7099 26.61%, 0.782 31.67%, 0.8425 37%, 0.8887 42.23%,
+    0.9257 47.79%, 0.9543 53.78%, 0.9752 60.32%, 0.9883 67.11%, 0.9961 75%,
+    1 100%
+  );
+}
+
+.cardList > li {
+  min-width: 80px;
 }
 
 /* Стиль карточки меню */

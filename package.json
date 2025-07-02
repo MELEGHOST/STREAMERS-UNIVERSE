@@ -1,6 +1,6 @@
 {
   "name": "streamers-universe",
-  "version": "1.0.0",
+  "version": "Pre-Alpha-0.4.0",
   "private": true,
   "scripts": {
     "dev": "next dev",

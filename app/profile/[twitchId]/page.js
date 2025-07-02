@@ -268,7 +268,7 @@ export default function UserProfilePage() {
                 <CyberAvatar 
                     src={avatarUrl}
                     alt={t('profile.avatarAlt', { name: displayName })} 
-                    size={120}
+                    size={240}
                     priority={true} 
                     className={styles.avatar}
                 />

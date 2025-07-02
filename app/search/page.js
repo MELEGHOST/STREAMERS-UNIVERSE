@@ -7,6 +7,7 @@ import { useAuth } from '../contexts/AuthContext';
 import styles from './search.module.css';
 import pageStyles from '../../styles/page.module.css';
 import { useTranslation } from 'react-i18next';
+import StyledSearchInput from '../components/StyledSearchInput/StyledSearchInput';
 
 export default function SearchPage() {
   const router = useRouter();
@@ -106,14 +107,11 @@ export default function SearchPage() {
       <h1 className={pageStyles.title}>{t('search.title')}</h1>
       
       <div className={styles.searchContainer} ref={searchContainerRef}>
-        <input
-          type="text"
+        <StyledSearchInput
           value={query}
           onChange={handleInputChange}
           onFocus={() => setIsDropdownVisible(results.length > 0)}
           placeholder={t('search.placeholder')}
-          className={styles.searchInput}
-          aria-label={t('search.ariaLabel')}
         />
         {isLoading && <div className={`${styles.searchSpinner} spinner`}></div>}
         

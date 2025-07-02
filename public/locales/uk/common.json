@@ -49,8 +49,8 @@
       }
     },
     "logout": "Вийти",
-    "login": "Увійти",
-    "loading": "Завантаження...",
+    "login": "Увійти через Twitch",
+    "loading": "Завантаження",
     "enterMenu": "Увійти в меню",
     "inviteButton": {
       "invite": "Запросити {{name}}",
@@ -58,18 +58,24 @@
     },
     "menu": {
         "search": "Пошук",
-        "reviews": "Відгуки",
-        "followings": "Натхненники",
-        "followers": "Послідовники",
+        "reviews": "Створити відгук",
+        "followings": "Підписки",
+        "followers": "Підписники",
         "settings": "Налаштування",
         "moderation": "Модерація",
         "navigationMenu": "Меню навігації",
-        "profile": "Профіль"
+        "profile": "Профіль",
+        "searchDesc": "Знаходьте нових стрімерів та цікавий контент.",
+        "reviewsDesc": "Поділіться своєю думкою про стрімерів.",
+        "followingsDesc": "Подивіться, на кого ви підписані.",
+        "followersDesc": "Дізнайтеся, хто підписаний на вас.",
+        "settingsDesc": "Налаштуйте свій профіль та параметри сайту.",
+        "moderationDesc": "Керування відгуками та користувачами."
     },
     "yourAvatar": "Ваш аватар",
     "logoAlt": "Логотип Streamers Universe",
     "appName": "Streamers Universe",
-    "footerRights": "© {{year}} Streamers Universe. Всі права захищені?",
+    "footerRights": "© {{year}} Streamers Universe. Всі права захищені.",
     "my_reviews": {
         "unknownDate": "Невідомо",
         "invalidDate": "Невірна дата",
@@ -143,7 +149,7 @@
     },
     "loading": {
         "profile": "Завантаження профілю...",
-        "universe": "Завантаження Всесвіту...",
+        "universe": "Завантажуємо Всесвіт...",
         "followings": "Завантаження списку натхненників...",
         "page": "Завантаження сторінки...",
         "generic": "Завантаження...",

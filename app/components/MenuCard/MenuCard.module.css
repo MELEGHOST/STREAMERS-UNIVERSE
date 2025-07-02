@@ -1,0 +1,123 @@
+.listItem {
+  background: var(--background-secondary);
+  position: relative;
+  overflow: hidden;
+  border-radius: 12px;
+  border: 1px solid var(--border-primary);
+  transition: all 0.3s ease;
+}
+
+.listItem::before, .listItem::after {
+  content: '';
+  position: absolute;
+  inset: -2px;
+  z-index: 0;
+  border-radius: inherit;
+  background: conic-gradient(
+    from 180deg at 50% 50%,
+    #9146ff 0deg, 
+    #ffd700 72deg,
+    #9146ff 144deg,
+    #ffd700 216deg,
+    #9146ff 288deg,
+    #9146ff 360deg
+  );
+  opacity: 0;
+  transition: opacity 0.4s ease;
+  filter: blur(8px);
+}
+
+.listItem::after {
+  filter: blur(0px);
+}
+
+.listItem:hover::before, .listItem:hover::after {
+  opacity: 1;
+}
+
+.linkWrapper {
+  display: block;
+  width: 100%;
+  height: 100%;
+  text-decoration: none;
+  color: inherit;
+  position: relative;
+  z-index: 1;
+  background-color: var(--background-secondary);
+  border-radius: inherit;
+  overflow: hidden;
+}
+
+.article {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  padding: 1rem;
+}
+
+.title {
+  position: absolute;
+  top: 1.5rem;
+  left: 0rem;
+  transform-origin: 0 50%;
+  rotate: 90deg;
+  font-size: 0.9rem;
+  font-weight: 300;
+  text-transform: uppercase;
+  font-family: monospace;
+  white-space: nowrap;
+  opacity: 0.7;
+  transition: opacity 0.4s ease;
+}
+
+.iconWrapper, .label, .description, .cta {
+  opacity: 0;
+  transition: opacity 0.5s ease;
+  transition-delay: 0s;
+}
+
+.listItem[data-active='true'] .title {
+  opacity: 0;
+}
+
+.listItem[data-active='true'] .iconWrapper,
+.listItem[data-active='true'] .label,
+.listItem[data-active='true'] .description,
+.listItem[data-active='true'] .cta {
+  opacity: 1;
+  transition-delay: 0.2s;
+}
+
+.iconWrapper {
+  width: 40px;
+  height: 40px;
+  color: var(--accent-primary);
+}
+
+.iconWrapper svg {
+    width: 100%;
+    height: 100%;
+}
+
+.label {
+  font-size: 1.2rem;
+  font-weight: 600;
+  margin: 0;
+}
+
+.description {
+  font-size: 0.9rem;
+  line-height: 1.4;
+  opacity: 0.8;
+  color: var(--foreground-secondary);
+}
+
+.cta {
+  font-weight: 500;
+  color: var(--accent-primary);
+  margin-top: auto;
+  align-self: flex-start;
+} 

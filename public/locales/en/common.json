@@ -63,7 +63,13 @@
         "settings": "Settings",
         "moderation": "Moderation",
         "navigationMenu": "Navigation Menu",
-        "profile": "Profile"
+        "profile": "Profile",
+        "searchDesc": "Find new streamers and interesting content.",
+        "reviewsDesc": "Share your opinion about streamers.",
+        "followingsDesc": "See who you are following.",
+        "followersDesc": "Find out who is following you.",
+        "settingsDesc": "Customize your profile and site settings.",
+        "moderationDesc": "Manage reviews and users."
     },
     "yourAvatar": "Your avatar",
     "logoAlt": "Streamers Universe Logo",

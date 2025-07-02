@@ -3,7 +3,7 @@
 import React from 'react';
 import styled from 'styled-components';
 
-const StyledSearchInput = ({ value, onChange, placeholder }) => {
+const StyledSearchInput = ({ value, onChange, placeholder, onFocus }) => {
   return (
     <StyledWrapper>
       <div id="poda">
@@ -21,6 +21,7 @@ const StyledSearchInput = ({ value, onChange, placeholder }) => {
             className="input" 
             value={value}
             onChange={onChange}
+            onFocus={onFocus}
           />
           <div id="input-mask" />
           <div id="pink-mask" />

@@ -49,8 +49,8 @@
       }
     },
     "logout": "Выйти",
-    "login": "Войти",
-    "loading": "Загрузка...",
+    "login": "Войти через Twitch",
+    "loading": "Загрузка",
     "enterMenu": "Войти в меню",
     "inviteButton": {
       "invite": "Пригласить {{name}}",
@@ -58,18 +58,24 @@
     },
     "menu": {
         "search": "Поиск",
-        "reviews": "Отзывы",
-        "followings": "Вдохновители",
-        "followers": "Последователи",
+        "reviews": "Создать отзыв",
+        "followings": "Подписки",
+        "followers": "Подписчики",
         "settings": "Настройки",
         "moderation": "Модерация",
         "navigationMenu": "Меню навигации",
-        "profile": "Профиль"
+        "profile": "Профиль",
+        "searchDesc": "Находите новых стримеров и интересный контент.",
+        "reviewsDesc": "Поделитесь своим мнением о стримерах.",
+        "followingsDesc": "Посмотрите, на кого вы подписаны.",
+        "followersDesc": "Узнайте, кто подписан на вас.",
+        "settingsDesc": "Настройте свой профиль и параметры сайта.",
+        "moderationDesc": "Управление отзывами и пользователями."
     },
     "yourAvatar": "Ваш аватар",
     "logoAlt": "Логотип Streamers Universe",
     "appName": "Streamers Universe",
-    "footerRights": "© {{year}} Streamers Universe. Все права защищены?",
+    "footerRights": "© {{year}} Streamers Universe. Все права защищены.",
     "my_reviews": {
         "unknownDate": "Неизвестно",
         "invalidDate": "Неверная дата",
@@ -143,7 +149,7 @@
     },
     "loading": {
         "profile": "Загрузка профиля...",
-        "universe": "Загрузка Вселенной...",
+        "universe": "Загружаем Вселенную...",
         "followings": "Загрузка списка вдохновителей...",
         "page": "Загрузка страницы...",
         "generic": "Загрузка...",
