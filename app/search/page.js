@@ -6,9 +6,11 @@ import Image from 'next/image';
 import { useAuth } from '../contexts/AuthContext';
 import styles from './search.module.css';
 import pageStyles from '../../styles/page.module.css';
+import { useTranslation } from 'react-i18next';
 
 export default function SearchPage() {
   const router = useRouter();
+  const { t } = useTranslation();
   const { isLoading: authLoading, isAuthenticated } = useAuth();
   const [query, setQuery] = useState('');
   const [results, setResults] = useState([]);
@@ -33,13 +35,13 @@ export default function SearchPage() {
       const response = await fetch(`/api/search/combined?query=${encodeURIComponent(searchQuery)}`);
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.error || `Ошибка поиска: ${response.statusText}`);
+        throw new Error(errorData.error || t('search.searchError', { status: response.statusText }));
       }
       const data = await response.json();
       setResults(data);
       setIsDropdownVisible(data.length > 0);
     } catch (err) {
-      console.error("Ошибка поиска:", err);
+      console.error(t('search.searchErrorLog'), err);
       setError(err.message);
       setResults([]);
       setIsDropdownVisible(false);
@@ -74,10 +76,9 @@ export default function SearchPage() {
   }, [searchContainerRef]);
 
   const handleResultClick = (result) => {
-    console.log('[SearchPage] Clicking result, attempting to navigate to profile:', result?.twitch_id, result);
     if (!result?.twitch_id) {
         console.error('[SearchPage] Cannot navigate, missing twitch_id in result:', result);
-        setError('Не удалось перейти в профиль: отсутствует ID пользователя.');
+        setError(t('search.navigationError'));
         return;
     }
     setIsDropdownVisible(false);
@@ -90,21 +91,19 @@ export default function SearchPage() {
 
   if (!isAuthenticated) {
     router.replace('/');
-    return <div className={pageStyles.loadingContainer}><p>Требуется авторизация...</p></div>;
+    return <div className={pageStyles.loadingContainer}><p>{t('search.authRequired')}</p></div>;
   }
 
   return (
     <div className={pageStyles.container}>
-      {/* --- Кнопка Назад --- */}
       <button 
         onClick={() => router.push('/menu')}
         className={pageStyles.backButton}
         style={{ position: 'absolute', top: '2rem', left: '2rem' }}
       >
-        &larr; Назад в меню
+        &larr; {t('search.backToMenu')}
       </button>
-      {/* --- --- */}
-      <h1 className={pageStyles.title}>Поиск пользователей</h1>
+      <h1 className={pageStyles.title}>{t('search.title')}</h1>
       
       <div className={styles.searchContainer} ref={searchContainerRef}>
         <input
@@ -112,9 +111,9 @@ export default function SearchPage() {
           value={query}
           onChange={handleInputChange}
           onFocus={() => setIsDropdownVisible(results.length > 0)}
-          placeholder="Введите никнейм пользователя Twitch..."
+          placeholder={t('search.placeholder')}
           className={styles.searchInput}
-          aria-label="Поиск пользователей"
+          aria-label={t('search.ariaLabel')}
         />
         {isLoading && <div className={`${styles.searchSpinner} spinner`}></div>}
         
@@ -139,7 +138,7 @@ export default function SearchPage() {
                 </div>
                 <span 
                     className={`${styles.statusIndicator} ${result.registered ? styles.registered : styles.notRegistered}`}
-                    title={result.registered ? "Зарегистрирован в Streamers Universe" : "Не зарегистрирован в Streamers Universe"}
+                    title={result.registered ? t('search.registered') : t('search.notRegistered')}
                 ></span>
                 {result.is_live && <span className={styles.liveBadge}>LIVE</span>}
               </div>
@@ -148,12 +147,12 @@ export default function SearchPage() {
         )}
         {isDropdownVisible && !isLoading && results.length === 0 && query.length >= 2 && (
              <div className={`${styles.searchResultsDropdown} ${styles.noResults}`}>
-                Ничего не найдено по запросу &quot;{query}&quot;.
+                {t('search.noResults', { query })}
              </div>
         )}
       </div>
 
-      {error && <p className={pageStyles.errorText}>Ошибка: {error}</p>}
+      {error && <p className={pageStyles.errorText}>{t('search.errorPrefix')}: {error}</p>}
     </div>
   );
 }

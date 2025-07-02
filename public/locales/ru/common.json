@@ -292,5 +292,19 @@
       "sessionError": "Ваша сессия истекла. Пожалуйста, войдите снова.",
       "saveError": "Ошибка сохранения: {{message}}",
       "successMessage": "Профиль успешно обновлен!"
+    },
+    "search": {
+      "backToMenu": "Назад в меню",
+      "title": "Поиск пользователей",
+      "placeholder": "Введите никнейм пользователя Twitch...",
+      "ariaLabel": "Поиск пользователей",
+      "searchError": "Ошибка поиска: {{status}}",
+      "searchErrorLog": "Ошибка поиска:",
+      "navigationError": "Не удалось перейти в профиль: отсутствует ID пользователя.",
+      "authRequired": "Требуется авторизация...",
+      "registered": "Зарегистрирован в Streamers Universe",
+      "notRegistered": "Не зарегистрирован в Streamers Universe",
+      "noResults": "Ничего не найдено по запросу \"{{query}}\".",
+      "errorPrefix": "Ошибка"
     }
 } 

@@ -291,5 +291,19 @@
       "sessionError": "Your session has expired. Please log in again.",
       "saveError": "Failed to save: {{message}}",
       "successMessage": "Profile updated successfully!"
+    },
+    "search": {
+      "backToMenu": "Back to Menu",
+      "title": "User Search",
+      "placeholder": "Enter a Twitch username...",
+      "ariaLabel": "User search",
+      "searchError": "Search error: {{status}}",
+      "searchErrorLog": "Search error:",
+      "navigationError": "Failed to navigate to profile: User ID is missing.",
+      "authRequired": "Authorization required...",
+      "registered": "Registered in Streamers Universe",
+      "notRegistered": "Not registered in Streamers Universe",
+      "noResults": "No results found for \"{{query}}\".",
+      "errorPrefix": "Error"
     }
 } 

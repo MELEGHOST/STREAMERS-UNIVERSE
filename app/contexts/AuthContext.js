@@ -89,6 +89,9 @@ export function AuthProvider({ children }) {
 
   const signOut = useCallback(async () => {
     await supabase.auth.signOut();
+    setUser(null);
+    setUserRole(null);
+    setSession(null);
   }, []);
 
   const value = useMemo(() => ({
