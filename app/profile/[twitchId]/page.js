@@ -33,6 +33,33 @@ const socialButtonComponents = {
     yandex: YandexMusicButton,
 };
 
+const RoleBadge = ({ role, t }) => {
+    let styleClass = '';
+    let text = '';
+    let icon = '';
+
+    switch (role) {
+        case 'admin':
+            styleClass = styles.admin;
+            text = t('roles.admin');
+            icon = '👑';
+            break;
+        case 'streamer':
+            styleClass = styles.streamer;
+            text = t('roles.streamer');
+            icon = '🎙️';
+            break;
+        default:
+            return null;
+    }
+    
+    return (
+        <span className={`${styles.roleBadge} ${styleClass}`}>
+            {icon} {text}
+        </span>
+    );
+};
+
 const translateBroadcasterType = (type, t) => {
     const key = `profile.broadcasterType.${type || 'normal'}`;
     return t(key, { defaultValue: type || 'User' });
@@ -137,6 +164,7 @@ export default function UserProfilePage() {
   const userRolesString = isRegistered ? profileData?.role : null;
   const userRolesArray = userRolesString?.split(',').map(role => role.trim().toLowerCase()).filter(Boolean) || [];
   const isAdmin = userRolesArray.includes('admin');
+  const isStreamer = twitchUserData?.broadcaster_type === 'partner' || twitchUserData?.broadcaster_type === 'affiliate';
 
   const profileWidget = profileData?.profile_widget;
 
@@ -225,7 +253,11 @@ export default function UserProfilePage() {
           </div>
 
           <div className={styles.profileInfo}> 
-              <h1 className={styles.displayName}>{displayName}</h1>
+              <h1 className={styles.displayName}>
+                {displayName}
+                {isAdmin && <RoleBadge role="admin" t={t} />}
+                {isStreamer && <RoleBadge role="streamer" t={t} />}
+              </h1>
               <p className={styles.loginName}>@{twitchUserData?.login || profileData?.twitch_login || '???'}</p>
               {isRegistered && userRolesArray.length > 0 && (
                   <p className={styles.userRole}>{userRolesArray.join(', ')}</p>

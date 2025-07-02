@@ -322,5 +322,9 @@
       "loading": "Loading...",
       "unknown": "Unknown",
       "invalidDate": "Invalid Date"
+    },
+    "roles": {
+        "admin": "Admin",
+        "streamer": "Streamer"
     }
 } 
