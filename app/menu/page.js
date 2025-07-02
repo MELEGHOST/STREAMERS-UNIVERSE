@@ -6,7 +6,6 @@ import Image from 'next/image';
 import { useAuth } from '../contexts/AuthContext';
 import styles from './menu.module.css';
 import pageStyles from '../../styles/page.module.css';
-import { FaSearch, FaCog, FaShieldAlt, FaCommentDots, FaUserCheck, FaUsers } from 'react-icons/fa';
 import { useTranslation } from 'react-i18next';
 import MenuCard from '../components/MenuCard/MenuCard';
 import MenuIcon from '../components/MenuIcon/MenuIcon';
