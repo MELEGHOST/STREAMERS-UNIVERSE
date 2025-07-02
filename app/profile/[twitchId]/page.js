@@ -146,9 +146,9 @@ export default function UserProfilePage() {
 
   if (loadingProfile) {
       return (
-          <div className={pageStyles.loadingContainer}> 
+          <div className={pageStyles.loadingContainer}>
               <div className="spinner"></div>
-              <p>Загрузка профиля...</p>
+              <p>{t('loading.profile')}</p>
           </div>
       );
   }

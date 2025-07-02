@@ -8,18 +8,21 @@ import { useAuth } from '../contexts/AuthContext';
 import styles from './my-reviews.module.css'; // Стили создадим позже
 import pageStyles from '../../styles/page.module.css'; // Общие стили
 import RouteGuard from '../components/RouteGuard';
+import { useTranslation } from 'react-i18next';
 
 // Функция форматирования даты (можно вынести в utils)
-const formatDate = (dateString) => {
-  if (!dateString) return 'Неизвестно';
+const formatDate = (dateString, t) => {
+  if (!dateString) return t('my_reviews.unknownDate');
   try {
-    return new Date(dateString).toLocaleDateString('ru-RU', { year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' });
-  } catch { return 'Неверная дата'; }
+    // Язык возьмется из i18n
+    return new Date(dateString).toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+  } catch { return t('my_reviews.invalidDate'); }
 };
 
 function MyReviewsPageContent() {
     const router = useRouter();
     const { supabase, isAuthenticated, user } = useAuth(); // Добавил user для получения token
+    const { t } = useTranslation();
     const [reviews, setReviews] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
@@ -31,7 +34,7 @@ function MyReviewsPageContent() {
         setError(null);
 
         if (!isAuthenticated || !supabase) {
-            setError('Для просмотра отзывов необходимо авторизоваться.');
+            setError(t('my_reviews.authRequired'));
             setLoading(false);
             console.warn('[MyReviewsPage] User not authenticated or supabase client not available.');
             return;
@@ -40,7 +43,7 @@ function MyReviewsPageContent() {
         try {
             // Используем user.id для получения сессии, если isAuthenticated гарантирует наличие user
             if (!user?.id) {
-                setError('Пользователь не найден для получения сессии.');
+                setError(t('my_reviews.userNotFound'));
                 setLoading(false);
                 console.warn('[MyReviewsPage] User object not available for session.');
                 return;
@@ -49,7 +52,7 @@ function MyReviewsPageContent() {
             const token = session.data.session?.access_token;
 
             if (!token) {
-                setError('Не удалось получить токен авторизации.');
+                setError(t('my_reviews.tokenFailed'));
                 setLoading(false);
                  console.warn('[MyReviewsPage] Failed to get auth token.');
                 return;
@@ -63,7 +66,7 @@ function MyReviewsPageContent() {
 
             if (!response.ok) {
                 const errorData = await response.json();
-                const errorMsg = `Ошибка ${response.status}: ${errorData.error || response.statusText}`;
+                const errorMsg = t('my_reviews.apiError', { status: response.status, error: errorData.error || response.statusText });
                 console.error('[MyReviewsPage] API Error:', errorMsg);
                 setError(errorMsg);
             } else {
@@ -73,11 +76,11 @@ function MyReviewsPageContent() {
             }
         } catch (fetchError) {
             console.error('[MyReviewsPage] Fetch error:', fetchError);
-            setError(`Критическая ошибка загрузки: ${fetchError.message}`);
+            setError(t('my_reviews.criticalLoadError', { message: fetchError.message }));
         } finally {
             setLoading(false);
         }
-    }, [isAuthenticated, supabase, user]); // Добавил user в зависимости
+    }, [isAuthenticated, supabase, user, t]); // Добавил t в зависимости
 
     useEffect(() => {
         // Ждем аутентификации перед загрузкой
@@ -85,17 +88,17 @@ function MyReviewsPageContent() {
              if (isAuthenticated) {
                  fetchMyReviews();
              } else {
-                 setError('Для просмотра отзывов необходимо авторизоваться.');
+                 setError(t('my_reviews.authRequired'));
                  setLoading(false);
              }
         }
-    }, [isAuthenticated, fetchMyReviews]); // Убрал supabase и user, т.к. они в fetchMyReviews
+    }, [isAuthenticated, fetchMyReviews, t]); // Добавил t
 
     // --- Функция удаления отзыва ---
     const handleDelete = useCallback(async (reviewId) => {
         if (!reviewId) return;
 
-        const confirmed = window.confirm("Братан, ты реально хочешь снести этот отзыв? Назад пути не будет.");
+        const confirmed = window.confirm(t('my_reviews.deleteConfirm'));
         if (!confirmed) return;
 
         setDeletingId(reviewId); // Показываем лоадер для конкретной карточки
@@ -106,7 +109,7 @@ function MyReviewsPageContent() {
             const token = session.data.session?.access_token;
 
             if (!token) {
-                throw new Error('Токен авторизации не найден. Попробуй перезайти.');
+                throw new Error(t('my_reviews.tokenNotFound'));
             }
 
             const response = await fetch(`/api/reviews/${reviewId}`, {
@@ -127,11 +130,11 @@ function MyReviewsPageContent() {
 
         } catch (deleteError) {
             console.error(`[MyReviewsPage] Error deleting review ${reviewId}:`, deleteError);
-            setError(`Не удалось удалить отзыв: ${deleteError.message}`);
+            setError(t('my_reviews.deleteFailed', { message: deleteError.message }));
         } finally {
             setDeletingId(null); // Убираем лоадер
         }
-    }, [supabase]); // Убрал user и isAuthenticated, получаем токен внутри
+    }, [supabase, t]); // Добавил t
 
     // --- Рендеринг --- 
 
@@ -139,7 +142,7 @@ function MyReviewsPageContent() {
         return (
             <div className={pageStyles.loadingContainer}> 
                 <div className="spinner"></div>
-                <p>Загрузка ваших отзывов...</p>
+                <p>{t('my_reviews.loading')}</p>
             </div>
         );
     }
@@ -148,15 +151,15 @@ function MyReviewsPageContent() {
         <div className={pageStyles.container}> 
             <div className={styles.header}>
                 <button onClick={() => router.back()} className={styles.backButton}>
-                    &larr; Назад
+                    &larr; {t('my_reviews.back')}
                 </button>
-                <h1 className={styles.title}>Мои Отзывы ({reviews.length})</h1>
+                <h1 className={styles.title}>{t('my_reviews.title', { count: reviews.length })}</h1>
             </div>
 
             {error && <p className={pageStyles.errorMessage}>{error}</p>}
 
             {!error && reviews.length === 0 && (
-                <p className={styles.noReviewsMessage}>Вы еще не оставили ни одного отзыва.</p>
+                <p className={styles.noReviewsMessage}>{t('my_reviews.noReviews')}</p>
             )}
 
             {!error && reviews.length > 0 && (
@@ -168,16 +171,16 @@ function MyReviewsPageContent() {
                                     {review.streamer_profile_image_url && (
                                         <Image 
                                             src={review.streamer_profile_image_url}
-                                            alt={`Аватар ${review.streamer_display_name}`}
+                                            alt={t('my_reviews.avatarAlt', { name: review.streamer_display_name })}
                                             width={40}
                                             height={40}
                                             className={styles.streamerAvatar}
                                             unoptimized
                                         />
                                     )}
-                                    <span className={styles.streamerName}>{review.streamer_display_name || 'Неизвестный стример'}</span>
+                                    <span className={styles.streamerName}>{review.streamer_display_name || t('my_reviews.unknownStreamer')}</span>
                                 </Link>
-                                <span className={styles.reviewDate}>{formatDate(review.created_at)}</span>
+                                <span className={styles.reviewDate}>{formatDate(review.created_at, t)}</span>
                            </div>
                             <p className={styles.reviewText}>{review.review_text}</p>
                             
@@ -188,14 +191,14 @@ function MyReviewsPageContent() {
                                     className={`${styles.actionButton} ${styles.editButton}`}
                                     disabled={deletingId === review.id} // Блокируем во время удаления
                                 >
-                                    ✏️ Редактировать
+                                    {t('my_reviews.edit')}
                                 </button>
                                 <button 
                                     onClick={() => handleDelete(review.id)} 
                                     className={`${styles.actionButton} ${styles.deleteButton}`}
                                     disabled={deletingId === review.id} // Блокируем во время удаления
                                 >
-                                    {deletingId === review.id ? 'Удаляю...' : '❌ Удалить'}
+                                    {deletingId === review.id ? t('my_reviews.deleting') : t('my_reviews.delete')}
                                 </button>
                             </div>
                             {/* --------------------- */}

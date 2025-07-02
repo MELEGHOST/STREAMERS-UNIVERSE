@@ -1,29 +1,31 @@
 import { NextResponse } from 'next/server';
-import { cookies } from 'next/headers';
+import { headers } from 'next/headers';
 import { getTwitchClientWithToken } from '../../../../utils/twitchClient';
 import { verifyJwt } from '../../../../utils/jwt';
 import { handleAchievementTrigger } from '../../../../utils/achievements';
 
 export async function GET() {
   try {
-    const cookieStore = cookies();
-    const supabaseToken = cookieStore.get('supabase-auth-token');
+    const headersList = headers();
+    const authorization = headersList.get('authorization');
 
-    if (!supabaseToken) {
-      return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
+    if (!authorization) {
+      return NextResponse.json({ message: 'Not authenticated' }, { status: 401 });
     }
 
+    const supabaseToken = authorization.split(' ')[1];
+    
     // Верифицируем JWT, чтобы получить ID пользователя
-    const decodedToken = await verifyJwt(supabaseToken.value);
+    const decodedToken = await verifyJwt(supabaseToken);
     if (!decodedToken || !decodedToken.sub) {
-        return NextResponse.json({ error: 'Invalid token' }, { status: 401 });
+        return NextResponse.json({ message: 'Invalid token' }, { status: 401 });
     }
     const userId = decodedToken.sub;
 
     // Получаем клиент Twitch с токеном пользователя
-    const twitchClient = await getTwitchClientWithToken(supabaseToken.value);
+    const twitchClient = await getTwitchClientWithToken(supabaseToken);
     if (!twitchClient) {
-      return NextResponse.json({ error: 'Failed to initialize Twitch client' }, { status: 500 });
+      return NextResponse.json({ message: 'Failed to initialize Twitch client' }, { status: 500 });
     }
 
     // Получаем каналы, на которые подписан пользователь
@@ -72,6 +74,7 @@ export async function GET() {
 
   } catch (error) {
     console.error('[API /twitch/user/followings] Error:', error);
-    return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
+    const errorMessage = error.message || 'Internal Server Error';
+    return NextResponse.json({ message: errorMessage }, { status: 500 });
   }
 } 

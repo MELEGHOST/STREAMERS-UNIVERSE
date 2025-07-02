@@ -5,6 +5,7 @@ import { useRouter, useParams } from 'next/navigation';
 import { useAuth } from '../../../contexts/AuthContext'; // Путь вроде верный
 import styles from '../edit-review.module.css'; // ИСПРАВЛЕННЫЙ ПУТЬ
 import pageStyles from '../../../../styles/page.module.css'; // Путь вроде верный
+import { useTranslation } from 'react-i18next';
 
 // Компонент для звездочек рейтинга (можно вынести)
 const StarRating = ({ rating, setRating, disabled }) => {
@@ -29,6 +30,7 @@ export default function EditReviewPage() {
     const params = useParams();
     const { reviewId } = params;
     const { supabase, isAuthenticated } = useAuth();
+    const { t } = useTranslation();
 
     const [reviewData, setReviewData] = useState(null);
     const [editText, setEditText] = useState('');
@@ -42,7 +44,7 @@ export default function EditReviewPage() {
         if (!reviewId || !isAuthenticated || !supabase) {
              // Don't set error here if it's just initial state before auth check
              if (isAuthenticated === false) {
-                 setError("Для редактирования отзыва необходимо авторизоваться.");
+                 setError(t('edit_review.authRequired'));
              }
              setLoading(false);
             return;
@@ -56,7 +58,7 @@ export default function EditReviewPage() {
             const token = session.data.session?.access_token;
 
             if (!token) {
-                throw new Error("Токен авторизации не найден.");
+                throw new Error(t('edit_review.tokenNotFound'));
             }
 
             // Используем GET эндпоинт, который мы создали (пока с mock данными)
@@ -70,12 +72,12 @@ export default function EditReviewPage() {
                 // В реальном API GET нужно будет добавить проверку 403 Forbidden
                 const errorData = await response.json();
                 if (response.status === 404) {
-                     throw new Error("Отзыв не найден.");
+                     throw new Error(t('edit_review.reviewNotFound'));
                 } else if (response.status === 403) {
-                    throw new Error("У вас нет прав на редактирование этого отзыва.");
+                    throw new Error(t('edit_review.forbidden'));
                 }
                  else {
-                     throw new Error(errorData.error || `Ошибка сервера: ${response.status}`);
+                     throw new Error(errorData.error || t('edit_review.serverError', { status: response.status }));
                  }
             }
 
@@ -91,24 +93,24 @@ export default function EditReviewPage() {
 
         } catch (fetchError) {
             console.error(`[EditReviewPage] Error fetching review ${reviewId}:`, fetchError);
-            setError(`Не удалось загрузить данные отзыва: ${fetchError.message}`);
+            setError(t('edit_review.loadError', { message: fetchError.message }));
         } finally {
             setLoading(false);
         }
-    }, [reviewId, isAuthenticated, supabase]); // Убрал user из зависимостей
+    }, [reviewId, isAuthenticated, supabase, t]); // Убрал user из зависимостей
 
     useEffect(() => {
         if (isAuthenticated !== null) { // Ждем определения статуса аутентификации
             if (isAuthenticated) {
                 fetchReviewData();
             } else {
-                setError("Для редактирования отзыва необходимо авторизоваться.");
+                setError(t('edit_review.authRequired'));
                 setLoading(false);
                 // Можно редирект на логин или /my-reviews
                  // router.push('/login');
             }
         }
-    }, [isAuthenticated, fetchReviewData]);
+    }, [isAuthenticated, fetchReviewData, t]);
 
     // Обработчик сохранения
     const handleSave = async (event) => {
@@ -117,11 +119,11 @@ export default function EditReviewPage() {
 
         // Простая валидация
         if (!editText.trim()) {
-            setError("Текст отзыва не может быть пустым, ебана.");
+            setError(t('edit_review.validation.emptyText'));
             return;
         }
          if (editRating < 1 || editRating > 5) {
-            setError("Рейтинг должен быть от 1 до 5 звезд.");
+            setError(t('edit_review.validation.invalidRating'));
             return;
         }
 
@@ -133,7 +135,7 @@ export default function EditReviewPage() {
             const session = await supabase.auth.getSession();
             const token = session.data.session?.access_token;
              if (!token) {
-                throw new Error("Токен авторизации не найден.");
+                throw new Error(t('edit_review.tokenNotFound'));
             }
 
             // Вызываем PATCH эндпоинт (пока не реализован)
@@ -151,19 +153,19 @@ export default function EditReviewPage() {
 
              if (!response.ok) {
                 const errorData = await response.json();
-                 throw new Error(errorData.error || `Ошибка сервера: ${response.status}`);
+                 throw new Error(errorData.error || t('edit_review.serverError', { status: response.status }));
             }
 
             const result = await response.json(); // Получаем ответ от PATCH
             console.log(`[EditReviewPage] Review ${reviewId} saved successfully. Response:`, result);
 
             // Можно показать сообщение об успехе перед редиректом
-            alert("Отзыв успешно сохранен!"); // Временное решение
+            alert(t('edit_review.saveSuccess')); // Временное решение
             router.push('/my-reviews'); // Возвращаемся к списку
 
         } catch (saveError) {
              console.error(`[EditReviewPage] Error saving review ${reviewId}:`, saveError);
-            setError(`Не удалось сохранить отзыв: ${saveError.message}`);
+            setError(t('edit_review.saveError', { message: saveError.message }));
              setIsSaving(false); // Разблокируем кнопку при ошибке
         }
         // setIsSaving(false) // Это нужно делать только при ошибке, при успехе - редирект
@@ -174,7 +176,7 @@ export default function EditReviewPage() {
         return (
              <div className={pageStyles.loadingContainer}>
                 <div className="spinner"></div>
-                 <p>Загрузка данных для редактирования...</p>
+                 <p>{t('edit_review.loading')}</p>
              </div>
         );
     }
@@ -182,9 +184,9 @@ export default function EditReviewPage() {
     if (error && !reviewData) { // Показываем критическую ошибку, если данные не загрузились
         return (
             <div className={pageStyles.container}>
-                <h1 className={styles.title}>Ошибка редактирования</h1>
+                <h1 className={styles.title}>{t('edit_review.errorTitle')}</h1>
                 <p className={pageStyles.errorMessage}>{error}</p>
-                <button onClick={() => router.push('/my-reviews')} className={pageStyles.button}>Назад к моим отзывам</button>
+                <button onClick={() => router.push('/my-reviews')} className={pageStyles.button}>{t('edit_review.backButton')}</button>
             </div>
         );
     }
@@ -193,9 +195,9 @@ export default function EditReviewPage() {
     if (!reviewData) {
          return (
             <div className={pageStyles.container}>
-                <h1 className={styles.title}>Отзыв не найден</h1>
-                 <p>Возможно, он был удален.</p>
-                <button onClick={() => router.push('/my-reviews')} className={pageStyles.button}>Назад к моим отзывам</button>
+                <h1 className={styles.title}>{t('edit_review.notFoundTitle')}</h1>
+                 <p>{t('edit_review.notFoundText')}</p>
+                <button onClick={() => router.push('/my-reviews')} className={pageStyles.button}>{t('edit_review.backButton')}</button>
             </div>
         );
     }
@@ -203,20 +205,20 @@ export default function EditReviewPage() {
 
     return (
         <div className={pageStyles.container}>
-            <h1 className={styles.title}>Редактировать отзыв</h1>
-             <p className={styles.itemName}>Объект: {reviewData.item_name || 'Неизвестно'}</p>
-            <p className={styles.category}>Категория: {reviewData.category || 'Неизвестно'}</p>
+            <h1 className={styles.title}>{t('edit_review.pageTitle')}</h1>
+             <p className={styles.itemName}>{t('edit_review.objectLabel', { name: reviewData.item_name || t('edit_review.unknown') })}</p>
+            <p className={styles.category}>{t('edit_review.categoryLabel', { category: reviewData.category || t('edit_review.unknown') })}</p>
 
              {error && <p className={pageStyles.errorMessage}>{error}</p>} {/* Ошибки валидации/сохранения */}
 
             <form onSubmit={handleSave} className={styles.editForm}>
                 <div className={styles.formGroup}>
-                     <label htmlFor="rating" className={styles.label}>Рейтинг:</label>
+                     <label htmlFor="rating" className={styles.label}>{t('edit_review.ratingLabel')}</label>
                      <StarRating rating={editRating} setRating={setEditRating} disabled={isSaving} />
                  </div>
 
                 <div className={styles.formGroup}>
-                    <label htmlFor="reviewText" className={styles.label}>Текст отзыва:</label>
+                    <label htmlFor="reviewText" className={styles.label}>{t('edit_review.reviewTextLabel')}</label>
                      <textarea
                         id="reviewText"
                         value={editText}
@@ -230,10 +232,10 @@ export default function EditReviewPage() {
 
                 <div className={styles.formActions}>
                     <button type="button" onClick={() => router.push('/my-reviews')} disabled={isSaving} className={`${pageStyles.button} ${styles.cancelButton}`}>
-                         Отмена
+                         {t('edit_review.cancelButton')}
                      </button>
                     <button type="submit" disabled={isSaving} className={`${pageStyles.button} ${styles.saveButton}`}>
-                        {isSaving ? 'Сохраняю...' : 'Сохранить изменения'}
+                        {isSaving ? t('edit_review.savingButton') : t('edit_review.saveButton')}
                      </button>
                  </div>
              </form>

@@ -1,114 +1,119 @@
 'use client';
-import { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '../contexts/AuthContext';
-import styles from '../../styles/page.module.css'; // Используем общие стили
-import RouteGuard from '../components/RouteGuard';
 import Link from 'next/link';
 import Image from 'next/image';
+import { useRouter } from 'next/navigation';
+import styles from './followings.module.css';
+import pageStyles from '../../styles/page.module.css';
+import { useTranslation } from 'react-i18next';
+import RouteGuard from '../components/RouteGuard';
+import { FaArrowLeft } from 'react-icons/fa';
 
 function FollowingsPageContent() {
-  const { isLoading: isAuthLoading, isAuthenticated } = useAuth();
-  const router = useRouter();
-  const title = "Вдохновители";
+    const { t } = useTranslation();
+    const { user, supabase } = useAuth();
+    const [followings, setFollowings] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState(null);
+    const router = useRouter();
 
-  const [channels, setChannels] = useState([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState(null);
 
-  useEffect(() => {
-    if (!isAuthLoading && !isAuthenticated) {
-      console.log(`[${title} Page] Not authenticated, redirecting to auth`);
-      router.push(`/auth?next=/followings`);
-    }
-  }, [isAuthLoading, isAuthenticated, router, title]);
+    const fetchFollowings = useCallback(async () => {
+        if (!user || !supabase) return;
 
-  useEffect(() => {
-    if (isAuthenticated) {
-      const fetchFollowings = async () => {
+        setLoading(true);
+        setError(null);
         try {
-          setIsLoading(true);
-          const response = await fetch('/api/twitch/user/followings');
-          if (!response.ok) {
-            throw new Error('Не удалось загрузить список подписок.');
-          }
-          const data = await response.json();
-          setChannels(data);
+            const { data: { session } } = await supabase.auth.getSession();
+            if (!session) {
+                throw new Error(t('my_reviews.authRequired'));
+            }
+            const token = session.access_token;
+
+            const response = await fetch('/api/twitch/user/followings', {
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.message || t('profile_page.failedToFetch'));
+            }
+
+            const data = await response.json();
+            setFollowings(data);
         } catch (err) {
-          setError(err.message);
+            setError(err.message);
         } finally {
-          setIsLoading(false);
+            setLoading(false);
         }
-      };
-      fetchFollowings();
-    }
-  }, [isAuthenticated]);
+    }, [user, supabase, t]);
 
-  // Централизованная логика рендеринга контента
-  const renderContent = () => {
-    if (isAuthLoading || isLoading) {
-      return (
-        <div className={styles.loadingContainer}>
-          <div className="spinner"></div><p>Загрузка списка вдохновителей...</p>
-        </div>
-      );
-    }
+    useEffect(() => {
+        fetchFollowings();
+    }, [fetchFollowings]);
 
-    if (error) {
-      return <p className={styles.errorText}>Ошибка: {error}</p>;
-    }
-
-    if (channels.length === 0) {
-      return <p>Вы пока ни на кого не подписаны на Twitch.</p>;
-    }
-
-    return (
-      <div className={styles.channelsGrid}>
-        {channels.map(channel => (
-          <Link key={channel.id} href={`/profile/${channel.login}`} className={styles.channelCard}>
-            <Image 
-              src={channel.profilePictureUrl} 
-              alt={channel.displayName} 
-              width={80}
-              height={80}
-              className={styles.channelAvatar} 
-            />
-            <div className={styles.channelInfo}>
-              <span className={styles.channelName}>{channel.displayName}</span>
-              {channel.isLive && <span className={styles.liveIndicator}>В ЭФИРЕ</span>}
+    if (loading) {
+        return (
+            <div className={pageStyles.loadingContainer}>
+                <div className="spinner"></div><p>{t('loading.followings')}</p>
             </div>
-            {channel.isLive && <p className={styles.streamTitle}>{channel.title}</p>}
-          </Link>
-        ))}
-      </div>
-    );
-  };
+        );
+    }
+    
+    // Этот блок больше не нужен, т.к. RouteGuard обрабатывает это
+    // if (!user) {
+    //     return (
+    //         <div className={pageStyles.loadingContainer}>
+    //             <div className="spinner"></div><p>{t('loading.page')}</p>
+    //         </div>
+    //     );
+    // }
 
-  if (!isAuthenticated && !isAuthLoading) {
     return (
-      <div className={styles.loadingContainer}>
-        <div className="spinner"></div><p>Загрузка страницы...</p>
-      </div>
+        <div className={pageStyles.container}>
+            <header className={styles.header}>
+                <button onClick={() => router.back()} className={styles.backButton}>
+                    <FaArrowLeft /> {t('achievements_page.backButton')}
+                </button>
+                <h1 className={styles.title}>{t('profile_page.followingsTitle')} ({followings.length})</h1>
+            </header>
+
+            {error && <p className={pageStyles.errorMessage}>{'Ошибка: ' + error}</p>}
+
+            {followings.length > 0 ? (
+                <div className={styles.grid}>
+                    {followings.map((following) => (
+                        <Link key={following.id} href={`/profile/${following.id}`} className={styles.card}>
+                             <Image
+                                src={following.profilePictureUrl || '/default-avatar.png'}
+                                alt={`${t('profile_page.avatarAlt', { name: following.displayName })}`}
+                                width={80}
+                                height={80}
+                                className={styles.avatar}
+                                unoptimized
+                            />
+                            <h2 className={styles.name}>{following.displayName}</h2>
+                            <p className={styles.login}>@{following.login}</p>
+                            {following.isLive && (
+                                <div className={styles.liveIndicator}>LIVE</div>
+                            )}
+                        </Link>
+                    ))}
+                </div>
+            ) : (
+                !error && <p>{t('profile_page.noFollowings')}</p>
+            )}
+        </div>
     );
-  }
-
-  return (
-    <div className={styles.container}>
-      <h1>{title}</h1>
-      
-      {renderContent()}
-
-      <button onClick={() => router.push('/menu')} className={styles.backButton}>
-        &larr; Назад в меню
-      </button>
-    </div>
-  );
 }
 
 export default function FollowingsPage() {
-  return (
-    <RouteGuard>
-      <FollowingsPageContent />
-    </RouteGuard>
-  );
+    return (
+        <RouteGuard>
+            <FollowingsPageContent />
+        </RouteGuard>
+    )
 } 

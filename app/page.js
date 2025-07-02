@@ -1,16 +1,19 @@
 'use client';
 
-import React from 'react';
-// import { useRouter } from 'next/navigation'; // <<< Убираем неиспользуемый импорт
+import React, { useEffect } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from './contexts/AuthContext';
 import HoldLoginButton from './components/HoldLoginButton/HoldLoginButton';
 import LoginButton from './components/LoginButton/LoginButton';
 import Image from 'next/image';
 import styles from './home.module.css'; // Используем стили для главной
+import { useTranslation } from 'react-i18next';
 
 export default function HomePage() {
+  const { t } = useTranslation();
   const { isAuthenticated, isLoading } = useAuth();
-  // const router = useRouter(); // <<< Убираем неиспользуемую переменную
+  const router = useRouter();
+  const searchParams = useSearchParams();
 
   // Простой компонент для звездного фона
   const StarryBackground = () => (
@@ -21,10 +24,10 @@ export default function HomePage() {
 
   if (isLoading) {
     return (
-        <div className={styles.loadingContainer}> 
-             <div className="spinner"></div>
-             <p>Загрузка Вселенной...</p>
-        </div>
+      <div className={styles.container}>
+        <div className="spinner"></div>
+        <p>{t('loading.universe')}</p>
+      </div>
     );
   }
 

@@ -6,18 +6,19 @@ import { useAuth } from '../contexts/AuthContext';
 import styles from './achievements.module.css';
 import pageStyles from '../../styles/page.module.css';
 import RouteGuard from '../components/RouteGuard';
+import { useTranslation } from 'react-i18next';
+import { FaArrowLeft } from 'react-icons/fa';
 
 // --- Фетчер для SWR --- 
 const fetcher = async (url, token) => {
-    const headers = {};
-    if (token) {
-        headers['Authorization'] = `Bearer ${token}`;
-    }
-    const res = await fetch(url, { headers });
+    const res = await fetch(url, {
+        headers: { 'Authorization': `Bearer ${token}` }
+    });
     if (!res.ok) {
-        const errorInfo = { status: res.status, message: await res.text() };
-        console.error("[Achievements fetcher] Error:", errorInfo);
-        throw new Error(errorInfo.message || `Ошибка API (${res.status})`);
+        const error = new Error('An error occurred while fetching the data.');
+        error.info = await res.json();
+        error.status = res.status;
+        throw error;
     }
     return res.json();
 };
@@ -46,6 +47,7 @@ function AchievementsPageContent() {
   const { /* user, */ isLoading: authLoading, isAuthenticated, supabase } = useAuth();
   const router = useRouter();
   const [activeTab, setActiveTab] = useState('all'); // Начнем со всех
+  const { t } = useTranslation();
 
   // --- Получаем токен для запроса --- 
   const [authToken, setAuthToken] = useState(null);
@@ -87,14 +89,19 @@ function AchievementsPageContent() {
    if (isLoading) {
        return (
            <div className={pageStyles.loadingContainer}>
-               <div className="spinner"></div><p>Загрузка достижений...</p>
+               <div className="spinner"></div><p>{t('loading.achievements')}</p>
            </div>
        );
    }
 
   return (
     <div className={pageStyles.container}>
-      <h1 className={styles.title}>Достижения</h1>
+      <header className={styles.header}>
+         <button onClick={() => router.back()} className={styles.backButton}>
+            <FaArrowLeft /> {t('achievements_page.backButton')}
+        </button>
+        <h1>{t('achievements_page.title')}</h1>
+      </header>
 
       <div className={styles.tabs}>
         {/* Вкладка "Мои достижения" */}
