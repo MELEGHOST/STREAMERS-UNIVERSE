@@ -1,70 +1,107 @@
 'use client';
-import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+
+import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '../contexts/AuthContext';
-import styles from '../../styles/page.module.css'; // Используем общие стили
-import RouteGuard from '../components/RouteGuard';
+import Link from 'next/link';
+import Image from 'next/image';
+import { useRouter } from 'next/navigation';
+import styles from './followers.module.css';
+import pageStyles from '../../styles/page.module.css';
 import { useTranslation } from 'react-i18next';
+import RouteGuard from '../components/RouteGuard';
+import { FaArrowLeft } from 'react-icons/fa';
 
 function FollowersPageContent() {
-  const { isLoading, isAuthenticated } = useAuth();
-  const router = useRouter();
-  const { t } = useTranslation();
-  const [followers, setFollowers] = useState([]);
-  const [loading, setLoading] = useState(true);
+    const { t } = useTranslation();
+    const { user, supabase } = useAuth();
+    const [followers, setFollowers] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState(null);
+    const router = useRouter();
 
-  useEffect(() => {
-    if (!isLoading && !isAuthenticated) {
-      console.log(`[${t('profile_page.followersTitle')} Page] Not authenticated, redirecting to auth`);
-      router.push(`/auth?next=/followers`);
+    const fetchFollowers = useCallback(async () => {
+        if (!user || !supabase) return;
+
+        setLoading(true);
+        setError(null);
+        try {
+            const { data: { session } } = await supabase.auth.getSession();
+            if (!session) {
+                throw new Error(t('my_reviews.authRequired'));
+            }
+            const token = session.access_token;
+
+            const response = await fetch('/api/twitch/user/followers', {
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.message || t('profile_page.failedToFetchFollowers'));
+            }
+
+            const data = await response.json();
+            setFollowers(data);
+        } catch (err) {
+            setError(err.message);
+        } finally {
+            setLoading(false);
+        }
+    }, [user, supabase, t]);
+
+    useEffect(() => {
+        fetchFollowers();
+    }, [fetchFollowers]);
+
+    if (loading) {
+        return (
+            <div className={pageStyles.loadingContainer}>
+                <div className="spinner"></div><p>{t('loading.followers')}</p>
+            </div>
+        );
     }
-  }, [isLoading, isAuthenticated, router, t]);
 
-  useEffect(() => {
-    // Mock data
-    const mockFollowers = [
-      { id: 1, name: t('profile_page.followerName', { number: 1 }) },
-      { id: 2, name: t('profile_page.followerName', { number: 2 }) },
-    ];
-    setFollowers(mockFollowers);
-    setLoading(false);
-  }, [t]);
-
-  if (loading) {
     return (
-      <div className={styles.loadingContainer}>
-        <div className="spinner"></div><p>{t('loading.generic')}</p>
-      </div>
-    );
-  }
+        <div className={pageStyles.container}>
+            <header className={styles.header}>
+                <button onClick={() => router.back()} className={styles.backButton}>
+                    <FaArrowLeft /> {t('achievements_page.backButton')}
+                </button>
+                <h1 className={styles.title}>{t('profile_page.followersTitle')} ({followers.length})</h1>
+            </header>
 
-  if (!isAuthenticated) {
-    return (
-      <div className={styles.loadingContainer}>
-        <p>Перенаправление на страницу входа...</p>
-      </div>
-    );
-  }
+            {error && <p className={pageStyles.errorMessage}>{t('common.error')}: {error}</p>}
 
-  return (
-    <div className={styles.container}>
-      <h1>{t('profile_page.followersTitle')}</h1>
-      <ul>
-        {followers.map(follower => (
-          <li key={follower.id}>{follower.name}</li>
-        ))}
-      </ul>
-      <button onClick={() => router.push('/menu')} className={styles.backButton}>
-        &larr; Назад в меню
-      </button>
-    </div>
-  );
+            {followers.length > 0 ? (
+                <div className={styles.grid}>
+                    {followers.map((follower) => (
+                        <Link key={follower.id} href={`/profile/${follower.id}`} className={styles.card}>
+                             <Image
+                                src={follower.profilePictureUrl || '/default-avatar.png'}
+                                alt={t('profile_page.avatarAlt', { name: follower.displayName })}
+                                width={80}
+                                height={80}
+                                className={styles.avatar}
+                                unoptimized
+                            />
+                            <h2 className={styles.name}>{follower.displayName}</h2>
+                            <p className={styles.login}>@{follower.login}</p>
+                        </Link>
+                    ))}
+                </div>
+            ) : (
+                !error && <p>{t('profile_page.noFollowers')}</p>
+            )}
+        </div>
+    );
 }
 
 export default function FollowersPage() {
-  return (
-    <RouteGuard>
-      <FollowersPageContent />
-    </RouteGuard>
-  );
+    return (
+        <RouteGuard>
+            <FollowersPageContent />
+        </RouteGuard>
+    )
 } 

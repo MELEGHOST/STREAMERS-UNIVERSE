@@ -229,7 +229,14 @@
             "progress": "Прогрес: {{unlockedCount}} з {{totalCount}}",
             "noAchievements": "У цій категорії поки що немає досягнень.",
             "error": "Не вдалося завантажити досягнення: {{message}}"
-        }
+        },
+        "followersTitle": "Мої послідовники",
+        "followingsTitle": "Мої підписки",
+        "failedToFetch": "Не вдалося завантажити дані",
+        "failedToFetchFollowers": "Не вдалося завантажити список послідовників",
+        "noFollowings": "Ви поки ні на кого не підписані.",
+        "noFollowers": "У вас поки що немає послідовників.",
+        "avatarAlt": "Аватар {{name}}"
     },
     "achievements": {
       "FIRST_REVIEW": {

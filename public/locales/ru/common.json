@@ -229,7 +229,12 @@
             "progress": "Прогресс: {{unlockedCount}} из {{totalCount}}",
             "noAchievements": "В этой категории пока нет достижений.",
             "error": "Не удалось загрузить достижения: {{message}}"
-        }
+        },
+        "followersTitle": "Мои последователи",
+        "followingsTitle": "Мои вдохновители",
+        "failedToFetchFollowers": "Не удалось загрузить список последователей",
+        "noFollowers": "У вас пока нет последователей.",
+        "avatarAlt": "Аватар {{name}}"
     },
     "achievements": {
       "FIRST_REVIEW": {

@@ -228,7 +228,14 @@
             "progress": "Progress: {{unlockedCount}} of {{totalCount}}",
             "noAchievements": "No achievements in this category yet.",
             "error": "Failed to load achievements: {{message}}"
-        }
+        },
+        "followersTitle": "My Followers",
+        "followingsTitle": "My Followings",
+        "failedToFetch": "Failed to fetch data",
+        "failedToFetchFollowers": "Failed to fetch followers list",
+        "noFollowings": "You are not following anyone yet.",
+        "noFollowers": "You don't have any followers yet.",
+        "avatarAlt": "{{name}}'s avatar"
     },
     "achievements": {
       "FIRST_REVIEW": {
