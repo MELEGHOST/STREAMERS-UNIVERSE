@@ -9,8 +9,10 @@
     "timezoneSetting": "Timezone",
     "languageNameRu": "Russian",
     "languageNameEn": "English",
-    "fontValue": "Roboto (soon...)",
-    "timezoneValue": "Auto (soon...)",
+    "languageNameUk": "Ukrainian",
+    "languageNameBe": "Belarusian",
+    "fontValue": "Roboto (coming soon...)",
+    "timezoneValue": "Auto (coming soon...)",
     "followers": "Followers",
     "following": "Following",
     "profile": {

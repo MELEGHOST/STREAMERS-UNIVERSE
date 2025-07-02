@@ -11,45 +11,51 @@ const supabaseAdmin = createClient(
 
 // Этот эндпоинт будет вызываться на клиенте после логина,
 // чтобы убедиться, что для пользователя auth.users существует запись в public.profiles
-export async function POST(request) {
-  const cookieStore = cookies();
-  const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
-    {
-      cookies: {
-        get: (name) => cookieStore.get(name)?.value,
-        set: (name, value, options) => cookieStore.set({ name, value, ...options }),
-        remove: (name, options) => cookieStore.set({ name, value: '', ...options }),
-      },
-    }
-  );
-
-  const { data: { session }, error: sessionError } = await supabase.auth.getSession();
-  
-  if (sessionError || !session) {
-      return NextResponse.json({ error: 'Пользователь не авторизован.' }, { status: 401 });
+export async function POST({ headers }) {
+  const authHeader = headers.get('Authorization');
+  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    return NextResponse.json({ error: 'Отсутствует или некорректный заголовок Authorization.' }, { status: 401 });
   }
+  const jwt = authHeader.substring(7);
 
-  const user = session.user;
-  const providerToken = session.provider_token;
+  // Используем админский клиент для валидации JWT и получения пользователя
+  const { data: { user }, error: userError } = await supabaseAdmin.auth.getUser(jwt);
+
+  if (userError || !user) {
+    console.error('[Sync Profile API] Ошибка получения пользователя по JWT:', userError?.message);
+    return NextResponse.json({ error: 'Недействительный токен или пользователь не найден.' }, { status: 401 });
+  }
 
   // --- ШАГ 1: Обновляем метаданные пользователя, чтобы сохранить provider_token ---
-  if (providerToken) {
-    const { data: updatedUser, error: updateUserError } = await supabaseAdmin.auth.admin.updateUserById(
-      user.id,
-      { user_metadata: { ...user.user_metadata, provider_token: providerToken } }
-    );
-    if (updateUserError) {
-        console.error(`[Sync Profile API] Ошибка обновления user_metadata для ${user.id}:`, updateUserError.message);
-        // Не фатальная ошибка, продолжаем выполнение
+  // Поскольку мы не можем напрямую получить provider_token из getUser,
+  // нам нужно декодировать JWT, чтобы найти его. Это безопасно, так как токен уже верифицирован.
+  try {
+    const decodedJwt = JSON.parse(Buffer.from(jwt.split('.')[1], 'base64').toString());
+    const providerToken = decodedJwt.provider_token;
+
+    if (providerToken) {
+      const { data: _updatedUser, error: updateUserError } = await supabaseAdmin.auth.admin.updateUserById(
+        user.id,
+        { user_metadata: { ...user.user_metadata, provider_token: providerToken } }
+      );
+      if (updateUserError) {
+          console.error(`[Sync Profile API] Ошибка обновления user_metadata для ${user.id}:`, updateUserError.message);
+          // Не фатальная ошибка, продолжаем выполнение
+      } else {
+          console.log(`[Sync Profile API] Успешно сохранен provider_token для ${user.id}`);
+      }
     } else {
-        console.log(`[Sync Profile API] Успешно сохранен provider_token для ${user.id}`);
+      console.warn(`[Sync Profile API] provider_token не найден в JWT для пользователя ${user.id}. Пропускаем обновление.`);
     }
+  } catch(e) {
+    console.error(`[Sync Profile API] Не удалось декодировать JWT для извлечения provider_token:`, e.message);
   }
 
+
   // --- ШАГ 2: Проверяем и создаем профиль в public.profiles ---
-  const { data: profile, error: profileError } = await supabase
+  // Используем обычный клиент, но с аутентификацией от имени сервиса, 
+  // так как мы уже верифицировали пользователя.
+  const { data: profile, error: profileError } = await supabaseAdmin
     .from('profiles')
     .select('*')
     .eq('id', user.id)
@@ -76,7 +82,7 @@ export async function POST(request) {
     role: 'user', 
   };
   
-  const { data: createdProfile, error: createError } = await supabase
+  const { data: createdProfile, error: createError } = await supabaseAdmin
     .from('profiles')
     .insert(newUserProfile)
     .select()

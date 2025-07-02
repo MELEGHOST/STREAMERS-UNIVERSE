@@ -3,14 +3,15 @@
 import { useTranslation } from 'react-i18next';
 import styles from './LanguageSwitcher.module.css';
 
-const languages = [
-  { code: 'ru', name: 'Русский', flag: '🇷🇺' },
-  { code: 'en', name: 'English', flag: '🇬🇧' },
-  { code: 'uk', name: 'Українська', flag: '🇺🇦' },
-];
-
 const LanguageSwitcher = () => {
-  const { i18n } = useTranslation();
+  const { i18n, t } = useTranslation();
+
+  const languages = [
+    { code: 'ru', nameKey: 'languageNameRu', flag: '🇷🇺' },
+    { code: 'en', nameKey: 'languageNameEn', flag: '🇬🇧' },
+    { code: 'uk', nameKey: 'languageNameUk', flag: '🇺🇦' },
+    { code: 'be', nameKey: 'languageNameBe', flag: '🇧🇾' },
+  ];
 
   const changeLanguage = (lng) => {
     i18n.changeLanguage(lng).then(() => {
@@ -23,11 +24,11 @@ const LanguageSwitcher = () => {
       {languages.map((lang) => (
         <button
           key={lang.code}
-          className={`${styles.langButton} ${i18n.language === lang.code ? styles.active : ''}`}
+          className={`${styles.langButton} ${i18n.language.startsWith(lang.code) ? styles.active : ''}`}
           onClick={() => changeLanguage(lang.code)}
         >
           <span className={styles.flag}>{lang.flag}</span>
-          <span className={styles.name}>{lang.name}</span>
+          <span className={styles.name}>{t(lang.nameKey)}</span>
         </button>
       ))}
     </div>
