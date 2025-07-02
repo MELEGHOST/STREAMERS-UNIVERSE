@@ -11,7 +11,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { pluralize } from '../../utils/pluralize';
 import { useTranslation } from 'react-i18next';
 import Link from 'next/link';
-import { FaArrowLeft, FaShieldAlt, FaBookOpen, FaTrophy, FaEdit, FaSignOutAlt, FaCrown, FaMicrophone, FaUsers, FaCalendarAlt, FaBriefcase } from 'react-icons/fa';
+import { FaArrowLeft, FaShieldAlt, FaBookOpen, FaTrophy, FaEdit, FaSignOutAlt } from 'react-icons/fa';
 
 import VkButton from '../../components/SocialButtons/VkButton';
 import TwitchButton from '../../components/SocialButtons/TwitchButton';
