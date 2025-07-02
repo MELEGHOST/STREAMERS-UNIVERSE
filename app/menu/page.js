@@ -9,7 +9,7 @@ import { FaSearch, FaCog, FaShieldAlt, FaCommentDots, FaUserCheck, FaUsers, FaPe
 import { useTranslation } from 'react-i18next';
 
 export default function MenuPage() {
-  const { user, userRole, signOut } = useAuth();
+  const { userRole, signOut } = useAuth();
   const { t } = useTranslation();
 
   const handleLogout = async () => {
@@ -75,7 +75,7 @@ export default function MenuPage() {
       <main className={styles.mainContent}>
           <h1 className={styles.mainTitle}>{t('menu.navigationMenu')}</h1>
           <nav className={styles.mainNavGrid}>
-              {allItems.map((item, index) => (
+              {allItems.map((item) => (
                   item.href ? (
                       <Link
                           key={item.href}
