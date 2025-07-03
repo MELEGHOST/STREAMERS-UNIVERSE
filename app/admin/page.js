@@ -6,7 +6,7 @@ import styles from '../../styles/page.module.css'; // Общие стили
 import Loader from '../components/Loader/Loader';
 
 export default function AdminPage() {
-  const { user, userRole, isLoading: authLoading } = useAuth();
+  const { userRole, isLoading: authLoading } = useAuth();
   const router = useRouter();
   const [checkingRole, setCheckingRole] = useState(true);
 
