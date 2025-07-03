@@ -574,17 +574,20 @@
   background: linear-gradient(45deg, #ffd700, #f0c000);
   border: 1px solid #e0b000;
   box-shadow: 0 0 8px rgba(255, 215, 0, 0.5);
+  color: #1c1c1c;
 }
 
 .roleBadge.streamer {
-  background-color: hsla(from var(--accent-purple) h s l / 0.15);
-  color: var(--accent-purple);
+  background: linear-gradient(45deg, #9146ff, #7a2eff);
+  border: 1px solid #6c1fff;
+  box-shadow: 0 0 8px rgba(145, 70, 255, 0.5);
+  color: #fff;
 }
 
 .userRoles {
   display: flex;
   gap: 0.5rem;
-  margin-left: 1rem;
+  margin-left: 1.5rem;
 }
 
 .loginName {

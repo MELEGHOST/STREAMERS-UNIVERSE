@@ -16,10 +16,10 @@ const StyledSearchInput = ({ value, onChange, placeholder, onFocus }) => {
           <div className="white" />
           <div className="border" />
           <div id="main">
-            <input 
-              placeholder={placeholder || "Search..."} 
-              type="text" 
-              name="text" 
+            <input
+              placeholder={placeholder || "Search..."}
+              type="text"
+              name="text"
               className="input"
               value={value}
               onChange={onChange}
@@ -86,7 +86,7 @@ const StyledWrapper = styled.div`
     background-color: #010201;
     border: none;
     width: 100%;
-    min-width: 450px;
+    min-width: 550px;
     height: 56px;
     border-radius: 10px;
     color: white;
@@ -112,16 +112,12 @@ const StyledWrapper = styled.div`
 
   #input-mask {
     pointer-events: none;
-    width: calc(100% - 120px);
+    width: 100px;
     height: 20px;
     position: absolute;
     background: linear-gradient(90deg, transparent, black);
     top: 18px;
     left: 70px;
-    filter: blur(20px);
-    opacity: 0.8;
-    animation:leftright 4s ease-in infinite;
-    transition: all 2s;
   }
   #pink-mask {
     pointer-events: none;
@@ -219,7 +215,7 @@ const StyledWrapper = styled.div`
       rgba(0, 0, 0, 0),
       #18116a,
       rgba(0, 0, 0, 0) 10%,
-      rgba(0, 0, 0, 0) 50%,
+      rgba(0, 0, o, 0) 50%,
       #6e1b60,
       rgba(0, 0, 0, 0) 60%
     );

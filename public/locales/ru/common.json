@@ -47,7 +47,15 @@
         "affiliate": "Компаньон",
         "normal": "Пользователь"
       },
-      "edit": "Редактировать профиль"
+      "edit": "Редактировать профиль",
+      "edit.title": "Редактировать профиль",
+      "edit.displayName": "Отображаемое имя",
+      "edit.streamerType": "Тип стримера",
+      "edit.birthday": "Дата рождения",
+      "edit.description": "Описание",
+      "edit.socialLinks": "Социальные сети",
+      "edit.saving": "Сохранение...",
+      "save": "Сохранить"
     },
     "logout": "Выйти",
     "login": "Войти через Twitch",
@@ -306,7 +314,22 @@
       "userError": "Не удалось получить данные пользователя для сохранения.",
       "sessionError": "Ваша сессия истекла. Пожалуйста, войдите снова.",
       "saveError": "Ошибка сохранения: {{message}}",
-      "successMessage": "Профиль успешно обновлен!"
+      "successMessage": "Профиль успешно обновлен!",
+      "streamer_types": {
+        "beginner": "Начинающий",
+        "pro": "Профи",
+        "partner": "Партнёр"
+      },
+      "social_placeholders": {
+        "twitch": "Никнейм на Twitch",
+        "youtube": "ID канала YouTube",
+        "telegram": "Имя пользователя Telegram",
+        "discord": "ID пользователя Discord",
+        "vk": "ID страницы VK",
+        "tiktok": "Имя пользователя TikTok",
+        "yandexMusic": "ID артиста Yandex Music",
+        "boosty": "URL профиля Boosty"
+      }
     },
     "search": {
       "backToMenu": "Назад в меню",

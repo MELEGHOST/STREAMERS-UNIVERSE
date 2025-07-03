@@ -1,220 +1,193 @@
 'use client';
-import { useEffect, useState, useCallback } from 'react';
+
+import React, { useState, useEffect, useCallback } from 'react';
+import { useAuth } from '../../contexts/AuthContext';
+import { supabase } from '../../utils/supabase/client';
 import { useRouter } from 'next/navigation';
-import { useAuth } from '../contexts/AuthContext';
-import styles from './edit-profile.module.css';
-import pageStyles from '../../styles/page.module.css';
-import RouteGuard from '../components/RouteGuard';
 import { useTranslation } from 'react-i18next';
+import { I18nProvider } from '../../components/I18nProvider';
 import Loader from '../components/Loader/Loader';
+import styles from './edit-profile.module.css';
+import RouteGuard from '../components/RouteGuard';
 
 function EditProfilePageContent() {
-  const { user, isAuthenticated, supabase } = useAuth();
-  const router = useRouter();
-  const { t } = useTranslation();
-  
-  const [birthday, setBirthday] = useState('');
-  const [description, setDescription] = useState('');
-  const [socialLinks, setSocialLinks] = useState({});
-  const [profileWidget, setProfileWidget] = useState('default');
+    const { user, isAuthenticated } = useAuth();
+    const router = useRouter();
+    const { t } = useTranslation();
 
-  const [loadingProfileData, setLoadingProfileData] = useState(true);
-  const [saving, setSaving] = useState(false);
-  const [error, setError] = useState(null); 
-  const [successMessage, setSuccessMessage] = useState(null);
-
-  const availableSocials = ['vk', 'twitch', 'discord', 'youtube', 'telegram', 'tiktok', 'boosty', 'yandex_music'];
-
-  const fetchProfileData = useCallback(async () => {
-    if (!user || !supabase) return;
-
-    setLoadingProfileData(true);
-    setError(null);
-    setSuccessMessage(null);
+    const [displayName, setDisplayName] = useState('');
+    const [streamerType, setStreamerType] = useState('');
+    const [birthday, setBirthday] = useState('');
+    const [description, setDescription] = useState('');
+    const [socialLinks, setSocialLinks] = useState({});
+    const [profileWidget, setProfileWidget] = useState('default');
     
-    try {
-      const { data, error: fetchError } = await supabase
-        .from('user_profiles')
-        .select('birthday, social_links, description, profile_widget')
-        .eq('user_id', user.id)
-        .maybeSingle();
+    const [loadingProfileData, setLoadingProfileData] = useState(true);
+    const [saving, setSaving] = useState(false);
+    const [error, setError] = useState(null);
+    const [successMessage, setSuccessMessage] = useState(null);
 
-      if (fetchError) throw fetchError;
-      
-      if (data) {
-        setBirthday(data.birthday || '');
-        setDescription(data.description || '');
-        setProfileWidget(data.profile_widget || 'default');
-        setSocialLinks(data.social_links || {});
+    const fetchProfileData = useCallback(async () => {
+        if (!user) return;
+        setLoadingProfileData(true);
+        try {
+            const { data, error: fetchError } = await supabase
+                .from('user_profiles')
+                .select('display_name, streamer_type, birthday, social_links, description, profile_widget')
+                .eq('user_id', user.id)
+                .maybeSingle();
+
+            if (fetchError) throw fetchError;
+
+            if (data) {
+                setDisplayName(data.display_name || user.user_metadata?.name || '');
+                setStreamerType(data.streamer_type || 'beginner');
+                setBirthday(data.birthday || '');
+                setDescription(data.description || '');
+                setProfileWidget(data.profile_widget || 'default');
+                setSocialLinks(data.social_links || {});
+            }
+        } catch (err) {
+            setError({ key: 'edit_profile.loadError', options: { message: err.message } });
+        } finally {
+            setLoadingProfileData(false);
+        }
+    }, [user]);
+
+    useEffect(() => {
+        if (isAuthenticated) {
+            fetchProfileData();
+        }
+    }, [isAuthenticated, user, fetchProfileData]);
+  
+    const handleSave = async (e) => {
+      e.preventDefault();
+      if (!user) {
+        setError(t('edit_profile.userError'));
+        return;
       }
-    } catch (err) {
-      setError({ key: 'edit_profile.loadError', options: { message: err.message } });
-    } finally {
-      setLoadingProfileData(false);
-    }
-  }, [user, supabase]);
+  
+      setSaving(true);
+      setError(null);
+      setSuccessMessage(null);
+  
+      const nonEmptySocialLinks = Object.fromEntries(
+          Object.entries(socialLinks).filter(([, value]) => value.trim() !== '')
+      );
+  
+      const profileDataToUpdate = {
+        display_name: displayName,
+        streamer_type: streamerType,
+        birthday: birthday || null,
+        description: description || null,
+        social_links: nonEmptySocialLinks,
+        profile_widget: profileWidget,
+        updated_at: new Date(),
+      };
+  
+      try {
+        const { error: updateError } = await supabase
+            .from('user_profiles')
+            .update(profileDataToUpdate)
+            .eq('user_id', user.id);
 
-  useEffect(() => {
-    if (isAuthenticated && user) {
-      fetchProfileData();
-    }
-  }, [isAuthenticated, user, fetchProfileData]);
-
-  const handleSave = async (e) => {
-    e.preventDefault();
-    if (!user) {
-      setError(t('edit_profile.userError'));
-      return;
-    }
-
-    setSaving(true);
-    setError(null);
-    setSuccessMessage(null);
-
-    const nonEmptySocialLinks = Object.fromEntries(
-        Object.entries(socialLinks).filter(([, value]) => value)
-    );
-
-    const profileDataToUpdate = {
-      birthday: birthday || null,
-      description: description || null,
-      social_links: nonEmptySocialLinks,
-      profile_widget: profileWidget,
+        if (updateError) throw updateError;
+        
+        setSuccessMessage({ key: 'edit_profile.successMessage' });
+  
+        setTimeout(() => {
+            const userTwitchId = user?.user_metadata?.provider_id;
+            if (userTwitchId) {
+                router.push(`/profile/${userTwitchId}`);
+            } else {
+                router.push('/profile');
+            }
+        }, 1000);
+  
+      } catch (err) {
+        setError({ key: 'edit_profile.saveError', options: { message: err.message } });
+      } finally {
+        setSaving(false);
+      }
+    };
+    
+    const handleSocialLinkChange = (platform, value) => {
+        setSocialLinks(prev => ({ ...prev, [platform]: value }));
     };
 
-    try {
-      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
-      if (sessionError || !session?.access_token) {
-        throw new Error(sessionError?.message || t('edit_profile.sessionError'));
-      }
-      const token = session.access_token;
+    const handleBack = () => {
+        router.back();
+    };
 
-      const response = await fetch('/api/twitch/user/profile', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-        body: JSON.stringify(profileDataToUpdate),
-      });
-
-      const result = await response.json();
-      if (!response.ok) throw new Error(result.error || `Server Error: ${response.status}`);
-      
-      setSuccessMessage({ key: 'edit_profile.successMessage' });
-
-      const userTwitchId = user?.user_metadata?.provider_id;
-      if (userTwitchId) {
-        router.replace(`/profile/${userTwitchId}`);
-      } else {
-        router.replace('/profile');
-      }
-
-    } catch (err) {
-      setError({ key: 'edit_profile.saveError', options: { message: err.message } });
-    } finally {
-      setSaving(false);
+    if (loadingProfileData) {
+        return <Loader />;
     }
-  };
 
-  const handleSocialLinkChange = (platform, value) => {
-    setSocialLinks(prev => ({ ...prev, [platform]: value }));
-  };
-
-  if (loadingProfileData) {
     return (
-      <div className={pageStyles.loadingContainer}>
-        <Loader />
-      </div>
-    );
-  }
+        <div className={styles.container}>
+            <button onClick={handleBack} className={styles.backButton}>
+                &larr; {t('profile.back')}
+            </button>
+            <h1 className={styles.title}>{t('profile.edit.title')}</h1>
+            <form onSubmit={handleSave} className={styles.form}>
+                <div className={styles.formGroup}>
+                    <label className={styles.label} htmlFor="displayName">{t('profile.edit.displayName')}</label>
+                    <input id="displayName" type="text" value={displayName} onChange={e => setDisplayName(e.target.value)} className={styles.input} />
+                </div>
+                <div className={styles.formGroup}>
+                    <label className={styles.label} htmlFor="streamerType">{t('profile.edit.streamerType')}</label>
+                    <select id="streamerType" value={streamerType} onChange={e => setStreamerType(e.target.value)} className={styles.select}>
+                        <option value="beginner">{t('streamer_types.beginner')}</option>
+                        <option value="pro">{t('streamer_types.pro')}</option>
+                        <option value="partner">{t('streamer_types.partner')}</option>
+                    </select>
+                </div>
+                <div className={styles.formGroup}>
+                    <label className={styles.label} htmlFor="birthday">{t('profile.edit.birthday')}</label>
+                    <input id="birthday" type="date" value={birthday} onChange={e => setBirthday(e.target.value)} className={styles.input} />
+                </div>
+                <div className={styles.formGroup}>
+                    <label className={styles.label} htmlFor="description">{t('profile.edit.description')}</label>
+                    <textarea id="description" value={description} onChange={e => setDescription(e.target.value)} className={styles.textarea}></textarea>
+                </div>
+                <div className={styles.formGroup}>
+                    <label className={styles.label}>{t('profile.edit.socialLinks')}</label>
+                    <div className={styles.socialLinksContainer}>
+                        {['twitch', 'youtube', 'telegram', 'discord', 'vk', 'tiktok', 'yandexMusic', 'boosty'].map(platform => (
+                            <div key={platform} className={styles.socialLinkItem}>
+                                <label className={styles.socialLinkLabel} htmlFor={platform}>{platform}</label>
+                                <input
+                                    id={platform}
+                                    type="text"
+                                    value={socialLinks[platform] || ''}
+                                    onChange={e => handleSocialLinkChange(platform, e.target.value)}
+                                    className={styles.input}
+                                    placeholder={t(`social_placeholders.${platform}`)}
+                                />
+                            </div>
+                        ))}
+                    </div>
+                </div>
 
-  return (
-    <div className={styles.container}>
-      <div className={styles.header}>
-        <button onClick={() => router.back()} className={styles.backButton}>
-          &larr; {t('edit_profile.backButton')}
-        </button>
-        <h1>{t('edit_profile.title')}</h1>
-      </div>
-
-      {error && <div className={styles.errorMessage}>{t(error.key, error.options)}</div>}
-      {successMessage && <div className={styles.successMessage}>{t(successMessage.key)}</div>}
-
-      <form onSubmit={handleSave} className={styles.form}>
-        <fieldset className={styles.fieldset}>
-          <legend className={styles.legend}>{t('edit_profile.customization')}</legend>
-          <div className={styles.formGroup}>
-            <label htmlFor="profileWidget" className={styles.label}>{t('edit_profile.widgetLabel')}</label>
-            <select
-              id="profileWidget"
-              value={profileWidget}
-              onChange={(e) => setProfileWidget(e.target.value)}
-              className={styles.select}
-            >
-              <option value="default">{t('edit_profile.widgetDefault')}</option>
-              <option value="statistics">{t('edit_profile.widgetStatistics')}</option>
-            </select>
-          </div>
-        </fieldset>
-
-        <fieldset className={styles.fieldset}>
-          <legend className={styles.legend}>{t('edit_profile.basicInfo')}</legend>
-          <div className={styles.formGroup}>
-            <label htmlFor="birthday" className={styles.label}>{t('edit_profile.birthdayLabel')}</label>
-            <input
-              type="date"
-              id="birthday"
-              value={birthday}
-              onChange={(e) => setBirthday(e.target.value)}
-              className={styles.input}
-            />
-          </div>
-          <div className={styles.formGroup}>
-            <label htmlFor="description" className={styles.label}>{t('edit_profile.bioLabel')}</label>
-            <textarea
-              id="description"
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              className={styles.textarea}
-              rows="5"
-              placeholder={t('edit_profile.bioPlaceholder')}
-            />
-          </div>
-        </fieldset>
-
-        <fieldset className={styles.fieldset}>
-          <legend className={styles.legend}>{t('edit_profile.socials')}</legend>
-          {availableSocials.map(social => (
-            <div className={styles.formGroup} key={social}>
-              <label htmlFor={`${social}Link`} className={styles.label}>{social.charAt(0).toUpperCase() + social.slice(1)}:</label>
-              <input
-                type="text"
-                id={`${social}Link`}
-                value={socialLinks[social] || ''}
-                onChange={(e) => handleSocialLinkChange(social, e.target.value)}
-                className={styles.input}
-                placeholder={t(`edit_profile.socialsPlaceholder.${social}`, { defaultValue: `https://...` })}
-              />
-            </div>
-          ))}
-        </fieldset>
-
-        <div className={styles.buttonGroup}>
-          <button
-            type="submit"
-            className={styles.saveButton}
-            disabled={saving || loadingProfileData}
-          >
-            {saving ? t('edit_profile.savingButton') : t('edit_profile.saveButton')}
-          </button>
+                {error && <p className={styles.errorMessage}>{t(error.key, error.options)}</p>}
+                {successMessage && <p className={styles.successMessage}>{t(successMessage.key)}</p>}
+                
+                <button type="submit" className={styles.saveButton} disabled={saving}>
+                    {saving ? t('profile.edit.saving') : t('profile.save')}
+                </button>
+            </form>
         </div>
-      </form>
-    </div>
-  );
+    );
 }
 
-export default function EditProfilePage() {
-  return (
-    <RouteGuard>
-      <EditProfilePageContent />
-    </RouteGuard>
-  );
+function EditProfilePage() {
+    return (
+        <RouteGuard>
+            <I18nProvider>
+                <EditProfilePageContent />
+            </I18nProvider>
+        </RouteGuard>
+    );
 }
+
+export default EditProfilePage; 
