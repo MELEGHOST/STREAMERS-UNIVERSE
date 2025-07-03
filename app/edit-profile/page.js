@@ -1,11 +1,11 @@
 'use client';
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { useAuth } from '../../contexts/AuthContext';
-import { supabase } from '../../utils/supabase/client';
+import { useAuth } from '../contexts/AuthContext';
+import { supabase } from '../utils/supabase/client';
 import { useRouter } from 'next/navigation';
 import { useTranslation } from 'react-i18next';
-import { I18nProvider } from '../../components/I18nProvider';
+import { I18nProvider } from '../components/I18nProvider';
 import Loader from '../components/Loader/Loader';
 import styles from './edit-profile.module.css';
 import RouteGuard from '../components/RouteGuard';
