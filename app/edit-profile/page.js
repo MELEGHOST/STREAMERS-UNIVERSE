@@ -6,6 +6,7 @@ import styles from './edit-profile.module.css';
 import pageStyles from '../../styles/page.module.css';
 import RouteGuard from '../components/RouteGuard';
 import { useTranslation } from 'react-i18next';
+import Loader from '../components/Loader/Loader';
 
 function EditProfilePageContent() {
   const { user, isAuthenticated, supabase } = useAuth();
@@ -120,7 +121,7 @@ function EditProfilePageContent() {
   if (loadingProfileData) {
     return (
       <div className={pageStyles.loadingContainer}>
-        <div className="spinner"></div><p>{t('loading.profileData')}</p>
+        <Loader />
       </div>
     );
   }

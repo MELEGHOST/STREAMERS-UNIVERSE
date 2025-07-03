@@ -11,6 +11,7 @@ import { useTranslation } from 'react-i18next';
 import { FaEdit, FaPlus, FaTrophy, FaSignOutAlt, FaShieldAlt } from 'react-icons/fa';
 import Link from 'next/link';
 import StatisticsWidget from '../components/ProfileWidgets/StatisticsWidget';
+import Loader from '../components/Loader/Loader';
 
 // Функция для перевода типа канала
 function translateBroadcasterType(type, t) {
@@ -80,8 +81,7 @@ function ProfilePageContent() {
     if (authLoading || loading) {
         return (
             <div className={pageStyles.loadingContainer}>
-                <div className="spinner"></div>
-                <p>{t('loading.profile')}</p>
+                <Loader />
             </div>
         );
     }
@@ -168,7 +168,7 @@ function ProfilePageContent() {
         }, []);
 
         if (reviewsLoading) {
-            return <div className={styles.loadingContainer}><div className="spinner"></div><p>{t('loading.generic')}</p></div>
+            return <div className={styles.loadingContainer}><Loader /><p>{t('loading.generic')}</p></div>
   }
 
   return (

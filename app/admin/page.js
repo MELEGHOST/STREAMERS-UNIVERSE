@@ -2,12 +2,16 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '../contexts/AuthContext';
-import styles from '../../styles/page.module.css'; // Общие стили
+import styles from './admin.module.css';
+import pageStyles from '../../styles/page.module.css'; // Общие стили
+import { useTranslation } from 'react-i18next';
+import Loader from '../components/Loader/Loader';
 
 export default function AdminPage() {
-  const { isAuthenticated, user } = useAuth();
+  const { isAuthenticated, user, userRole, isLoading: authLoading } = useAuth();
   const router = useRouter();
   const [checkingAdmin, setCheckingAdmin] = useState(true);
+  const [checkingRole, setCheckingRole] = useState(true);
 
   useEffect(() => {
     if (isAuthenticated && user) {
@@ -36,11 +40,17 @@ export default function AdminPage() {
     }
   }, [isAuthenticated, user, router]);
 
-  if (checkingAdmin) {
+  useEffect(() => {
+    if (userRole && userRole !== 'admin') {
+      setCheckingRole(true);
+      router.push('/menu?error=not_admin');
+    }
+  }, [userRole, router]);
+
+  if (authLoading || checkingRole) {
     return (
       <div className={styles.loadingContainer}>
-        <div className="spinner"></div>
-        <p>Проверка роли администратора...</p>
+        <Loader />
       </div>
     );
   }

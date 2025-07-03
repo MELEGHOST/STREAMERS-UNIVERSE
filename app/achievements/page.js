@@ -8,6 +8,7 @@ import pageStyles from '../../styles/page.module.css';
 import RouteGuard from '../components/RouteGuard';
 import { useTranslation } from 'react-i18next';
 import { FaArrowLeft } from 'react-icons/fa';
+import Loader from '../components/Loader/Loader';
 
 // --- Фетчер для SWR --- 
 const fetcher = async (url, token) => {
@@ -89,7 +90,7 @@ function AchievementsPageContent() {
    if (isLoading) {
        return (
            <div className={pageStyles.loadingContainer}>
-               <div className="spinner"></div><p>{t('loading.achievements')}</p>
+               <Loader />
            </div>
        );
    }

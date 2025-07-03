@@ -9,10 +9,11 @@ import pageStyles from '../../styles/page.module.css';
 import { useTranslation } from 'react-i18next';
 import RouteGuard from '../components/RouteGuard';
 import { FaArrowLeft } from 'react-icons/fa';
+import Loader from '../components/Loader/Loader';
 
 function FollowingsPageContent() {
     const { t } = useTranslation();
-    const { user, supabase } = useAuth();
+    const { user, supabase, isLoading: authLoading, isAuthenticated } = useAuth();
     const [followings, setFollowings] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
@@ -55,10 +56,10 @@ function FollowingsPageContent() {
         fetchFollowings();
     }, [fetchFollowings]);
 
-    if (loading) {
+    if (loading || authLoading) {
         return (
             <div className={pageStyles.loadingContainer}>
-                <div className="spinner"></div><p>{t('loading.followings')}</p>
+                <Loader />
             </div>
         );
     }

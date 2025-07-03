@@ -8,6 +8,7 @@ import pageStyles from '../../styles/page.module.css';
 import { FaArrowLeft, FaPalette } from 'react-icons/fa'; // Иконки
 import { useTranslation } from 'react-i18next';
 import LanguageSwitcher from '../components/LanguageSwitcher/LanguageSwitcher';
+import Loader from '../components/Loader/Loader.js';
 
 const availableFonts = [
   { name: 'Roboto', value: 'Roboto, sans-serif' },
@@ -23,6 +24,7 @@ function SettingsPageContent() {
   const { isLoading: authLoading, isAuthenticated, currentTheme, toggleTheme } = useAuth();
   const [fontSize, setFontSize] = useState(16);
   const [fontFamily, setFontFamily] = useState(availableFonts[0].value);
+  const [error, setError] = useState('');
 
   useEffect(() => {
     const savedFontSize = localStorage.getItem('fontSize');
@@ -61,8 +63,13 @@ function SettingsPageContent() {
     }
   }, [authLoading, isAuthenticated, router]);
 
-  if (authLoading || !isAuthenticated) {
-    return <div className={pageStyles.loadingContainer}><div className="spinner"></div></div>;
+  if (authLoading) {
+    return <div className={pageStyles.loadingContainer}><Loader /></div>;
+  }
+
+  if (!isAuthenticated) {
+    router.replace('/');
+    return null;
   }
 
   return (

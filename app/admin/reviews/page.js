@@ -9,6 +9,7 @@ import Link from 'next/link';
 import { FaArrowLeft } from 'react-icons/fa';
 import { useTranslation } from 'react-i18next';
 import RouteGuard from '../../components/RouteGuard';
+import Loader from '../../components/Loader/Loader';
 
 // Функция форматирования даты (можно вынести)
 const formatDate = (dateString) => {
@@ -108,8 +109,7 @@ function AdminReviewsContent() {
     if (loading) {
         return (
             <div className={pageStyles.loadingContainer}>
-                <div className="spinner"></div>
-                <p>{t('loading.reviews')}</p>
+                <Loader />
             </div>
         );
     }

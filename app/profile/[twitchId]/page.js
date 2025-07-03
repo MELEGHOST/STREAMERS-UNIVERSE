@@ -12,6 +12,7 @@ import { pluralize } from '../../utils/pluralize';
 import { useTranslation } from 'react-i18next';
 import Link from 'next/link';
 import { FaArrowLeft, FaShieldAlt, FaBookOpen, FaTrophy, FaEdit, FaSignOutAlt } from 'react-icons/fa';
+import Loader from '../../../components/Loader/Loader';
 
 import VkButton from '../../components/SocialButtons/VkButton';
 import TwitchButton from '../../components/SocialButtons/TwitchButton';
@@ -195,8 +196,7 @@ export default function UserProfilePage() {
   if (loadingProfile) {
       return (
           <div className={pageStyles.loadingContainer}>
-              <div className="spinner"></div>
-              <p>{t('loading.profile')}</p>
+              <Loader />
           </div>
       );
   }

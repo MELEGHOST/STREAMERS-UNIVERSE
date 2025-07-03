@@ -6,6 +6,7 @@ import { useAuth } from '../../../contexts/AuthContext'; // Путь вроде 
 import styles from '../edit-review.module.css'; // ИСПРАВЛЕННЫЙ ПУТЬ
 import pageStyles from '../../../../styles/page.module.css'; // Путь вроде верный
 import { useTranslation } from 'react-i18next';
+import Loader from '../../../../components/Loader/Loader';
 
 // Компонент для звездочек рейтинга (можно вынести)
 const StarRating = ({ rating, setRating, disabled }) => {
@@ -175,7 +176,7 @@ export default function EditReviewPage() {
     if (loading) {
         return (
              <div className={pageStyles.loadingContainer}>
-                <div className="spinner"></div>
+                <Loader />
                  <p>{t('edit_review.loading')}</p>
              </div>
         );

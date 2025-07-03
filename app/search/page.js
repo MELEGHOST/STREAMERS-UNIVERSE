@@ -8,6 +8,7 @@ import styles from './search.module.css';
 import pageStyles from '../../styles/page.module.css';
 import { useTranslation } from 'react-i18next';
 import StyledSearchInput from '../components/StyledSearchInput/StyledSearchInput';
+import Loader from '../components/Loader/Loader';
 
 export default function SearchPage() {
   const router = useRouter();
@@ -87,12 +88,12 @@ export default function SearchPage() {
   };
 
   if (authLoading) {
-    return <div className={pageStyles.loadingContainer}><div className="spinner"></div></div>;
+    return <div className={pageStyles.loadingContainer}><Loader /></div>;
   }
 
   if (!isAuthenticated) {
     router.replace('/');
-    return <div className={pageStyles.loadingContainer}><p>{t('search.authRequired')}</p></div>;
+    return <div className={pageStyles.loadingContainer}><Loader /></div>;
   }
 
   return (
