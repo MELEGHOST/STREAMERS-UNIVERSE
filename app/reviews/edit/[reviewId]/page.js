@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter, useParams } from 'next/navigation';
-import { useAuth } from '../../../../contexts/AuthContext'; // Путь вроде верный
+import { useAuth } from '../../../contexts/AuthContext'; // Путь вроде верный
 import styles from '../edit-review.module.css'; // ИСПРАВЛЕННЫЙ ПУТЬ
 import pageStyles from '../../../../styles/page.module.css'; // Путь вроде верный
 import { useTranslation } from 'react-i18next';
