@@ -13,7 +13,7 @@ import Loader from '../components/Loader/Loader';
 
 function FollowingsPageContent() {
     const { t } = useTranslation();
-    const { user, supabase, isLoading: authLoading, isAuthenticated } = useAuth();
+    const { user, supabase, isLoading: authLoading } = useAuth();
     const [followings, setFollowings] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);

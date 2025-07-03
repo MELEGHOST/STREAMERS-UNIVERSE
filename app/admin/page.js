@@ -3,43 +3,17 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '../contexts/AuthContext';
 import styles from '../../styles/page.module.css'; // Общие стили
-import { useTranslation } from 'react-i18next';
 import Loader from '../components/Loader/Loader';
 
 export default function AdminPage() {
-  const { isAuthenticated, user, userRole, isLoading: authLoading } = useAuth();
+  const { user, userRole, isLoading: authLoading } = useAuth();
   const router = useRouter();
-  const [checkingAdmin, setCheckingAdmin] = useState(true);
   const [checkingRole, setCheckingRole] = useState(true);
 
   useEffect(() => {
-    if (isAuthenticated && user) {
-      const checkAdmin = async () => {
-        setCheckingAdmin(true);
-        try {
-          const response = await fetch('/api/auth/check-admin');
-          if (response.ok) {
-            const data = await response.json();
-            if (!data.isAdmin) {
-                console.warn('[Admin Page] User is not admin, redirecting to menu.');
-                router.push('/menu?error=not_admin');
-            }
-          } else {
-             console.error('[Admin Page] Error checking admin status:', response.status);
-             router.push('/menu?error=admin_check_failed');
-          }
-        } catch (error) {
-          console.error('[Admin Page] Exception checking admin status:', error);
-          router.push('/menu?error=admin_check_exception');
-        } finally {
-           setCheckingAdmin(false);
-        }
-      };
-      checkAdmin();
+    if (userRole === 'admin') {
+      setCheckingRole(false);
     }
-  }, [isAuthenticated, user, router]);
-
-  useEffect(() => {
     if (userRole && userRole !== 'admin') {
       setCheckingRole(true);
       router.push('/menu?error=not_admin');

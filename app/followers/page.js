@@ -14,7 +14,7 @@ import Loader from '../components/Loader/Loader';
 
 function FollowersPageContent() {
     const { t } = useTranslation();
-    const { user, supabase, isLoading: authLoading, isAuthenticated } = useAuth();
+    const { user, supabase, isLoading: authLoading } = useAuth();
     const [followers, setFollowers] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);

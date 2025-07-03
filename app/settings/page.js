@@ -24,7 +24,6 @@ function SettingsPageContent() {
   const { isLoading: authLoading, isAuthenticated, currentTheme, toggleTheme } = useAuth();
   const [fontSize, setFontSize] = useState(16);
   const [fontFamily, setFontFamily] = useState(availableFonts[0].value);
-  const [error, setError] = useState('');
 
   useEffect(() => {
     const savedFontSize = localStorage.getItem('fontSize');
