@@ -28,42 +28,51 @@ export function AuthProvider({ children }) {
   }, []);
 
   useEffect(() => {
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      console.log(`[AuthContext] Auth event: ${event}`);
-      setSession(session);
-      const currentUser = session?.user ?? null;
-      setUser(currentUser);
+    const initializeSession = async () => {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        setSession(session);
+        setUser(session?.user ?? null);
 
-      if (currentUser) {
-        try {
-          const syncResponse = await fetch('/api/profile/sync', {
-            method: 'POST',
-            headers: { 'Authorization': `Bearer ${session.access_token}` },
-          });
-          
-          if (!syncResponse.ok) {
-            const errorText = await syncResponse.text();
-            throw new Error(`Sync failed: ${errorText}`);
-          }
-          
-          const profileData = await syncResponse.json();
-          setUserRole(profileData.role || 'user');
-
-          if (localStorage.getItem('referrerId')) {
-            console.log('[AuthContext] Referrer ID found, removing from localStorage.');
-            localStorage.removeItem('referrerId');
-          }
-        } catch (error) {
-          console.error('[AuthContext] Sync/Role fetch failed:', error);
-          setUserRole('user'); // Fallback
+        if (session?.user) {
+          const { data: profileData } = await supabase
+            .from('user_profiles')
+            .select('role')
+            .eq('user_id', session.user.id)
+            .single();
+          setUserRole(profileData?.role || 'user');
+        } else {
+          setUserRole(null);
         }
-      } else {
+      } catch (e) {
+        console.error("Failed to initialize session:", e);
+        setUser(null);
+        setSession(null);
+        setUserRole(null);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    initializeSession();
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      console.log(`[AuthContext] Auth event: ${_event}`);
+      setSession(session);
+      setUser(session?.user ?? null);
+      if (_event === 'SIGNED_IN') {
+        const fetchRole = async () => {
+          const { data: profileData } = await supabase
+            .from('user_profiles')
+            .select('role')
+            .eq('user_id', session.user.id)
+            .single();
+          setUserRole(profileData?.role || 'user');
+        };
+        fetchRole();
+      } else if (_event === 'SIGNED_OUT') {
         setUserRole(null);
       }
-      
-      // Это безопасно, потому что этот коллбэк вызывается при первоначальной загрузке
-      // и устанавливает окончательное состояние загрузки.
-      setLoading(false);
     });
 
     return () => {

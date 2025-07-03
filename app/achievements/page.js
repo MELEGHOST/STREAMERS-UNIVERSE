@@ -34,8 +34,8 @@ function AchievementCard({ achievement, t }) {
         <div className={`${styles.achievementCard} ${achievement.is_unlocked ? styles.unlocked : styles.locked}`}>
             <div className={styles.achievementIcon}>{achievement.icon || '🏅'}</div>
             <div className={styles.achievementInfo}>
-                <h3 className={styles.achievementName}>{t(nameKey, achievement.name)}</h3>
-                <p className={styles.achievementDescription}>{t(descriptionKey, achievement.description)}</p>
+                <h3 className={styles.achievementName}>{t(nameKey)}</h3>
+                <p className={styles.achievementDescription}>{t(descriptionKey)}</p>
                 <p className={styles.achievementCondition}>
                     {t('achievements_page.condition')}: {t(conditionKey)}
                 </p>

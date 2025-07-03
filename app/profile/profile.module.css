@@ -577,14 +577,19 @@
 }
 
 .roleBadge.streamer {
-  background: linear-gradient(45deg, #9146ff, #7a2eff);
-  border: 1px solid #6c1fff;
-  box-shadow: 0 0 8px rgba(145, 70, 255, 0.5);
+  background-color: hsla(from var(--accent-purple) h s l / 0.15);
+  color: var(--accent-purple);
+}
+
+.userRoles {
+  display: flex;
+  gap: 0.5rem;
+  margin-left: 1rem;
 }
 
 .loginName {
-  font-size: 1.2rem;
-  color: #a0a0b0;
+  color: var(--foreground-secondary);
+  font-size: 1rem;
 }
 
 .profilePictureContainer {

@@ -248,7 +248,7 @@ export default function UserProfilePage() {
                         <Link href="/achievements" className={styles.controlButton}>
                             <FaTrophy /> {t('profile.achievements')}
                         </Link>
-                        <Link href={`/profile/edit`} className={styles.controlButton}>
+                        <Link href="/edit-profile" className={styles.controlButton}>
                             <FaEdit /> {t('profile.edit')}
                         </Link>
                         <button onClick={handleLogout} className={`${styles.controlButton} ${styles.logoutButton}`}>

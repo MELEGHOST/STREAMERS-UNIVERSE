@@ -86,7 +86,7 @@ const StyledWrapper = styled.div`
     background-color: #010201;
     border: none;
     width: 100%;
-    min-width: 350px;
+    min-width: 450px;
     height: 56px;
     border-radius: 10px;
     color: white;
@@ -143,7 +143,6 @@ const StyledWrapper = styled.div`
 
   .white {
     max-height: 63px;
-    max-width: 307px;
     border-radius: 10px;
     filter: blur(2px);
   }
@@ -174,7 +173,6 @@ const StyledWrapper = styled.div`
   }
   .border {
     max-height: 59px;
-    max-width: 303px;
     border-radius: 11px;
     filter: blur(0.5px);
   }
@@ -204,7 +202,6 @@ const StyledWrapper = styled.div`
   }
   .darkBorderBg {
     max-height: 65px;
-    max-width: 312px;
   }
   .darkBorderBg::before {
     content: "";
@@ -276,7 +273,6 @@ const StyledWrapper = styled.div`
     filter: blur(30px);
     opacity: 0.4;
     max-height: 130px;
-    max-width: 354px;
   }
   .glow:before {
     content: "";
@@ -300,7 +296,7 @@ const StyledWrapper = styled.div`
       #000 87%
     );
     /* change speed here */
-    //animation: rotate 4s 0.3s linear infinite;
+    animation: rotate 4s 0.3s linear infinite;
     transition: all 2s;
   }
 

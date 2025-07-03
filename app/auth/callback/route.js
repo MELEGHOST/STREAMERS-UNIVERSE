@@ -40,9 +40,8 @@ export async function GET(request) {
     return NextResponse.redirect(`${origin}/?error=auth_error&error_description=${encodeURIComponent(error.message)}`);
   }
   
-  // Успешный редирект на главную страницу (или куда-либо еще)
-  // Приложение само определит, что пользователь залогинен, и покажет нужный экран
-  return NextResponse.redirect(origin);
+  // Успешный редирект в меню
+  return NextResponse.redirect(`${origin}/menu`);
 }
 
 export const dynamic = 'force-dynamic'; 
