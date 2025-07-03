@@ -12,7 +12,7 @@ import { pluralize } from '../../utils/pluralize';
 import { useTranslation } from 'react-i18next';
 import Link from 'next/link';
 import { FaArrowLeft, FaShieldAlt, FaBookOpen, FaTrophy, FaEdit, FaSignOutAlt } from 'react-icons/fa';
-import Loader from '../../../components/Loader/Loader';
+import Loader from '../../components/Loader/Loader.js';
 
 import VkButton from '../../components/SocialButtons/VkButton';
 import TwitchButton from '../../components/SocialButtons/TwitchButton';

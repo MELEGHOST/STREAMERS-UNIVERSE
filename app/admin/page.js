@@ -2,8 +2,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '../contexts/AuthContext';
-import styles from './admin.module.css';
-import pageStyles from '../../styles/page.module.css'; // Общие стили
+import styles from '../../styles/page.module.css'; // Общие стили
 import { useTranslation } from 'react-i18next';
 import Loader from '../components/Loader/Loader';
 
