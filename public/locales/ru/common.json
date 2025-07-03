@@ -43,10 +43,11 @@
       "latestVideos": "Последние видео (VODs)",
       "videoThumbnailAlt": "Превью видео {{title}}",
       "broadcasterType": {
-        "partner": "Партнёр Twitch",
-        "affiliate": "Компаньон Twitch",
+        "partner": "Партнёр",
+        "affiliate": "Компаньон",
         "normal": "Пользователь"
-      }
+      },
+      "edit": "Редактировать профиль"
     },
     "logout": "Выйти",
     "login": "Войти через Twitch",

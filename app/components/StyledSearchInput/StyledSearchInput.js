@@ -73,7 +73,6 @@ const StyledWrapper = styled.div`
   .darkBorderBg,
   .glow {
     max-height: 70px;
-    max-width: 314px;
     height: 100%;
     width: 100%;
     position: absolute;
@@ -86,8 +85,8 @@ const StyledWrapper = styled.div`
   .input {
     background-color: #010201;
     border: none;
-    /* padding:7px; */
-    width: 301px;
+    width: 100%;
+    min-width: 350px;
     height: 56px;
     border-radius: 10px;
     color: white;
@@ -113,12 +112,16 @@ const StyledWrapper = styled.div`
 
   #input-mask {
     pointer-events: none;
-    width: 100px;
+    width: calc(100% - 120px);
     height: 20px;
     position: absolute;
     background: linear-gradient(90deg, transparent, black);
     top: 18px;
     left: 70px;
+    filter: blur(20px);
+    opacity: 0.8;
+    animation:leftright 4s ease-in infinite;
+    transition: all 2s;
   }
   #pink-mask {
     pointer-events: none;
@@ -130,11 +133,11 @@ const StyledWrapper = styled.div`
     left: 5px;
     filter: blur(20px);
     opacity: 0.8;
-    //animation:leftright 4s ease-in infinite;
+    animation:leftright 4s ease-in infinite;
     transition: all 2s;
   }
   #main:hover > #pink-mask {
-    //animation: rotate 4s linear infinite;
+    animation: rotate 4s linear infinite;
     opacity: 0;
   }
 
@@ -166,7 +169,7 @@ const StyledWrapper = styled.div`
       #dfa2da,
       rgba(0, 0, 0, 0) 58%
     );
-    //  animation: rotate 4s linear infinite;
+    animation: rotate 4s linear infinite;
     transition: all 2s;
   }
   .border {
@@ -196,7 +199,7 @@ const StyledWrapper = styled.div`
       #cf30aa 60%,
       #1c191c 64%
     );
-    // animation: rotate 4s 0.1s linear infinite;
+    animation: rotate 4s 0.1s linear infinite;
     transition: all 2s;
   }
   .darkBorderBg {

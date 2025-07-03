@@ -31,6 +31,10 @@
 
 .profileControls {
   width: 100%;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 2rem;
 }
 
 .profileHeader {
@@ -48,7 +52,8 @@
 
 .rightControls {
   display: flex;
-  gap: 0.75rem;
+  align-items: center;
+  gap: 1rem;
 }
 
 .profileAvatar {
@@ -397,19 +402,19 @@
 
 /* Стиль для кнопки админ панели */
 .adminButton {
-    background-color: var(--accent-secondary-muted); /* Немного другой фон */
-    color: var(--accent-secondary);
-    border: 1px solid var(--accent-secondary);
+    color: var(--accent-gold);
+    border-color: var(--accent-gold);
+    background-color: hsla(from var(--accent-gold) h s l / 0.1);
 }
 
 .adminButton:hover {
-    background-color: var(--accent-secondary);
-    color: var(--background-primary);
-    border-color: var(--accent-secondary);
+    background-color: hsla(from var(--accent-gold) h s l / 0.2);
+    color: var(--accent-gold);
 }
 
-.adminButton:active {
-    background-color: var(--accent-secondary-dark);
+.adminButton:focus {
+    box-shadow: 0 0 0 3px hsla(from var(--accent-gold) h s l / 0.3);
+    border-color: var(--accent-gold);
 }
 
 /* Стили для секции дополнительной информации */
@@ -604,4 +609,32 @@
 .rightColumn {
   grid-area: widget;
   background-color: var(--background-tertiary);
+}
+
+.controlButton {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.6rem 1.2rem;
+  border-radius: var(--border-radius);
+  border: 1px solid transparent;
+  background-color: var(--background-secondary);
+  color: var(--foreground-secondary);
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.controlButton:hover {
+  background-color: var(--background-tertiary);
+  color: var(--foreground-primary);
+  border-color: var(--border-primary);
+}
+
+.controlButton:focus {
+  outline: none;
+  box-shadow: 0 0 0 3px hsla(from var(--accent-primary) h s l / 0.3);
+  border-color: var(--accent-primary);
 } 
