@@ -21,6 +21,7 @@ const TransitionProvider = ({ children }) => {
                 exit="exit"
                 variants={variants}
                 transition={{ duration: 0.3, ease: 'easeInOut' }}
+                style={{ height: '100%', width: '100%' }}
             >
                 {children}
             </motion.div>
