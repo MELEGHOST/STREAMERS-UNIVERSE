@@ -2,24 +2,12 @@
 
 import { motion, AnimatePresence } from 'framer-motion';
 import { usePathname } from 'next/navigation';
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import Loader from '../Loader/Loader';
 
 const TransitionProvider = ({ children }) => {
     const pathname = usePathname();
     const [isTransitioning, setIsTransitioning] = useState(false);
-
-    useEffect(() => {
-        let timer;
-        if (pathname) {
-            setIsTransitioning(true);
-            timer = setTimeout(() => {
-                setIsTransitioning(false);
-            }, 800); // Должно быть чуть больше, чем transition.duration в exit
-        }
-        return () => clearTimeout(timer);
-    }, [pathname]);
-
 
     const variants = {
         hidden: {
@@ -40,18 +28,33 @@ const TransitionProvider = ({ children }) => {
     };
 
     return (
-        <AnimatePresence mode="wait">
-            <motion.div
-                key={pathname}
-                initial="hidden"
-                animate="visible"
-                exit="exit"
-                variants={variants}
-            >
+        <>
+            <AnimatePresence>
                 {isTransitioning && <Loader />}
-                {children}
-            </motion.div>
-        </AnimatePresence>
+            </AnimatePresence>
+            
+            <AnimatePresence mode="wait">
+                <motion.div
+                    key={pathname}
+                    initial="hidden"
+                    animate="visible"
+                    exit="exit"
+                    variants={variants}
+                    onAnimationStart={definition => {
+                        if (definition === 'exit') {
+                           setIsTransitioning(true);
+                        }
+                    }}
+                    onAnimationComplete={definition => {
+                        if (definition === 'visible') {
+                            setIsTransitioning(false);
+                        }
+                    }}
+                >
+                    {children}
+                </motion.div>
+            </AnimatePresence>
+        </>
     );
 };
 
