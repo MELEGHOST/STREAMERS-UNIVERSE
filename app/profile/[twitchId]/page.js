@@ -267,7 +267,7 @@ export default function UserProfilePage() {
             />
 
             <div className={styles.profileInfo}>
-                <h1 className={styles.nickname}>
+                <h1 className={styles.displayName}>
                     <span style={nicknameStyle}>{displayName}</span>
                     {isAdmin && <RoleBadge role="admin" t={t} />}
                     {isStreamer && <RoleBadge role="streamer" t={t} />}

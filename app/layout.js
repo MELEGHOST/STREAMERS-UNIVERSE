@@ -1,6 +1,7 @@
 import '../styles/globals.css';
 import ClientProviders from './components/ClientProviders';
 import StyledComponentsRegistry from './lib/StyledComponentsRegistry';
+import TransitionProvider from './components/TransitionProvider';
 
 export const metadata = {
   title: 'Streamers Universe',
@@ -12,7 +13,9 @@ export default function RootLayout({ children }) {
     <html>
       <body>
         <StyledComponentsRegistry>
-          <ClientProviders>{children}</ClientProviders>
+          <ClientProviders>
+            <TransitionProvider>{children}</TransitionProvider>
+          </ClientProviders>
         </StyledComponentsRegistry>
       </body>
     </html>
