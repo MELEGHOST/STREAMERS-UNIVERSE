@@ -9,7 +9,6 @@ import pageStyles from '../../styles/page.module.css';
 import { useTranslation } from 'react-i18next';
 import RouteGuard from '../components/RouteGuard';
 import { FaArrowLeft } from 'react-icons/fa';
-import Loader from '../components/Loader/Loader';
 
 function FollowingsPageContent() {
     const { t } = useTranslation();
@@ -59,7 +58,7 @@ function FollowingsPageContent() {
     if (loading || authLoading) {
         return (
             <div className={pageStyles.loadingContainer}>
-                <Loader />
+                <p>Загрузка подписок...</p>
             </div>
         );
     }

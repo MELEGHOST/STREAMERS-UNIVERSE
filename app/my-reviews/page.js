@@ -9,7 +9,6 @@ import styles from './my-reviews.module.css'; // Стили создадим п�
 import pageStyles from '../../styles/page.module.css'; // Общие стили
 import RouteGuard from '../components/RouteGuard';
 import { useTranslation } from 'react-i18next';
-import Loader from '../components/Loader/Loader';
 
 // Функция форматирования даты (можно вынести в utils)
 const formatDate = (dateString, t) => {
@@ -142,7 +141,7 @@ function MyReviewsPageContent() {
     if (loading) {
         return (
             <div className={pageStyles.loadingContainer}>
-                <Loader />
+                <p>Загрузка отзывов...</p>
             </div>
         );
     }
