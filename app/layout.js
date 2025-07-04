@@ -13,9 +13,9 @@ export default function RootLayout({ children }) {
     <html>
       <body>
         <StyledComponentsRegistry>
-          <ClientProviders>
-            <TransitionProvider>{children}</TransitionProvider>
-          </ClientProviders>
+          <TransitionProvider>
+            <ClientProviders>{children}</ClientProviders>
+          </TransitionProvider>
         </StyledComponentsRegistry>
       </body>
     </html>
