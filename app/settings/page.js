@@ -8,7 +8,6 @@ import pageStyles from '../../styles/page.module.css';
 import { FaArrowLeft, FaPalette } from 'react-icons/fa'; // Иконки
 import { useTranslation } from 'react-i18next';
 import LanguageSwitcher from '../components/LanguageSwitcher/LanguageSwitcher';
-import Loader from '../components/Loader/Loader.js';
 
 const availableFonts = [
   { name: 'Roboto', value: 'Roboto, sans-serif' },
@@ -63,7 +62,7 @@ function SettingsPageContent() {
   }, [authLoading, isAuthenticated, router]);
 
   if (authLoading) {
-    return <div className={pageStyles.loadingContainer}><Loader /></div>;
+    return <div className={pageStyles.loadingContainer}><p>Загрузка...</p></div>;
   }
 
   if (!isAuthenticated) {
