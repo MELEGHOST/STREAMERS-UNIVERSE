@@ -3,7 +3,6 @@ import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '../contexts/AuthContext';
 import styles from '../../styles/page.module.css'; // Общие стили
-import Loader from '../components/Loader/Loader';
 
 export default function AdminPage() {
   const { userRole, isLoading: authLoading } = useAuth();
@@ -23,7 +22,7 @@ export default function AdminPage() {
   if (authLoading || userRole !== 'admin') {
     return (
       <div className={styles.loadingContainer}>
-        <Loader />
+        <p>Проверка доступа...</p>
       </div>
     );
   }

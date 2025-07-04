@@ -6,7 +6,6 @@ import { supabase } from '../utils/supabase/client';
 import { useRouter } from 'next/navigation';
 import { useTranslation } from 'react-i18next';
 import { I18nProvider } from '../components/I18nProvider';
-import Loader from '../components/Loader/Loader';
 import styles from './edit-profile.module.css';
 import RouteGuard from '../components/RouteGuard';
 
@@ -120,7 +119,7 @@ function EditProfilePageContent() {
     };
 
     if (loadingProfileData) {
-        return <Loader />;
+        return <div className={styles.loadingContainer}><p>Загрузка профиля...</p></div>;
     }
 
     return (

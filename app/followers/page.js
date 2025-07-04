@@ -10,7 +10,6 @@ import pageStyles from '../../styles/page.module.css';
 import { useTranslation } from 'react-i18next';
 import RouteGuard from '../components/RouteGuard';
 import { FaArrowLeft } from 'react-icons/fa';
-import Loader from '../components/Loader/Loader';
 
 function FollowersPageContent() {
     const { t } = useTranslation();
@@ -59,7 +58,7 @@ function FollowersPageContent() {
     if (loading || authLoading) {
         return (
             <div className={pageStyles.loadingContainer}>
-                <Loader />
+                <p>Загрузка подписчиков...</p>
             </div>
         );
     }
