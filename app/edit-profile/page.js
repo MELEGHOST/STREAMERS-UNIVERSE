@@ -15,11 +15,9 @@ function EditProfilePageContent() {
     const { t } = useTranslation();
 
     const [displayName, setDisplayName] = useState('');
-    const [streamerType, setStreamerType] = useState('');
-    const [birthday, setBirthday] = useState('');
     const [description, setDescription] = useState('');
     const [socialLinks, setSocialLinks] = useState({});
-    const [profileWidget, setProfileWidget] = useState('default');
+    const [profileWidget, setProfileWidget] = useState('statistics');
     
     const [loadingProfileData, setLoadingProfileData] = useState(true);
     const [saving, setSaving] = useState(false);
@@ -32,19 +30,19 @@ function EditProfilePageContent() {
         try {
             const { data, error: fetchError } = await supabase
                 .from('user_profiles')
-                .select('display_name, streamer_type, birthday, social_links, description, profile_widget')
+                .select('twitch_display_name, social_links, description, profile_widget')
                 .eq('user_id', user.id)
                 .maybeSingle();
 
             if (fetchError) throw fetchError;
 
             if (data) {
-                setDisplayName(data.display_name || user.user_metadata?.name || '');
-                setStreamerType(data.streamer_type || 'beginner');
-                setBirthday(data.birthday || '');
+                setDisplayName(data.twitch_display_name || user.user_metadata?.name || user.user_metadata?.user_name || '');
                 setDescription(data.description || '');
-                setProfileWidget(data.profile_widget || 'default');
+                setProfileWidget(data.profile_widget || 'statistics');
                 setSocialLinks(data.social_links || {});
+            } else {
+                setDisplayName(user.user_metadata?.name || user.user_metadata?.user_name || '');
             }
         } catch (err) {
             setError({ key: 'edit_profile.loadError', options: { message: err.message } });
@@ -75,9 +73,7 @@ function EditProfilePageContent() {
       );
   
       const profileDataToUpdate = {
-        display_name: displayName,
-        streamer_type: streamerType,
-        birthday: birthday || null,
+        twitch_display_name: displayName,
         description: description || null,
         social_links: nonEmptySocialLinks,
         profile_widget: profileWidget,
@@ -114,6 +110,12 @@ function EditProfilePageContent() {
         setSocialLinks(prev => ({ ...prev, [platform]: value }));
     };
 
+    const formatPlatformName = (platform) => {
+        if (platform === 'yandexMusic') return 'Yandex Music';
+        if (platform === 'vk') return 'VK';
+        return platform.charAt(0).toUpperCase() + platform.slice(1);
+    };
+
     const handleBack = () => {
         router.back();
     };
@@ -134,34 +136,29 @@ function EditProfilePageContent() {
                     <input id="displayName" type="text" value={displayName} onChange={e => setDisplayName(e.target.value)} className={styles.input} />
                 </div>
                 <div className={styles.formGroup}>
-                    <label className={styles.label} htmlFor="streamerType">{t('profile.edit.streamerType')}</label>
-                    <select id="streamerType" value={streamerType} onChange={e => setStreamerType(e.target.value)} className={styles.select}>
-                        <option value="beginner">{t('streamer_types.beginner')}</option>
-                        <option value="pro">{t('streamer_types.pro')}</option>
-                        <option value="partner">{t('streamer_types.partner')}</option>
-                    </select>
-                </div>
-                <div className={styles.formGroup}>
-                    <label className={styles.label} htmlFor="birthday">{t('profile.edit.birthday')}</label>
-                    <input id="birthday" type="date" value={birthday} onChange={e => setBirthday(e.target.value)} className={styles.input} />
-                </div>
-                <div className={styles.formGroup}>
                     <label className={styles.label} htmlFor="description">{t('profile.edit.description')}</label>
                     <textarea id="description" value={description} onChange={e => setDescription(e.target.value)} className={styles.textarea}></textarea>
+                </div>
+                <div className={styles.formGroup}>
+                    <label className={styles.label} htmlFor="profileWidget">{t('profile.edit.widgetLabel')}</label>
+                    <select id="profileWidget" value={profileWidget} onChange={e => setProfileWidget(e.target.value)} className={styles.select}>
+                        <option value="statistics">{t('profile.edit.widgetStatistics')}</option>
+                        <option value="achievements">{t('profile.edit.widgetAchievements')}</option>
+                    </select>
                 </div>
                 <div className={styles.formGroup}>
                     <label className={styles.label}>{t('profile.edit.socialLinks')}</label>
                     <div className={styles.socialLinksContainer}>
                         {['twitch', 'youtube', 'telegram', 'discord', 'vk', 'tiktok', 'yandexMusic', 'boosty'].map(platform => (
                             <div key={platform} className={styles.socialLinkItem}>
-                                <label className={styles.socialLinkLabel} htmlFor={platform}>{platform}</label>
+                                <label className={styles.socialLinkLabel} htmlFor={platform}>{formatPlatformName(platform)}</label>
                                 <input
                                     id={platform}
                                     type="text"
                                     value={socialLinks[platform] || ''}
                                     onChange={e => handleSocialLinkChange(platform, e.target.value)}
                                     className={styles.input}
-                                    placeholder={t(`social_placeholders.${platform}`)}
+                                    placeholder={t(`edit_profile.socialsPlaceholder.${platform}`)}
                                 />
                             </div>
                         ))}

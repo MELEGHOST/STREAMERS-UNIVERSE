@@ -22,6 +22,7 @@ import TiktokButton from '../../components/SocialButtons/TiktokButton';
 import BoostyButton from '../../components/SocialButtons/BoostyButton';
 import YandexMusicButton from '../../components/SocialButtons/YandexMusicButton';
 import StatisticsWidget from '../../components/ProfileWidgets/StatisticsWidget';
+import AchievementsWidget from '../../components/ProfileWidgets/AchievementsWidget';
 import InviteButton from '../../components/InviteButton/InviteButton';
 
 const socialButtonComponents = {
@@ -304,10 +305,14 @@ export default function UserProfilePage() {
         </header>
 
         <div className={styles.widgetsContainer}>
-            {profileWidget === 'statistics' ? (
+             {profileWidget === 'statistics' && (
                 <StatisticsWidget twitchData={twitchUserData} profileData={profileData} />
-            ) : (
-                <div className={styles.widgetPlaceholder}>
+            )}
+            {profileWidget === 'achievements' && (
+                <AchievementsWidget profileData={profileData} authToken={authToken} />
+            )}
+            {!profileWidget && (
+                 <div className={styles.widgetPlaceholder}>
                     <p>{t('profile.selectWidget')}</p>
                 </div>
             )}
