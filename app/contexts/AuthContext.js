@@ -106,6 +106,12 @@ export function AuthProvider({ children }) {
     if (error) {
         console.error('Error signing out:', error);
     }
+    // Очищаем localStorage и cookies
+    localStorage.clear();
+    document.cookie = 'sb-access-token=; Max-Age=0; path=/';
+    document.cookie = 'sb-refresh-token=; Max-Age=0; path=/';
+    // Принудительный релоад на главную для полного сброса
+    window.location.href = '/';
   }, []);
 
   const value = useMemo(() => ({

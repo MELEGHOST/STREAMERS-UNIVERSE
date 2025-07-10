@@ -79,9 +79,28 @@ function EditProfilePageContent() {
       };
   
       try {
-        const { error: updateError } = await supabase
+        // Проверяем, существует ли профиль
+        const { data: existingProfile, error: fetchError } = await supabase
             .from('user_profiles')
-            .upsert([{ user_id: user.id, ...profileDataToUpdate }], { onConflict: 'user_id' });
+            .select('id')
+            .eq('user_id', user.id)
+            .maybeSingle();
+
+        if (fetchError) throw fetchError;
+
+        let updateError;
+        if (existingProfile) {
+            // Update existing
+            ({ error: updateError } = await supabase
+                .from('user_profiles')
+                .update(profileDataToUpdate)
+                .eq('user_id', user.id));
+        } else {
+            // Insert new
+            ({ error: updateError } = await supabase
+                .from('user_profiles')
+                .insert([{ user_id: user.id, ...profileDataToUpdate }]));
+        }
 
         if (updateError) throw updateError;
         
@@ -108,7 +127,7 @@ function EditProfilePageContent() {
     };
 
     const formatPlatformName = (platform) => {
-        if (platform === 'yandexMusic') return 'Yandex Music';
+        if (platform === 'yandex_music') return 'Yandex Music';
         if (platform === 'vk') return 'VK';
         return platform.charAt(0).toUpperCase() + platform.slice(1);
     };
@@ -146,7 +165,7 @@ function EditProfilePageContent() {
                 <div className={styles.formGroup}>
                     <label className={styles.label}>{t('profile.edit.socialLinks')}</label>
                     <div className={styles.socialLinksContainer}>
-                        {['twitch', 'youtube', 'telegram', 'discord', 'vk', 'tiktok', 'yandexMusic', 'boosty'].map(platform => (
+                        {['twitch', 'youtube', 'telegram', 'discord', 'vk', 'tiktok', 'yandex_music', 'boosty'].map(platform => (
                             <div key={platform} className={styles.socialLinkItem}>
                                 <label className={styles.socialLinkLabel} htmlFor={platform}>{formatPlatformName(platform)}</label>
                                 <input
