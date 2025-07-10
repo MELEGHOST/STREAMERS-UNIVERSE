@@ -171,11 +171,21 @@
         "registrationDate": "Дата регистрации",
         "achievements": {
             "title": "Достижения",
-            "firstReview": "Первый отзыв",
-            "firstFollower": "Первый последователь",
-            "inspirer": "Вдохновитель",
-            "unlocked": "Открыто",
-            "locked": "Закрыто"
+            "firstReview": {
+                "name": "Первый отзыв",
+                "description": "Вы написали свой первый отзыв!",
+                "condition": "Написать 1 отзыв"
+            },
+            "firstFollower": {
+                "name": "Первый последователь",
+                "description": "У вас появился первый фолловер!",
+                "condition": "Получить 1 фолловера"
+            },
+            "inspirer": {
+                "name": "Вдохновитель",
+                "description": "Вы вдохновили многих!",
+                "condition": "Получить 10 фолловеров"
+            }
         },
         "reviews": {
             "title": "Отзывы",

@@ -14,10 +14,10 @@ function EditProfilePageContent() {
     const router = useRouter();
     const { t } = useTranslation();
 
-    const [displayName, setDisplayName] = useState('');
     const [description, setDescription] = useState('');
     const [socialLinks, setSocialLinks] = useState({});
     const [profileWidget, setProfileWidget] = useState('statistics');
+    const [birthday, setBirthday] = useState('');
     
     const [loadingProfileData, setLoadingProfileData] = useState(true);
     const [saving, setSaving] = useState(false);
@@ -30,19 +30,17 @@ function EditProfilePageContent() {
         try {
             const { data, error: fetchError } = await supabase
                 .from('user_profiles')
-                .select('twitch_display_name, social_links, description, profile_widget')
+                .select('social_links, description, profile_widget, birthday')
                 .eq('user_id', user.id)
                 .maybeSingle();
 
             if (fetchError) throw fetchError;
 
             if (data) {
-                setDisplayName(data.twitch_display_name || user.user_metadata?.name || user.user_metadata?.user_name || '');
                 setDescription(data.description || '');
                 setProfileWidget(data.profile_widget || 'statistics');
                 setSocialLinks(data.social_links || {});
-            } else {
-                setDisplayName(user.user_metadata?.name || user.user_metadata?.user_name || '');
+                setBirthday(data.birthday || '');
             }
         } catch (err) {
             setError({ key: 'edit_profile.loadError', options: { message: err.message } });
@@ -73,18 +71,17 @@ function EditProfilePageContent() {
       );
   
       const profileDataToUpdate = {
-        twitch_display_name: displayName,
         description: description || null,
         social_links: nonEmptySocialLinks,
         profile_widget: profileWidget,
+        birthday: birthday || null,
         updated_at: new Date(),
       };
   
       try {
         const { error: updateError } = await supabase
             .from('user_profiles')
-            .update(profileDataToUpdate)
-            .eq('user_id', user.id);
+            .upsert([{ user_id: user.id, ...profileDataToUpdate }], { onConflict: 'user_id' });
 
         if (updateError) throw updateError;
         
@@ -132,8 +129,8 @@ function EditProfilePageContent() {
             <h1 className={styles.title}>{t('profile.edit.title')}</h1>
             <form onSubmit={handleSave} className={styles.form}>
                 <div className={styles.formGroup}>
-                    <label className={styles.label} htmlFor="displayName">{t('profile.edit.displayName')}</label>
-                    <input id="displayName" type="text" value={displayName} onChange={e => setDisplayName(e.target.value)} className={styles.input} />
+                    <label className={styles.label} htmlFor="birthday">{t('profile.edit.birthday')}</label>
+                    <input id="birthday" type="date" value={birthday} onChange={e => setBirthday(e.target.value)} className={styles.input} />
                 </div>
                 <div className={styles.formGroup}>
                     <label className={styles.label} htmlFor="description">{t('profile.edit.description')}</label>

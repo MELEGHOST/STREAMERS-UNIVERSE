@@ -107,8 +107,15 @@ function AdminReviewsContent() {
 
     if (loading) {
         return (
-            <div className={pageStyles.loadingContainer}>
-                <p>Загрузка отзывов...</p>
+            <div className={pageStyles.container}>
+                <header className={styles.header}>
+                    <Link href="/menu" className={styles.backLink}>
+                        <FaArrowLeft /> {t('admin_reviews.backToMenu')}
+                    </Link>
+                </header>
+                <div className={pageStyles.loadingContainer}>
+                    <p>Загрузка отзывов...</p>
+                </div>
             </div>
         );
     }

@@ -195,8 +195,13 @@ export default function UserProfilePage() {
 
   if (loadingProfile) {
       return (
-          <div className={pageStyles.loadingContainer}>
-              <p>Загрузка профиля...</p>
+          <div className={styles.skeletonHeader}>
+              <div className={styles.skeletonAvatar}></div>
+              <div className={styles.skeletonInfo}>
+                  <div className={styles.skeletonTextLarge}></div>
+                  <div className={styles.skeletonText}></div>
+                  <div className={styles.skeletonText short}></div>
+              </div>
           </div>
       );
   }

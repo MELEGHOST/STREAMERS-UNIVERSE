@@ -97,9 +97,6 @@ function AchievementsPageContent() {
   return (
     <div className={pageStyles.container}>
       <header className={styles.header}>
-         <button onClick={() => router.back()} className={styles.backButton}>
-            <FaArrowLeft /> {t('achievements_page.backButton')}
-        </button>
         <h1>{t('achievements_page.title')}</h1>
       </header>
 
