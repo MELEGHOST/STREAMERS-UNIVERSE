@@ -80,33 +80,14 @@ function EditProfilePageContent() {
       };
   
       try {
-        // Проверяем, существует ли профиль
-        const { data: existingProfile, error: fetchError } = await supabase
+        const { error: updateError } = await supabase
             .from('user_profiles')
-            .select('id')
-            .eq('user_id', user.id)
-            .maybeSingle();
-
-        if (fetchError) throw fetchError;
-
-        let updateError;
-        if (existingProfile) {
-            // Update existing
-            ({ error: updateError } = await supabase
-                .from('user_profiles')
-                .update(profileDataToUpdate)
-                .eq('user_id', user.id));
-        } else {
-            // Insert new
-            ({ error: updateError } = await supabase
-                .from('user_profiles')
-                .insert([{ user_id: user.id, ...profileDataToUpdate }]));
-        }
+            .upsert([{ user_id: user.id, ...profileDataToUpdate }], { onConflict: 'user_id' });
 
         if (updateError) throw updateError;
         
         setSuccessMessage({ key: 'edit_profile.successMessage' });
-  
+ 
         setTimeout(() => {
             const userTwitchId = user?.user_metadata?.provider_id;
             if (userTwitchId) {
@@ -115,7 +96,7 @@ function EditProfilePageContent() {
                 router.push('/profile');
             }
         }, 1000);
-  
+ 
       } catch (err) {
         setError({ key: 'edit_profile.saveError', options: { message: err.message } });
       } finally {

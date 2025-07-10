@@ -33,7 +33,7 @@ const socialButtonComponents = {
     telegram: TelegramButton,
     tiktok: TiktokButton,
     boosty: BoostyButton,
-    yandex: YandexMusicButton,
+    yandex_music: YandexMusicButton,
 };
 
 const RoleBadge = ({ role, t }) => {
@@ -310,12 +310,24 @@ export default function UserProfilePage() {
         </header>
 
         <div className={styles.widgetsContainer}>
-             {profileWidget === 'statistics' && (
-                <StatisticsWidget twitchData={twitchUserData} profileData={profileData} />
+             {profileWidget && (
+                <div className={styles.widgetContainer}>
+                    {profileWidget === 'statistics' ? (
+                        <StatisticsWidget stats={twitchUserData} />
+                    ) : (
+                        <AchievementsWidget />
+                    )}
+                </div>
             )}
-            {profileWidget === 'achievements' && (
-                <AchievementsWidget profileData={profileData} authToken={authToken} />
-            )}
+
+            <div className={styles.socialLinksContainer}>
+                {Object.entries(profileData?.social_links || {}).map(([platform, url]) => {
+                    const Component = socialButtonComponents[platform];
+                    if (!Component) return null;
+                    return <Component key={platform} url={url} className={styles.socialButton} />;
+                })}
+            </div>
+
             {!profileWidget && (
                  <div className={styles.widgetPlaceholder}>
                     <p>{t('profile.selectWidget')}</p>

@@ -642,3 +642,44 @@
   box-shadow: 0 0 0 3px hsla(from var(--accent-primary) h s l / 0.3);
   border-color: var(--accent-primary);
 } 
+
+.navButton {
+    background: linear-gradient(to right, #ff00ff, #00ffff);
+    box-shadow: 0 0 10px #ff00ff;
+    border-radius: 20px;
+    padding: 0.5rem 1rem;
+    color: white;
+    text-shadow: 0 0 5px black;
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.navButton:hover {
+    transform: scale(1.05);
+    box-shadow: 0 0 20px #ff00ff;
+}
+
+.actionButton {
+    background: linear-gradient(to right, #ff00ff, #00ffff);
+    box-shadow: 0 0 10px #ff00ff;
+    border-radius: 20px;
+    padding: 0.5rem 1rem;
+    color: white;
+    text-shadow: 0 0 5px black;
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.actionButton:hover {
+    transform: scale(1.05);
+    box-shadow: 0 0 20px #ff00ff;
+}
+
+.socialLinksContainer {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
+    justify-content: center;
+}
+
+.socialButton {
+    /* Дополнительные стили если нужно */
+} 
