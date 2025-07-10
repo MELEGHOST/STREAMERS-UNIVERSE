@@ -200,7 +200,7 @@ export default function UserProfilePage() {
               <div className={styles.skeletonInfo}>
                   <div className={styles.skeletonTextLarge}></div>
                   <div className={styles.skeletonText}></div>
-                  <div className={styles.skeletonText short}></div>
+                  <div className={`${styles.skeletonText} ${styles.short}`}></div>
               </div>
           </div>
       );
