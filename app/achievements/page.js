@@ -7,7 +7,6 @@ import styles from './achievements.module.css';
 import pageStyles from '../../styles/page.module.css';
 import RouteGuard from '../components/RouteGuard';
 import { useTranslation } from 'react-i18next';
-import { FaArrowLeft } from 'react-icons/fa';
 
 // --- Фетчер для SWR --- 
 const fetcher = async (url, token) => {
