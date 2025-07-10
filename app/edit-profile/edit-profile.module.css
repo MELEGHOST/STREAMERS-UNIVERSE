@@ -327,11 +327,21 @@
 }
 
 .widgetPreview {
-    display: flex;
-    justify-content: space-around;
-    gap: 1rem;
+  display: flex;
+  justify-content: space-around;
+  gap: 1rem;
 }
-
+.widgetPreview div {
+  cursor: pointer;
+  padding: 1rem;
+  border-radius: var(--border-radius);
+  background-color: var(--background-secondary);
+  box-shadow: 0 2px 4px hsla(0, 0%, 0%, 0.1);
+  transition: box-shadow 0.2s ease;
+}
+.widgetPreview div:hover {
+  box-shadow: 0 4px 8px hsla(0, 0%, 0%, 0.2);
+}
 .previewBox {
     background: rgba(255, 255, 255, 0.1);
     padding: 1rem;

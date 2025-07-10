@@ -36,7 +36,7 @@
       "views_many": "views",
       "onTwitchSince": "On Twitch since {{date}}",
       "status": "Status",
-      "selectWidget": "Select a widget in profile settings.",
+      "selectWidget": "Select widget",
       "description": "Description",
       "noDescription": "This user hasn't shared anything about themselves yet.",
       "latestVideos": "Latest Videos (VODs)",
@@ -45,6 +45,11 @@
         "partner": "Twitch Partner",
         "affiliate": "Twitch Affiliate",
         "normal": "User"
+      },
+      "edit": {
+        "widgetLabel": "Profile Widget",
+        "widgetStatistics": "Statistics",
+        "widgetAchievements": "Achievements"
       }
     },
     "logout": "Logout",
@@ -333,5 +338,8 @@
     "roles": {
         "admin": "Admin",
         "streamer": "Streamer"
+    },
+    "modal": {
+        "close": "Close"
     }
 } 

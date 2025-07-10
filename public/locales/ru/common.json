@@ -55,7 +55,10 @@
       "edit.description": "Описание",
       "edit.socialLinks": "Социальные сети",
       "edit.saving": "Сохранение...",
-      "save": "Сохранить"
+      "save": "Сохранить",
+      "widgetLabel": "Виджет профиля",
+      "widgetStatistics": "Статистика",
+      "widgetAchievements": "Достижения"
     },
     "logout": "Выйти",
     "login": "Войти через Twitch",
@@ -370,6 +373,8 @@
     "edit": {
         "widgetLabel": "Выберите виджет для профиля",
         "widgetStatistics": "Статистика",
-        "widgetAchievements": "Достижения"
+        "widgetAchievements": "Достижения",
+        "selectWidget": "Выберите виджет",
+        "close": "Закрыть"
     }
 } 

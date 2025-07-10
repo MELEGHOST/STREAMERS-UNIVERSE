@@ -147,7 +147,7 @@ function EditProfilePageContent() {
                 {showModal && (
                     <div className={styles.modalOverlay} onClick={() => setShowModal(false)}>
                         <div className={styles.modalContent} onClick={e => e.stopPropagation()}>
-                            <h2>Выберите виджет</h2>
+                            <h2>{t('profile.edit.selectWidget')}</h2>
                             <div className={styles.widgetPreview}>
                                 <div onClick={() => { setProfileWidget('statistics'); setShowModal(false); }}>
                                     <h3>{t('profile.edit.widgetStatistics')}</h3>
@@ -165,7 +165,7 @@ function EditProfilePageContent() {
                                     </div>
                                 </div>
                             </div>
-                            <button onClick={() => setShowModal(false)}>Закрыть</button>
+                            <button onClick={() => setShowModal(false)}>{t('profile.edit.close')}</button>
                         </div>
                     </div>
                 )}

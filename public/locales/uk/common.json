@@ -46,6 +46,11 @@
         "partner": "Партнер Twitch",
         "affiliate": "Компаньйон Twitch",
         "normal": "Користувач"
+      },
+      "edit": {
+        "widgetLabel": "Віджет профілю",
+        "widgetStatistics": "Статистика",
+        "widgetAchievements": "Досягнення"
       }
     },
     "logout": "Вийти",

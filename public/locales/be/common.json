@@ -46,6 +46,11 @@
         "partner": "Партнёр Twitch",
         "affiliate": "Кампаньён Twitch",
         "normal": "Карыстальнік"
+      },
+      "edit": {
+        "widgetLabel": "Віджэт профілю",
+        "widgetStatistics": "Статыстыка",
+        "widgetAchievements": "Дасягненні"
       }
     },
     "logout": "Выйсці",
