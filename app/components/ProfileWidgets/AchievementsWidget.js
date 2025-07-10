@@ -22,7 +22,7 @@ function AchievementCard({ achievement, t }) {
     );
 }
 
-export default function AchievementsWidget({ profileData, authToken }) {
+export default function AchievementsWidget({ authToken }) {
     const { t } = useTranslation();
     
     const { data: apiData, error, isLoading } = useSWR(
