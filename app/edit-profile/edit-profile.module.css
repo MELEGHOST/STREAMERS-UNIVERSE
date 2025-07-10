@@ -297,3 +297,63 @@
 .backButton:hover {
   background: rgba(255, 255, 255, 0.2);
 } 
+
+.socialLinkItem .input {
+    min-width: 260px; /* Шире на 30% */
+} 
+
+.modalOverlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.7);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    animation: fadeIn 0.3s ease;
+}
+
+.modalContent {
+    background: linear-gradient(to bottom, #000000, #4b0082);
+    padding: 2rem;
+    border-radius: var(--border-radius-lg);
+    box-shadow: 0 0 15px #ff00ff, 0 0 30px #ff00ff;
+    max-width: 600px;
+    width: 90%;
+    text-align: center;
+}
+
+.widgetPreview {
+    display: flex;
+    justify-content: space-around;
+    gap: 1rem;
+}
+
+.previewBox {
+    background: rgba(255, 255, 255, 0.1);
+    padding: 1rem;
+    border-radius: var(--border-radius);
+    border: 1px solid #ff00ff;
+}
+
+.widgetButton {
+    padding: 0.8rem;
+    background: var(--accent-primary);
+    color: white;
+    border: none;
+    border-radius: var(--border-radius);
+    cursor: pointer;
+    font-size: 1rem;
+}
+
+.widgetButton:hover {
+    box-shadow: 0 0 10px var(--accent-primary);
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+} 

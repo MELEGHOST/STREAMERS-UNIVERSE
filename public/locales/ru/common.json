@@ -310,14 +310,14 @@
       "bioPlaceholder": "Расскажите немного о себе, своих увлечениях и о чем ваш канал...",
       "socials": "Социальные сети",
       "socialsPlaceholder": {
-        "vk": "https://vk.com/your_id",
-        "twitch": "https://twitch.tv/your_channel",
-        "discord": "username#1234 или ссылка-приглашение",
-        "youtube": "https://youtube.com/c/your_channel",
-        "telegram": "@username или https://t.me/your_channel",
-        "tiktok": "https://tiktok.com/@your_username",
-        "boosty": "https://boosty.to/your_profile",
-        "yandex_music": "Ссылка на ваш профиль музыканта"
+        "vk": "Ссылка на ваш профиль в VK",
+        "twitch": "Ссылка на ваш канал в Twitch",
+        "discord": "Ссылка на ваш сервер или профиль в Discord",
+        "youtube": "Ссылка на ваш канал в YouTube",
+        "telegram": "Ссылка на ваш канал или профиль в Telegram",
+        "tiktok": "Ссылка на ваш профиль в TikTok",
+        "boosty": "Ссылка на ваш профиль в Boosty",
+        "yandex_music": "Ссылка на ваш профиль музыканта в Yandex Music"
       },
       "saveButton": "Сохранить",
       "savingButton": "Сохранение...",
@@ -366,5 +366,10 @@
     "roles": {
         "admin": "Админ",
         "streamer": "Стример"
+    },
+    "edit": {
+        "widgetLabel": "Выберите виджет для профиля",
+        "widgetStatistics": "Статистика",
+        "widgetAchievements": "Достижения"
     }
 } 

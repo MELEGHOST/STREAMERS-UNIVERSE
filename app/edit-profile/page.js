@@ -23,6 +23,7 @@ function EditProfilePageContent() {
     const [saving, setSaving] = useState(false);
     const [error, setError] = useState(null);
     const [successMessage, setSuccessMessage] = useState(null);
+    const [showModal, setShowModal] = useState(false);
 
     const fetchProfileData = useCallback(async () => {
         if (!user) return;
@@ -156,12 +157,38 @@ function EditProfilePageContent() {
                     <textarea id="description" value={description} onChange={e => setDescription(e.target.value)} className={styles.textarea}></textarea>
                 </div>
                 <div className={styles.formGroup}>
-                    <label className={styles.label} htmlFor="profileWidget">{t('profile.edit.widgetLabel')}</label>
-                    <select id="profileWidget" value={profileWidget} onChange={e => setProfileWidget(e.target.value)} className={styles.select}>
-                        <option value="statistics">{t('profile.edit.widgetStatistics')}</option>
-                        <option value="achievements">{t('profile.edit.widgetAchievements')}</option>
-                    </select>
+                    <label className={styles.label}>{t('profile.edit.widgetLabel')}</label>
+                    <button type="button" onClick={() => setShowModal(true)} className={styles.widgetButton}>
+                        {profileWidget === 'statistics' ? t('profile.edit.widgetStatistics') : t('profile.edit.widgetAchievements')}
+                    </button>
                 </div>
+
+                {showModal && (
+                    <div className={styles.modalOverlay} onClick={() => setShowModal(false)}>
+                        <div className={styles.modalContent} onClick={e => e.stopPropagation()}>
+                            <h2>Выберите виджет</h2>
+                            <div className={styles.widgetPreview}>
+                                <div onClick={() => { setProfileWidget('statistics'); setShowModal(false); }}>
+                                    <h3>{t('profile.edit.widgetStatistics')}</h3>
+                                    <div className={styles.previewBox}>
+                                        <p>Подписчики: 1000</p>
+                                        <p>Просмотры: 50000</p>
+                                        {/* Другие статы без дубликатов */}
+                                    </div>
+                                </div>
+                                <div onClick={() => { setProfileWidget('achievements'); setShowModal(false); }}>
+                                    <h3>{t('profile.edit.widgetAchievements')}</h3>
+                                    <div className={styles.previewBox}>
+                                        <p>Редкое достижение 1 (0.5% игроков)</p>
+                                        <p>Редкое достижение 2 (1% игроков)</p>
+                                    </div>
+                                </div>
+                            </div>
+                            <button onClick={() => setShowModal(false)}>Закрыть</button>
+                        </div>
+                    </div>
+                )}
+
                 <div className={styles.formGroup}>
                     <label className={styles.label}>{t('profile.edit.socialLinks')}</label>
                     <div className={styles.socialLinksContainer}>
