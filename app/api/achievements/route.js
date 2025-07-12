@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { verifyJwt } from '../../utils/jwt'; // Проверь путь!
+import { handleAchievementTrigger } from '../../utils/achievements';
+import { getTwitchClientWithToken } from '../../utils/twitchClient';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 // Используем SERVICE KEY для чтения/записи достижений пользователей
@@ -42,6 +44,25 @@ export async function GET(request) {
 
     try {
         console.log(`[API /achievements] Fetching achievements for user: ${userId}`);
+        // Check and unlock pending achievements
+        const { data: profile } = await supabaseAdmin.from('user_profiles').select('twitch_user_id, broadcaster_type, social_links').eq('user_id', userId).single();
+        if (profile) {
+            // twitch_followers
+            const twitchClient = await getTwitchClientWithToken(token);
+            let followersCount = 0;
+            if (twitchClient && profile.twitch_user_id) {
+                const followers = await twitchClient.channels.getChannelFollowers({ broadcasterId: profile.twitch_user_id });
+                followersCount = followers ? followers.total : 0;
+            }
+            await handleAchievementTrigger(userId, 'twitch_followers', { count: followersCount });
+            // other triggers
+            await handleAchievementTrigger(userId, 'review_count');
+            await handleAchievementTrigger(userId, 'social_links');
+            await handleAchievementTrigger(userId, 'referrals');
+            await handleAchievementTrigger(userId, 'twitch_status');
+            await handleAchievementTrigger(userId, 'twitch_partner');
+            await handleAchievementTrigger(userId, 'achievements_unlocked');
+        }
         // Запрос 1: Все доступные достижения
         const { data: allAchievements, error: allError } = await supabaseAdmin
             .from('achievements')

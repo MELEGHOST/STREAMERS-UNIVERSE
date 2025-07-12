@@ -1,5 +1,7 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
+import { getTwitchClientWithToken } from '../../../utils/twitchClient';
+import { handleAchievementTrigger } from '../../../utils/achievements';
 
 // Админ-клиент для обновления метаданных пользователя
 const supabaseAdmin = createClient(
@@ -65,6 +67,17 @@ export async function POST({ headers }) {
   }
 
   if (profile) {
+    if (!profile.broadcaster_type) {
+      const twitchClient = await getTwitchClientWithToken(jwt);
+      if (twitchClient && profile.twitch_user_id) {
+        const twitchUser = await twitchClient.users.getUserById(profile.twitch_user_id);
+        if (twitchUser) {
+          await supabaseAdmin.from('user_profiles').update({ broadcaster_type: twitchUser.broadcasterType || '' }).eq('id', user.id);
+          await handleAchievementTrigger(user.id, 'twitch_status');
+          await handleAchievementTrigger(user.id, 'twitch_partner');
+        }
+      }
+    }
     return NextResponse.json(profile);
   }
 
@@ -90,6 +103,9 @@ export async function POST({ headers }) {
     console.error('[Sync Profile API] Ошибка при создании профиля:', createError);
     return NextResponse.json({ error: 'Не удалось создать профиль пользователя.' }, { status: 500 });
   }
+
+  await handleAchievementTrigger(user.id, 'twitch_status');
+  await handleAchievementTrigger(user.id, 'twitch_partner');
 
   console.log(`[Sync Profile API] Профиль для пользователя ${user.id} успешно создан.`);
   return NextResponse.json(createdProfile);

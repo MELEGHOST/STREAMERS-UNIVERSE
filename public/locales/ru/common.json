@@ -251,15 +251,15 @@
             "updateError": "Ошибка обновления статуса: {{message}}"
         },
         "achievements_page": {
-            "title": "Мои Достижения",
+            "title": "Достижения",
             "backButton": "Назад",
-            "all": "Все",
-            "unlocked": "Разблокированные",
+            "all": "Все доступные",
+            "unlocked": "Полученные",
             "locked": "Заблокированные",
             "progress": "Прогресс: {{unlockedCount}} из {{totalCount}}",
             "noAchievements": "В этой категории пока нет достижений.",
             "error": "Не удалось загрузить достижения: {{message}}",
-            "condition": "Условие"
+            "condition": "Условие разблокировки"
         },
         "followersTitle": "Мои последователи",
         "followingsTitle": "Мои вдохновители",

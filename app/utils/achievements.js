@@ -22,7 +22,7 @@ async function getUserReviewCount(userId) {
 async function getUserProfile(userId) {
     const { data, error } = await supabaseAdmin
         .from('user_profiles')
-        .select('description, social_links')
+        .select('description, social_links, broadcaster_type')
         .eq('user_id', userId)
         .single();
 
