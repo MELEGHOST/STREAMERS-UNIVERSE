@@ -27,16 +27,28 @@ export async function GET(request) {
         set: (name, value, options) => cookieStore.set({ name, value, ...options }),
         remove: (name, options) => cookieStore.set({ name, value: '', ...options }),
       },
+      cookieOptions: {
+        path: '/',
+        secure: process.env.NODE_ENV === 'production',
+        httpOnly: true,
+        sameSite: 'strict',
+        lifetime: 60 * 60 * 24 * 365  // 1 год
+      }
     }
   );
+
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const ref = new URL(supabaseUrl).hostname.split('.')[0];
+  const authCookieName = `sb-${ref}-auth-token`;
+  const verifierCookieName = `sb-${ref}-auth-token-code-verifier`;
 
   const { error } = await supabase.auth.exchangeCodeForSession(code);
 
   if (error) {
     console.error('[Auth Callback] Error exchanging code for session:', error.message);
     // Очищаем "плохие" куки, которые могли вызвать проблему
-    cookieStore.delete('sb-access-token');
-    cookieStore.delete('sb-refresh-token');
+    cookieStore.delete(authCookieName);
+    cookieStore.delete(verifierCookieName);
     return NextResponse.redirect(`${origin}/?error=auth_error&error_description=${encodeURIComponent(error.message)}`);
   }
   

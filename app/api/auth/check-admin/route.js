@@ -20,6 +20,13 @@ export async function POST(request) {
           cookieStore.set({ name, value: '', ...options });
         },
       },
+      cookieOptions: {
+        path: '/',
+        secure: process.env.NODE_ENV === 'production',
+        httpOnly: true,
+        sameSite: 'strict',
+        lifetime: 60 * 60 * 24 * 365  // 1 год
+      }
     }
   );
 

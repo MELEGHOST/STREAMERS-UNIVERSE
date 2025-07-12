@@ -2,6 +2,7 @@
 
 import { createContext, useState, useEffect, useCallback, useMemo, useContext } from 'react';
 import { supabase } from '../utils/supabase/client';
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL; // Добавляем, если не импортировано
 
 const AuthContext = createContext(undefined);
 
@@ -106,10 +107,18 @@ export function AuthProvider({ children }) {
     if (error) {
         console.error('Error signing out:', error);
     }
-    // Очищаем localStorage и cookies
-    localStorage.clear();
-    document.cookie = 'sb-access-token=; Max-Age=0; path=/';
-    document.cookie = 'sb-refresh-token=; Max-Age=0; path=/';
+    // Динамически вычисляем имя куки
+    if (supabaseUrl) {
+        const ref = new URL(supabaseUrl).hostname.split('.')[0];
+        const authCookieName = `sb-${ref}-auth-token`;
+        const verifierCookieName = `sb-${ref}-auth-token-code-verifier`;
+        document.cookie = `${authCookieName}=; Max-Age=0; path=/; secure; samesite=strict`;
+        document.cookie = `${verifierCookieName}=; Max-Age=0; path=/; secure; samesite=strict`;
+    } else {
+        // Фallback на старые имена, если url не доступен
+        document.cookie = 'sb-access-token=; Max-Age=0; path=/';
+        document.cookie = 'sb-refresh-token=; Max-Age=0; path=/';
+    }
     // Принудительный релоад на главную для полного сброса
     window.location.href = '/';
   }, []);
