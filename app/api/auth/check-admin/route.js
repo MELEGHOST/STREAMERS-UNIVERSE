@@ -25,7 +25,7 @@ export async function POST(request) {
         secure: process.env.NODE_ENV === 'production',
         httpOnly: true,
         sameSite: 'strict',
-        lifetime: 60 * 60 * 24 * 365  // 1 год
+        maxAge: 60 * 60 * 24 * 365  // 1 год
       }
     }
   );
