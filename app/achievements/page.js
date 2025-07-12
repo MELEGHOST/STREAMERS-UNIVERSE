@@ -35,7 +35,7 @@ function AchievementCard({ achievement, t }) {
                 <h3 className={styles.achievementName}>{t(nameKey)}</h3>
                 <p className={styles.achievementDescription}>{t(descriptionKey)}</p>
                 <p className={styles.achievementCondition}>
-                    {t('achievements_page.condition')}: {t(conditionKey)}
+                    {t('profile_page.achievements_page.condition')}: {t(conditionKey)}
                 </p>
             </div>
         </div>
@@ -96,8 +96,11 @@ function AchievementsPageContent() {
   return (
     <div className={pageStyles.container}>
       <header className={styles.header}>
-        <h1>{t('achievements_page.title')}</h1>
+        <h1>{t('profile_page.achievements_page.title')}</h1>
       </header>
+      <button onClick={() => router.back()} className={pageStyles.backButton} style={{ marginBottom: '1rem' }}>
+        &larr; {t('profile_page.common.back')}
+      </button>
 
       <div className={styles.tabs}>
         {/* Вкладка "Мои достижения" */}
@@ -105,14 +108,14 @@ function AchievementsPageContent() {
           className={`${styles.tabButton} ${activeTab === 'my' ? styles.activeTab : ''}`}
           onClick={() => setActiveTab('my')}
         >
-          {t('achievements_page.unlocked')} ({myAchievements.length})
+          {t('profile_page.achievements_page.unlocked')} ({myAchievements.length})
         </button>
         {/* Вкладка "Все достижения" */}
         <button 
           className={`${styles.tabButton} ${activeTab === 'all' ? styles.activeTab : ''}`}
           onClick={() => setActiveTab('all')}
         >
-          {t('achievements_page.all')} ({achievements.length})
+          {t('profile_page.achievements_page.all')} ({achievements.length})
         </button>
       </div>
 
@@ -121,7 +124,7 @@ function AchievementsPageContent() {
       <div className={styles.achievementsList}>
          {activeTab === 'my' && (
              myAchievements.length === 0 
-                 ? <p className={styles.noAchievements}>{t('achievements_page.noAchievements')}</p>
+                 ? <p className={styles.noAchievements}>{t('profile_page.achievements_page.noAchievements')}</p>
                  : myAchievements.map(ach => <AchievementCard key={ach.id} achievement={ach} t={t} />)
          )}
          {activeTab === 'all' && (
@@ -129,9 +132,6 @@ function AchievementsPageContent() {
          )}
       </div>
        
-       <button onClick={() => router.back()} className={pageStyles.backButton} style={{ marginTop: '2rem' }}>
-           &larr; {t('backButton')}
-       </button>
     </div>
   );
 }
