@@ -10,8 +10,8 @@ if (!supabaseUrl || !supabaseAnonKey) {
 export const supabase = createBrowserClient(supabaseUrl, supabaseAnonKey, {
   cookieOptions: {
     path: '/',
-    secure: true,
-    sameSite: 'strict',
+    secure: window.location.protocol === 'https:',
+    sameSite: 'lax',
     maxAge: 60 * 60 * 24 * 365  // 1 год в секундах, чтоб сессия не сбрасывалась при закрытии браузера
   }
 }) 

@@ -31,7 +31,7 @@ export async function GET(request) {
         path: '/',
         secure: process.env.NODE_ENV === 'production',
         httpOnly: true,
-        sameSite: 'strict',
+        sameSite: 'lax',
         maxAge: 60 * 60 * 24 * 365  // 1 год
       }
     }
