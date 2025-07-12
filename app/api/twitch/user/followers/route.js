@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { headers } from 'next/headers';
 import { getTwitchClientWithToken } from '../../../../utils/twitchClient';
 import { verifyJwt } from '../../../../utils/jwt';
+import { handleAchievementTrigger } from '../../../../utils/achievements';
 
 export async function GET() {
   try {
@@ -26,6 +27,7 @@ export async function GET() {
     }
 
     const followers = await twitchClient.channels.getChannelFollowers({ broadcasterId: userId, limit: 100 });
+    await handleAchievementTrigger(userId, 'twitch_followers', { count: followers.total });
     
     const channels = followers.data.map(follow => ({
       id: follow.userId,

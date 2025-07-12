@@ -23,7 +23,7 @@ export async function GET(request) {
             console.log("[API /achievements] Fetching all achievements (unauthenticated)...");
             const { data: allAchievements, error: allError } = await supabaseAdmin
                 .from('achievements')
-                .select('id, name, description, icon, condition_description, is_enabled')
+                .select('id, name, code, description, icon, condition_description, is_enabled')
                 .eq('is_enabled', true)
                 .order('created_at', { ascending: true });
 
@@ -45,7 +45,7 @@ export async function GET(request) {
         // Запрос 1: Все доступные достижения
         const { data: allAchievements, error: allError } = await supabaseAdmin
             .from('achievements')
-            .select('id, name, description, icon, condition_description, trigger_type, trigger_value, trigger_string') // Берем все нужные поля
+            .select('id, name, code, description, icon, condition_description, trigger_type, trigger_value, trigger_string') // Берем все нужные поля
             .eq('is_enabled', true)
             .order('created_at', { ascending: true });
 

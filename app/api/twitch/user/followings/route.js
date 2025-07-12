@@ -2,7 +2,6 @@ import { NextResponse } from 'next/server';
 import { headers } from 'next/headers';
 import { getTwitchClientWithToken } from '../../../../utils/twitchClient';
 import { verifyJwt } from '../../../../utils/jwt';
-import { handleAchievementTrigger } from '../../../../utils/achievements';
 
 export async function GET() {
   try {
@@ -32,9 +31,6 @@ export async function GET() {
     const follows = await twitchClient.channels.getFollowedChannels({ userId, limit: 100 });
     
     // --- Запускаем проверку достижений за подписки ---
-    if (follows && follows.data) {
-      await handleAchievementTrigger(userId, 'USER_FOLLOWED', { count: follows.data.length });
-    }
     // ------------------------------------------------
 
     // Форматируем данные для фронтенда

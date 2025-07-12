@@ -33,6 +33,23 @@ async function getUserProfile(userId) {
     return data;
 }
 
+async function getReferralCount(userId) {
+  const { count, error } = await supabaseAdmin.from('user_profiles').select('*', { count: 'exact', head: true }).eq('referrer_id', userId);
+  if (error) {
+    console.error(`[Achievements] Error fetching referral count for user ${userId}:`, error);
+    return 0;
+  }
+  return count;
+}
+async function getUserAchievementCount(userId) {
+  const { count, error } = await supabaseAdmin.from('user_achievements').select('*', { count: 'exact', head: true }).eq('user_id', userId);
+  if (error) {
+    console.error(`[Achievements] Error fetching achievement count for user ${userId}:`, error);
+    return 0;
+  }
+  return count;
+}
+
 // Центральный обработчик триггеров достижений
 export async function handleAchievementTrigger(userId, triggerType, payload = {}) {
   console.log(`[Achievements] Handling trigger '${triggerType}' for user ${userId}`);
@@ -58,57 +75,53 @@ export async function handleAchievementTrigger(userId, triggerType, payload = {}
     for (const achievement of achievements) {
       let isUnlocked = false;
       let currentProgress = 0;
-
-      if (triggerType === 'REVIEW_CREATED') {
-        const reviewCount = await getUserReviewCount(userId);
-        currentProgress = reviewCount;
-        if (reviewCount >= achievement.trigger_value) {
-          isUnlocked = true;
-        }
-      } else if (triggerType === 'USER_FOLLOWED') {
-        // Если количество передано напрямую, используем его
+      let profile = null; // Кэшируем профиль, если нужен
+      if (triggerType === 'review_count') {
+        currentProgress = await getUserReviewCount(userId);
+        if (currentProgress >= achievement.trigger_value) isUnlocked = true;
+      } else if (triggerType === 'twitch_followers') {
         if (typeof payload.count === 'number') {
           currentProgress = payload.count;
-          if (currentProgress >= achievement.trigger_value) {
-            isUnlocked = true;
-          }
+          if (currentProgress >= achievement.trigger_value) isUnlocked = true;
         }
-        // В противном случае, логика подсчета должна быть где-то еще, здесь мы ее не дублируем
-      } else if (triggerType === 'PROFILE_UPDATED') {
-        const profile = await getUserProfile(userId);
-        if (!profile) continue;
-
-        // Проверяем конкретное условие для ачивки
-        if (achievement.trigger_string === 'has_description' && profile.description) {
-          isUnlocked = true;
-          currentProgress = 1;
-        } else if (achievement.trigger_string === 'has_social_links') {
+      } else if (triggerType === 'social_links') {
+        profile = await getUserProfile(userId);
+        if (profile) {
           const socialLinks = profile.social_links || {};
-          const linkCount = Object.values(socialLinks).filter(link => link).length;
-          currentProgress = linkCount;
-          if (linkCount >= achievement.trigger_value) {
+          currentProgress = Object.values(socialLinks).filter(link => link).length;
+          if (currentProgress >= achievement.trigger_value) isUnlocked = true;
+        }
+      } else if (triggerType === 'twitch_status' || triggerType === 'twitch_partner') {
+        profile = profile || await getUserProfile(userId);
+        if (profile && profile.broadcaster_type) {
+          const isMatch = triggerType === 'twitch_partner' ? profile.broadcaster_type === 'partner' : profile.broadcaster_type === achievement.trigger_string;
+          if (isMatch) {
             isUnlocked = true;
+            currentProgress = 1;
           }
         }
+      } else if (triggerType === 'referrals') {
+        currentProgress = await getReferralCount(userId);
+        if (currentProgress >= achievement.trigger_value) isUnlocked = true;
+      } else if (triggerType === 'achievements_unlocked') {
+        currentProgress = await getUserAchievementCount(userId);
+        if (currentProgress >= achievement.trigger_value) isUnlocked = true;
       }
-      // ... здесь можно будет добавить другие типы триггеров (USER_FOLLOWED, etc.)
-
-      // 3. Если достижение открыто, записываем его в базу
+      // Добавить другие типы по мере необходимости
       if (isUnlocked) {
         console.log(`[Achievements] Unlocking achievement '${achievement.name}' for user ${userId}`);
-        const { error: insertError } = await supabaseAdmin
-          .from('user_achievements')
-          .insert({
-            user_id: userId,
-            achievement_id: achievement.id,
-            unlocked_at: new Date().toISOString(),
-            current_progress: currentProgress,
-          });
-
+        const { error: insertError } = await supabaseAdmin.from('user_achievements').insert({
+          user_id: userId,
+          achievement_id: achievement.id,
+          unlocked_at: new Date().toISOString(),
+          current_progress: currentProgress,
+        });
         if (insertError) {
           console.error(`[Achievements] Error inserting achievement '${achievement.name}' for user ${userId}:`, insertError);
         } else {
           console.log(`[Achievements] Successfully unlocked '${achievement.name}'!`);
+          // Проверяем коллекционера
+          await handleAchievementTrigger(userId, 'achievements_unlocked', { count: await getUserAchievementCount(userId) });
         }
       }
     }

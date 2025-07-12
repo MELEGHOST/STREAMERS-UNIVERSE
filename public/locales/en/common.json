@@ -281,6 +281,26 @@
         "name": "Social Butterfly",
         "description": "Add 3 or more social networks to your profile.",
         "condition": "3+ social networks"
+      },
+      "RELIABLE_SHOULDER": {
+        "name": "Reliable Shoulder",
+        "description": "Invite a friend who registers on the platform.",
+        "condition": "1+ invited friend"
+      },
+      "TWITCH_PARTNER": {
+        "name": "Twitch Partner",
+        "description": "Achieve the coveted Twitch Partner status.",
+        "condition": "Twitch Partner status"
+      },
+      "STREAMER_MACHINIST": {
+        "name": "Streamer Machinist",
+        "description": "Host a stream longer than 3 hours.",
+        "condition": "1 stream > 3 hours"
+      },
+      "COLLECTOR": {
+        "name": "Collector",
+        "description": "Collect 10 any achievements on the platform.",
+        "condition": "10+ unlocked achievements"
       }
     },
     "edit_profile": {

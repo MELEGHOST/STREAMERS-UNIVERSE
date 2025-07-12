@@ -114,7 +114,7 @@ export async function POST(request) {
 
         // --- Запускаем проверку достижений ---
         // Эта функция сама проверит все нужные достижения, связанные с созданием отзыва.
-        await handleAchievementTrigger(userId, 'REVIEW_CREATED');
+        await handleAchievementTrigger(userId, 'review_count');
         // ------------------------------------
 
         return NextResponse.json({ id: reviewData.id, status: reviewData.status, message }, { status: 201 });

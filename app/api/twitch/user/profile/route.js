@@ -67,7 +67,7 @@ export async function PUT(request) {
         }
 
         // --- Запускаем проверку достижений ---
-        await handleAchievementTrigger(userId, 'PROFILE_UPDATED');
+        await handleAchievementTrigger(userId, 'social_links');
         // ------------------------------------
 
         return NextResponse.json(data, { status: 200 });
