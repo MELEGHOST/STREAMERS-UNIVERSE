@@ -29,51 +29,23 @@ export function AuthProvider({ children }) {
   }, []);
 
   useEffect(() => {
-    const initializeSession = async () => {
-      try {
-        const { data: { session } } = await supabase.auth.getSession();
-        setSession(session);
-        setUser(session?.user ?? null);
+    setLoading(true);
 
-        if (session?.user) {
-          const { data: profileData } = await supabase
-            .from('user_profiles')
-            .select('role')
-            .eq('user_id', session.user.id)
-            .single();
-          setUserRole(profileData?.role || 'user');
-        } else {
-          setUserRole(null);
-        }
-      } catch (e) {
-        console.error("Failed to initialize session:", e);
-        setUser(null);
-        setSession(null);
-        setUserRole(null);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    initializeSession();
-
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
       console.log(`[AuthContext] Auth event: ${_event}`);
       setSession(session);
       setUser(session?.user ?? null);
-      if (_event === 'SIGNED_IN') {
-        const fetchRole = async () => {
-          const { data: profileData } = await supabase
-            .from('user_profiles')
-            .select('role')
-            .eq('user_id', session.user.id)
-            .single();
-          setUserRole(profileData?.role || 'user');
-        };
-        fetchRole();
+      if (session?.user && (_event === 'INITIAL_SESSION' || _event === 'SIGNED_IN')) {
+        const { data: profileData } = await supabase
+          .from('user_profiles')
+          .select('role')
+          .eq('user_id', session.user.id)
+          .single();
+        setUserRole(profileData?.role || 'user');
       } else if (_event === 'SIGNED_OUT') {
         setUserRole(null);
       }
+      setLoading(false);
     });
 
     return () => {
