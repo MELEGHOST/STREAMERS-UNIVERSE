@@ -8,7 +8,6 @@ import { useTranslation } from 'react-i18next';
 import I18nProvider from '../components/I18nProvider';
 import styles from './edit-profile.module.css';
 import RouteGuard from '../components/RouteGuard';
-import { sanitize } from 'dompurify'; // Assume installed or add a simple sanitizer function
 // Simple sanitizer if not using library
 function simpleSanitize(input) {
   return input.replace(/<script[^>]*>([\S\s]*?)<\/script>/gmi, '');
