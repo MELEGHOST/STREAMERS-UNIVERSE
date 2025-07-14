@@ -77,7 +77,7 @@ export function AuthProvider({ children }) {
       };
       refreshSession();
     }
-  }, [isFreshLogin, supabase]);
+  }, [isFreshLogin]);
 
   const signInWithTwitch = useCallback(async () => {
     const referrerId = localStorage.getItem('referrerId');
@@ -134,7 +134,7 @@ export function AuthProvider({ children }) {
       setUserRole(profileData?.role || 'user');
     }
     return session;
-  }, [supabase]);
+  }, []);
 
   const value = useMemo(() => ({
     user,

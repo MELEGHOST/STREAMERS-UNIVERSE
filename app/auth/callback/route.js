@@ -44,7 +44,7 @@ export async function GET(request) {
 
   console.log('[Auth Callback] Received code:', code);
   console.log('[Auth Callback] Origin:', origin);
-  const { error } = await supabase.auth.exchangeCodeForSession(code);
+  const { data: { session }, error } = await supabase.auth.exchangeCodeForSession(code);
 
   if (error) {
     console.error('[Auth Callback] Error exchanging code for session:', error.message);
@@ -54,6 +54,8 @@ export async function GET(request) {
     return NextResponse.redirect(`${origin}/?error=auth_error&error_description=${encodeURIComponent(error.message)}`);
   } else {
     console.log('[Auth Callback] Successfully exchanged code for session.');
+    await supabase.auth.setSession(session);
+    console.log('[Auth Callback] Session set manually:', session);
   }
   
   // Успешный редирект в меню
