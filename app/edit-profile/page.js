@@ -8,6 +8,11 @@ import { useTranslation } from 'react-i18next';
 import I18nProvider from '../components/I18nProvider';
 import styles from './edit-profile.module.css';
 import RouteGuard from '../components/RouteGuard';
+import { sanitize } from 'dompurify'; // Assume installed or add a simple sanitizer function
+// Simple sanitizer if not using library
+function simpleSanitize(input) {
+  return input.replace(/<script[^>]*>([\S\s]*?)<\/script>/gmi, '');
+}
 
 function EditProfilePageContent() {
     const { user, isAuthenticated } = useAuth();
@@ -24,6 +29,7 @@ function EditProfilePageContent() {
     const [error, setError] = useState(null);
     const [successMessage, setSuccessMessage] = useState(null);
     const [showModal, setShowModal] = useState(false);
+    const [tempWidget, setTempWidget] = useState(profileWidget);
 
     const fetchProfileData = useCallback(async () => {
         if (!user) return;
@@ -71,20 +77,37 @@ function EditProfilePageContent() {
           Object.entries(socialLinks).filter(([, value]) => value.trim() !== '')
       );
   
-      const profileDataToUpdate = {
-        description: description || null,
-        social_links: nonEmptySocialLinks,
-        profile_widget: profileWidget,
-        birthday: birthday || null,
-        updated_at: new Date(),
-      };
-  
       try {
-        const { error: updateError } = await supabase
-            .from('user_profiles')
-            .upsert([{ user_id: user.id, ...profileDataToUpdate }], { onConflict: 'user_id' });
-
-        if (updateError) throw updateError;
+        const session = await supabase.auth.getSession();
+        if (!session.data.session) {
+          setError('Session expired. Please log in again.');
+          return;
+        }
+        // Validate birthday:
+        if (birthday && isNaN(new Date(birthday).getTime())) {
+          setError('Invalid birthday format');
+          return;
+        }
+        // Validate social links:
+        for (const [platform, url] of Object.entries(socialLinks)) {
+          if (url && !/^https?:\/\//i.test(url)) {
+            setError(`Invalid URL for ${platform}`);
+            return;
+          }
+        }
+        // Sanitize description:
+        const safeDescription = simpleSanitize(description);
+        // Build updates only for changed fields:
+        const updates = {};
+        if (safeDescription !== description) updates.description = safeDescription || null;
+        if (JSON.stringify(nonEmptySocialLinks) !== JSON.stringify(socialLinks)) updates.social_links = nonEmptySocialLinks;
+        if (profileWidget !== profileWidget) updates.profile_widget = profileWidget;
+        if (birthday !== birthday) updates.birthday = birthday || null;
+        if (Object.keys(updates).length > 0) {
+          updates.updated_at = new Date();
+          const { error } = await supabase.from('user_profiles').update(updates).eq('user_id', user.id);
+          if (error) throw error;
+        }
         
         setSuccessMessage({ key: 'edit_profile.successMessage' });
  
@@ -131,7 +154,7 @@ function EditProfilePageContent() {
             <form onSubmit={handleSave} className={styles.form}>
                 <div className={styles.formGroup}>
                     <label className={styles.label} htmlFor="birthday">{t('profile.edit.birthday')}</label>
-                    <input id="birthday" type="date" value={birthday} onChange={e => setBirthday(e.target.value)} className={styles.input} />
+                    <input id="birthday" type="date" value={birthday} onChange={e => setBirthday(e.target.value)} className={styles.input} aria-label={t('profile.edit.birthday')} />
                 </div>
                 <div className={styles.formGroup}>
                     <label className={styles.label} htmlFor="description">{t('profile.edit.description')}</label>
@@ -145,11 +168,11 @@ function EditProfilePageContent() {
                 </div>
 
                 {showModal && (
-                    <div className={styles.modalOverlay} onClick={() => setShowModal(false)}>
+                    <div className={styles.modalOverlay} onClick={() => setShowModal(false)} role="dialog" aria-modal="true">
                         <div className={styles.modalContent} onClick={e => e.stopPropagation()}>
                             <h2>{t('profile.edit.selectWidget')}</h2>
                             <div className={styles.widgetPreview}>
-                                <div onClick={() => { setProfileWidget('statistics'); setShowModal(false); }}>
+                                <div onClick={() => { setTempWidget('statistics'); }}>
                                     <h3>{t('profile.edit.widgetStatistics')}</h3>
                                     <div className={styles.previewBox}>
                                         <p>Подписчики: 1000</p>
@@ -157,7 +180,7 @@ function EditProfilePageContent() {
                                         {/* Другие статы без дубликатов */}
                                     </div>
                                 </div>
-                                <div onClick={() => { setProfileWidget('achievements'); setShowModal(false); }}>
+                                <div onClick={() => { setTempWidget('achievements'); }}>
                                     <h3>{t('profile.edit.widgetAchievements')}</h3>
                                     <div className={styles.previewBox}>
                                         <p>Редкое достижение 1 (0.5% игроков)</p>
@@ -165,7 +188,7 @@ function EditProfilePageContent() {
                                     </div>
                                 </div>
                             </div>
-                            <button onClick={() => setShowModal(false)}>{t('profile.edit.close')}</button>
+                            <button onClick={() => { setProfileWidget(tempWidget); setShowModal(false); }}>{t('profile.edit.close')}</button>
                         </div>
                     </div>
                 )}
