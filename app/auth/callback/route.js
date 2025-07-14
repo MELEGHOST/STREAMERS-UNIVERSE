@@ -53,7 +53,7 @@ export async function GET(request) {
   }
   
   // Успешный редирект в меню
-  return NextResponse.redirect(`${origin}/menu`);
+  return NextResponse.redirect(`${origin}/menu?freshLogin=true`);
 }
 
 export const dynamic = 'force-dynamic'; 
