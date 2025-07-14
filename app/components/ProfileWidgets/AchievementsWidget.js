@@ -1,12 +1,9 @@
 'use client';
 
 import { useTranslation } from 'react-i18next';
-import useSWR from 'swr';
 import styles from './AchievementsWidget.module.css';
 import pageStyles from '../../../styles/page.module.css';
 import { useState, useEffect } from 'react';
-
-const fetcher = (url, token) => fetch(url, { headers: { 'Authorization': `Bearer ${token}` } }).then(res => res.json());
 
 function AchievementCard({ achievement, t }) {
     const nameKey = `achievements.${achievement.code}.name`;
@@ -23,7 +20,7 @@ function AchievementCard({ achievement, t }) {
     );
 }
 
-export default function AchievementsWidget({ authToken }) {
+export default function AchievementsWidget({ }) {
     const { t } = useTranslation();
     
     const [achievements, setAchievements] = useState([]);
