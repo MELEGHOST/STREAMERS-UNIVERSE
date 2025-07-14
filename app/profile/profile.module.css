@@ -620,21 +620,24 @@
 }
 
 .controlButton {
-  display: inline-block;
-  padding: 0.7em 1.2em;
-  font-size: 0.9rem;
-  border-radius: var(--border-radius);
+  background: linear-gradient(to right, #ff00ff, #00ffff);
+  box-shadow: 0 0 10px #ff00ff;
+  border-radius: 20px;
+  padding: 0.5rem 1rem;
+  color: white;
+  text-shadow: 0 0 5px black;
+  transition: transform 0.2s, box-shadow 0.2s;
+  border: none;
   cursor: pointer;
-  text-decoration: none;
-  transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease, transform 0.1s ease, box-shadow 0.2s ease;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  font-weight: 500;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
 }
 
 .controlButton:hover {
-  background-color: var(--background-tertiary);
-  color: var(--foreground-primary);
-  border-color: var(--border-primary);
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+  transform: scale(1.05);
+  box-shadow: 0 0 20px #ff00ff;
 }
 
 .controlButton:focus {

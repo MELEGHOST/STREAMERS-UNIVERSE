@@ -37,7 +37,7 @@ export default function AchievementsWidget({ authToken }) {
 
     return (
         <div className={styles.widgetContainer}>
-            <h2 className={styles.widgetTitle}>{t('achievements_page.title')}</h2>
+            <h2 className={styles.widgetTitle}>{t('achievements.page.title')}</h2>
             {unlockedAchievements.length > 0 ? (
                 <div className={styles.achievementsList}>
                     {unlockedAchievements.map(ach => (

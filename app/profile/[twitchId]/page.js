@@ -24,6 +24,7 @@ import YandexMusicButton from '../../components/SocialButtons/YandexMusicButton'
 import StatisticsWidget from '../../components/ProfileWidgets/StatisticsWidget';
 import AchievementsWidget from '../../components/ProfileWidgets/AchievementsWidget';
 import InviteButton from '../../components/InviteButton/InviteButton';
+import I18nProvider from '../../components/I18nProvider';
 
 const socialButtonComponents = {
     vk: VkButton,
@@ -234,7 +235,8 @@ export default function UserProfilePage() {
   };
 
   return (
-    <div className={styles.container}>
+    <I18nProvider>
+      <div className={styles.container}>
         <div className={styles.profileControls}>
             <button onClick={() => router.back()} className={styles.controlButton}>
                 <FaArrowLeft /> {t('profile.back')}
@@ -330,7 +332,7 @@ export default function UserProfilePage() {
 
             {!profileWidget && (
                  <div className={styles.widgetPlaceholder}>
-                    <p>{t('profile.selectWidget')}</p>
+                    <p>Нет достижений или пользователь не выставил достижения</p>
                 </div>
             )}
         </div>
@@ -370,6 +372,7 @@ export default function UserProfilePage() {
                 </div>
             </div>
         )}
-    </div>
+      </div>
+    </I18nProvider>
   );
 } 
