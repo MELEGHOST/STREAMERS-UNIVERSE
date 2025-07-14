@@ -26,11 +26,6 @@ function AchievementCard({ achievement, t }) {
 export default function AchievementsWidget({ authToken }) {
     const { t } = useTranslation();
     
-    const { data: apiData, error, isLoading } = useSWR(
-        authToken ? [`/api/achievements`, authToken] : null,
-        ([url, token]) => fetcher(url, token)
-    );
-
     const [achievements, setAchievements] = useState([]);
     const [loading, setLoading] = useState(true);
     const [fetchError, setFetchError] = useState(null);
@@ -54,7 +49,7 @@ export default function AchievementsWidget({ authToken }) {
     if (loading) return <div className={pageStyles.loadingContainer}><p>{t('loading.achievements')}</p></div>;
     if (fetchError) return <div className={pageStyles.errorMessage}><p>{t('achievements_page.error', { message: fetchError.message })}</p></div>;
 
-    const unlockedAchievements = apiData?.achievements?.filter(ach => ach.is_unlocked) || [];
+    const unlockedAchievements = achievements.filter(ach => ach.is_unlocked) || [];
 
     return (
         <div className={styles.widgetContainer}>
