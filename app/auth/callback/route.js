@@ -42,6 +42,8 @@ export async function GET(request) {
   const authCookieName = `sb-${ref}-auth-token`;
   const verifierCookieName = `sb-${ref}-auth-token-code-verifier`;
 
+  console.log('[Auth Callback] Received code:', code);
+  console.log('[Auth Callback] Origin:', origin);
   const { error } = await supabase.auth.exchangeCodeForSession(code);
 
   if (error) {
@@ -50,6 +52,8 @@ export async function GET(request) {
     cookieStore.delete(authCookieName);
     cookieStore.delete(verifierCookieName);
     return NextResponse.redirect(`${origin}/?error=auth_error&error_description=${encodeURIComponent(error.message)}`);
+  } else {
+    console.log('[Auth Callback] Successfully exchanged code for session.');
   }
   
   // Успешный редирект в меню
