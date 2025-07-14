@@ -1,5 +1,4 @@
 import { NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
 import { verifyJwt } from '../../utils/jwt'; // Проверь путь!
 import { handleAchievementTrigger } from '../../utils/achievements';
 import { getTwitchClientWithToken } from '../../utils/twitchClient';

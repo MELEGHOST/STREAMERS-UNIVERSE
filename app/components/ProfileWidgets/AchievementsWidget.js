@@ -42,6 +42,7 @@ export default function AchievementsWidget({ authToken }) {
                 // For each, add rarity: await Promise.all(data.map(async a => ({...a, rarity: await getAchievementRarity(a.id)})))
                 setAchievements(data);
             } catch (e) {
+                console.error('Fetch error:', e);
                 setFetchError('Failed to load achievements');
             } finally {
                 setLoading(false);
