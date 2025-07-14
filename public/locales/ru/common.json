@@ -58,7 +58,12 @@
       "save": "Сохранить",
       "widgetLabel": "Виджет профиля",
       "widgetStatistics": "Статистика",
-      "widgetAchievements": "Достижения"
+      "widgetAchievements": "Достижения",
+      "subscribers": "Подписчики",
+      "views": "Просмотры",
+      "rareAchievement1": "Редкое достижение 1",
+      "rareAchievement2": "Редкое достижение 2",
+      "players": "игроков"
     },
     "logout": "Выйти",
     "login": "Войти через Twitch",
@@ -317,6 +322,11 @@
         "name": "Коллекционер",
         "description": "Собрать 10 любых достижений на платформе.",
         "condition": "10+ полученных достижений"
+      },
+      "widget": {
+        "title": "Достижения",
+        "unlocked": "Разблокировано",
+        "locked": "Заблокировано"
       }
     },
     "edit_profile": {
@@ -363,6 +373,19 @@
         "tiktok": "Имя пользователя TikTok",
         "yandexMusic": "ID артиста Yandex Music",
         "boosty": "URL профиля Boosty"
+      },
+      "edit": {
+        "widgetStatistics": "Статистика",
+        "widgetAchievements": "Достижения",
+        "selectWidget": "Выберите виджет",
+        "close": "Закрыть",
+        "widgetLabel": "Выберите виджет для профиля",
+        "noChanges": "Нет изменений для сохранения",
+        "saving": "Сохранение...",
+        "successMessage": "Профиль успешно обновлен!",
+        "saveError": "Ошибка сохранения: {{message}}",
+        "loadError": "Ошибка загрузки профиля: {{message}}",
+        "userError": "Пользователь не авторизован"
       }
     },
     "search": {

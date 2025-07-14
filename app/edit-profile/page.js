@@ -81,7 +81,7 @@ function EditProfilePageContent() {
       setSuccessMessage(null);
   
       const nonEmptySocialLinks = Object.fromEntries(
-          Object.entries(socialLinks).filter(([, value]) => value.trim() !== '')
+          Object.entries(socialLinks).filter(([, value]) => value?.trim() !== '')
       );
   
       try {
@@ -183,16 +183,16 @@ function EditProfilePageContent() {
                                 <div onClick={() => { setTempWidget('statistics'); }}>
                                     <h3>{t('profile.edit.widgetStatistics')}</h3>
                                     <div className={styles.previewBox}>
-                                        <p>Подписчики: 1000</p>
-                                        <p>Просмотры: 50000</p>
+                                        <p>{t('profile.edit.subscribers')}: 1000</p>
+                                        <p>{t('profile.edit.views')}: 50000</p>
                                         {/* Другие статы без дубликатов */}
                                     </div>
                                 </div>
                                 <div onClick={() => { setTempWidget('achievements'); }}>
                                     <h3>{t('profile.edit.widgetAchievements')}</h3>
                                     <div className={styles.previewBox}>
-                                        <p>Редкое достижение 1 (0.5% игроков)</p>
-                                        <p>Редкое достижение 2 (1% игроков)</p>
+                                        <p>{t('profile.edit.rareAchievement1')} (0.5% {t('profile.edit.players')})</p>
+                                        <p>{t('profile.edit.rareAchievement2')} (1% {t('profile.edit.players')})</p>
                                     </div>
                                 </div>
                             </div>
@@ -220,7 +220,7 @@ function EditProfilePageContent() {
                     </div>
                 </div>
 
-                {error && <p className={styles.errorMessage}>{t(error.key, error.options)}</p>}
+                {error && <p className={styles.errorMessage}>{typeof error === 'string' ? error : t(error.key, error.options)}</p>}
                 {successMessage && <p className={styles.successMessage}>{t(successMessage.key)}</p>}
                 
                 <button type="submit" className={styles.saveButton} disabled={saving}>

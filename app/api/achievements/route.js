@@ -3,6 +3,7 @@ import { createClient } from '@supabase/supabase-js';
 import { verifyJwt } from '../../utils/jwt'; // Проверь путь!
 import { handleAchievementTrigger } from '../../utils/achievements';
 import { getTwitchClientWithToken } from '../../utils/twitchClient';
+import { supabaseAdmin } from '../../utils/supabase/admin';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 // Используем SERVICE KEY для чтения/записи достижений пользователей
@@ -23,6 +24,10 @@ export async function GET(request) {
         // Если токена нет, просто возвращаем список ВСЕХ достижений
         try {
             console.log("[API /achievements] Fetching all achievements (unauthenticated)...");
+            const session = await supabaseAdmin.auth.getSession();
+            if (!session.data.session) {
+                return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+            }
             const { data: allAchievements, error: allError } = await supabaseAdmin
                 .from('achievements')
                 .select('id, name, code, description, icon, condition_description, is_enabled')
@@ -44,6 +49,10 @@ export async function GET(request) {
 
     try {
         console.log(`[API /achievements] Fetching achievements for user: ${userId}`);
+        const session = await supabaseAdmin.auth.getSession();
+        if (!session.data.session) {
+            return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+        }
         // Check and unlock pending achievements
         const { data: profile } = await supabaseAdmin.from('user_profiles').select('twitch_user_id, broadcaster_type, social_links').eq('user_id', userId).single();
         if (profile) {

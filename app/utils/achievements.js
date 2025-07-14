@@ -54,6 +54,12 @@ async function getUserAchievementCount(userId) {
 
 // Центральный обработчик триггеров достижений
 export async function handleAchievementTrigger(userId, triggerType, payload = {}) {
+  if (!userId) {
+    console.error('No userId provided');
+    return;
+  }
+  // Validate userId as UUID or string
+  if (typeof userId !== 'string' || userId.length < 10) return;
   console.log(`[Achievements] Handling trigger '${triggerType}' for user ${userId}`);
 
   try {
@@ -112,6 +118,19 @@ export async function handleAchievementTrigger(userId, triggerType, payload = {}
       // Добавить другие типы по мере необходимости
       if (isUnlocked) {
         console.log(`[Achievements] Unlocking achievement '${achievement.name}' for user ${userId}`);
+        const { data: existing } = await supabaseAdmin.from('user_achievements').select('id').eq('user_id', userId).eq('achievement_id', achievement.id).single();
+        if (existing) {
+          console.log(`[Achievements] Achievement '${achievement.name}' already unlocked for user ${userId}. Skipping.`);
+          continue;
+        }
+        // For referrals, add cap:
+        if (triggerType === 'referrals') {
+          const count = await getReferralCount(userId);
+          if (count > 50) {
+            console.log(`[Achievements] Referral count for user ${userId} exceeds 50. Skipping achievement '${achievement.name}'.`);
+            continue;
+          }
+        }
         const { error: insertError } = await supabaseAdmin.from('user_achievements').insert({
           user_id: userId,
           achievement_id: achievement.id,

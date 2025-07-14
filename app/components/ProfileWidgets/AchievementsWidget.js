@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import useSWR from 'swr';
 import styles from './AchievementsWidget.module.css';
 import pageStyles from '../../../styles/page.module.css';
+import { useState, useEffect } from 'react';
 
 const fetcher = (url, token) => fetch(url, { headers: { 'Authorization': `Bearer ${token}` } }).then(res => res.json());
 
@@ -30,8 +31,27 @@ export default function AchievementsWidget({ authToken }) {
         ([url, token]) => fetcher(url, token)
     );
 
-    if (isLoading) return <div className={pageStyles.loadingContainer}><p>{t('loading.achievements')}</p></div>;
-    if (error) return <div className={pageStyles.errorMessage}><p>{t('achievements_page.error', { message: error.message })}</p></div>;
+    const [achievements, setAchievements] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [fetchError, setFetchError] = useState(null);
+
+    useEffect(() => {
+        async function fetch() {
+            try {
+                const data = await getAchievements();
+                // For each, add rarity: await Promise.all(data.map(async a => ({...a, rarity: await getAchievementRarity(a.id)})))
+                setAchievements(data);
+            } catch (e) {
+                setFetchError('Failed to load achievements');
+            } finally {
+                setLoading(false);
+            }
+        }
+        fetch();
+    }, []);
+
+    if (loading) return <div className={pageStyles.loadingContainer}><p>{t('loading.achievements')}</p></div>;
+    if (fetchError) return <div className={pageStyles.errorMessage}><p>{t('achievements_page.error', { message: fetchError.message })}</p></div>;
 
     const unlockedAchievements = apiData?.achievements?.filter(ach => ach.is_unlocked) || [];
 
