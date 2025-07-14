@@ -34,12 +34,14 @@ async function getUserProfile(userId) {
 }
 
 async function getReferralCount(userId) {
-  const { count, error } = await supabaseAdmin.from('user_profiles').select('*', { count: 'exact', head: true }).eq('referrer_id', userId);
-  if (error) {
-    console.error(`[Achievements] Error fetching referral count for user ${userId}:`, error);
+  try {
+    const { count, error } = await supabaseAdmin.from('user_profiles').select('*', { count: 'exact', head: true }).eq('referrer_id', userId);
+    if (error) throw error;
+    return count;
+  } catch (e) {
+    console.error(e);
     return 0;
   }
-  return count;
 }
 async function getUserAchievementCount(userId) {
   const { count, error } = await supabaseAdmin.from('user_achievements').select('*', { count: 'exact', head: true }).eq('user_id', userId);

@@ -299,7 +299,8 @@
 } 
 
 .socialLinkItem .input {
-    min-width: 260px; /* Шире на 30% */
+  width: 100%;
+  min-width: 300px; /* Minimum width to make them longer */
 } 
 
 .modalOverlay {

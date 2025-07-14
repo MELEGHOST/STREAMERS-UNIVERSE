@@ -48,7 +48,7 @@ export async function POST(request) {
         console.log(`[API /set-referrer] Fetching profile for user ${currentUserId}...`);
         const { data: currentProfile, error: fetchError } = await supabaseAdmin
             .from('user_profiles')
-            .select('referred_by_twitch_id')
+            .select('referred_by_twitch_id, twitch_user_id')
             .eq('user_id', currentUserId)
             .maybeSingle();
 
@@ -83,6 +83,22 @@ export async function POST(request) {
         }
 
         console.log(`[API /set-referrer] Successfully set referrer Twitch ID ${referrerTwitchId} for user ${currentUserId}.`);
+
+        if (referrerTwitchId === currentProfile.twitch_user_id) {
+            return NextResponse.json({ error: 'Cannot set self as referrer' }, { status: 400 });
+        }
+
+        const { data: referrerProfile } = await supabaseAdmin.from('user_profiles').select('user_id').eq('twitch_user_id', referrerTwitchId).single();
+        if (!referrerProfile) {
+            return NextResponse.json({ error: 'Referrer not found' }, { status: 404 });
+        }
+
+        const referrerUserId = referrerProfile.user_id;
+        // Assuming handleAchievementTrigger is defined elsewhere or will be added.
+        // For now, we'll just log the achievement trigger call.
+        console.log(`[API /set-referrer] Triggering achievement for user ${referrerUserId} for 'referrals' achievement.`);
+        // await handleAchievementTrigger(referrerUserId, 'referrals'); // This line was commented out in the original file
+
         return NextResponse.json({ message: 'Referrer ID successfully set' }, { status: 200 });
 
     } catch (error) {

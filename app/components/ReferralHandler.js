@@ -12,8 +12,12 @@ const ReferralHandler = () => {
   useEffect(() => {
     if (ref) {
       console.log(`Referrer ID found: ${ref}. Saving to localStorage.`);
-      localStorage.setItem('referrerId', ref);
-      if (pathname !== '/menu' || searchParams.get('freshLogin') !== 'true') {
+      try {
+        localStorage.setItem('referrerId', ref);
+      } catch (e) {
+        console.error('LocalStorage error:', e);
+      }
+      if (ref && pathname !== '/menu') {
         router.replace('/', { scroll: false });
       }
     }
