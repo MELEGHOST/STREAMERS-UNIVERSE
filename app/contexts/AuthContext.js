@@ -2,6 +2,7 @@
 
 import { createContext, useState, useEffect, useCallback, useMemo, useContext } from 'react';
 import { supabase } from '../utils/supabase/client';
+import { usePathname, useSearchParams } from 'next/navigation';
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL; // Добавляем, если не импортировано
 
 const AuthContext = createContext(undefined);
@@ -53,6 +54,31 @@ export function AuthProvider({ children }) {
     };
   }, []);
 
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const isFreshLogin = pathname === '/menu' && searchParams?.get('freshLogin') === 'true';
+
+  useEffect(() => {
+    if (isFreshLogin && supabase) {
+      const refreshSession = async () => {
+        const { data: { session }, error } = await supabase.auth.getSession();
+        if (error) {
+          console.error('[AuthContext] Error refreshing session:', error);
+        } else if (session) {
+          console.log('[AuthContext] Manually refreshed session:', session);
+          setSession(session);
+          setUser(session.user);
+          // Also fetch role if needed
+          if (session.user) {
+            const { data: profileData } = await supabase.from('user_profiles').select('role').eq('user_id', session.user.id).single();
+            setUserRole(profileData?.role || 'user');
+          }
+        }
+      };
+      refreshSession();
+    }
+  }, [isFreshLogin, supabase]);
+
   const signInWithTwitch = useCallback(async () => {
     const referrerId = localStorage.getItem('referrerId');
     const { error } = await supabase.auth.signInWithOAuth({
@@ -95,6 +121,21 @@ export function AuthProvider({ children }) {
     window.location.href = '/';
   }, []);
 
+  const refreshSession = useCallback(async () => {
+    const { data: { session }, error } = await supabase.auth.getSession();
+    if (error) {
+      console.error('[AuthContext] Error refreshing session:', error);
+      return null;
+    }
+    setSession(session);
+    setUser(session?.user ?? null);
+    if (session?.user) {
+      const { data: profileData } = await supabase.from('user_profiles').select('role').eq('user_id', session.user.id).single();
+      setUserRole(profileData?.role || 'user');
+    }
+    return session;
+  }, [supabase]);
+
   const value = useMemo(() => ({
     user,
     session,
@@ -105,8 +146,9 @@ export function AuthProvider({ children }) {
     signInWithTwitch,
     signOut,
     currentTheme,
-    toggleTheme
-  }), [user, session, loading, userRole, signInWithTwitch, signOut, currentTheme, toggleTheme]);
+    toggleTheme,
+    refreshSession
+  }), [user, session, loading, userRole, signInWithTwitch, signOut, currentTheme, toggleTheme, refreshSession]);
   
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }

@@ -1,21 +1,23 @@
 'use client';
 
 import { useEffect } from 'react';
-import { useSearchParams, useRouter } from 'next/navigation';
+import { useSearchParams, useRouter, usePathname } from 'next/navigation';
 
 const ReferralHandler = () => {
   const searchParams = useSearchParams();
   const router = useRouter();
   const ref = searchParams.get('ref');
+  const pathname = usePathname();
 
   useEffect(() => {
     if (ref) {
       console.log(`Referrer ID found: ${ref}. Saving to localStorage.`);
       localStorage.setItem('referrerId', ref);
-      // Очищаем URL от ref-параметра, чтобы он не мозолил глаза
-      router.replace('/', { scroll: false });
+      if (pathname !== '/menu' || searchParams.get('freshLogin') !== 'true') {
+        router.replace('/', { scroll: false });
+      }
     }
-  }, [ref, router]);
+  }, [ref, router, pathname, searchParams]);
 
   return null; // Этот компонент ничего не рендерит
 };

@@ -10,8 +10,9 @@ if (!supabaseUrl || !supabaseAnonKey) {
 export const supabase = createBrowserClient(supabaseUrl, supabaseAnonKey, {
   cookieOptions: {
     path: '/',
-    secure: window.location.protocol === 'https:',
+    secure: process.env.NODE_ENV === 'production',
     sameSite: 'lax',
-    maxAge: 60 * 60 * 24 * 365  // 1 год в секундах, чтоб сессия не сбрасывалась при закрытии браузера
+    maxAge: 60 * 60 * 24 * 365,
+    domain: process.env.NODE_ENV === 'production' ? '.vercel.app' : undefined
   }
 }) 

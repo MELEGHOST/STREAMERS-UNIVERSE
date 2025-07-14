@@ -35,9 +35,8 @@ export async function verifyJwt(token) {
     try {
         const publicKey = await getPublicKey();
         const { payload } = await jwtVerify(token, publicKey, {
-            // issuer: `https://${new URL(supabaseUrl).hostname}`, // Проверка издателя
-            // audience: 'authenticated', // Проверка аудитории
-            // Эти проверки могут быть слишком строгими, если токен генерируется не стандартным auth Supabase
+            issuer: `https://${new URL(supabaseUrl).hostname}`,
+            audience: 'authenticated',
         });
         // console.log('[verifyJwt] Токен успешно верифицирован, payload:', payload);
         return payload; // Возвращаем payload при успехе

@@ -37,7 +37,13 @@ export async function middleware(req) {
 
   // Единственная задача middleware - обновлять сессию пользователя.
   // Вся логика защиты перенесена на клиент в компонент RouteGuard.
-  await supabase.auth.getUser();
+  console.log('[Middleware] Updating session...');
+  const { data: { user }, error } = await supabase.auth.getUser();
+  if (error) {
+    console.error('[Middleware] Error getting user:', error);
+  } else {
+    console.log('[Middleware] User fetched:', user);
+  }
 
   return res;
 }
