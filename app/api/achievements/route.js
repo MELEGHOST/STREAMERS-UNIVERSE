@@ -13,9 +13,6 @@ if (!supabaseUrl || !supabaseServiceKey) {
     console.error("[API /api/achievements] Critical Error: Supabase keys missing!");
 }
 
-// Создаем админский клиент Supabase
-const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
-
 export async function GET(request) {
     const token = request.headers.get('Authorization')?.split(' ')[1];
     const verifiedToken = await verifyJwt(token);
