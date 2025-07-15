@@ -170,5 +170,3 @@ export async function getAchievementRarity(achievementId) {
     return 0;
   }
 } 
-
-export { getAchievements, getAchievementRarity }; 
