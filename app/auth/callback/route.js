@@ -39,7 +39,7 @@ export async function GET(request) {
 
   console.log('[Auth Callback] Received code:', code);
   console.log('[Auth Callback] Origin:', origin);
-  const { data: { session }, error } = await supabase.auth.exchangeCodeForSession(code);
+  const { error } = await supabase.auth.exchangeCodeForSession(code);
 
   if (error) {
     console.error('[Auth Callback] Error exchanging code for session:', error.message);
