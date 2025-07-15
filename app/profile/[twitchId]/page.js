@@ -290,12 +290,12 @@ export default function UserProfilePage() {
         <div className={styles.profileContent}>
             <div className={styles.profileSections}>
                 <section className={styles.profileSection}>
-                    <h2 className={styles.sectionTitle}>{t('profile.statistics')}</h2>
-                    <StatisticsWidget twitchUserData={twitchUserData} profileData={profileData} />
-                </section>
-                <section className={styles.profileSection}>
-                    <h2 className={styles.sectionTitle}>{t('profile.achievements')}</h2>
-                    <AchievementsWidget profileData={profileData} />
+                    <h2 className={styles.sectionTitle}>{t('profile.' + profileWidget)}</h2>
+                    {profileWidget === 'statistics' ? (
+                        <StatisticsWidget twitchUserData={twitchUserData} profileData={profileData} />
+                    ) : (
+                        <AchievementsWidget profileData={profileData} />
+                    )}
                 </section>
                 <section className={styles.profileSection}>
                     <h2 className={styles.sectionTitle}>{t('profile.videos')}</h2>
