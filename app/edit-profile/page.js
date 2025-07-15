@@ -85,10 +85,6 @@ function EditProfilePageContent() {
       setError(null);
       setSuccessMessage(null);
   
-      const nonEmptySocialLinks = Object.fromEntries(
-          Object.entries(socialLinks).filter(([, value]) => value?.trim() !== '')
-      );
-  
       try {
         const session = await supabase.auth.getSession();
         if (!session.data.session) {
