@@ -49,8 +49,13 @@ function EditProfilePageContent() {
             if (data) {
                 setOriginalDescription(data.description || '');
                 setDescription(data.description || '');
-                setOriginalSocialLinks(data.social_links || {});
-                setSocialLinks(data.social_links || {});
+                const allPlatforms = ['vk', 'twitch', 'youtube', 'discord', 'telegram', 'tiktok', 'yandex_music', 'boosty'];
+                const normalizedOriginal = {};
+                allPlatforms.forEach(platform => {
+                  normalizedOriginal[platform] = data.social_links?.[platform] || null;
+                });
+                setOriginalSocialLinks(normalizedOriginal);
+                setSocialLinks(normalizedOriginal);
                 setOriginalProfileWidget(data.profile_widget || 'statistics');
                 setProfileWidget(data.profile_widget || 'statistics');
                 setOriginalBirthday(data.birthday || '');
@@ -104,19 +109,31 @@ function EditProfilePageContent() {
         }
         // Sanitize description:
         const safeDescription = simpleSanitize(description);
+        const updates = {};
         if (safeDescription !== originalDescription) updates.description = safeDescription || null;
-        if (JSON.stringify(nonEmptySocialLinks) !== JSON.stringify(originalSocialLinks)) updates.social_links = nonEmptySocialLinks;
+        const normalizedSocialLinks = Object.fromEntries(
+          Object.entries(socialLinks).map(([key, value]) => [key, value?.trim() || null])
+        );
+        if (JSON.stringify(normalizedSocialLinks) !== JSON.stringify(originalSocialLinks)) updates.social_links = normalizedSocialLinks;
         if (profileWidget !== originalProfileWidget) updates.profile_widget = profileWidget;
         if (birthday !== originalBirthday) updates.birthday = birthday || null;
+
         if (Object.keys(updates).length === 0) {
           setError(t('edit_profile.noChanges'));
           setSaving(false);
           return;
         }
-        updates.updated_at = new Date();
+
+        updates.updated_at = new Date().toISOString();
         const { error: updateError } = await supabase.from('user_profiles').update(updates).eq('user_id', user.id);
         if (updateError) throw updateError;
-        
+
+        // Update originals after success
+        setOriginalDescription(safeDescription);
+        setOriginalSocialLinks(normalizedSocialLinks);
+        setOriginalProfileWidget(profileWidget);
+        setOriginalBirthday(birthday);
+
         setSuccessMessage({ key: 'edit_profile.successMessage' });
  
         setTimeout(() => {

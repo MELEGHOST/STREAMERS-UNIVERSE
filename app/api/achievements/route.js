@@ -1,5 +1,7 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
+import { verifyJwt } from '../../utils/jwt';
+import { handleAchievementTrigger } from '../../utils/achievements';
 
 // Initialize Supabase admin client
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -36,12 +38,28 @@ async function getAchievementRarity(achievementId) {
 }
 
 // GET handler for the route
-export async function GET() {
+export async function GET(request) {
   try {
+    const token = request.headers.get('Authorization')?.split(' ')[1];
+    const verifiedToken = await verifyJwt(token);
+    const userId = verifiedToken?.sub;
+
+    if (userId) {
+      // Trigger achievements for logged-in user
+      await handleAchievementTrigger(userId, 'review_count');
+      await handleAchievementTrigger(userId, 'social_links');
+      await handleAchievementTrigger(userId, 'referrals');
+      await handleAchievementTrigger(userId, 'twitch_status');
+      await handleAchievementTrigger(userId, 'twitch_partner');
+      await handleAchievementTrigger(userId, 'achievements_unlocked');
+      // Add more triggers as needed
+    }
+
     const data = await getAchievements();
     const enrichedData = await Promise.all(data.map(async (a) => ({
       ...a,
-      rarity: await getAchievementRarity(a.id)
+      rarity: await getAchievementRarity(a.id),
+      is_unlocked: userId ? /* Check if user has this achievement */ false : false // Implement check
     })));
     return NextResponse.json(enrichedData);
   } catch (error) {

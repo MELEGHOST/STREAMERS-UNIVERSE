@@ -195,6 +195,25 @@ function ProfilePageContent() {
         );
     };
 
+    // Add videos section
+    const formatDuration = (duration) => {
+        const match = duration.match(/PT(\d+H)?(\d+M)?(\d+S)?/);
+        let hours = 0;
+        let minutes = 0;
+        let seconds = 0;
+
+        if (match[1]) hours = parseInt(match[1].replace('H', ''), 10);
+        if (match[2]) minutes = parseInt(match[2].replace('M', ''), 10);
+        if (match[3]) seconds = parseInt(match[3].replace('S', ''), 10);
+
+        if (hours > 0) {
+            return `${hours}h ${minutes}m ${seconds}s`;
+        } else if (minutes > 0) {
+            return `${minutes}m ${seconds}s`;
+        } else {
+            return `${seconds}s`;
+        }
+    };
 
     return (
         <div className={pageStyles.container}>
@@ -259,6 +278,28 @@ function ProfilePageContent() {
                    <ReviewsWidget />
                     {/* Другие виджеты можно будет добавлять сюда */}
                 </div>
+                <section className={styles.profileSection}>
+  <h2 className={styles.sectionTitle}>{t('profile.videos')}</h2>
+  <div className={styles.videosGrid}>
+    {twitchUserData?.videos?.map((video) => (
+      <div key={video.id} className={styles.videoItem}>
+        <Link href={`https://www.twitch.tv/${video.user_login}/video/${video.id}`} target="_blank" rel="noopener noreferrer">
+          <Image
+            src={video.thumbnail_url}
+            alt={video.title}
+            width={200}
+            height={112}
+            className={styles.videoThumbnail}
+          />
+          <div className={styles.videoInfo}>
+            <h3 className={styles.videoTitle}>{video.title}</h3>
+            <p className={styles.videoDuration}>{formatDuration(video.duration)}</p>
+          </div>
+        </Link>
+      </div>
+    ))}
+  </div>
+</section>
             </main>
     </div>
   );
