@@ -57,11 +57,15 @@ function ProfilePageContent() {
       setError(null);
 
         // Параллельная загрузка
-        await Promise.all([
-            fetchTwitchUserData(),
-            // Другие функции загрузки, например, с нашей БД
-            // fetchMyDbData(), 
-        ]);
+        try {
+            await Promise.all([
+                fetchTwitchUserData(),
+                // Другие функции загрузки, например, с нашей БД
+                // fetchMyDbData(), 
+            ]);
+        } catch (err) {
+            setError('Error loading profile: ' + err.message);
+        }
 
         setLoading(false);
 

@@ -146,19 +146,25 @@ export default function UserProfilePage() {
   }, [isAuthenticated, supabase, authIsLoading]);
 
   const apiUrl = `/api/twitch/user?userId=${profileTwitchId}&fetchProfile=true`;
-  const { data: apiData, error: apiError, isLoading: dataIsLoading } = useSWR(
-      profileTwitchId ? [apiUrl, authToken] : null, 
-      ([url, token]) => fetcher(url, token),
-      {
-          revalidateOnFocus: true, 
-          revalidateOnReconnect: true,
-          shouldRetryOnError: false, 
-      }
-  );
+  let error = null;
+  try {
+      const { data: apiData, error: apiError, isLoading: dataIsLoading } = useSWR(
+          profileTwitchId ? [apiUrl, authToken] : null, 
+          ([url, token]) => fetcher(url, token),
+          {
+              revalidateOnFocus: true, 
+              revalidateOnReconnect: true,
+              shouldRetryOnError: false, 
+          }
+      );
+      error = apiError ? (apiError.message || "Неизвестная ошибка загрузки данных") : null;
+  } catch (err) {
+      console.error(err);
+      error = 'Error loading profile: ' + (err.message || 'Configuration issue');
+  }
   
-  const loadingProfile = (!profileTwitchId || authIsLoading || dataIsLoading);
-  const error = apiError ? (apiError.message || "Неизвестная ошибка загрузки данных") : null;
-  const profileExists = apiError ? apiError.exists !== false : !!apiData?.twitch_user;
+  const loadingProfile = (!profileTwitchId || authIsLoading || error);
+  const profileExists = error ? error.exists !== false : !!apiData?.twitch_user;
   
   const twitchUserData = apiData?.twitch_user || null;
   const profileData = apiData?.profile || null;
