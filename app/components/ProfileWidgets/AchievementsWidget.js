@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import styles from './AchievementsWidget.module.css';
 import pageStyles from '../../../styles/page.module.css';
 import { useState, useEffect } from 'react';
+import { getAchievements, getAchievementRarity } from '../../utils/achievements';
 
 function AchievementCard({ achievement, t }) {
     const nameKey = `achievements.${achievement.code}.name`;
@@ -14,7 +15,7 @@ function AchievementCard({ achievement, t }) {
             <div className={styles.achievementIcon}>{achievement.icon || '🏅'}</div>
             <div className={styles.achievementInfo}>
                 <h3 className={styles.achievementName}>{t(nameKey)}</h3>
-                <p className={styles.achievementDescription}>{t(descriptionKey)}</p>
+                <p className={styles.achievementDescription}>{t(descriptionKey)} ({achievement.rarity.toFixed(1)}% {t('achievements.rarity')})</p>
             </div>
         </div>
     );
@@ -31,8 +32,11 @@ export default function AchievementsWidget({ }) {
         async function fetch() {
             try {
                 const data = await getAchievements();
-                // For each, add rarity: await Promise.all(data.map(async a => ({...a, rarity: await getAchievementRarity(a.id)})))
-                setAchievements(data);
+                const enrichedData = await Promise.all(data.map(async (a) => ({
+                    ...a,
+                    rarity: await getAchievementRarity(a.id)
+                })));
+                setAchievements(enrichedData);
             } catch (e) {
                 console.error('Fetch error:', e);
                 setFetchError('Failed to load achievements');
@@ -60,6 +64,12 @@ export default function AchievementsWidget({ }) {
             ) : (
                 <p className={styles.noAchievements}>{t('achievements_page.noAchievements')}</p>
             )}
+            <h3>{t('achievements.available')}</h3>
+            <div className={styles.achievementsList}>
+                {achievements.filter(ach => !ach.is_unlocked).map(ach => (
+                    <AchievementCard key={ach.id} achievement={ach} t={t} isLocked={true} />
+                ))}
+            </div>
         </div>
     );
 } 

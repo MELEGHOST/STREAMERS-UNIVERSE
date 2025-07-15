@@ -56,4 +56,9 @@
     margin: 0;
     font-size: 0.85rem;
     color: var(--foreground-secondary);
+}
+
+.locked {
+  opacity: 0.5;
+  filter: grayscale(1);
 } 
