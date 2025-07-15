@@ -37,25 +37,15 @@ export async function GET(request) {
     }
   );
 
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const ref = new URL(supabaseUrl).hostname.split('.')[0];
-  const authCookieName = `sb-${ref}-auth-token`;
-  const verifierCookieName = `sb-${ref}-auth-token-code-verifier`;
-
   console.log('[Auth Callback] Received code:', code);
   console.log('[Auth Callback] Origin:', origin);
   const { data: { session }, error } = await supabase.auth.exchangeCodeForSession(code);
 
   if (error) {
     console.error('[Auth Callback] Error exchanging code for session:', error.message);
-    // Очищаем "плохие" куки, которые могли вызвать проблему
-    cookieStore.delete(authCookieName);
-    cookieStore.delete(verifierCookieName);
     return NextResponse.redirect(`${origin}/?error=auth_error&error_description=${encodeURIComponent(error.message)}`);
   } else {
     console.log('[Auth Callback] Successfully exchanged code for session.');
-    await supabase.auth.setSession(session);
-    console.log('[Auth Callback] Session set manually:', session);
   }
   
   // Успешный редирект в меню

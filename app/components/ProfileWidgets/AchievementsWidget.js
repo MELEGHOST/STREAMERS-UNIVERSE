@@ -4,7 +4,6 @@ import { useTranslation } from 'react-i18next';
 import styles from './AchievementsWidget.module.css';
 import pageStyles from '../../../styles/page.module.css';
 import { useState, useEffect } from 'react';
-import { getAchievements, getAchievementRarity } from '../../utils/achievements';
 
 function AchievementCard({ achievement, t }) {
     const nameKey = `achievements.${achievement.code}.name`;
@@ -31,11 +30,11 @@ export default function AchievementsWidget({ }) {
     useEffect(() => {
         async function fetch() {
             try {
-                const data = await getAchievements();
-                const enrichedData = await Promise.all(data.map(async (a) => ({
-                    ...a,
-                    rarity: await getAchievementRarity(a.id)
-                })));
+                const response = await fetch('/api/achievements');
+                if (!response.ok) {
+                    throw new Error('Failed to fetch achievements');
+                }
+                const enrichedData = await response.json();
                 setAchievements(enrichedData);
             } catch (e) {
                 console.error('Fetch error:', e);

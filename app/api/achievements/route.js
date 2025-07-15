@@ -1,114 +1,51 @@
 import { NextResponse } from 'next/server';
-import { verifyJwt } from '../../utils/jwt'; // Проверь путь!
-import { handleAchievementTrigger } from '../../utils/achievements';
-import { getTwitchClientWithToken } from '../../utils/twitchClient';
-import { supabaseAdmin } from '../../utils/supabase/admin';
+import { createClient } from '@supabase/supabase-js';
 
+// Initialize Supabase admin client
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-// Используем SERVICE KEY для чтения/записи достижений пользователей
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_KEY;
 
 if (!supabaseUrl || !supabaseServiceKey) {
-    console.error("[API /api/achievements] Critical Error: Supabase keys missing!");
+  console.error('[API /achievements] Missing Supabase URL or Service Key');
 }
 
-export async function GET(request) {
-    const token = request.headers.get('Authorization')?.split(' ')[1];
-    const verifiedToken = await verifyJwt(token);
+// The admin client is created here on server-side
+const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
 
-    if (!verifiedToken) {
-        // Если токена нет, просто возвращаем список ВСЕХ достижений
-        try {
-            console.log("[API /achievements] Fetching all achievements (unauthenticated)...");
-            const session = await supabaseAdmin.auth.getSession();
-            if (!session.data.session) {
-                return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-            }
-            const { data: allAchievements, error: allError } = await supabaseAdmin
-                .from('achievements')
-                .select('id, name, code, description, icon, condition_description, is_enabled')
-                .eq('is_enabled', true)
-                .order('created_at', { ascending: true });
+// Function to get achievements
+async function getAchievements() {
+  try {
+    const { data } = await supabaseAdmin.from('achievements').select('*');
+    return data || [];
+  } catch (e) {
+    console.error(e);
+    return [];
+  }
+}
 
-            if (allError) throw allError;
+// Function to get achievement rarity
+async function getAchievementRarity(achievementId) {
+  try {
+    const { count: totalActive } = await supabaseAdmin.from('user_profiles').select('*', { count: 'exact' }).gte('last_login', new Date(Date.now() - 30*24*60*60*1000).toISOString());
+    const { count: unlocked } = await supabaseAdmin.from('user_achievements').select('*', { count: 'exact' }).eq('achievement_id', achievementId);
+    return totalActive > 0 ? (unlocked / totalActive) * 100 : 0;
+  } catch (e) {
+    console.error(e);
+    return 0;
+  }
+}
 
-            return NextResponse.json({ all_achievements: allAchievements }, { status: 200 });
-
-        } catch (error) {
-            console.error("[API /achievements] Error fetching all achievements:", error);
-            return NextResponse.json({ error: error.message || 'Failed to fetch achievements' }, { status: 500 });
-        }
-    }
-
-    // Если пользователь авторизован, получаем его ID и его достижения
-    const userId = verifiedToken.sub;
-
-    try {
-        console.log(`[API /achievements] Fetching achievements for user: ${userId}`);
-        const session = await supabaseAdmin.auth.getSession();
-        if (!session.data.session) {
-            return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-        }
-        // Check and unlock pending achievements
-        const { data: profile } = await supabaseAdmin.from('user_profiles').select('twitch_user_id, broadcaster_type, social_links').eq('user_id', userId).single();
-        if (profile) {
-            // twitch_followers
-            const twitchClient = await getTwitchClientWithToken(token);
-            let followersCount = 0;
-            if (twitchClient && profile.twitch_user_id) {
-                const followers = await twitchClient.channels.getChannelFollowers({ broadcasterId: profile.twitch_user_id });
-                followersCount = followers ? followers.total : 0;
-            }
-            await handleAchievementTrigger(userId, 'twitch_followers', { count: followersCount });
-            // other triggers
-            await handleAchievementTrigger(userId, 'review_count');
-            await handleAchievementTrigger(userId, 'social_links');
-            await handleAchievementTrigger(userId, 'referrals');
-            await handleAchievementTrigger(userId, 'twitch_status');
-            await handleAchievementTrigger(userId, 'twitch_partner');
-            await handleAchievementTrigger(userId, 'achievements_unlocked');
-        }
-        // Запрос 1: Все доступные достижения
-        const { data: allAchievements, error: allError } = await supabaseAdmin
-            .from('achievements')
-            .select('id, name, code, description, icon, condition_description, trigger_type, trigger_value, trigger_string') // Берем все нужные поля
-            .eq('is_enabled', true)
-            .order('created_at', { ascending: true });
-
-        if (allError) throw new Error(`Failed to fetch all achievements: ${allError.message}`);
-
-        // Запрос 2: Достижения текущего пользователя
-        const { data: userAchievementsData, error: userError } = await supabaseAdmin
-            .from('user_achievements')
-            .select('achievement_id, unlocked_at, current_progress')
-            .eq('user_id', userId);
-
-        if (userError) throw new Error(`Failed to fetch user achievements: ${userError.message}`);
-
-        // Преобразуем данные пользователя в удобный формат для поиска (Map)
-        const userProgressMap = new Map();
-        userAchievementsData.forEach(ua => {
-            userProgressMap.set(ua.achievement_id, {
-                unlocked_at: ua.unlocked_at,
-                current_progress: ua.current_progress
-            });
-        });
-
-        // Собираем финальный результат, добавляя статус и прогресс к каждому достижению
-        const resultAchievements = allAchievements.map(ach => {
-            const userProgress = userProgressMap.get(ach.id);
-            return {
-                ...ach,
-                is_unlocked: !!userProgress?.unlocked_at,
-                unlocked_at: userProgress?.unlocked_at || null,
-                current_progress: userProgress?.current_progress || 0,
-            };
-        });
-
-        return NextResponse.json({ achievements: resultAchievements }, { status: 200 });
-
-    } catch (error) {
-        console.error(`[API /achievements] Error fetching achievements for user ${userId}:`, error);
-        return NextResponse.json({ error: error.message || 'Failed to fetch achievements' }, { status: 500 });
-    }
+// GET handler for the route
+export async function GET() {
+  try {
+    const data = await getAchievements();
+    const enrichedData = await Promise.all(data.map(async (a) => ({
+      ...a,
+      rarity: await getAchievementRarity(a.id)
+    })));
+    return NextResponse.json(enrichedData);
+  } catch (error) {
+    console.error('[API /achievements] Error:', error);
+    return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
+  }
 } 
