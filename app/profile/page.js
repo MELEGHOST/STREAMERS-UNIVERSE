@@ -161,7 +161,7 @@ function ProfilePageContent() {
                 }
             };
             fetchReviews();
-        }, [twitchUserId]);
+        }, []);
 
         if (reviewsLoading) {
             return <div className={styles.loadingContainer}><p>Загрузка...</p></div>

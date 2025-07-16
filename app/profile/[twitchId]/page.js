@@ -148,7 +148,6 @@ export default function UserProfilePage() {
   }, [isAuthenticated, supabase, authIsLoading]);
 
   const apiUrl = `/api/twitch/user?userId=${profileTwitchId}&fetchProfile=true`;
-  const swrKey = profileTwitchId ? [apiUrl, authToken] : null;
   const { data: apiData, error: apiError, isLoading: isDataLoading } = useSWR(
   profileTwitchId && authToken ? [apiUrl, authToken] : null,
   ([url, token]) => fetcher(url, token)
