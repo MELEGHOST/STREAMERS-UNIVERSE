@@ -262,7 +262,9 @@ export default function UserProfilePage() {
             </div>
         </div>
         <header className={styles.profileHeader}>
-            <CyberAvatar src={avatarUrl} alt={t('profile.avatarAlt', { name: displayName })} size={160} />
+            <div className="pixel-card">
+                <CyberAvatar src={avatarUrl} alt={t('profile.avatarAlt', { name: displayName })} size={160} />
+            </div>
             <div className={styles.profileInfo}>
                 <h1 className={styles.displayName}>
                     <span style={nicknameStyle}>{displayName}</span>

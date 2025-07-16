@@ -212,14 +212,16 @@ function ProfilePageContent() {
         <div className={pageStyles.container}>
             <header className={styles.profileHeader}>
                 <div className={styles.avatarContainer}>
-                    <Image
-                        src={twitchUserData?.profile_image_url || user.user_metadata.avatar_url}
-                        alt={t('profile_page.avatarAlt', { name: displayName })}
-                        width={120}
-                        height={120}
-                        className={styles.avatar}
-                        unoptimized
-                    />
+                    <div className="pixel-card">
+                        <Image
+                            src={twitchUserData?.profile_image_url || user.user_metadata.avatar_url}
+                            alt={t('profile_page.avatarAlt', { name: displayName })}
+                            width={120}
+                            height={120}
+                            className={styles.avatar}
+                            unoptimized
+                        />
+                    </div>
                     {twitchUserData?.offline_image_url && (
                         <Image
                             src={twitchUserData.offline_image_url}
@@ -229,7 +231,7 @@ function ProfilePageContent() {
                             className={styles.profileBanner}
                         />
                     )}
-        </div>
+                </div>
         
                 <div className={styles.profileInfo}>
                     <h1>{displayName}</h1>
