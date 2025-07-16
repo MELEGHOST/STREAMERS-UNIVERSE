@@ -10,6 +10,7 @@ import { useTranslation } from 'react-i18next';
 
 // --- Фетчер для SWR --- 
 const fetcher = async (url, token) => {
+    if (!token) throw new Error('Authentication token is missing');
     const res = await fetch(url, {
         headers: { 'Authorization': `Bearer ${token}` }
     });
@@ -119,7 +120,7 @@ function AchievementsPageContent() {
         </button>
       </div>
 
-      {error && <div className={pageStyles.errorMessage} style={{ marginBottom: '1rem' }}>{error}</div>}
+      {error && <div className={pageStyles.errorMessage} style={{ marginBottom: '1rem' }}>{error} - Please try again later.</div>}
       
       <div className={styles.achievementsList}>
          {activeTab === 'my' && (

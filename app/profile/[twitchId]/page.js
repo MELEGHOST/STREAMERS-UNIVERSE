@@ -92,7 +92,9 @@ const formatDate = (dateString, locale) => {
   if (!dateString) return t('common.unknown');
   try {
     return new Date(dateString).toLocaleDateString(locale, { year: 'numeric', month: 'long', day: 'numeric' });
-  } catch { return t('common.invalidDate'); }
+  } catch {
+    return t('common.unknown');
+  }
 };
 
 const fetcher = async (url, token) => {
@@ -147,7 +149,10 @@ export default function UserProfilePage() {
 
   const apiUrl = `/api/twitch/user?userId=${profileTwitchId}&fetchProfile=true`;
   const swrKey = profileTwitchId ? [apiUrl, authToken] : null;
-  const { data: apiData, error: apiError, isLoading: isDataLoading } = useSWR(swrKey, ([url, token]) => fetcher(url, token));
+  const { data: apiData, error: apiError, isLoading: isDataLoading } = useSWR(
+  profileTwitchId && authToken ? [apiUrl, authToken] : null,
+  ([url, token]) => fetcher(url, token)
+);
   const loadingProfile = (!profileTwitchId || authIsLoading || isDataLoading);
   const error = apiError ? (apiError.message || 'Unknown error') : null;
   const profileExists = error ? error.exists !== false : !!apiData?.twitch_user;

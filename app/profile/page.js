@@ -30,7 +30,7 @@ function ProfilePageContent() {
 
     const fetchTwitchUserData = useCallback(async () => {
         if (!twitchUserId) {
-            console.warn("[ProfilePage] Отсутствует twitchUserId, загрузка Twitch данных невозможна.");
+            setError('Twitch user ID is missing.');
             return;
         }
         try {
@@ -47,8 +47,8 @@ function ProfilePageContent() {
 
     const fetchAllData = useCallback(async () => {
       if (!user || !supabase || !twitchUserId) {
-          console.warn("[ProfilePage] Отсутствует user, supabase или twitchUserId, загрузка прервана.");
-            setLoading(false);
+          setError('Missing user or Supabase instance.');
+          setLoading(false);
           return;
       }
       
@@ -73,11 +73,10 @@ function ProfilePageContent() {
 
 
     useEffect(() => {
-        // Ждем окончания загрузки аутентификации
-        if (!authLoading) {
+        if (!authLoading && user) {
             fetchAllData();
         }
-    }, [authLoading, fetchAllData]);
+    }, [authLoading, fetchAllData, user]);
 
 
 
@@ -150,25 +149,19 @@ function ProfilePageContent() {
                 if (!twitchUserId) return;
                 setReviewsLoading(true);
                 try {
-                    // Предполагается, что есть API эндпоинт для получения отзывов по twitchId
-                    // const response = await fetch(`/api/reviews/streamer/${twitchUserId}`);
-                    // const data = await response.json();
-                    // setReviews(data);
-
-                    // Mock data
-                    setReviews([
-                        { id: 1, author: 'User123', text: 'Отличный стример, очень интересно смотреть!', rating: 5 },
-                        { id: 2, author: 'PlayerX', text: 'Иногда бывает скучно, но в целом неплохо.', rating: 4 },
-                    ]);
-
-      } catch (error) {
+                    const response = await fetch(`/api/reviews/streamer/${twitchUserId}`);
+                    if (!response.ok) throw new Error('Failed to fetch reviews');
+                    const data = await response.json();
+                    setReviews(data);
+                } catch (error) {
                     console.error("Failed to fetch reviews", error);
+                    setError('Error loading reviews');
                 } finally {
                     setReviewsLoading(false);
                 }
             };
             fetchReviews();
-        }, []);
+        }, [twitchUserId]);
 
         if (reviewsLoading) {
             return <div className={styles.loadingContainer}><p>Загрузка...</p></div>
@@ -297,7 +290,7 @@ function ProfilePageContent() {
           </div>
         </Link>
       </div>
-    ))}
+    )) || <p>No videos available</p>}
   </div>
 </section>
             </main>

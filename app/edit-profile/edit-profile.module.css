@@ -282,26 +282,22 @@
 }
 
 .backButton {
-  position: absolute;
-  top: 2rem;
-  left: 2rem;
-  background: rgba(255, 255, 255, 0.1);
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  color: #fff;
-  padding: 0.5rem 1rem;
-  border-radius: 8px;
-  cursor: pointer;
-  transition: background-color 0.3s ease;
+  position: relative;
+  top: auto;
+  left: auto;
+  margin-bottom: 1rem;
 }
-
-.backButton:hover {
-  background: rgba(255, 255, 255, 0.2);
-} 
 
 .socialLinkItem .input {
   width: 100%;
-  min-width: 300px; /* Minimum width to make them longer */
-} 
+  min-width: auto;
+}
+
+@media (max-width: 768px) {
+    .socialLinkItem .input {
+        min-width: 100%;
+    }
+}
 
 .modalOverlay {
     position: fixed;
@@ -318,10 +314,10 @@
 }
 
 .modalContent {
-    background: linear-gradient(to bottom, #000000, #4b0082);
+    background: #000000;
     padding: 2rem;
     border-radius: var(--border-radius-lg);
-    box-shadow: 0 0 15px #ff00ff, 0 0 30px #ff00ff;
+    box-shadow: 0 0 15px rgba(255, 0, 255, 0.5);
     max-width: 600px;
     width: 90%;
     text-align: center;

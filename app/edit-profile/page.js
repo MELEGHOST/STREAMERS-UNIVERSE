@@ -8,9 +8,11 @@ import { useTranslation } from 'react-i18next';
 import I18nProvider from '../components/I18nProvider';
 import styles from './edit-profile.module.css';
 import RouteGuard from '../components/RouteGuard';
-// Simple sanitizer if not using library
+// Improved sanitizer (simplified, recommend using DOMPurify in production)
 function simpleSanitize(input) {
-  return input.replace(/<script[^>]*>([\S\s]*?)<\/script>/gmi, '');
+  return input.replace(/<script[^>]*>([\S\s]*?)<\/script>/gmi, '')
+              .replace(/<img[^>]*>/gmi, '')
+              .replace(/on\w+="[^"]*"/gmi, '');
 }
 
 function EditProfilePageContent() {
@@ -93,13 +95,13 @@ function EditProfilePageContent() {
         }
         // Validate birthday:
         if (birthday && isNaN(new Date(birthday).getTime())) {
-          setError('Invalid birthday format');
+          setError('Invalid birthday format. Please use YYYY-MM-DD.');
           return;
         }
         // Validate social links:
         for (const [platform, url] of Object.entries(socialLinks)) {
           if (url && !/^https?:\/\//i.test(url)) {
-            setError(`Invalid URL for ${platform}`);
+            setError(`Invalid URL for ${platform}: Must start with http:// or https://`);
             return;
           }
         }

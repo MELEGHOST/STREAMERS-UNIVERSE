@@ -356,27 +356,6 @@
     gap: 0.3rem;
 }
 
-/* Скелет для VODs */
-.skeletonVod {
-    background-color: var(--background-secondary);
-    border-radius: var(--border-radius-lg);
-    overflow: hidden;
-    border: 1px solid var(--border-secondary);
-}
-
-.skeletonVodThumbnail {
-    width: 100%;
-    aspect-ratio: 16 / 9;
-    background-color: var(--background-tertiary);
-}
-
-.skeletonVodInfo {
-    padding: 0.8rem 1rem;
-    display: flex;
-    flex-direction: column;
-    gap: 0.5rem;
-}
-
 /* Стили для кнопки Выйти (пока наследуются от actionButton) */
 .logoutButton {
   /* Можно добавить специфичные стили, например:
@@ -458,6 +437,12 @@
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
     gap: 1.5rem;
+}
+
+@media (max-width: 768px) {
+    .videosGrid {
+        grid-template-columns: 1fr;
+    }
 }
 
 .videoCard {
@@ -570,18 +555,27 @@
   text-shadow: 1px 1px 2px rgba(0,0,0,0.4);
 }
 
+/* Toned down gradients */
 .roleBadge.admin {
-  background: linear-gradient(45deg, #ffd700, #f0c000);
+  background: #ffd700;
   border: 1px solid #e0b000;
   box-shadow: 0 0 8px rgba(255, 215, 0, 0.5);
   color: #1c1c1c;
 }
 
 .roleBadge.streamer {
-  background: linear-gradient(45deg, #9146ff, #7a2eff);
+  background: #9146ff;
   border: 1px solid #6c1fff;
   box-shadow: 0 0 8px rgba(145, 70, 255, 0.5);
   color: #fff;
+}
+
+@media (max-width: 768px) {
+    .profileHeader {
+        flex-direction: column;
+        align-items: center;
+        text-align: center;
+    }
 }
 
 .userRoles {
