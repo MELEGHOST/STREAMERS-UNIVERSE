@@ -24,9 +24,9 @@ function ProfilePageContent() {
     const { user, supabase, loading: authLoading, userRole } = useAuth();
   const router = useRouter();
   const twitchUserId = user?.user_metadata?.provider_id;
-  const { data, error } = useSWR(twitchUserId ? `/api/twitch/user/profile?id=${twitchUserId}` : null, fetcher);
+  const { data, swrError } = useSWR(twitchUserId ? `/api/twitch/user/profile?id=${twitchUserId}` : null, fetcher);
   if (authLoading || !data) return <div>Loading...</div>;
-  if (error) return <div>Error: {error.message}</div>;
+  if (swrError) return <div>Error: {swrError.message}</div>;
   const twitchUserData = data;
     const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
