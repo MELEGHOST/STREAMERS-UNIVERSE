@@ -103,6 +103,7 @@ const fetcher = async (url, token) => {
         headers['Authorization'] = `Bearer ${token}`;
     }
     const res = await fetch(url, { headers });
+    if (!res) throw new Error('No response from server');
 
     if (!res.ok) {
         const errorInfo = {
@@ -310,7 +311,7 @@ export default function UserProfilePage() {
                             <div key={video.id} className={styles.videoItem}>
                                 <Link href={`https://www.twitch.tv/${video.user_login}/video/${video.id}`} target="_blank" rel="noopener noreferrer">
                                     <Image
-                                        src={video.thumbnail_url}
+                                        src={video.thumbnail_url.replace('%{width}', '200').replace('%{height}', '112')}
                                         alt={video.title}
                                         width={200}
                                         height={112}

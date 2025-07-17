@@ -31,6 +31,7 @@ export default function AchievementsWidget({ }) {
         async function fetch() {
             try {
                 const response = await fetch('/api/achievements');
+                if (!response) throw new Error('No response from server');
                 if (!response.ok) {
                     throw new Error('Failed to fetch achievements');
                 }

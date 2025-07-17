@@ -120,7 +120,7 @@ function AchievementsPageContent() {
         </button>
       </div>
 
-      {error && <div className={pageStyles.errorMessage} style={{ marginBottom: '1rem' }}>{error} - Please try again later.</div>}
+      {error && <div className={pageStyles.errorMessage} style={{ marginBottom: '1rem' }}>{t('achievements.page.error', { defaultValue: 'Error loading achievements' })} - {error} - Please try again later.</div>}
       
       <div className={styles.achievementsList}>
          {activeTab === 'my' && (
