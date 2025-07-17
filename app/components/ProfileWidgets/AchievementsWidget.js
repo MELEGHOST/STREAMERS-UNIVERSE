@@ -48,7 +48,7 @@ export default function AchievementsWidget({ }) {
     }, []);
 
     if (loading) return <div className={pageStyles.loadingContainer}><p>{t('loading.achievements')}</p></div>;
-    if (fetchError) return <div className={pageStyles.errorMessage}><p>{t('achievements_page.error', { message: fetchError.message })}</p></div>;
+    if (fetchError) return <div className={pageStyles.errorMessage}><p>{t('profile_page.achievements_page.error', { message: fetchError.message })}</p></div>;
 
     const unlockedAchievements = achievements.filter(ach => ach.is_unlocked) || [];
 

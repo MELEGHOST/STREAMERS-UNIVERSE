@@ -65,7 +65,11 @@
       "rareAchievement2": "Редкое достижение 2",
       "players": "игроков",
       "default": "По умолчанию",
-      "videos": "Видео"
+      "videos": "Видео",
+      "broadcasterTypeLabel": "Тип вещателя",
+      "createdAtLabel": "Создан",
+      "followersLabel": "Подписчики",
+      "viewsLabel": "Просмотры"
     },
     "logout": "Выйти",
     "login": "Войти через Twitch",

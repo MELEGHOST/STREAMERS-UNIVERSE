@@ -242,7 +242,7 @@ export default function UserProfilePage() {
                 {isOwnProfile && (
                     <>
                         {isAdmin && (
-                            <Link href="/admin/reviews" className={`${styles.controlButton} ${styles.adminButton}`}>
+                            <Link href="/admin/reviews" className={styles.controlButton}>
                                 <FaShieldAlt /> {t('profile.adminPanel')}
                             </Link>
                         )}
@@ -255,7 +255,7 @@ export default function UserProfilePage() {
                         <Link href="/edit-profile" className={styles.controlButton}>
                             <FaEdit /> {t('profile.edit')}
                         </Link>
-                        <button onClick={handleLogout} className={`${styles.controlButton} ${styles.logoutButton}`}>
+                        <button onClick={handleLogout} className={styles.controlButton}>
                             <FaSignOutAlt /> {t('logout')}
                         </button>
                     </>
@@ -276,19 +276,19 @@ export default function UserProfilePage() {
                 <p className={styles.profileDescription}>{profileDescription}</p>
                 <div className={styles.profileDetails}>
                     <div className={styles.detailItem}>
-                        <span className={styles.detailLabel}>{t('profile.broadcasterType')}:</span>
+                        <span className={styles.detailLabel}>{t('profile.broadcasterTypeLabel')}:</span>
                         <span className={styles.detailValue}>{translateBroadcasterType(broadcasterType, t)}</span>
                     </div>
                     <div className={styles.detailItem}>
-                        <span className={styles.detailLabel}>{t('profile.createdAt')}:</span>
+                        <span className={styles.detailLabel}>{t('profile.createdAtLabel')}:</span>
                         <span className={styles.detailValue}>{formattedDate}</span>
                     </div>
                     <div className={styles.detailItem}>
-                        <span className={styles.detailLabel}>{t('profile.followers')}:</span>
+                        <span className={styles.detailLabel}>{t('profile.followersLabel')}:</span>
                         <span className={styles.detailValue}>{pluralize(followersCount, t('common.follower'))}</span>
                     </div>
                     <div className={styles.detailItem}>
-                        <span className={styles.detailLabel}>{t('profile.views')}:</span>
+                        <span className={styles.detailLabel}>{t('profile.viewsLabel')}:</span>
                         <span className={styles.detailValue}>{pluralize(viewCount, t('common.view'))}</span>
                     </div>
                 </div>
@@ -338,10 +338,12 @@ export default function UserProfilePage() {
                         ))}
                     </div>
                 </section>
-                <section className={styles.sidebarSection}>
-                    <h3 className={styles.sidebarTitle}>{t('profile.invite')}</h3>
-                    <InviteButton />
-                </section>
+                {!isOwnProfile && (
+                    <section className={styles.sidebarSection}>
+                        <h3 className={styles.sidebarTitle}>{t('profile.invite')}</h3>
+                        <InviteButton />
+                    </section>
+                )}
             </aside>
         </div>
       </div>
