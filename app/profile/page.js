@@ -11,6 +11,7 @@ import { useTranslation } from 'react-i18next';
 import { FaEdit, FaPlus, FaTrophy, FaSignOutAlt, FaShieldAlt } from 'react-icons/fa';
 import Link from 'next/link';
 import StatisticsWidget from '../components/ProfileWidgets/StatisticsWidget';
+import useSWR from 'swr';
 
 // Функция для перевода типа канала
 function translateBroadcasterType(type, t) {
@@ -21,12 +22,15 @@ function translateBroadcasterType(type, t) {
 function ProfilePageContent() {
     const { t } = useTranslation();
     const { user, supabase, loading: authLoading, userRole } = useAuth();
-  const [twitchUserData, setTwitchUserData] = useState(null);
+  const router = useRouter();
+  const twitchUserId = user?.user_metadata?.provider_id;
+  const { data, error } = useSWR(twitchUserId ? `/api/twitch/user/profile?id=${twitchUserId}` : null, fetcher);
+  if (authLoading || !data) return <div>Loading...</div>;
+  if (error) return <div>Error: {error.message}</div>;
+  const twitchUserData = data;
     const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-    const router = useRouter();
   
-  const twitchUserId = user?.user_metadata?.provider_id;
 
     const fetchTwitchUserData = useCallback(async () => {
         if (!twitchUserId) {
@@ -119,20 +123,16 @@ function ProfilePageContent() {
     };
 
     const AchievementsWidget = () => {
-        // Mock data, replace with real achievements logic
-        const achievements = [
-            { id: 1, name: t('profile_page.achievements.firstReview'), unlocked: true },
-            { id: 2, name: t('profile_page.achievements.firstFollower'), unlocked: false },
-            { id: 3, name: t('profile_page.achievements.inspirer'), unlocked: true },
-        ];
-        // Можно вынести в отдельный компонент AchievementsWidget
+        const { data: achievementsData, error: achError } = useSWR('/api/achievements', fetcher);
+        if (achError) return <div>Error loading achievements</div>;
+        const unlockedAchievements = achievementsData?.filter(ach => ach.is_unlocked) || [];
         return (
             <div className={styles.widget}>
                 <h3>{t('profile_page.achievements.title')}</h3>
                 <ul>
-                    {achievements.map(ach => (
-                        <li key={ach.id} className={ach.unlocked ? styles.unlocked : styles.locked}>
-                            {ach.name} ({ach.unlocked ? t('profile_page.achievements.unlocked') : t('profile_page.achievements.locked')})
+                    {unlockedAchievements.map(ach => (
+                        <li key={ach.id}>
+                            {ach.name} ({ach.rarity}% rarity)
                         </li>
                     ))}
                 </ul>

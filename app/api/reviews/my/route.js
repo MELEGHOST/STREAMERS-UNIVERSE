@@ -31,34 +31,15 @@ export async function GET(request) {
     console.log(`[API /api/reviews/my] Fetching reviews for author_id: ${authorId}`);
 
     try {
-        // Запрашиваем отзывы пользователя
-        // Убираем JOIN с streamer_id, т.к. он вызывает ошибку и, возможно, не нужен
-        // Если информация об объекте отзыва нужна, ее надо получать иначе (например, по item_name)
         const { data: reviews, error } = await supabaseAdmin
             .from('reviews')
-            .select('*') // Выбираем все поля самого отзыва
-            // .select(`*, streamer:streamer_id (*)`) // <<< УБИРАЕМ JOIN
-            .eq('user_id', authorId) // <<< Ищем по user_id, а не author_id
-            .order('created_at', { ascending: false }); 
-
-        if (error) {
-            console.error('[API /api/reviews/my] Error fetching reviews:', error);
-            // Уточняем сообщение об ошибке, если оно связано с колонкой
-            if (error.message.includes('column') && error.message.includes('does not exist')){
-                 return NextResponse.json({ error: `Database error: ${error.message}` }, { status: 500 });
-            }
-            return NextResponse.json({ error: 'Failed to fetch reviews', details: error.message }, { status: 500 });
-        }
-
-        console.log(`[API /api/reviews/my] Found ${reviews.length} reviews for author ${authorId}.`);
-
-        // Удаляем лишнее форматирование, т.к. JOIN убран
-        // const formattedReviews = reviews.map(review => ({ ... }));
-
-        return NextResponse.json(reviews, { status: 200 }); // Возвращаем чистые отзывы
-
+            .select('*')
+            .eq('user_id', authorId)
+            .order('created_at', { ascending: false });
+        if (error) throw error;
+        return NextResponse.json(reviews, { status: 200 });
     } catch (e) {
-        console.error('[API /api/reviews/my] Unexpected server error:', e);
+        console.error('[API /reviews/my] Error:', e);
         return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
     }
 }

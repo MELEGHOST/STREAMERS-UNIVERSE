@@ -1,5 +1,4 @@
-// TODO: Реализовать компонент CyberAvatar
-// Временная заглушка
+// Реализованный компонент CyberAvatar
 'use client';
 import React, { useRef, useEffect, useState } from 'react';
 import Image from 'next/image';
@@ -37,55 +36,29 @@ const CyberAvatar = ({ src, alt, size = 'md', className, priority, onError }) =>
 
   // useEffect для 3D-эффекта при наведении
   useEffect(() => {
-    const container = containerRef.current;
     const card = cardRef.current;
     
-    if (!container || !card) return;
+    if (!card) return;
     
     const handleMouseMove = (e) => {
-      const rect = container.getBoundingClientRect();
-      const x = e.clientX - rect.left;
-      const y = e.clientY - rect.top;
-      
-      const centerX = rect.width / 2;
-      const centerY = rect.height / 2;
-      
-      const percentX = (x - centerX) / centerX;
-      const percentY = (y - centerY) / centerY;
-      
-      const rotateX = -percentY * 10; // Наклон по X
-      const rotateY = percentX * 10;  // Наклон по Y
-      
-      // Применяем трансформацию и яркость
-      card.style.transform = `perspective(1000px) rotateX(${rotateX}deg) rotateY(${rotateY}deg)`;
-      card.style.filter = `brightness(${1 + Math.abs(percentX) * 0.1 + Math.abs(percentY) * 0.1})`; 
+      const rect = card.getBoundingClientRect();
+      const x = e.clientX - rect.left - rect.width / 2;
+      const y = e.clientY - rect.top - rect.height / 2;
+      card.style.transform = `rotateY(${x / 10}deg) rotateX(${-y / 10}deg)`;
     };
     
     const handleMouseLeave = () => {
-      // Возвращаем карточку в исходное положение
-      card.style.transition = 'transform 500ms ease, filter 500ms ease';
-      card.style.transform = 'perspective(1000px) rotateX(0deg) rotateY(0deg)';
-      card.style.filter = 'brightness(1)';
-      
-      // Сбрасываем transition после возврата
-      setTimeout(() => {
-        if (card) { 
-           card.style.transition = 'transform 150ms ease, filter 150ms ease';
-        }
-      }, 500);
+      card.style.transform = 'rotateY(0deg) rotateX(0deg)';
     };
     
-    // Устанавливаем начальный transition
-    card.style.transition = 'transform 150ms ease, filter 150ms ease';
-
-    container.addEventListener('mousemove', handleMouseMove);
-    container.addEventListener('mouseleave', handleMouseLeave);
+    card.addEventListener('mousemove', handleMouseMove);
+    card.addEventListener('mouseleave', handleMouseLeave);
     
     // Очистка
     return () => {
-      if (container) {
-        container.removeEventListener('mousemove', handleMouseMove);
-        container.removeEventListener('mouseleave', handleMouseLeave);
+      if (card) {
+        card.removeEventListener('mousemove', handleMouseMove);
+        card.removeEventListener('mouseleave', handleMouseLeave);
       }
     };
   }, []); // Пустой массив зависимостей, эффект запускается один раз

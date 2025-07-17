@@ -100,7 +100,7 @@ function AchievementsPageContent() {
         <h1>{t('profile_page.achievements_page.title')}</h1>
       </header>
       <button onClick={() => router.back()} className={pageStyles.backButton} style={{ marginBottom: '1rem' }}>
-        &larr; {t('profile_page.common.back')}
+        &larr; {t('achievements_page.backButton', { defaultValue: 'Назад' })}
       </button>
 
       <div className={styles.tabs}>

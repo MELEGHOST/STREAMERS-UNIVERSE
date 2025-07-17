@@ -56,10 +56,17 @@ export async function GET(request) {
     }
 
     const data = await getAchievements();
+    
+    let userAchievements = [];
+    if (userId) {
+      const { data: uaData } = await supabaseAdmin.from('user_achievements').select('achievement_id').eq('user_id', userId);
+      userAchievements = uaData || [];
+    }
+    
     const enrichedData = await Promise.all(data.map(async (a) => ({
       ...a,
       rarity: await getAchievementRarity(a.id),
-      is_unlocked: userId ? /* Check if user has this achievement */ false : false // Implement check
+      is_unlocked: userId ? userAchievements.some(ua => ua.achievement_id === a.id) : false
     })));
     return NextResponse.json(enrichedData);
   } catch (error) {
