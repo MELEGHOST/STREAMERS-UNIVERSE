@@ -1,7 +1,6 @@
 'use client';
 
 import Image from 'next/image';
-import { useAuth } from '../contexts/AuthContext';
 import styles from './menu.module.css';
 import { useTranslation } from 'react-i18next';
 import { motion } from 'framer-motion';
