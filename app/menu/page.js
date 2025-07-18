@@ -3,7 +3,6 @@
 import Image from 'next/image';
 import styles from './menu.module.css';
 import { useTranslation } from 'react-i18next';
-import { motion } from 'framer-motion';
 import { useRouter } from 'next/navigation';
 import styled from 'styled-components';
 
