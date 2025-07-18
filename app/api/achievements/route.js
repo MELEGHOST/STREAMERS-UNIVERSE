@@ -15,7 +15,7 @@ async function getAchievements(supabaseAdmin) {
 }
 
 // Function to get achievement rarity
-async function getAchievementRarity(achievementId) {
+async function getAchievementRarity(supabaseAdmin, achievementId) {
   try {
     const { count: totalActive } = await supabaseAdmin.from('user_profiles').select('*', { count: 'exact' }).gte('last_login', new Date(Date.now() - 30*24*60*60*1000).toISOString());
     const { count: unlocked } = await supabaseAdmin.from('user_achievements').select('*', { count: 'exact' }).eq('achievement_id', achievementId);
@@ -44,12 +44,12 @@ export async function GET(request) {
     if (userId) {
       // Trigger achievements for logged-in user
       await Promise.all([
-        handleAchievementTrigger(userId, 'review_count'),
-        handleAchievementTrigger(userId, 'social_links'),
-        handleAchievementTrigger(userId, 'referrals'),
-        handleAchievementTrigger(userId, 'twitch_status'),
-        handleAchievementTrigger(userId, 'twitch_partner'),
-        handleAchievementTrigger(userId, 'achievements_unlocked')
+        handleAchievementTrigger(supabaseAdmin, userId, 'review_count'),
+        handleAchievementTrigger(supabaseAdmin, userId, 'social_links'),
+        handleAchievementTrigger(supabaseAdmin, userId, 'referrals'),
+        handleAchievementTrigger(supabaseAdmin, userId, 'twitch_status'),
+        handleAchievementTrigger(supabaseAdmin, userId, 'twitch_partner'),
+        handleAchievementTrigger(supabaseAdmin, userId, 'achievements_unlocked')
       ]);
       // Add more triggers as needed
     }
@@ -64,7 +64,7 @@ export async function GET(request) {
     
     const enrichedData = await Promise.all(data.map(async (a) => ({
       ...a,
-      rarity: await getAchievementRarity(a.id),
+      rarity: await getAchievementRarity(supabaseAdmin, a.id),
       is_unlocked: userId ? userAchievements.some(ua => ua.achievement_id === a.id) : false
     })));
     return NextResponse.json({ achievements: enrichedData });

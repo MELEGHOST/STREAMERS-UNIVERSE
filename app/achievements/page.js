@@ -73,13 +73,15 @@ function AchievementsPageContent() {
       ([url, token]) => fetcher(url, token), 
       {
           revalidateOnFocus: true,
-          onError: (err) => { console.error('[AchievementsPage useSWR onError]', err); }
+          onError: (err) => { console.error('[AchievementsPage useSWR onError]', err); },
+          errorRetryCount: 3,
+          errorRetryInterval: 5000
       }
   );
   
   // --- Логика состояния загрузки и ошибок --- 
   const isLoading = authLoading || dataIsLoading;
-  const error = apiError?.message || null;
+  const error = apiError ? (apiError.message === 'No response from server' ? 'Сервер не отвечает, попробуй позже, бро!' : apiError.message) : null;
 
   // --- Извлекаем данные из ответа API ---
   const achievements = useMemo(() => apiData || [], [apiData]);

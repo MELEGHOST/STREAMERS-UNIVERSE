@@ -5,7 +5,7 @@ const supabaseServiceKey = process.env.SUPABASE_SERVICE_KEY;
 const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
 
 // Функция для получения количества обзоров пользователя
-async function getUserReviewCount(userId) {
+async function getUserReviewCount(supabaseAdmin, userId) {
   const { count, error } = await supabaseAdmin
     .from('reviews')
     .select('*', { count: 'exact', head: true })
@@ -19,10 +19,10 @@ async function getUserReviewCount(userId) {
 }
 
 // Функция для получения профиля пользователя
-async function getUserProfile(userId) {
+async function getUserProfile(supabaseAdmin, userId) {
     const { data, error } = await supabaseAdmin
         .from('user_profiles')
-        .select('description, social_links, broadcaster_type')
+        .select('description, social_links, twitch_broadcaster_type')
         .eq('user_id', userId)
         .single();
 
@@ -33,7 +33,7 @@ async function getUserProfile(userId) {
     return data;
 }
 
-async function getReferralCount(userId) {
+async function getReferralCount(supabaseAdmin, userId) {
   try {
     const { count, error } = await supabaseAdmin.from('user_profiles').select('*', { count: 'exact', head: true }).eq('referrer_id', userId);
     if (error) throw error;
@@ -43,7 +43,7 @@ async function getReferralCount(userId) {
     return 0;
   }
 }
-async function getUserAchievementCount(userId) {
+async function getUserAchievementCount(supabaseAdmin, userId) {
   const { count, error } = await supabaseAdmin.from('user_achievements').select('*', { count: 'exact', head: true }).eq('user_id', userId);
   if (error) {
     console.error(`[Achievements] Error fetching achievement count for user ${userId}:`, error);
@@ -53,7 +53,7 @@ async function getUserAchievementCount(userId) {
 }
 
 // Центральный обработчик триггеров достижений
-export async function handleAchievementTrigger(userId, triggerType, payload = {}) {
+export async function handleAchievementTrigger(supabaseAdmin, userId, triggerType, payload = {}) {
   if (!userId) {
     console.error('No userId provided');
     return;
@@ -85,7 +85,7 @@ export async function handleAchievementTrigger(userId, triggerType, payload = {}
       let currentProgress = 0;
       let profile = null; // Кэшируем профиль, если нужен
       if (triggerType === 'review_count') {
-        currentProgress = await getUserReviewCount(userId);
+        currentProgress = await getUserReviewCount(supabaseAdmin, userId);
         if (currentProgress >= achievement.trigger_value) isUnlocked = true;
       } else if (triggerType === 'twitch_followers') {
         if (typeof payload.count === 'number') {
@@ -93,26 +93,26 @@ export async function handleAchievementTrigger(userId, triggerType, payload = {}
           if (currentProgress >= achievement.trigger_value) isUnlocked = true;
         }
       } else if (triggerType === 'social_links') {
-        profile = await getUserProfile(userId);
+        profile = await getUserProfile(supabaseAdmin, userId);
         if (profile) {
           const socialLinks = profile.social_links || {};
           currentProgress = Object.values(socialLinks).filter(link => link).length;
           if (currentProgress >= achievement.trigger_value) isUnlocked = true;
         }
       } else if (triggerType === 'twitch_status' || triggerType === 'twitch_partner') {
-        profile = profile || await getUserProfile(userId);
-        if (profile && profile.broadcaster_type) {
-          const isMatch = triggerType === 'twitch_partner' ? profile.broadcaster_type === 'partner' : profile.broadcaster_type === achievement.trigger_string;
+        profile = profile || await getUserProfile(supabaseAdmin, userId);
+        if (profile && profile.twitch_broadcaster_type) {
+          const isMatch = triggerType === 'twitch_partner' ? profile.twitch_broadcaster_type === 'partner' : profile.twitch_broadcaster_type === achievement.trigger_string;
           if (isMatch) {
             isUnlocked = true;
             currentProgress = 1;
           }
         }
       } else if (triggerType === 'referrals') {
-        currentProgress = await getReferralCount(userId);
+        currentProgress = await getReferralCount(supabaseAdmin, userId);
         if (currentProgress >= achievement.trigger_value) isUnlocked = true;
       } else if (triggerType === 'achievements_unlocked') {
-        currentProgress = await getUserAchievementCount(userId);
+        currentProgress = await getUserAchievementCount(supabaseAdmin, userId);
         if (currentProgress >= achievement.trigger_value) isUnlocked = true;
       }
       // Добавить другие типы по мере необходимости
@@ -125,7 +125,7 @@ export async function handleAchievementTrigger(userId, triggerType, payload = {}
         }
         // For referrals, add cap:
         if (triggerType === 'referrals') {
-          const count = await getReferralCount(userId);
+          const count = await getReferralCount(supabaseAdmin, userId);
           if (count > 50) {
             console.log(`[Achievements] Referral count for user ${userId} exceeds 50. Skipping achievement '${achievement.name}'.`);
             continue;
@@ -142,7 +142,7 @@ export async function handleAchievementTrigger(userId, triggerType, payload = {}
         } else {
           console.log(`[Achievements] Successfully unlocked '${achievement.name}'!`);
           // Проверяем коллекционера
-          await handleAchievementTrigger(userId, 'achievements_unlocked', { count: await getUserAchievementCount(userId) });
+          await handleAchievementTrigger(supabaseAdmin, userId, 'achievements_unlocked', { count: await getUserAchievementCount(supabaseAdmin, userId) });
         }
       }
     }
@@ -151,7 +151,7 @@ export async function handleAchievementTrigger(userId, triggerType, payload = {}
   }
 } 
 
-export async function getAchievements() {
+export async function getAchievements(supabaseAdmin) {
   try {
     const { data } = await supabaseAdmin.from('achievements').select('*');
     return data || [];
@@ -160,7 +160,7 @@ export async function getAchievements() {
     return [];
   }
 }
-export async function getAchievementRarity(achievementId) {
+export async function getAchievementRarity(supabaseAdmin, achievementId) {
   try {
     const { count: totalActive } = await supabaseAdmin.from('user_profiles').select('*', { count: 'exact' }).gte('last_login', new Date(Date.now() - 30*24*60*60*1000).toISOString());
     const { count: unlocked } = await supabaseAdmin.from('user_achievements').select('*', { count: 'exact' }).eq('achievement_id', achievementId);
