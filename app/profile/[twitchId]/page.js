@@ -71,7 +71,7 @@ const translateBroadcasterType = (type, t) => {
 
 const formatDuration = (durationString) => {
   try {
-    if (!durationString) return '0s';
+    if (typeof durationString !== 'string' || !durationString) return '0s';
     let totalSeconds = 0;
     const hoursMatch = durationString.match(/(\d+)h/);
     const minutesMatch = durationString.match(/(\d+)m/);
@@ -316,7 +316,7 @@ export default function UserProfilePage() {
                             <div key={video.id} className={styles.videoItem}>
                                 <Link href={`https://www.twitch.tv/${video.user_login}/video/${video.id}`} target="_blank" rel="noopener noreferrer">
                                     <Image
-                                        src={video.thumbnail_url.replace('%{width}', '200').replace('%{height}', '112')}
+                                        src={video.thumbnail_url && typeof video.thumbnail_url === 'string' ? video.thumbnail_url.replace('%{width}', '200').replace('%{height}', '112') : '/default_thumbnail.png'}
                                         alt={video.title}
                                         width={200}
                                         height={112}
