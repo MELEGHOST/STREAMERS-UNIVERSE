@@ -1,5 +1,3 @@
-import { createClient } from '@supabase/supabase-js';
-
 // Функция для получения количества обзоров пользователя
 async function getUserReviewCount(supabaseAdmin, userId) {
   const { count, error } = await supabaseAdmin

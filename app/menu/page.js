@@ -7,7 +7,6 @@ import { useAuth } from '../contexts/AuthContext';
 import styles from './menu.module.css';
 import pageStyles from '../../styles/page.module.css';
 import { useTranslation } from 'react-i18next';
-import MenuCard from '../components/MenuCard/MenuCard';
 import { Swiper, SwiperSlide } from 'swiper/react';
 import 'swiper/css';
 import 'swiper/css/effect-cube';
@@ -59,26 +58,18 @@ export default function MenuPage() {
   const { user, userRole } = useAuth();
   const { t } = useTranslation();
   const router = useRouter();
-  const [activeIndex, setActiveIndex] = useState(null);
+  const [activeIndex] = useState(null);
 
   const menuItems = [
-    { name: 'search', href: '/search', label: t('menu.search'), description: t('menu.searchDesc') },
-    { name: 'reviews', href: '/reviews/create', label: t('menu.reviews'), description: t('menu.reviewsDesc') },
-    { name: 'followings', href: '/followings', label: t('menu.followings'), description: t('menu.followingsDesc') },
-    { name: 'followers', href: '/followers', label: t('menu.followers'), description: t('menu.followersDesc') },
-    { name: 'settings', href: '/settings', label: t('menu.settings'), description: t('menu.settingsDesc') },
+    { href: '/profile', label: t('menu.profile'), name: 'profile', description: t('menu.profileDesc') },
+    { href: '/edit-profile', label: t('menu.editProfile'), name: 'editProfile', description: t('menu.editProfileDesc') },
+    { href: '/followers', label: t('menu.followers'), name: 'followers', description: t('menu.followersDesc') },
+    { href: '/followings', label: t('menu.followings'), name: 'followings', description: t('menu.followingsDesc') },
+    { href: '/my-reviews', label: t('menu.myReviews'), name: 'myReviews', description: t('menu.myReviewsDesc') },
+    { href: '/achievements', label: t('menu.achievements'), name: 'achievements', description: t('menu.achievementsDesc') },
+    { href: '/settings', label: t('menu.settings'), name: 'settings', description: t('menu.settingsDesc') },
+    { href: '/admin', label: t('menu.admin'), name: 'admin', description: t('menu.adminDesc'), condition: userRole === 'admin' },
   ];
-
-  if (userRole === 'admin') {
-      menuItems.push({ name: 'moderation', href: '/admin/reviews', label: t('menu.moderation'), description: t('menu.moderationDesc') });
-  }
-
-  const getGridTemplateColumns = () => {
-    if (activeIndex === null) {
-      return `repeat(${menuItems.length}, 1fr)`;
-    }
-    return menuItems.map((_, i) => (i === activeIndex ? '8fr' : '1fr')).join(' ');
-  };
 
   return (
     <div className={pageStyles.container}>
@@ -121,7 +112,7 @@ export default function MenuPage() {
             }}
             className={styles.swiper}
           >
-            {menuItems.map((item, index) => (
+            {menuItems.map((item) => (
               <SwiperSlide key={item.href}>
                 <motion.div
                   initial={{ opacity: 0, scale: 0.8, rotateY: 90 }}
@@ -130,7 +121,7 @@ export default function MenuPage() {
                   className={styles.menuItem}
                   onClick={() => router.push(item.href)}
                 >
-                  <img src={ICONS[item.name] ? ICONS[item.name].props.viewBox : '/icons/default.png'} alt={item.label} className={styles.icon} />
+                  <Image src={ICONS[item.name] ? ICONS[item.name].props.viewBox : '/icons/default.png'} alt={item.label} width={100} height={100} className={styles.icon} />
                   <h2>{item.label}</h2>
                 </motion.div>
               </SwiperSlide>
