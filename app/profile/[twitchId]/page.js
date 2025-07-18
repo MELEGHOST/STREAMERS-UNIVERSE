@@ -70,22 +70,27 @@ const translateBroadcasterType = (type, t) => {
 };
 
 const formatDuration = (durationString) => {
-  if (!durationString) return '0s';
-  let totalSeconds = 0;
-  const hoursMatch = durationString.match(/(\d+)h/);
-  const minutesMatch = durationString.match(/(\d+)m/);
-  const secondsMatch = durationString.match(/(\d+)s/);
-  if (hoursMatch && hoursMatch[1]) totalSeconds += parseInt(hoursMatch[1], 10) * 3600;
-  if (minutesMatch && minutesMatch[1]) totalSeconds += parseInt(minutesMatch[1], 10) * 60;
-  if (secondsMatch && secondsMatch[1]) totalSeconds += parseInt(secondsMatch[1], 10);
-  const hours = Math.floor(totalSeconds / 3600);
-  const minutes = Math.floor((totalSeconds % 3600) / 60);
-  const seconds = totalSeconds % 60;
-  let formatted = '';
-  if (hours > 0) formatted += `${hours}h `;
-  if (minutes > 0 || hours > 0) formatted += `${minutes}m `;
-  if (seconds > 0 || totalSeconds === 0) formatted += `${seconds}s`;
-  return formatted.trim() || '0s';
+  try {
+    if (!durationString) return '0s';
+    let totalSeconds = 0;
+    const hoursMatch = durationString.match(/(\d+)h/);
+    const minutesMatch = durationString.match(/(\d+)m/);
+    const secondsMatch = durationString.match(/(\d+)s/);
+    if (hoursMatch && hoursMatch[1]) totalSeconds += parseInt(hoursMatch[1], 10) * 3600;
+    if (minutesMatch && minutesMatch[1]) totalSeconds += parseInt(minutesMatch[1], 10) * 60;
+    if (secondsMatch && secondsMatch[1]) totalSeconds += parseInt(secondsMatch[1], 10);
+    const hours = Math.floor(totalSeconds / 3600);
+    const minutes = Math.floor((totalSeconds % 3600) / 60);
+    const seconds = totalSeconds % 60;
+    let formatted = '';
+    if (hours > 0) formatted += `${hours}h `;
+    if (minutes > 0 || hours > 0) formatted += `${minutes}m `;
+    if (seconds > 0 || totalSeconds === 0) formatted += `${seconds}s`;
+    return formatted.trim() || '0s';
+  } catch (e) {
+    console.error('Error in formatDuration:', e);
+    return '0s';
+  }
 };
 
 const formatDate = (dateString, locale) => {
@@ -307,7 +312,7 @@ export default function UserProfilePage() {
                 <section className={styles.profileSection}>
                     <h2 className={styles.sectionTitle}>{t('profile.videos')}</h2>
                     <div className={styles.videosGrid}>
-                        {videos.map((video) => (
+                        {videos && videos.length > 0 ? videos.map((video) => (
                             <div key={video.id} className={styles.videoItem}>
                                 <Link href={`https://www.twitch.tv/${video.user_login}/video/${video.id}`} target="_blank" rel="noopener noreferrer">
                                     <Image
@@ -319,11 +324,11 @@ export default function UserProfilePage() {
                                     />
                                     <div className={styles.videoInfo}>
                                         <h3 className={styles.videoTitle}>{video.title}</h3>
-                                        <p className={styles.videoDuration}>{formatDuration(video.duration)}</p>
+                                        <p className={styles.videoDuration}>{formatDuration(video.duration || '0s')}</p>
                                     </div>
                                 </Link>
                             </div>
-                        ))}
+                        )) : <p>{t('profile.noVideos')}</p>}
                     </div>
                 </section>
             </div>
