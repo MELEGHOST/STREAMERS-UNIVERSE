@@ -82,7 +82,7 @@ function AchievementsPageContent() {
   const error = apiError?.message || null;
 
   // --- Извлекаем данные из ответа API ---
-  const achievements = useMemo(() => apiData?.achievements || [], [apiData]);
+  const achievements = useMemo(() => apiData || [], [apiData]);
   const myAchievements = useMemo(() => achievements.filter(ach => ach.is_unlocked), [achievements]);
 
    // --- Рендеринг --- 
@@ -129,7 +129,9 @@ function AchievementsPageContent() {
                  : myAchievements.map(ach => <AchievementCard key={ach.id} achievement={ach} t={t} />)
          )}
          {activeTab === 'all' && (
-             achievements.map(ach => <AchievementCard key={ach.id} achievement={ach} t={t} />)
+             achievements.length === 0
+                 ? <p className={styles.noAchievements}>{t('profile_page.achievements_page.noAchievementsAll', { defaultValue: 'No achievements available yet' })}</p>
+                 : achievements.map(ach => <AchievementCard key={ach.id} achievement={ach} t={t} />)
          )}
       </div>
        

@@ -43,12 +43,14 @@ export async function GET(request) {
 
     if (userId) {
       // Trigger achievements for logged-in user
-      await handleAchievementTrigger(userId, 'review_count');
-      await handleAchievementTrigger(userId, 'social_links');
-      await handleAchievementTrigger(userId, 'referrals');
-      await handleAchievementTrigger(userId, 'twitch_status');
-      await handleAchievementTrigger(userId, 'twitch_partner');
-      await handleAchievementTrigger(userId, 'achievements_unlocked');
+      await Promise.all([
+        handleAchievementTrigger(userId, 'review_count'),
+        handleAchievementTrigger(userId, 'social_links'),
+        handleAchievementTrigger(userId, 'referrals'),
+        handleAchievementTrigger(userId, 'twitch_status'),
+        handleAchievementTrigger(userId, 'twitch_partner'),
+        handleAchievementTrigger(userId, 'achievements_unlocked')
+      ]);
       // Add more triggers as needed
     }
 
@@ -65,7 +67,7 @@ export async function GET(request) {
       rarity: await getAchievementRarity(a.id),
       is_unlocked: userId ? userAchievements.some(ua => ua.achievement_id === a.id) : false
     })));
-    return NextResponse.json(enrichedData);
+    return NextResponse.json({ achievements: enrichedData });
   } catch (error) {
     console.error('[API /achievements] Error:', error);
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
