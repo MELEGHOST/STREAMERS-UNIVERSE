@@ -58,7 +58,6 @@ export default function MenuPage() {
   const { user, userRole } = useAuth();
   const { t } = useTranslation();
   const router = useRouter();
-  const [activeIndex] = useState(null);
 
   const menuItems = [
     { href: '/profile', label: t('menu.profile'), name: 'profile', description: t('menu.profileDesc') },
