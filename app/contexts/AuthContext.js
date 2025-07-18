@@ -30,6 +30,38 @@ export function AuthProvider({ children }) {
   }, []);
 
   useEffect(() => {
+    const fetchInitialSession = async () => {
+      setLoading(true);
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        setSession(session);
+        setUser(session?.user ?? null);
+        if (session?.user) {
+          const { data: profileData, error } = await supabase
+            .from('user_profiles')
+            .select('role')
+            .eq('user_id', session.user.id)
+            .single();
+          if (error) {
+            console.error('Error fetching user role:', error);
+            setUserRole('user');
+          } else {
+            setUserRole(profileData?.role || 'user');
+          }
+        } else {
+          setUserRole(null);
+        }
+      } catch (error) {
+        console.error('Error fetching initial session:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchInitialSession();
+  }, []);
+
+  useEffect(() => {
     setLoading(true);
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
