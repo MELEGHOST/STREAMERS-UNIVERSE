@@ -22,7 +22,7 @@ const RouteGuard = ({ children }) => {
     }
   }, [isFreshLogin]);
 
-  const isProtectedRoute = protectedRoutes.some(route => pathname.startsWith(route));
+  const isProtectedRoute = protectedRoutes.includes(pathname);
 
   useEffect(() => {
     console.log('[RouteGuard Debug] State:', { isFreshLogin, hasWaited, isLoading, isAuthenticated, isProtectedRoute, pathname });

@@ -13,27 +13,44 @@ export default function MenuPage() {
   const [rotation, setRotation] = useState(0);
   const [isIdle, setIsIdle] = useState(true);
   const timerRef = useRef(null);
-  const touchStartX = useRef(0);
+  const startX = useRef(0);
+  const isDragging = useRef(false);
 
   useEffect(() => {
     timerRef.current = setTimeout(() => setIsIdle(true), 120000);
     return () => clearTimeout(timerRef.current);
   }, []);
 
-  const handleTouchStart = (e) => {
+  const handleStart = (x) => {
     setIsIdle(false);
     clearTimeout(timerRef.current);
-    touchStartX.current = e.touches[0].clientX;
+    startX.current = x;
+    isDragging.current = true;
   };
 
-  const handleTouchMove = (e) => {
-    const deltaX = e.touches[0].clientX - touchStartX.current;
-    setRotation((prev) => prev + deltaX * 0.1);
+  const handleMove = (x) => {
+    if (isDragging.current) {
+      const deltaX = x - startX.current;
+      setRotation((prev) => prev + deltaX * 0.5);
+      startX.current = x;
+    }
   };
 
-  const handleTouchEnd = () => {
+  const handleEnd = () => {
+    isDragging.current = false;
     timerRef.current = setTimeout(() => setIsIdle(true), 120000);
   };
+
+  const handleTouchStart = (e) => handleStart(e.touches[0].clientX);
+  const handleTouchMove = (e) => handleMove(e.touches[0].clientX);
+  const handleTouchEnd = handleEnd;
+
+  const handleMouseDown = (e) => handleStart(e.clientX);
+  const handleMouseMove = (e) => {
+    if (isDragging.current) handleMove(e.clientX);
+  };
+  const handleMouseUp = handleEnd;
+  const handleMouseLeave = handleEnd;
 
   const menuItems = [
     { label: t('menu.profile', { defaultValue: 'Профиль' }), icon: '/icons/profile.png', href: '/profile', color: '142, 249, 252' },
@@ -57,11 +74,11 @@ export default function MenuPage() {
     }
 
     .inner {
-      --w: 200px;
-      --h: 300px;
-      --translateZ: calc((var(--w) + var(--h)) + 0px);
+      --w: 150px;
+      --h: 250px;
+      --translateZ: calc((var(--w) + var(--h)) / 2);
       --rotateX: 0deg;
-      --perspective: 1000px;
+      --perspective: 2000px;
       position: absolute;
       width: var(--w);
       height: var(--h);
@@ -90,7 +107,8 @@ export default function MenuPage() {
       transform: rotateY(calc((360deg / var(--quantity)) * var(--index))) translateZ(var(--translateZ));
       cursor: pointer;
       pointer-events: auto;
-      background: rgba(0, 0, 0, 0.8);
+      background: rgba(0, 0, 0, 1);
+      backface-visibility: hidden;
       box-shadow: 0 0 20px rgba(var(--color-card), 0.5);
     }
 
@@ -103,14 +121,6 @@ export default function MenuPage() {
       justify-content: center;
       align-items: center;
     }
-
-    .label {
-      color: white;
-      font-weight: bold;
-      text-shadow: 0 0 5px rgba(255, 255, 255, 0.8);
-      text-align: center;
-      padding: 10px;
-    }
   `;
 
   return (
@@ -119,7 +129,8 @@ export default function MenuPage() {
         <h1>{t('menu_page.title', { defaultValue: 'Меню навигации' })}</h1>
       </header>
       <HoloMenu isIdle={isIdle}>
-        <div className="wrapper" onTouchStart={handleTouchStart} onTouchMove={handleTouchMove} onTouchEnd={handleTouchEnd}>
+        <div className="wrapper" onTouchStart={handleTouchStart} onTouchMove={handleTouchMove} onTouchEnd={handleTouchEnd}
+          onMouseDown={handleMouseDown} onMouseMove={handleMouseMove} onMouseUp={handleMouseUp} onMouseLeave={handleMouseLeave}>
           <div className="inner" style={{ '--quantity': menuItems.length, transform: `translate(-50%, -50%) perspective(var(--perspective)) rotateY(${rotation}deg)` }}>
             {menuItems.map((item, index) => (
               <div
@@ -129,9 +140,8 @@ export default function MenuPage() {
                 onClick={() => router.push(item.href)}
               >
                 <div className="img">
-                  <Image src={item.icon} alt={item.label} width={120} height={120} />
+                  <Image src={item.icon} alt={item.label} width={100} height={100} />
                 </div>
-                <div className="label">{item.label}</div>
               </div>
             ))}
           </div>
