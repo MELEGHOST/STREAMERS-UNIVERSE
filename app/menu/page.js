@@ -58,78 +58,63 @@ export default function MenuPage() {
   const { t } = useTranslation();
   const router = useRouter();
 
+  const iconPaths = {
+    profile: '/icons/profile.png',
+    editProfile: '/icons/edit.png',
+    followers: '/icons/followers.png',
+    followings: '/icons/followings.png',
+    myReviews: '/icons/reviews.png',
+    achievements: '/icons/achievements.png',
+    settings: '/icons/settings.png',
+    admin: '/icons/admin.png',
+  };
+
   const menuItems = [
-    { href: '/profile', label: t('menu.profile'), name: 'profile', description: t('menu.profileDesc') },
-    { href: '/edit-profile', label: t('menu.editProfile'), name: 'editProfile', description: t('menu.editProfileDesc') },
-    { href: '/followers', label: t('menu.followers'), name: 'followers', description: t('menu.followersDesc') },
-    { href: '/followings', label: t('menu.followings'), name: 'followings', description: t('menu.followingsDesc') },
-    { href: '/my-reviews', label: t('menu.myReviews'), name: 'myReviews', description: t('menu.myReviewsDesc') },
-    { href: '/achievements', label: t('menu.achievements'), name: 'achievements', description: t('menu.achievementsDesc') },
-    { href: '/settings', label: t('menu.settings'), name: 'settings', description: t('menu.settingsDesc') },
-    { href: '/admin', label: t('menu.admin'), name: 'admin', description: t('menu.adminDesc'), condition: userRole === 'admin' },
+    { href: '/profile', label: t('menu.profile'), name: 'profile' },
+    { href: '/edit-profile', label: t('menu.editProfile'), name: 'editProfile' },
+    { href: '/followers', label: t('menu.followers'), name: 'followers' },
+    { href: '/followings', label: t('menu.followings'), name: 'followings' },
+    { href: '/my-reviews', label: t('menu.myReviews'), name: 'myReviews' },
+    { href: '/achievements', label: t('menu.achievements'), name: 'achievements' },
+    { href: '/settings', label: t('menu.settings'), name: 'settings' },
+    { href: '/admin', label: t('menu.admin'), name: 'admin', condition: userRole === 'admin' },
   ];
 
+  const filteredItems = menuItems.filter(item => !item.condition || item.condition);
+
   return (
-    <div className={pageStyles.container}>
+    <div className={styles.container}>
       <header className={styles.header}>
-          <div className={styles.logoContainer}>
-              <Link href="/menu" passHref className={styles.logoImageLink}>
-                <Image src="/logo.png" alt={t('logoAlt')} width={80} height={80} priority /> 
-              </Link>
-              <span className={styles.logoText}>{t('appName')}</span>
-          </div>
-          
-          <nav className={styles.userNav}>
-              {user?.user_metadata?.provider_id && (
-                  <Link href={`/profile/${user.user_metadata.provider_id}`} className={styles.userLink} title={t('menu.profile')}>
-                      <Image 
-                          src={user?.user_metadata?.avatar_url || '/default_avatar.png'}
-                          alt={t('yourAvatar')}
-                          width={72} 
-                          height={72} 
-                          className={styles.userAvatar}
-                          unoptimized
-                      />
-                      <span className={styles.userName}>{user?.user_metadata?.name || user?.user_metadata?.user_name || t('menu.profile')}</span>
-                  </Link>
-              )}
-          </nav>
+        <h1>{t('menu_page.title')}</h1>
       </header>
-
-      <main className={styles.mainContent}>
-          <h2 className={styles.mainTitle}>{t('menu.navigationMenu')}</h2>
-          <Swiper
-            modules={[EffectCube]}
-            effect="cube"
-            grabCursor={true}
-            cubeEffect={{
-              shadow: true,
-              slideShadows: true,
-              shadowOffset: 20,
-              shadowScale: 0.94,
-            }}
-            className={styles.swiper}
-          >
-            {menuItems.map((item) => (
-              <SwiperSlide key={item.href}>
-                <motion.div
-                  initial={{ opacity: 0, scale: 0.8, rotateY: 90 }}
-                  animate={{ opacity: 1, scale: 1, rotateY: 0 }}
-                  transition={{ duration: 0.5 }}
-                  className={styles.menuItem}
-                  onClick={() => router.push(item.href)}
-                >
-                  <Image src={ICONS[item.name] ? ICONS[item.name].props.viewBox : '/icons/default.png'} alt={item.label} width={100} height={100} className={styles.icon} />
-                  <h2>{item.label}</h2>
-                </motion.div>
-              </SwiperSlide>
-            ))}
-          </Swiper>
-      </main>
-
-      <footer className={pageStyles.footer}>
-          <p>{t('footerRights', { year: new Date().getFullYear() })}</p>
-      </footer>
+      <Swiper
+        modules={[EffectCube]}
+        effect="cube"
+        grabCursor={true}
+        cubeEffect={{
+          shadow: true,
+          slideShadows: true,
+          shadowOffset: 20,
+          shadowScale: 0.94,
+        }}
+        className={styles.swiper}
+        style={{ minHeight: '400px' }}
+      >
+        {filteredItems.map((item) => (
+          <SwiperSlide key={item.href}>
+            <motion.div
+              initial={{ opacity: 0, scale: 0.8, rotateY: 90 }}
+              animate={{ opacity: 1, scale: 1, rotateY: 0 }}
+              transition={{ duration: 0.5 }}
+              className={styles.menuItem}
+              onClick={() => router.push(item.href)}
+            >
+              <Image src={iconPaths[item.name] || '/icons/default.png'} alt={item.label} width={100} height={100} className={styles.icon} />
+              <h2>{item.label}</h2>
+            </motion.div>
+          </SwiperSlide>
+        ))}
+      </Swiper>
     </div>
   );
 }
