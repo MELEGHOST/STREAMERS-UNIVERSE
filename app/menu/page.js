@@ -22,39 +22,37 @@ export default function MenuPage() {
   const HoloMenu = styled.div`
   .wrapper {
     width: 100%;
-    height: 100%;
+    height: 500px;
     position: relative;
     text-align: center;
     display: flex;
     align-items: center;
     justify-content: center;
-    overflow: hidden;
+    overflow: visible;
   }
 
   .inner {
-    --w: 100px;
-    --h: 150px;
+    --w: 200px;
+    --h: 300px;
     --translateZ: calc((var(--w) + var(--h)) + 0px);
     --rotateX: -15deg;
     --perspective: 1000px;
     position: absolute;
     width: var(--w);
     height: var(--h);
-    top: 25%;
-    left: calc(50% - (var(--w) / 2) - 2.5px);
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%) perspective(var(--perspective));
     z-index: 2;
     transform-style: preserve-3d;
-    transform: perspective(var(--perspective));
     animation: rotating 20s linear infinite;
   }
   @keyframes rotating {
     from {
-      transform: perspective(var(--perspective)) rotateX(var(--rotateX))
-        rotateY(0);
+      transform: translate(-50%, -50%) perspective(var(--perspective)) rotateX(var(--rotateX)) rotateY(0);
     }
     to {
-      transform: perspective(var(--perspective)) rotateX(var(--rotateX))
-        rotateY(1turn);
+      transform: translate(-50%, -50%) perspective(var(--perspective)) rotateX(var(--rotateX)) rotateY(1turn);
     }
   }
 
@@ -64,28 +62,24 @@ export default function MenuPage() {
     border-radius: 12px;
     overflow: hidden;
     inset: 0;
-    transform: rotateY(calc((360deg / var(--quantity)) * var(--index)))
-      translateZ(var(--translateZ));
+    transform: rotateY(calc((360deg / var(--quantity)) * var(--index))) translateZ(var(--translateZ));
     cursor: pointer;
+    pointer-events: auto;
+    background: rgba(0, 0, 0, 0.5);
   }
 
   .img {
     width: 100%;
     height: 100%;
     object-fit: cover;
-    background: #0000
-      radial-gradient(
-        circle,
-        rgba(var(--color-card), 0.2) 0%,
-        rgba(var(--color-card), 0.6) 80%,
-        rgba(var(--color-card), 0.9) 100%
-      );
+    background: #0000 radial-gradient(circle, rgba(var(--color-card), 0.2) 0%, rgba(var(--color-card), 0.6) 80%, rgba(var(--color-card), 0.9) 100%);
     display: flex;
     flex-direction: column;
     justify-content: center;
     align-items: center;
     color: white;
     font-weight: bold;
+    text-shadow: 0 0 5px rgba(255, 255, 255, 0.8);
   }
 `;
 
