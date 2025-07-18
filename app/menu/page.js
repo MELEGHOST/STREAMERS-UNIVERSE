@@ -5,10 +5,35 @@ import styles from './menu.module.css';
 import { useTranslation } from 'react-i18next';
 import { useRouter } from 'next/navigation';
 import styled from 'styled-components';
+import { useState, useRef, useEffect } from 'react';
 
 export default function MenuPage() {
   const { t } = useTranslation();
   const router = useRouter();
+  const [rotation, setRotation] = useState(0);
+  const [isIdle, setIsIdle] = useState(true);
+  const timerRef = useRef(null);
+  const touchStartX = useRef(0);
+
+  useEffect(() => {
+    timerRef.current = setTimeout(() => setIsIdle(true), 120000);
+    return () => clearTimeout(timerRef.current);
+  }, []);
+
+  const handleTouchStart = (e) => {
+    setIsIdle(false);
+    clearTimeout(timerRef.current);
+    touchStartX.current = e.touches[0].clientX;
+  };
+
+  const handleTouchMove = (e) => {
+    const deltaX = e.touches[0].clientX - touchStartX.current;
+    setRotation((prev) => prev + deltaX * 0.1);
+  };
+
+  const handleTouchEnd = () => {
+    timerRef.current = setTimeout(() => setIsIdle(true), 120000);
+  };
 
   const menuItems = [
     { label: t('menu.profile', { defaultValue: 'Профиль' }), icon: '/icons/profile.png', href: '/profile', color: '142, 249, 252' },
@@ -20,77 +45,82 @@ export default function MenuPage() {
   ];
 
   const HoloMenu = styled.div`
-  .wrapper {
-    width: 100%;
-    height: 500px;
-    position: relative;
-    text-align: center;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    overflow: visible;
-  }
-
-  .inner {
-    --w: 200px;
-    --h: 300px;
-    --translateZ: calc((var(--w) + var(--h)) + 0px);
-    --rotateX: -15deg;
-    --perspective: 1000px;
-    position: absolute;
-    width: var(--w);
-    height: var(--h);
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%) perspective(var(--perspective));
-    z-index: 2;
-    transform-style: preserve-3d;
-    animation: rotating 20s linear infinite;
-  }
-  @keyframes rotating {
-    from {
-      transform: translate(-50%, -50%) perspective(var(--perspective)) rotateX(var(--rotateX)) rotateY(0);
+    .wrapper {
+      width: 100%;
+      height: 500px;
+      position: relative;
+      text-align: center;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: visible;
     }
-    to {
-      transform: translate(-50%, -50%) perspective(var(--perspective)) rotateX(var(--rotateX)) rotateY(1turn);
+
+    .inner {
+      --w: 200px;
+      --h: 300px;
+      --translateZ: calc((var(--w) + var(--h)) + 0px);
+      --rotateX: 0deg;
+      --perspective: 1000px;
+      position: absolute;
+      width: var(--w);
+      height: var(--h);
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%) perspective(var(--perspective));
+      z-index: 2;
+      transform-style: preserve-3d;
+      animation: ${props => props.isIdle ? 'rotating 60s linear infinite' : 'none'};
     }
-  }
+    @keyframes rotating {
+      from {
+        transform: translate(-50%, -50%) perspective(var(--perspective)) rotateX(var(--rotateX)) rotateY(0);
+      }
+      to {
+        transform: translate(-50%, -50%) perspective(var(--perspective)) rotateX(var(--rotateX)) rotateY(1turn);
+      }
+    }
 
-  .card {
-    position: absolute;
-    border: 2px solid rgba(var(--color-card));
-    border-radius: 12px;
-    overflow: hidden;
-    inset: 0;
-    transform: rotateY(calc((360deg / var(--quantity)) * var(--index))) translateZ(var(--translateZ));
-    cursor: pointer;
-    pointer-events: auto;
-    background: rgba(0, 0, 0, 0.5);
-  }
+    .card {
+      position: absolute;
+      border: 2px solid rgba(var(--color-card), 0.8);
+      border-radius: 20px;
+      overflow: hidden;
+      inset: 0;
+      transform: rotateY(calc((360deg / var(--quantity)) * var(--index))) translateZ(var(--translateZ));
+      cursor: pointer;
+      pointer-events: auto;
+      background: rgba(0, 0, 0, 0.8);
+      box-shadow: 0 0 20px rgba(var(--color-card), 0.5);
+    }
 
-  .img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-    background: #0000 radial-gradient(circle, rgba(var(--color-card), 0.2) 0%, rgba(var(--color-card), 0.6) 80%, rgba(var(--color-card), 0.9) 100%);
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    align-items: center;
-    color: white;
-    font-weight: bold;
-    text-shadow: 0 0 5px rgba(255, 255, 255, 0.8);
-  }
-`;
+    .img {
+      width: 100%;
+      height: 80%;
+      object-fit: cover;
+      background: #0000 radial-gradient(circle, rgba(var(--color-card), 0.2) 0%, rgba(var(--color-card), 0.6) 80%, rgba(var(--color-card), 0.9) 100%);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+
+    .label {
+      color: white;
+      font-weight: bold;
+      text-shadow: 0 0 5px rgba(255, 255, 255, 0.8);
+      text-align: center;
+      padding: 10px;
+    }
+  `;
 
   return (
     <div className={styles.container}>
       <header className={styles.header}>
         <h1>{t('menu_page.title', { defaultValue: 'Меню навигации' })}</h1>
       </header>
-      <HoloMenu>
-        <div className="wrapper">
-          <div className="inner" style={{ '--quantity': menuItems.length }}>
+      <HoloMenu isIdle={isIdle}>
+        <div className="wrapper" onTouchStart={handleTouchStart} onTouchMove={handleTouchMove} onTouchEnd={handleTouchEnd}>
+          <div className="inner" style={{ '--quantity': menuItems.length, transform: `translate(-50%, -50%) perspective(var(--perspective)) rotateY(${rotation}deg)` }}>
             {menuItems.map((item, index) => (
               <div
                 className="card"
@@ -99,9 +129,9 @@ export default function MenuPage() {
                 onClick={() => router.push(item.href)}
               >
                 <div className="img">
-                  <Image src={item.icon} alt={item.label} width={60} height={60} />
-                  <span>{item.label}</span>
+                  <Image src={item.icon} alt={item.label} width={120} height={120} />
                 </div>
+                <div className="label">{item.label}</div>
               </div>
             ))}
           </div>
