@@ -70,14 +70,14 @@ const translateBroadcasterType = (type, t) => {
 };
 
 const formatDuration = (durationString) => {
-  if (!durationString) return '0m';
+  if (!durationString) return '0s';
   let totalSeconds = 0;
   const hoursMatch = durationString.match(/(\d+)h/);
   const minutesMatch = durationString.match(/(\d+)m/);
   const secondsMatch = durationString.match(/(\d+)s/);
-  if (hoursMatch) totalSeconds += parseInt(hoursMatch[1], 10) * 3600;
-  if (minutesMatch) totalSeconds += parseInt(minutesMatch[1], 10) * 60;
-  if (secondsMatch) totalSeconds += parseInt(secondsMatch[1], 10);
+  if (hoursMatch && hoursMatch[1]) totalSeconds += parseInt(hoursMatch[1], 10) * 3600;
+  if (minutesMatch && minutesMatch[1]) totalSeconds += parseInt(minutesMatch[1], 10) * 60;
+  if (secondsMatch && secondsMatch[1]) totalSeconds += parseInt(secondsMatch[1], 10);
   const hours = Math.floor(totalSeconds / 3600);
   const minutes = Math.floor((totalSeconds % 3600) / 60);
   const seconds = totalSeconds % 60;

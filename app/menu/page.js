@@ -74,8 +74,8 @@ export default function MenuPage() {
     }
 
     .inner {
-      --w: 150px;
-      --h: 250px;
+      --w: 250px;
+      --h: 350px;
       --translateZ: calc((var(--w) + var(--h)) / 2);
       --rotateX: 0deg;
       --perspective: 2000px;
