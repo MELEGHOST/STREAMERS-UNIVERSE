@@ -2,11 +2,15 @@ import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { searchTwitchChannels, getTwitchUsers } from '../../../utils/twitchClient.js'; // Убедимся, что путь верный
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY; 
-const supabase = createClient(supabaseUrl, supabaseAnonKey);
-
 export async function GET(request) {
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  if (!supabaseUrl || !supabaseAnonKey) {
+    console.error("[API /search/combined] Supabase configuration missing");
+    return NextResponse.json({ error: 'Server configuration error' }, { status: 500 });
+  }
+  const supabase = createClient(supabaseUrl, supabaseAnonKey);
+
   const query = request.nextUrl.searchParams.get('query');
   if (!query || query.trim().length < 2) {
     return NextResponse.json([], { status: 200 }); // Возвращаем пустой массив, если запрос короткий

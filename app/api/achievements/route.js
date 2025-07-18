@@ -3,19 +3,8 @@ import { createClient } from '@supabase/supabase-js';
 import { verifyJwt } from '../../utils/jwt';
 import { handleAchievementTrigger } from '../../utils/achievements';
 
-// Initialize Supabase admin client
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_KEY;
-
-if (!supabaseUrl || !supabaseServiceKey) {
-  console.error('[API /achievements] Missing Supabase URL or Service Key');
-}
-
-// The admin client is created here on server-side
-const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
-
 // Function to get achievements
-async function getAchievements() {
+async function getAchievements(supabaseAdmin) {
   try {
     const { data } = await supabaseAdmin.from('achievements').select('*');
     return data || [];
@@ -40,6 +29,14 @@ async function getAchievementRarity(achievementId) {
 // GET handler for the route
 export async function GET(request) {
   try {
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const supabaseServiceKey = process.env.SUPABASE_SERVICE_KEY;
+    if (!supabaseUrl || !supabaseServiceKey) {
+      console.error('[API /achievements] Missing Supabase URL or Service Key');
+      return NextResponse.json({ error: 'Server configuration error' }, { status: 500 });
+    }
+    const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
+
     const token = request.headers.get('Authorization')?.split(' ')[1];
     const verifiedToken = await verifyJwt(token);
     const userId = verifiedToken?.sub;
@@ -55,7 +52,7 @@ export async function GET(request) {
       // Add more triggers as needed
     }
 
-    const data = await getAchievements();
+    const data = await getAchievements(supabaseAdmin);
     
     let userAchievements = [];
     if (userId) {

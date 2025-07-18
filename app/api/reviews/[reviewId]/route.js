@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
-import { supabaseAdmin } from '../../../utils/supabase/admin'; // ИСПРАВЛЕННЫЙ ПУТЬ и раскомментировано
-import { verifyJwt } from '../../../utils/jwt'; 
+import { getSupabaseAdmin } from '../../../utils/supabase/admin';
+import { verifyJwt } from '../../../utils/jwt';
 
 // DELETE - Удаление отзыва
 export async function DELETE(request, { params }) {
@@ -20,6 +20,7 @@ export async function DELETE(request, { params }) {
     }
     
     // Проверяем, инициализирован ли админский клиент
+    const supabaseAdmin = getSupabaseAdmin();
     if (!supabaseAdmin) {
          console.error(`[API /api/reviews/${reviewId}] Supabase admin client is not initialized! Check environment variables.`);
         return NextResponse.json({ error: 'Server configuration error: Supabase admin client failed to initialize.' }, { status: 500 });
@@ -89,6 +90,7 @@ export async function GET(request, { params }) {
     }
 
     // Проверяем, инициализирован ли админский клиент
+    const supabaseAdmin = getSupabaseAdmin();
     if (!supabaseAdmin) {
          console.error(`[API /api/reviews/${reviewId}] Supabase admin client is not initialized! Check environment variables.`);
         return NextResponse.json({ error: 'Server configuration error: Supabase admin client failed to initialize.' }, { status: 500 });
@@ -145,6 +147,7 @@ export async function PATCH(request, { params }) {
     }
 
      // Проверяем, инициализирован ли админский клиент
+    const supabaseAdmin = getSupabaseAdmin();
     if (!supabaseAdmin) {
          console.error(`[API /api/reviews/${reviewId}] Supabase admin client is not initialized! Check environment variables.`);
         return NextResponse.json({ error: 'Server configuration error: Supabase admin client failed to initialize.' }, { status: 500 });

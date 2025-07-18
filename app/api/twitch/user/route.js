@@ -4,17 +4,17 @@ import { createClient } from '@supabase/supabase-js';
 import { verifyJwt } from '../../../utils/jwt';
 
 // Инициализация Supabase Admin Client (используем сервисный ключ)
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_KEY;
+// const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+// const supabaseServiceKey = process.env.SUPABASE_SERVICE_KEY;
 
-if (!supabaseUrl || !supabaseServiceKey) {
-    console.error("[API /api/twitch/user] Critical Error: Supabase URL or Service Key is missing!");
-    // В реальном приложении здесь стоит выбрасывать ошибку или обрабатывать иначе
-}
+// if (!supabaseUrl || !supabaseServiceKey) {
+//     console.error("[API /api/twitch/user] Critical Error: Supabase URL or Service Key is missing!");
+//     // В реальном приложении здесь стоит выбрасывать ошибку или обрабатывать иначе
+// }
 
-const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey, {
-    auth: { persistSession: false } // Не сохраняем сессию для админ клиента
-});
+// const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey, {
+//     auth: { persistSession: false } // Не сохраняем сессию для админ клиента
+// });
 
 // // Переменные для кэширования App Access Token (НЕ ИСПОЛЬЗУЮТСЯ ЗДЕСЬ)
 // let appAccessToken = null;
@@ -132,6 +132,14 @@ export async function GET(request) {
   
   // --- Поиск профиля в базе и определение isOwnerViewing --- 
   try {
+      const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+      const supabaseServiceKey = process.env.SUPABASE_SERVICE_KEY;
+      if (!supabaseUrl || !supabaseServiceKey) {
+          console.error("[API /twitch/user] Critical Error: Supabase URL or Service Key is missing!");
+          return NextResponse.json({ error: 'Supabase configuration missing' }, { status: 500 });
+      }
+      const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey, { auth: { persistSession: false } });
+
       // 1. Ищем пользователя в auth.users по Twitch ID (provider_id) - Возвращаем listUsers()
       console.log(`[API /api/twitch/user] Looking up Supabase user ID via listUsers() for Twitch ID: ${userId}`);
       const { data: { users: allAuthUsers }, error: listUsersError } = await supabaseAdmin.auth.admin.listUsers({

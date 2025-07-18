@@ -2,20 +2,15 @@ import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { verifyJwt } from '../../utils/jwt'; // <<< Путь к app/utils/jwt
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_KEY;
-
-if (!supabaseUrl || !supabaseServiceKey) {
-    console.error("[API /api/reviews] Critical Error: Supabase URL or Service Key is missing!");
-}
-// Используем сервисный ключ для POST запросов, чтобы обойти RLS (если нужно)
-// Для GET можно было бы использовать ключ пользователя, если RLS настроена на чтение одобренных
-const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey, {
-    auth: { persistSession: false }
-});
-
-// GET - Получение одобренных отзывов
 export async function GET() {
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const supabaseServiceKey = process.env.SUPABASE_SERVICE_KEY;
+  if (!supabaseUrl || !supabaseServiceKey) {
+    console.error("[API /reviews] Critical Error: Supabase URL or Service Key is missing!");
+    return NextResponse.json({ error: 'Supabase configuration missing' }, { status: 500 });
+  }
+  const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey, { auth: { persistSession: false } });
+
     // TODO: Добавить пагинацию (limit, offset)
     try {
         console.log("[API /api/reviews] Fetching approved reviews...");

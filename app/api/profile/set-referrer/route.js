@@ -2,18 +2,6 @@ import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { verifyJwt } from '../../../utils/jwt';
 
-// Инициализация Supabase Admin Client
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_KEY;
-
-if (!supabaseUrl || !supabaseServiceKey) {
-    console.error("[API /api/profile/set-referrer] Critical Error: Supabase URL or Service Key is missing!");
-}
-
-const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey, {
-    auth: { persistSession: false }
-});
-
 export async function POST(request) {
     console.log('[API /set-referrer] Received POST request');
     const token = request.headers.get('Authorization')?.split(' ')[1];
@@ -26,6 +14,14 @@ export async function POST(request) {
     
     const currentUserId = verifiedToken.sub; 
     console.log(`[API /set-referrer] Authenticated user ID: ${currentUserId}`);
+
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const supabaseServiceKey = process.env.SUPABASE_SERVICE_KEY;
+    if (!supabaseUrl || !supabaseServiceKey) {
+        console.error("[API /set-referrer] Critical Error: Supabase URL or Service Key is missing!");
+        return NextResponse.json({ error: 'Supabase configuration missing' }, { status: 500 });
+    }
+    const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey, { auth: { persistSession: false } });
 
     try {
         const body = await request.json();

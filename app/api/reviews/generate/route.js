@@ -1,16 +1,17 @@
 import OpenAI from 'openai';
 import { NextResponse } from 'next/server';
 import { oneLine, stripIndent } from 'common-tags';
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-  baseURL: 'https://openrouter.ai/api/v1'
-});
+// Убрана глобальная инициализация, чтоб не валилось при билде
 export async function POST(req) {
   try {
     if (!process.env.OPENAI_API_KEY) {
       console.error('OPENROUTER_API_KEY missing!');
       return NextResponse.json({ error: 'OPENROUTER_API_KEY is not configured.' }, { status: 500 });
     }
+    const openai = new OpenAI({
+      apiKey: process.env.OPENAI_API_KEY,
+      baseURL: 'https://openrouter.ai/api/v1'
+    });
     const { title } = await req.json();
     if (!title) {
       return NextResponse.json({ error: 'Title is required' }, { status: 400 });

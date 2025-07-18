@@ -1,16 +1,15 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_KEY;
-
-if (!supabaseUrl || !supabaseServiceKey) {
-    console.error("[API /api/admin/reviews/moderate POST] Critical Error: Supabase keys missing!");
-}
-const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey, { auth: { persistSession: false } });
-
-// --- Вспомогательная функция для проверки роли админа ---
 async function isAdmin(token) {
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const supabaseServiceKey = process.env.SUPABASE_SERVICE_KEY;
+    if (!supabaseUrl || !supabaseServiceKey) {
+        console.error("[isAdmin/moderate] Critical Error: Supabase keys missing!");
+        return false;
+    }
+    const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey, { auth: { persistSession: false } });
+
     if (!token) return false;
     try {
         const { data: { user }, error: userError } = await supabaseAdmin.auth.getUser(token);

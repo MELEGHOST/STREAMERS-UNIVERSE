@@ -1,19 +1,16 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_KEY;
-
-if (!supabaseUrl || !supabaseServiceKey) {
-    console.error("[API /api/admin/reviews] Critical Error: Supabase keys missing!");
-}
-
-const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey, {
-    auth: { persistSession: false }
-});
-
 // --- Вспомогательная функция для проверки роли админа ---
 async function isAdmin(token) {
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const supabaseServiceKey = process.env.SUPABASE_SERVICE_KEY;
+    if (!supabaseUrl || !supabaseServiceKey) {
+        console.error("[isAdmin] Critical Error: Supabase keys missing!");
+        return false;
+    }
+    const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey, { auth: { persistSession: false } });
+
     if (!token) return false;
     
     try {
@@ -52,6 +49,14 @@ export async function GET(request) {
     console.log(`[API Admin Reviews] Fetching pending reviews...`);
 
     try {
+        const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+        const supabaseServiceKey = process.env.SUPABASE_SERVICE_KEY;
+        if (!supabaseUrl || !supabaseServiceKey) {
+            console.error("[API /api/admin/reviews] Critical Error: Supabase keys missing!");
+            return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
+        }
+        const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey, { auth: { persistSession: false } });
+
         const { data, error } = await supabaseAdmin
             .from('reviews')
             .select(`

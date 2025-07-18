@@ -3,15 +3,15 @@ import { createClient } from '@supabase/supabase-js';
 import { getTwitchClientWithToken } from '../../../utils/twitchClient';
 import { handleAchievementTrigger } from '../../../utils/achievements';
 
-// Админ-клиент для обновления метаданных пользователя
-const supabaseAdmin = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_KEY
-);
-
-// Этот эндпоинт будет вызываться на клиенте после логина,
-// чтобы убедиться, что для пользователя auth.users существует запись в public.profiles
 export async function POST({ headers }) {
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const supabaseServiceKey = process.env.SUPABASE_SERVICE_KEY;
+  if (!supabaseUrl || !supabaseServiceKey) {
+    console.error("[Sync Profile API] Supabase configuration missing");
+    return NextResponse.json({ error: 'Server configuration error' }, { status: 500 });
+  }
+  const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
+
   const authHeader = headers.get('Authorization');
   if (!authHeader || !authHeader.startsWith('Bearer ')) {
     return NextResponse.json({ error: 'Отсутствует или некорректный заголовок Authorization.' }, { status: 401 });

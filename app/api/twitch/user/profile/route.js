@@ -3,18 +3,6 @@ import { createClient } from '@supabase/supabase-js';
 import { verifyJwt } from '../../../../utils/jwt'; // Убедись, что путь правильный
 import { handleAchievementTrigger } from '../../../../utils/achievements'; // <<< Импортируем
 
-// Инициализация Supabase Admin Client (используем сервисный ключ)
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_KEY;
-
-if (!supabaseUrl || !supabaseServiceKey) {
-    console.error("[API /api/twitch/user/profile] Critical Error: Supabase URL or Service Key is missing!");
-}
-
-const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey, {
-    auth: { persistSession: false } // Не сохраняем сессию для админ клиента
-});
-
 export async function PUT(request) {
     const token = request.headers.get('Authorization')?.split(' ')[1]; // Получаем JWT
 
@@ -29,11 +17,19 @@ export async function PUT(request) {
             throw new Error('Invalid token payload');
         }
         userId = verifiedToken.sub; // ID пользователя из токена
-        console.log(`[API /api/twitch/user/profile] User ID from token: ${userId}`);
+        console.log(`[API /twitch/user/profile] User ID from token: ${userId}`);
     } catch (error) {
-        console.error('[API /api/twitch/user/profile] Token verification failed:', error);
+        console.error('[API /twitch/user/profile] Token verification failed:', error);
         return NextResponse.json({ error: 'Unauthorized: Invalid token' }, { status: 401 });
     }
+
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const supabaseServiceKey = process.env.SUPABASE_SERVICE_KEY;
+    if (!supabaseUrl || !supabaseServiceKey) {
+        console.error("[API /twitch/user/profile] Critical Error: Supabase URL or Service Key is missing!");
+        return NextResponse.json({ error: 'Supabase configuration missing' }, { status: 500 });
+    }
+    const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey, { auth: { persistSession: false } });
 
     const body = await request.json();
     const { birthday, description, social_links, profile_widget } = body;
@@ -50,7 +46,7 @@ export async function PUT(request) {
         return NextResponse.json({ message: 'No update needed' }, { status: 200 });
     }
 
-    console.log(`[API /api/twitch/user/profile] Updating profile for user ${userId} with data:`, dataToUpdate);
+    console.log(`[API /twitch/user/profile] Updating profile for user ${userId} with data:`, dataToUpdate);
 
     try {
         // 2. Обновляем или создаем профиль в нашей базе
@@ -62,7 +58,7 @@ export async function PUT(request) {
             .select() // Возвращаем обновленную запись
 
         if (error) {
-            console.error(`[API /api/twitch/user/profile] Error updating profile:`, error);
+            console.error(`[API /twitch/user/profile] Error updating profile:`, error);
             return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
         }
 
@@ -72,7 +68,7 @@ export async function PUT(request) {
 
         return NextResponse.json(data, { status: 200 });
     } catch (error) {
-        console.error(`[API /api/twitch/user/profile] Error updating profile:`, error);
+        console.error(`[API /twitch/user/profile] Error updating profile:`, error);
         return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
     }
 }

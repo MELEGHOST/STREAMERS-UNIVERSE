@@ -6,24 +6,6 @@ import ytdl from 'ytdl-core';
 import { PassThrough } from 'stream';
 import { validateTwitchUser } from '../../../../utils/twitchApi.js'; // Путь может потребовать корректировки
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_KEY;
-const openRouterApiKey = process.env.OPENROUTER_API_KEY;
-
-if (!supabaseUrl || !supabaseServiceKey) {
-    console.error("[API /api/reviews/generate-full] Critical Error: Supabase keys missing!");
-}
-if (!openRouterApiKey) {
-    console.error("[API /api/reviews/generate-full] Critical Error: OPENROUTER_API_KEY missing!");
-}
-
-const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey, { auth: { persistSession: false } });
-
-const openrouter = new OpenAI({
-    baseURL: "https://openrouter.ai/api/v1",
-    apiKey: openRouterApiKey,
-});
-
 // Функция для получения аудио потока с YouTube (та же, что и была)
 async function getYoutubeAudioStream(url) {
     if (!ytdl.validateURL(url)) {
@@ -55,20 +37,34 @@ async function getYoutubeAudioStream(url) {
 // async function getTwitchClipStream(url) { ... }
 
 export async function POST(request) {
-    // --- ВОЗВРАЩАЕМ ПРОВЕРКУ АВТОРИЗАЦИИ ---
+    // Проверки авторизации
     const token = request.headers.get('Authorization')?.split(' ')[1];
     const verifiedToken = await verifyJwt(token);
-
     if (!verifiedToken) {
         console.warn("[API /generate-full] Unauthorized access attempt.");
         return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
-    const userId = verifiedToken.sub; // ID пользователя, который инициировал генерацию
-    // ----------------------------------------
+    const userId = verifiedToken.sub;
 
-    if (!openRouterApiKey) {
-         return NextResponse.json({ error: 'AI Service is not configured.' }, { status: 503 });
+    // Проверки env
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const supabaseServiceKey = process.env.SUPABASE_SERVICE_KEY;
+    const openRouterApiKey = process.env.OPENROUTER_API_KEY;
+    if (!supabaseUrl || !supabaseServiceKey) {
+        console.error("[API /generate-full] Critical Error: Supabase keys missing!");
+        return NextResponse.json({ error: 'Supabase configuration missing' }, { status: 500 });
     }
+    if (!openRouterApiKey) {
+        console.error("[API /generate-full] Critical Error: OPENROUTER_API_KEY missing!");
+        return NextResponse.json({ error: 'AI Service is not configured.' }, { status: 503 });
+    }
+
+    // Инициализация клиентов
+    const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey, { auth: { persistSession: false } });
+    const openrouter = new OpenAI({
+        baseURL: "https://openrouter.ai/api/v1",
+        apiKey: openRouterApiKey,
+    });
 
     try {
         const body = await request.json();

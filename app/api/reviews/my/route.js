@@ -2,17 +2,6 @@ import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { verifyJwt } from '../../../utils/jwt';
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_KEY;
-
-if (!supabaseUrl || !supabaseServiceKey) {
-    console.error("[API /api/reviews/my] Critical Error: Supabase URL or Service Key is missing!");
-}
-
-const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey, {
-    auth: { persistSession: false }
-});
-
 export async function GET(request) {
     const token = request.headers.get('Authorization')?.split(' ')[1];
 
@@ -29,6 +18,14 @@ export async function GET(request) {
 
     const authorId = verifiedToken.sub; // Получаем Supabase User ID автора из токена
     console.log(`[API /api/reviews/my] Fetching reviews for author_id: ${authorId}`);
+
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const supabaseServiceKey = process.env.SUPABASE_SERVICE_KEY;
+    if (!supabaseUrl || !supabaseServiceKey) {
+        console.error("[API /reviews/my] Critical Error: Supabase URL or Service Key is missing!");
+        return NextResponse.json({ error: 'Supabase configuration missing' }, { status: 500 });
+    }
+    const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey, { auth: { persistSession: false } });
 
     try {
         const { data: reviews, error } = await supabaseAdmin
