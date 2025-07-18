@@ -18,36 +18,35 @@ function translateBroadcasterType(type, t) {
     return t(`profile_page.broadcaster.${type || 'default'}`, { defaultValue: type });
 }
 
+// Предполагаемая функция fetcher для useSWR
+const fetcher = url => fetch(url).then(res => res.json());
 
 function ProfilePageContent() {
     const { t } = useTranslation();
     const { user, supabase, loading: authLoading, userRole } = useAuth();
-  const router = useRouter();
-  const twitchUserId = user?.user_metadata?.provider_id;
-  const { data, swrError } = useSWR(twitchUserId ? `/api/twitch/user/profile?id=${twitchUserId}` : null, fetcher);
-  if (authLoading || !data) return <div>Loading...</div>;
-  if (swrError) return <div>Error: {swrError.message}</div>;
-  const twitchUserData = data;
-    const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-  
+    const router = useRouter();
+    const twitchUserId = user?.user_metadata?.provider_id;
+    const { data, error: swrError } = useSWR(twitchUserId ? `/api/twitch/user?userId=${twitchUserId}` : null, fetcher);
 
+    const [twitchUserData, setTwitchUserData] = useState(null);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState(null);
+    
     const fetchTwitchUserData = useCallback(async () => {
         if (!twitchUserId) {
             setError('Twitch user ID is missing.');
             return;
         }
         try {
-            const response = await fetch(`/api/twitch/user/profile?id=${twitchUserId}`);
+            const response = await fetch(`/api/twitch/user?userId=${twitchUserId}`);
             if (!response.ok) throw new Error('Failed to fetch Twitch user data');
-            const data = await response.json();
-            setTwitchUserData(data);
+            const fetchedData = await response.json();
+            setTwitchUserData(fetchedData.twitch_user);
         } catch (err) {
             console.error(err);
             setError(err.message);
         }
     }, [twitchUserId]);
-
 
     const fetchAllData = useCallback(async () => {
       if (!user || !supabase || !twitchUserId) {
@@ -75,16 +74,19 @@ function ProfilePageContent() {
 
     }, [user, supabase, twitchUserId, fetchTwitchUserData]);
 
-
     useEffect(() => {
         if (!authLoading && user) {
             fetchAllData();
         }
     }, [authLoading, fetchAllData, user]);
 
+    useEffect(() => {
+        if (data && data.twitch_user) {
+            setTwitchUserData(data.twitch_user);
+        }
+    }, [data]);
 
-
-    if (authLoading || loading) {
+    if (authLoading || loading || !twitchUserData) {
         return (
             <div className={pageStyles.loadingContainer}>
                 <p>Загрузка профиля...</p>
@@ -92,8 +94,8 @@ function ProfilePageContent() {
         );
     }
     
-    if (error) {
-        return <div className={pageStyles.container}><p className={pageStyles.errorMessage}>{error}</p></div>;
+    if (swrError || error) {
+        return <div className={pageStyles.container}><p className={pageStyles.errorMessage}>{swrError?.message || error}</p></div>;
     }
     
     if (!user) {
