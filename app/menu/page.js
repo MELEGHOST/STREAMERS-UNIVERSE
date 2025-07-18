@@ -8,6 +8,12 @@ import styles from './menu.module.css';
 import pageStyles from '../../styles/page.module.css';
 import { useTranslation } from 'react-i18next';
 import MenuCard from '../components/MenuCard/MenuCard';
+import { Swiper, SwiperSlide } from 'swiper/react';
+import 'swiper/css';
+import 'swiper/css/effect-cube';
+import { EffectCube } from 'swiper/modules';
+import { motion } from 'framer-motion';
+import { useRouter } from 'next/navigation';
 
 const ICONS = {
   search: (
@@ -52,6 +58,7 @@ const ICONS = {
 export default function MenuPage() {
   const { user, userRole } = useAuth();
   const { t } = useTranslation();
+  const router = useRouter();
   const [activeIndex, setActiveIndex] = useState(null);
 
   const menuItems = [
@@ -102,23 +109,33 @@ export default function MenuPage() {
 
       <main className={styles.mainContent}>
           <h2 className={styles.mainTitle}>{t('menu.navigationMenu')}</h2>
-          <ul 
-            className={styles.cardList}
-            style={{ gridTemplateColumns: getGridTemplateColumns() }}
-            onMouseLeave={() => setActiveIndex(null)}
+          <Swiper
+            modules={[EffectCube]}
+            effect="cube"
+            grabCursor={true}
+            cubeEffect={{
+              shadow: true,
+              slideShadows: true,
+              shadowOffset: 20,
+              shadowScale: 0.94,
+            }}
+            className={styles.swiper}
           >
             {menuItems.map((item, index) => (
-                <MenuCard 
-                    key={item.href}
-                    href={item.href} 
-                    label={item.label}
-                    icon={ICONS[item.name]}
-                    description={item.description}
-                    isActive={index === activeIndex}
-                    onPointerEnter={() => setActiveIndex(index)}
-                />
+              <SwiperSlide key={item.href}>
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.8, rotateY: 90 }}
+                  animate={{ opacity: 1, scale: 1, rotateY: 0 }}
+                  transition={{ duration: 0.5 }}
+                  className={styles.menuItem}
+                  onClick={() => router.push(item.href)}
+                >
+                  <img src={ICONS[item.name] ? ICONS[item.name].props.viewBox : '/icons/default.png'} alt={item.label} className={styles.icon} />
+                  <h2>{item.label}</h2>
+                </motion.div>
+              </SwiperSlide>
             ))}
-          </ul>
+          </Swiper>
       </main>
 
       <footer className={pageStyles.footer}>
