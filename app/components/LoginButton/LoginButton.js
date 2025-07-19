@@ -11,7 +11,14 @@ const LoginButton = () => {
   const { user, loading, signInWithTwitch, signOut } = useAuth();
 
   const handleLogin = async () => {
-    await signInWithTwitch();
+    const result = await signInWithTwitch();
+    if (result.data?.url) {
+      if (window.Telegram?.WebApp) {
+        window.Telegram.WebApp.openLink(result.data.url);
+      } else {
+        window.location.href = result.data.url;
+      }
+    }
   };
 
   const handleLogout = async () => {

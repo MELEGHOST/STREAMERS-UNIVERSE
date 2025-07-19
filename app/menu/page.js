@@ -6,6 +6,7 @@ import { useTranslation } from 'react-i18next';
 import { useRouter } from 'next/navigation';
 import styled from 'styled-components';
 import { useState, useRef, useEffect } from 'react';
+import { FaUser, FaUsers, FaUserFriends, FaCog, FaSearch, FaPen } from 'react-icons/fa';
 
 export default function MenuPage() {
   const { t } = useTranslation();
@@ -15,10 +16,20 @@ export default function MenuPage() {
   const timerRef = useRef(null);
   const startX = useRef(0);
   const isDragging = useRef(false);
+  const [isMobile, setIsMobile] = useState(false);
 
   useEffect(() => {
     timerRef.current = setTimeout(() => setIsIdle(true), 120000);
     return () => clearTimeout(timerRef.current);
+  }, []);
+
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
   }, []);
 
   const handleStart = (x) => {
@@ -53,12 +64,12 @@ export default function MenuPage() {
   const handleMouseLeave = handleEnd;
 
   const menuItems = [
-    { label: t('menu.profile', { defaultValue: 'Профиль' }), icon: '/icons/profile.png', href: '/profile', color: '142, 249, 252' },
-    { label: t('menu.followers', { defaultValue: 'Подписчики' }), icon: '/icons/followers.png', href: '/followers', color: '142, 252, 157' },
-    { label: t('menu.followings', { defaultValue: 'Подписки' }), icon: '/icons/followings.png', href: '/followings', color: '215, 252, 142' },
-    { label: t('menu.settings', { defaultValue: 'Настройки' }), icon: '/icons/settings.png', href: '/settings', color: '252, 142, 142' },
-    { label: t('menu.search', { defaultValue: 'Поиск' }), icon: '/icons/search.png', href: '/search', color: '204, 142, 252' },
-    { label: t('menu.createReview', { defaultValue: 'Создать отзыв' }), icon: '/icons/review.png', href: '/reviews/create', color: '142, 202, 252' },
+    { label: t('menu.profile', { defaultValue: 'Профиль' }), icon: FaUser, href: '/profile', color: '142, 249, 252' },
+    { label: t('menu.followers', { defaultValue: 'Подписчики' }), icon: FaUsers, href: '/followers', color: '142, 252, 157' },
+    { label: t('menu.followings', { defaultValue: 'Подписки' }), icon: FaUserFriends, href: '/followings', color: '215, 252, 142' },
+    { label: t('menu.settings', { defaultValue: 'Настройки' }), icon: FaCog, href: '/settings', color: '252, 142, 142' },
+    { label: t('menu.search', { defaultValue: 'Поиск' }), icon: FaSearch, href: '/search', color: '204, 142, 252' },
+    { label: t('menu.createReview', { defaultValue: 'Создать отзыв' }), icon: FaPen, href: '/reviews/create', color: '142, 202, 252' },
   ];
 
   const HoloMenu = styled.div`
@@ -128,25 +139,40 @@ export default function MenuPage() {
       <header className={styles.header}>
         <h1>{t('menu_page.title', { defaultValue: 'Меню навигации' })}</h1>
       </header>
-      <HoloMenu isIdle={isIdle}>
-        <div className="wrapper" onTouchStart={handleTouchStart} onTouchMove={handleTouchMove} onTouchEnd={handleTouchEnd}
-          onMouseDown={handleMouseDown} onMouseMove={handleMouseMove} onMouseUp={handleMouseUp} onMouseLeave={handleMouseLeave}>
-          <div className="inner" style={{ '--quantity': menuItems.length, transform: `translate(-50%, -50%) perspective(var(--perspective)) rotateY(${rotation}deg)` }}>
-            {menuItems.map((item, index) => (
-              <div
-                className="card"
-                style={{ '--index': index, '--color-card': item.color }}
-                key={index}
-                onClick={() => router.push(item.href)}
-              >
-                <div className="img">
-                  <Image src={item.icon} alt={item.label} width={100} height={100} />
-                </div>
-              </div>
-            ))}
-          </div>
+      {isMobile ? (
+        <div className={styles.mobileMenu}>
+          {menuItems.map((item, index) => (
+            <div
+              key={index}
+              className={styles.mobileCard}
+              onClick={() => router.push(item.href)}
+            >
+              <item.icon size={50} color={`rgb(${item.color})`} />
+              <h4>{item.label}</h4>
+            </div>
+          ))}
         </div>
-      </HoloMenu>
+      ) : (
+        <HoloMenu isIdle={isIdle}>
+          <div className="wrapper" onTouchStart={handleTouchStart} onTouchMove={handleTouchMove} onTouchEnd={handleTouchEnd}
+            onMouseDown={handleMouseDown} onMouseMove={handleMouseMove} onMouseUp={handleMouseUp} onMouseLeave={handleMouseLeave}>
+            <div className="inner" style={{ '--quantity': menuItems.length, transform: `translate(-50%, -50%) perspective(var(--perspective)) rotateY(${rotation}deg)` }}>
+              {menuItems.map((item, index) => (
+                <div
+                  className="card"
+                  style={{ '--index': index, '--color-card': item.color }}
+                  key={index}
+                  onClick={() => router.push(item.href)}
+                >
+                  <div className="img">
+                    <item.icon size={100} color="white" />
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </HoloMenu>
+      )}
     </div>
   );
 }

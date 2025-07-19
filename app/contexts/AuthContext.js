@@ -113,7 +113,7 @@ export function AuthProvider({ children }) {
 
   const signInWithTwitch = useCallback(async () => {
     const referrerId = localStorage.getItem('referrerId');
-    const { error } = await supabase.auth.signInWithOAuth({
+    const result = await supabase.auth.signInWithOAuth({
       provider: 'twitch',
       options: {
         redirectTo: `${window.location.origin}/auth/callback`,
@@ -122,9 +122,10 @@ export function AuthProvider({ children }) {
         }
       },
     });
-    if (error) {
-        console.error("Ошибка входа через Twitch:", error);
+    if (result.error) {
+      console.error("Ошибка входа через Twitch:", result.error);
     }
+    return result;
   }, []);
 
   const signOut = useCallback(async () => {
