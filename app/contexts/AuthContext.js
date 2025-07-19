@@ -62,8 +62,6 @@ export function AuthProvider({ children }) {
   }, []);
 
   useEffect(() => {
-    setLoading(true);
-
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
       console.log(`[AuthContext] Auth event: ${_event}`);
       setSession(session);
@@ -78,7 +76,6 @@ export function AuthProvider({ children }) {
       } else if (_event === 'SIGNED_OUT') {
         setUserRole(null);
       }
-      setLoading(false);
     });
 
     return () => {
@@ -93,6 +90,7 @@ export function AuthProvider({ children }) {
   useEffect(() => {
     if (isFreshLogin && supabase) {
       const refreshSession = async () => {
+        setLoading(true);
         const { data: { session }, error } = await supabase.auth.getSession();
         if (error) {
           console.error('[AuthContext] Error refreshing session:', error);
@@ -106,6 +104,7 @@ export function AuthProvider({ children }) {
             setUserRole(profileData?.role || 'user');
           }
         }
+        setLoading(false);
       };
       refreshSession();
     }
