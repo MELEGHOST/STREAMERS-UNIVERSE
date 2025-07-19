@@ -417,3 +417,19 @@
   margin-top: 10px;
   color: white;
 } 
+
+.logoContainer {
+  display: flex;
+  justify-content: center;
+  margin: 20px 0;
+}
+
+.card {
+  background: transparent;
+}
+
+.img .label {
+  color: white;
+  margin-top: 10px;
+  font-size: 1.2rem;
+} 

@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import styled from 'styled-components';
 import { useState, useRef, useEffect } from 'react';
 import { FaUser, FaUsers, FaUserFriends, FaCog, FaSearch, FaPen } from 'react-icons/fa';
+import Image from 'next/image';
 
 export default function MenuPage() {
   const { t } = useTranslation();
@@ -135,9 +136,9 @@ export default function MenuPage() {
 
   return (
     <div className={styles.container}>
-      <header className={styles.header}>
-        <h1>{t('menu_page.title', { defaultValue: 'Меню навигации' })}</h1>
-      </header>
+      <div className={styles.logoContainer}>
+        <Image src="/logo.png" alt="Streamers Universe" width={300} height={100} />
+      </div>
       {isMobile ? (
         <div className={styles.mobileMenu}>
           {menuItems.map((item, index) => (
@@ -165,6 +166,7 @@ export default function MenuPage() {
                 >
                   <div className="img">
                     <item.icon size={100} color="white" />
+                    <h4 className="label">{item.label}</h4>
                   </div>
                 </div>
               ))}
