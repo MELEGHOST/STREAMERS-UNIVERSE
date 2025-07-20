@@ -74,21 +74,21 @@ function ProfilePageContent() {
       }
       
       console.log(`[ProfilePage] Загрузка ВСЕХ данных для twitchUserId: ${twitchUserId}, userId: ${user.id}`);
-        setLoading(true);
+      setLoading(true);
       setError(null);
 
-        // Параллельная загрузка
-        try {
-            await Promise.all([
-                fetchTwitchUserData(),
-                // Другие функции загрузки, например, с нашей БД
-                // fetchMyDbData(), 
-            ]);
-        } catch (err) {
-            setError('Error loading profile: ' + err.message);
-        }
+      // Параллельная загрузка
+      try {
+          await Promise.all([
+              fetchTwitchUserData(),
+              // Другие функции загрузки, например, с нашей БД
+              // fetchMyDbData(), 
+          ]);
+      } catch (err) {
+          setError('Error loading profile: ' + err.message);
+      }
 
-        setLoading(false);
+      setLoading(false);
 
     }, [user, supabase, twitchUserId, fetchTwitchUserData]);
 
@@ -117,7 +117,7 @@ function ProfilePageContent() {
     }
     
     if (!user) {
-        // Это состояние не должно возникать при использовании RouteGuard, но на всякий случай
+        // Это состояние не должно возник при использовании RouteGuard, но на всякий случай
         return (
             <div className={pageStyles.container}>
                 <p>{t('profile.notWithUs')}</p>
