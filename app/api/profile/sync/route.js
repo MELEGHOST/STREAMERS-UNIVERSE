@@ -18,6 +18,11 @@ export async function POST({ headers }) {
   }
   const jwt = authHeader.substring(7);
 
+  if (!jwt) {
+    console.error('[Sync Profile API] JWT is missing in Authorization header.');
+    return NextResponse.json({ error: 'Missing JWT token.' }, { status: 401 });
+  }
+
   // Используем админский клиент для валидации JWT и получения пользователя
   const { data: { user }, error: userError } = await supabaseAdmin.auth.getUser(jwt);
 

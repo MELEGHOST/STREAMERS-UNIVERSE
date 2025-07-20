@@ -31,7 +31,9 @@ export async function middleware(req) {
   console.log('[Middleware] Updating session...');
   const { data: { user }, error } = await supabase.auth.getUser();
   if (error) {
-    console.error('[Middleware] Error getting user:', error);
+    if (error.name !== 'AuthSessionMissingError') {
+      console.error('[Middleware] Error getting user:', error);
+    }
   } else {
     console.log('[Middleware] User fetched:', user);
   }

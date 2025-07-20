@@ -19,14 +19,32 @@ function translateBroadcasterType(type, t) {
 }
 
 // Предполагаемая функция fetcher для useSWR
-const fetcher = url => fetch(url).then(res => res.json());
+const fetcher = (url, token) => fetch(url, {
+    headers: {
+        ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+    }
+}).then(res => res.json());
 
 function ProfilePageContent() {
     const { t } = useTranslation();
     const { user, supabase, loading: authLoading, userRole } = useAuth();
     const router = useRouter();
     const twitchUserId = user?.user_metadata?.provider_id;
-    const { data, error: swrError } = useSWR(twitchUserId ? `/api/twitch/user?userId=${twitchUserId}` : null, fetcher);
+
+    const [authToken, setAuthToken] = useState(null);
+    useEffect(() => {
+        const getToken = async () => {
+            if (supabase) {
+                const session = await supabase.auth.getSession();
+                setAuthToken(session.data.session?.access_token || null);
+            }
+        };
+        if (!authLoading) {
+            getToken();
+        }
+    }, [supabase, authLoading]);
+
+    const { data, error: swrError } = useSWR(twitchUserId && authToken !== null ? [`/api/twitch/user?userId=${twitchUserId}`, authToken] : null, ([url, token]) => fetcher(url, token));
 
     const [twitchUserData, setTwitchUserData] = useState(null);
     const [loading, setLoading] = useState(true);
