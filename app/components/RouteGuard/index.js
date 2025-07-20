@@ -1,9 +1,8 @@
 'use client';
 
 import { useEffect } from 'react';
-import { usePathname, useRouter, useSearchParams } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { useAuth } from '../../contexts/AuthContext';
-import { useState } from 'react';
 
 const protectedRoutes = ['/menu', '/edit-profile', '/settings', '/followers', '/followings', '/my-reviews', '/achievements', '/admin'];
 
