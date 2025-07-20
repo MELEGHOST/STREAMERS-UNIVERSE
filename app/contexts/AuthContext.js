@@ -74,10 +74,12 @@ export function AuthProvider({ children }) {
           .single();
         setUserRole(profileData?.role || 'user');
 
-        // Новая логика: Установка реферера после SIGNED_IN
+        // Улучшенная логика установки реферера
         if (_event === 'SIGNED_IN') {
-          const referrerId = localStorage.getItem('referrerId');
+          // Проверяем sessionStorage, так как он надежнее во время OAuth редиректа
+          const referrerId = sessionStorage.getItem('referrerId');
           if (referrerId) {
+            console.log(`[AuthContext] Found referrerId in sessionStorage: ${referrerId}. Attempting to set.`);
             try {
               const response = await fetch('/api/profile/set-referrer', {
                 method: 'POST',
@@ -89,12 +91,17 @@ export function AuthProvider({ children }) {
               });
               if (response.ok) {
                 console.log('[AuthContext] Referrer successfully set after sign-in.');
-                localStorage.removeItem('referrerId');
+                // Очищаем sessionStorage после успешной установки
+                sessionStorage.removeItem('referrerId');
               } else {
-                console.error('[AuthContext] Failed to set referrer:', await response.text());
+                const errorText = await response.text();
+                console.error(`[AuthContext] Failed to set referrer: ${errorText}`);
+                // Очищаем в любом случае, чтобы избежать повторных попыток
+                sessionStorage.removeItem('referrerId');
               }
             } catch (error) {
               console.error('[AuthContext] Error calling set-referrer API:', error);
+              sessionStorage.removeItem('referrerId');
             }
           }
         }
@@ -108,42 +115,20 @@ export function AuthProvider({ children }) {
     };
   }, []);
 
-  const pathname = usePathname();
-  const searchParams = useSearchParams();
-  const isFreshLogin = pathname === '/menu' && searchParams?.get('freshLogin') === 'true';
-
-  useEffect(() => {
-    if (isFreshLogin && supabase) {
-      const refreshSession = async () => {
-        setLoading(true);
-        const { data: { session }, error } = await supabase.auth.getSession();
-        if (error) {
-          console.error('[AuthContext] Error refreshing session:', error);
-        } else if (session) {
-          console.log('[AuthContext] Manually refreshed session:', session);
-          setSession(session);
-          setUser(session.user);
-          // Also fetch role if needed
-          if (session.user) {
-            const { data: profileData } = await supabase.from('user_profiles').select('role').eq('user_id', session.user.id).single();
-            setUserRole(profileData?.role || 'user');
-          }
-        }
-        setLoading(false);
-      };
-      refreshSession();
-    }
-  }, [isFreshLogin]);
-
   const signInWithTwitch = useCallback(async () => {
+    // Перед входом, проверяем localStorage на наличие ref
     const referrerId = localStorage.getItem('referrerId');
+    if (referrerId) {
+      // Перемещаем его в sessionStorage, чтобы он "пережил" редирект на Twitch
+      sessionStorage.setItem('referrerId', referrerId);
+      localStorage.removeItem('referrerId');
+      console.log(`[AuthContext] Moved referrerId ${referrerId} to sessionStorage.`);
+    }
+
     const result = await supabase.auth.signInWithOAuth({
       provider: 'twitch',
       options: {
         redirectTo: `${window.location.origin}/auth/callback`,
-        queryParams: {
-          referrer_id: referrerId || undefined,
-        }
       },
     });
     if (result.error) {

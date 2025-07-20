@@ -71,31 +71,38 @@ export async function POST({ headers }) {
     return NextResponse.json({ error: 'Ошибка базы данных при поиске профиля.' }, { status: 500 });
   }
 
+  // Получаем broadcaster_type из Twitch API
+  const twitchClient = await getTwitchClientWithToken(jwt);
+  const twitchUser = twitchClient && user.user_metadata.provider_id 
+    ? await twitchClient.users.getUserById(user.user_metadata.provider_id) 
+    : null;
+  const broadcasterType = twitchUser?.broadcasterType || '';
+
   if (profile) {
-    if (!profile.broadcaster_type) {
-      const twitchClient = await getTwitchClientWithToken(jwt);
-      if (twitchClient && profile.twitch_user_id) {
-        const twitchUser = await twitchClient.users.getUserById(profile.twitch_user_id);
-        if (twitchUser) {
-          await supabaseAdmin.from('user_profiles').update({ broadcaster_type: twitchUser.broadcasterType || '' }).eq('id', user.id);
-          await handleAchievementTrigger(user.id, 'twitch_status');
-          await handleAchievementTrigger(user.id, 'twitch_partner');
-        }
-      }
+    // Если профиль существует, обновляем broadcaster_type, если он изменился
+    if (profile.broadcaster_type !== broadcasterType) {
+      await supabaseAdmin.from('user_profiles').update({ broadcaster_type: broadcasterType }).eq('id', user.id);
+      console.log(`[Sync Profile API] Updated broadcaster_type for user ${user.id} to '${broadcasterType}'`);
     }
-    return NextResponse.json(profile);
+    // Триггеры ачивок, если нужно
+    await handleAchievementTrigger(user.id, 'twitch_status');
+    await handleAchievementTrigger(user.id, 'twitch_partner');
+    
+    // Возвращаем обновленный профиль
+    const updatedProfile = { ...profile, broadcaster_type: broadcasterType };
+    return NextResponse.json(updatedProfile);
   }
 
+  // Если профиль не существует, создаем новый
   const newUserProfile = {
     id: user.id,
-    // Извлекаем данные из user_metadata, которые предоставляет Twitch
     twitch_user_id: user.user_metadata.provider_id,
     twitch_user_name: user.user_metadata.user_name,
     twitch_display_name: user.user_metadata.name,
     twitch_profile_image_url: user.user_metadata.avatar_url,
     email: user.email,
-    // 'user' - роль по умолчанию
     role: 'user', 
+    broadcaster_type: broadcasterType, // Сразу добавляем тип
   };
   
   const { data: createdProfile, error: createError } = await supabaseAdmin
@@ -109,9 +116,9 @@ export async function POST({ headers }) {
     return NextResponse.json({ error: 'Не удалось создать профиль пользователя.' }, { status: 500 });
   }
 
+  // Триггеры ачивок для нового пользователя
   await handleAchievementTrigger(user.id, 'twitch_status');
   await handleAchievementTrigger(user.id, 'twitch_partner');
-
-  console.log(`[Sync Profile API] Профиль для пользователя ${user.id} успешно создан.`);
+  
   return NextResponse.json(createdProfile);
 } 
