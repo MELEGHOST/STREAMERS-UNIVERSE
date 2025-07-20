@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { getTwitchClient /*, getTwitchClientWithToken */ } from '../../../utils/twitchClient';
 import { createClient } from '@supabase/supabase-js';
+import { getSupabaseAdmin } from '../../../utils/supabase/admin'; // Импорт админ клиента
 import { verifyJwt } from '../../../utils/jwt';
 
 // Инициализация Supabase Admin Client (используем сервисный ключ)
@@ -38,6 +39,8 @@ const determineRole = (followerCount, broadcasterType) => {
 };
 
 export async function GET(request) {
+  const supabaseAdmin = getSupabaseAdmin(); // Создаём админ клиента здесь, чтобы он был в scope всего GET
+
   const userId = request.nextUrl.searchParams.get('userId');
   const token = request.headers.get('Authorization')?.split(' ')[1]; // Получаем JWT
 
@@ -132,14 +135,6 @@ export async function GET(request) {
   
   // --- Поиск профиля в базе и определение isOwnerViewing --- 
   try {
-      const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-      const supabaseServiceKey = process.env.SUPABASE_SERVICE_KEY;
-      if (!supabaseUrl || !supabaseServiceKey) {
-          console.error("[API /twitch/user] Critical Error: Supabase URL or Service Key is missing!");
-          return NextResponse.json({ error: 'Supabase configuration missing' }, { status: 500 });
-      }
-      const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey, { auth: { persistSession: false } });
-
       // 1. Ищем пользователя в auth.users по Twitch ID (provider_id) - Возвращаем listUsers()
       console.log(`[API /api/twitch/user] Looking up Supabase user ID via listUsers() for Twitch ID: ${userId}`);
       const { data: { users: allAuthUsers }, error: listUsersError } = await supabaseAdmin.auth.admin.listUsers({

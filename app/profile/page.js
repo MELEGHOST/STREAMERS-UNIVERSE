@@ -210,21 +210,26 @@ function ProfilePageContent() {
 
     // Add videos section
     const formatDuration = (duration) => {
-        const match = duration.match(/PT(\d+H)?(\d+M)?(\d+S)?/);
-        let hours = 0;
-        let minutes = 0;
-        let seconds = 0;
-
-        if (match[1]) hours = parseInt(match[1].replace('H', ''), 10);
-        if (match[2]) minutes = parseInt(match[2].replace('M', ''), 10);
-        if (match[3]) seconds = parseInt(match[3].replace('S', ''), 10);
-
-        if (hours > 0) {
-            return `${hours}h ${minutes}m ${seconds}s`;
-        } else if (minutes > 0) {
-            return `${minutes}m ${seconds}s`;
-        } else {
-            return `${seconds}s`;
+        try {
+          if (typeof duration !== 'string' || !duration) return '0s';
+          let totalSeconds = 0;
+          const hoursMatch = duration.match(/(\d+)h/);
+          const minutesMatch = duration.match(/(\d+)m/);
+          const secondsMatch = duration.match(/(\d+)s/);
+          if (hoursMatch && hoursMatch[1]) totalSeconds += parseInt(hoursMatch[1], 10) * 3600;
+          if (minutesMatch && minutesMatch[1]) totalSeconds += parseInt(minutesMatch[1], 10) * 60;
+          if (secondsMatch && secondsMatch[1]) totalSeconds += parseInt(secondsMatch[1], 10);
+          const hours = Math.floor(totalSeconds / 3600);
+          const minutes = Math.floor((totalSeconds % 3600) / 60);
+          const seconds = totalSeconds % 60;
+          let formatted = '';
+          if (hours > 0) formatted += `${hours}h `;
+          if (minutes > 0 || hours > 0) formatted += `${minutes}m `;
+          if (seconds > 0 || totalSeconds === 0) formatted += `${seconds}s`;
+          return formatted.trim() || '0s';
+        } catch (e) {
+          console.error('Error in formatDuration:', e);
+          return '0s';
         }
     };
 
