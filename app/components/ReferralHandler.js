@@ -1,13 +1,11 @@
 'use client';
 
 import { useEffect } from 'react';
-import { useSearchParams, useRouter, usePathname } from 'next/navigation';
+import { useSearchParams } from 'next/navigation';
 
 const ReferralHandler = () => {
   const searchParams = useSearchParams();
-  const router = useRouter();
   const ref = searchParams.get('ref');
-  const pathname = usePathname();
 
   useEffect(() => {
     if (ref) {
@@ -17,10 +15,8 @@ const ReferralHandler = () => {
       } catch (e) {
         console.error('LocalStorage error:', e);
       }
-      // Удаляем редирект на главную страницу во время реферальной регистрации
-      // Просто сохраняем referrerId для поздней обработки в AuthContext
     }
-  }, [ref, pathname, searchParams]);
+  }, [ref]);
 
   return null; // Этот компонент ничего не рендерит
 };
