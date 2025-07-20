@@ -137,7 +137,7 @@ export default function MenuPage() {
   return (
     <div className={styles.container}>
       <div className={styles.logoContainer}>
-        <Image src="/logo.png" alt="Streamers Universe" width={300} height={100} />
+        <Image src="/logo.png" alt="Streamers Universe" width={400} height={150} priority={true} />
       </div>
       {isMobile ? (
         <div className={styles.mobileMenu}>
