@@ -17,11 +17,10 @@ const ReferralHandler = () => {
       } catch (e) {
         console.error('LocalStorage error:', e);
       }
-      if (ref && pathname !== '/menu') {
-        router.replace('/', { scroll: false });
-      }
+      // Удаляем редирект на главную страницу во время реферальной регистрации
+      // Просто сохраняем referrerId для поздней обработки в AuthContext
     }
-  }, [ref, router, pathname, searchParams]);
+  }, [ref, pathname, searchParams]);
 
   return null; // Этот компонент ничего не рендерит
 };
