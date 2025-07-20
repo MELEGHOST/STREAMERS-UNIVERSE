@@ -259,7 +259,7 @@ export async function GET(request) {
             const dataToUpsert = {
                 user_id: currentSupabaseUserId,
                 twitch_broadcaster_type: currentBroadcasterType,
-                twitch_follower_count: currentFollowersCount,
+                // twitch_follower_count: currentFollowersCount, // Удаляем, чтобы избежать ошибки
             };
 
             console.log(`[API /api/twitch/user] Upserting profile data for owner ${currentSupabaseUserId}. Data:`, dataToUpsert);

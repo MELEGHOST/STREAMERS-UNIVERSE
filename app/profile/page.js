@@ -8,6 +8,7 @@ import pageStyles from '../../styles/page.module.css';
 import Image from 'next/image';
 import RouteGuard from '../components/RouteGuard';
 import { useTranslation } from 'react-i18next';
+import I18nProvider from '../components/I18nProvider'; // Добавляем импорт
 import { FaEdit, FaPlus, FaTrophy, FaSignOutAlt, FaShieldAlt } from 'react-icons/fa';
 import Link from 'next/link';
 import StatisticsWidget from '../components/ProfileWidgets/StatisticsWidget';
@@ -234,96 +235,98 @@ function ProfilePageContent() {
     };
 
     return (
-        <div className={pageStyles.container}>
-            <header className={styles.profileHeader}>
-                <div className={styles.avatarContainer}>
-                    <div className="pixel-card">
-                        <Image
-                            src={twitchUserData?.profile_image_url || user.user_metadata.avatar_url}
-                            alt={t('profile_page.avatarAlt', { name: displayName })}
-                            width={120}
-                            height={120}
-                            className={styles.avatar}
-                            unoptimized
-                        />
+        <I18nProvider>
+            <div className={pageStyles.container}>
+                <header className={styles.profileHeader}>
+                    <div className={styles.avatarContainer}>
+                        <div className="pixel-card">
+                            <Image
+                                src={twitchUserData?.profile_image_url || user.user_metadata.avatar_url}
+                                alt={t('profile_page.avatarAlt', { name: displayName })}
+                                width={120}
+                                height={120}
+                                className={styles.avatar}
+                                unoptimized
+                            />
+                        </div>
+                        {twitchUserData?.offline_image_url && (
+                            <Image
+                                src={twitchUserData.offline_image_url}
+                                alt={t('profile_page.offlineBannerAlt', { name: displayName })}
+                                layout="fill"
+                                objectFit="cover"
+                                className={styles.profileBanner}
+                            />
+                        )}
                     </div>
-                    {twitchUserData?.offline_image_url && (
-                        <Image
-                            src={twitchUserData.offline_image_url}
-                            alt={t('profile_page.offlineBannerAlt', { name: displayName })}
-                            layout="fill"
-                            objectFit="cover"
-                            className={styles.profileBanner}
-                        />
-                    )}
-                </div>
-        
-                <div className={styles.profileInfo}>
-                    <h1>{displayName}</h1>
-                    <p className={styles.login}>@{twitchUserData?.login || user.user_metadata.user_name}</p>
-                     {twitchUserData?.broadcaster_type && (
-                        <p className={styles.broadcasterType}>
-                            {translateBroadcasterType(twitchUserData.broadcaster_type, t)}
-                        </p>
-                     )}
-                    <p className={styles.bio}>{bio}</p>
+            
+                    <div className={styles.profileInfo}>
+                        <h1>{displayName}</h1>
+                        <p className={styles.login}>@{twitchUserData?.login || user.user_metadata.user_name}</p>
+                         {twitchUserData?.broadcaster_type && (
+                            <p className={styles.broadcasterType}>
+                                {translateBroadcasterType(twitchUserData.broadcaster_type, t)}
+                            </p>
+                         )}
+                        <p className={styles.bio}>{bio}</p>
 
-                </div>
-                 <div className={styles.profileActions}>
-                    <button onClick={() => router.push('/edit-profile')} className={styles.actionButton}>
-                        <FaEdit /> {t('profile_page.editProfile')}
-                    </button>
-                     <button onClick={() => router.push('/reviews/create')} className={styles.actionButton}>
-                        <FaPlus /> {t('profile_page.addReview')}
-                    </button>
-                    <button onClick={() => router.push('/achievements')} className={styles.actionButton}>
-                        <FaTrophy /> {t('profile_page.myAchievements')}
-                    </button>
-                     {userRole === 'admin' && (
-                        <button onClick={() => router.push('/admin/reviews')} className={styles.actionButton}>
-                            <FaShieldAlt /> {t('profile_page.adminPanel')}
+                    </div>
+                     <div className={styles.profileActions}>
+                        <button onClick={() => router.push('/edit-profile')} className={styles.actionButton}>
+                            <FaEdit /> {t('profile_page.editProfile')}
                         </button>
-                    )}
-                    <button onClick={() => supabase.auth.signOut()} className={`${styles.actionButton} ${styles.logoutButton}`}>
-                        <FaSignOutAlt /> {t('logout')}
-                    </button>
-                 </div>
+                         <button onClick={() => router.push('/reviews/create')} className={styles.actionButton}>
+                            <FaPlus /> {t('profile_page.addReview')}
+                        </button>
+                        <button onClick={() => router.push('/achievements')} className={styles.actionButton}>
+                            <FaTrophy /> {t('profile_page.myAchievements')}
+                        </button>
+                         {userRole === 'admin' && (
+                            <button onClick={() => router.push('/admin/reviews')} className={styles.actionButton}>
+                                <FaShieldAlt /> {t('profile_page.adminPanel')}
+                            </button>
+                        )}
+                        <button onClick={() => supabase.auth.signOut()} className={`${styles.actionButton} ${styles.logoutButton}`}>
+                            <FaSignOutAlt /> {t('logout')}
+                        </button>
+                     </div>
 
-            </header>
+                </header>
 
-            <main className={styles.mainContent}>
-                <div className={styles.widgetsGrid}>
-                   <StatsWidget />
-                   <AchievementsWidget />
-                   <ReviewsWidget />
-                    {/* Другие виджеты можно будет добавлять сюда */}
-                </div>
-                <section className={styles.profileSection}>
-  <h2 className={styles.sectionTitle}>{t('profile.videos')}</h2>
-  <div className={styles.videosGrid}>
-    {twitchUserData?.videos?.map((video) => (
-      <div key={video.id} className={styles.videoItem}>
-        <Link href={`https://www.twitch.tv/${video.user_login}/video/${video.id}`} target="_blank" rel="noopener noreferrer">
-          <Image
-            src={video.thumbnail_url}
-            alt={video.title}
-            width={200}
-            height={112}
-            className={styles.videoThumbnail}
-          />
-          <div className={styles.videoInfo}>
-            <h3 className={styles.videoTitle}>{video.title}</h3>
-            <p className={styles.videoDuration}>{formatDuration(video.duration)}</p>
+                <main className={styles.mainContent}>
+                    <div className={styles.widgetsGrid}>
+                       <StatsWidget />
+                       <AchievementsWidget />
+                       <ReviewsWidget />
+                        {/* Другие виджеты можно будет добавлять сюда */}
+                    </div>
+                    <section className={styles.profileSection}>
+      <h2 className={styles.sectionTitle}>{t('profile.videos')}</h2>
+      <div className={styles.videosGrid}>
+        {twitchUserData?.videos?.map((video) => (
+          <div key={video.id} className={styles.videoItem}>
+            <Link href={`https://www.twitch.tv/${video.user_login}/video/${video.id}`} target="_blank" rel="noopener noreferrer">
+              <Image
+                src={video.thumbnail_url}
+                alt={video.title}
+                width={200}
+                height={112}
+                className={styles.videoThumbnail}
+              />
+              <div className={styles.videoInfo}>
+                <h3 className={styles.videoTitle}>{video.title}</h3>
+                <p className={styles.videoDuration}>{formatDuration(video.duration)}</p>
+              </div>
+            </Link>
           </div>
-        </Link>
+        )) || <p>No videos available</p>}
       </div>
-    )) || <p>No videos available</p>}
-  </div>
-</section>
-            </main>
-    </div>
-  );
-}
+    </section>
+                </main>
+        </div>
+        </I18nProvider>
+      );
+    };
 
 
 export default function ProfilePage() {
