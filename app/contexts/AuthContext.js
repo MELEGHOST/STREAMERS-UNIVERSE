@@ -73,6 +73,31 @@ export function AuthProvider({ children }) {
           .eq('user_id', session.user.id)
           .single();
         setUserRole(profileData?.role || 'user');
+
+        // Новая логика: Установка реферера после SIGNED_IN
+        if (_event === 'SIGNED_IN') {
+          const referrerId = localStorage.getItem('referrerId');
+          if (referrerId) {
+            try {
+              const response = await fetch('/api/profile/set-referrer', {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                  'Authorization': `Bearer ${session.access_token}`
+                },
+                body: JSON.stringify({ referrerTwitchId: referrerId })
+              });
+              if (response.ok) {
+                console.log('[AuthContext] Referrer successfully set after sign-in.');
+                localStorage.removeItem('referrerId');
+              } else {
+                console.error('[AuthContext] Failed to set referrer:', await response.text());
+              }
+            } catch (error) {
+              console.error('[AuthContext] Error calling set-referrer API:', error);
+            }
+          }
+        }
       } else if (_event === 'SIGNED_OUT') {
         setUserRole(null);
       }
