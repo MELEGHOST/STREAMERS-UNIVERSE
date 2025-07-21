@@ -5,7 +5,7 @@ import { useRouter, useParams } from 'next/navigation';
 import useSWR from 'swr';
 import Image from 'next/image';
 import CyberAvatar from '../../components/CyberAvatar';
-import styles from '../profile.module.css';
+import styles from '../profile/profile.module.css';
 import pageStyles from '../../../styles/page.module.css';
 import { useAuth } from '../../contexts/AuthContext';
 import { pluralize } from '../../utils/pluralize';
@@ -134,20 +134,21 @@ export default function UserProfilePage() {
   const isOwnProfile = !authIsLoading && !!currentUserTwitchId && currentUserTwitchId === profileTwitchId;
   
   const [authToken, setAuthToken] = useState(null);
+
   useEffect(() => {
-      const getToken = async () => {
-          if (isAuthenticated && supabase) {
-              try {
-                  const session = await supabase.auth.getSession();
-                  setAuthToken(session.data.session?.access_token || null);
-              } catch (sessionError) {
-                  console.error("[UserProfilePage] Ошибка получения сессии для SWR:", sessionError);
-                  setAuthToken(null);
-              }
-          } else {
-              setAuthToken(null);
-          }
-      };
+    const getToken = async () => {
+        if (isAuthenticated && supabase) {
+            try {
+                const { data: { session } } = await supabase.auth.getSession();
+                setAuthToken(session?.access_token || null);
+            } catch (sessionError) {
+                console.error("[UserProfilePage] Ошибка получения сессии для SWR:", sessionError);
+                setAuthToken(null);
+            }
+        } else {
+            setAuthToken(null);
+        }
+    };
       if (!authIsLoading) {
          getToken();
       }

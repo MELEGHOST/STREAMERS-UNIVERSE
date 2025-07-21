@@ -146,6 +146,25 @@ function MyReviewsPageContent() {
         );
     }
 
+    if (error) {
+        return (
+            <div className={pageStyles.container}>
+                 <div className={styles.header}>
+                    <button onClick={() => router.back()} className={styles.backButton}>
+                        &larr; {t('my_reviews.back')}
+                    </button>
+                    <h1 className={styles.title}>{t('my_reviews.title', { count: 0 })}</h1>
+                </div>
+                <div className={pageStyles.errorMessage}>
+                    <p>{error}</p>
+                    <button onClick={fetchMyReviews} className={styles.actionButton}>
+                        {t('my_reviews.retry')}
+                    </button>
+                </div>
+            </div>
+        );
+    }
+
     return (
         <div className={pageStyles.container}> 
             <div className={styles.header}>
@@ -155,13 +174,16 @@ function MyReviewsPageContent() {
                 <h1 className={styles.title}>{t('my_reviews.title', { count: reviews.length })}</h1>
             </div>
 
-            {error && <p className={pageStyles.errorMessage}>{error}</p>}
-
-            {!error && reviews.length === 0 && (
-                <p className={styles.noReviewsMessage}>{t('my_reviews.noReviews')}</p>
+            {reviews.length === 0 && (
+                 <div className={styles.noReviewsContainer}>
+                    <p className={styles.noReviewsMessage}>{t('my_reviews.noReviews')}</p>
+                    <button onClick={() => router.push('/search')} className={styles.actionButton}>
+                        {t('my_reviews.findStreamer')}
+                    </button>
+                </div>
             )}
-
-            {!error && reviews.length > 0 && (
+            
+            {reviews.length > 0 && (
                 <div className={styles.reviewsList}>
                     {reviews.map(review => (
                         <div key={review.id} className={`${styles.reviewCard} ${deletingId === review.id ? styles.deleting : ''}`}>
