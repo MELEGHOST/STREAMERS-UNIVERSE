@@ -28,29 +28,28 @@ export default function AchievementsWidget({ }) {
     const [fetchError, setFetchError] = useState(null);
 
     useEffect(() => {
-        async function fetch() {
+        async function fetchAchievements() {
             try {
                 const response = await fetch('/api/achievements');
                 if (!response) throw new Error('No response from server');
-                if (!response.ok) {
-                    throw new Error('Failed to fetch achievements');
-                }
-                const enrichedData = await response.json();
-                setAchievements(enrichedData);
+                if (!response.ok) throw new Error('Failed to fetch achievements');
+                const payload = await response.json();
+                const list = Array.isArray(payload) ? payload : Array.isArray(payload?.achievements) ? payload.achievements : [];
+                setAchievements(list);
             } catch (e) {
-                console.error('Fetch error:', e);
+                console.error('[AchievementsWidget] Fetch error:', e);
                 setFetchError('Failed to load achievements');
             } finally {
                 setLoading(false);
             }
         }
-        fetch();
+        fetchAchievements();
     }, []);
 
     if (loading) return <div className={pageStyles.loadingContainer}><p>{t('loading.achievements')}</p></div>;
-    if (fetchError) return <div className={pageStyles.errorMessage}><p>{t('profile_page.achievements_page.error', { message: fetchError.message })}</p></div>;
+    if (fetchError) return <div className={pageStyles.errorMessage}><p>{t('profile_page.achievements_page.error', { message: fetchError })}</p></div>;
 
-    const unlockedAchievements = achievements.filter(ach => ach.is_unlocked) || [];
+    const unlockedAchievements = Array.isArray(achievements) ? achievements.filter(ach => ach?.is_unlocked) : [];
 
     return (
         <div className={styles.widgetContainer}>
@@ -66,7 +65,7 @@ export default function AchievementsWidget({ }) {
             )}
             <h3>{t('achievements.available')}</h3>
             <div className={styles.achievementsList}>
-                {achievements.filter(ach => !ach.is_unlocked).map(ach => (
+                    {Array.isArray(achievements) && achievements.filter(ach => !ach?.is_unlocked).map(ach => (
                     <AchievementCard key={ach.id} achievement={ach} t={t} isLocked={true} />
                 ))}
             </div>

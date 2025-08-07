@@ -144,19 +144,28 @@ function ProfilePageContent() {
     };
 
     const AchievementsWidget = () => {
-        const { data: achievementsData, error: achError } = useSWR('/api/achievements', fetcher);
-        if (achError) return <div>Error loading achievements</div>;
-        const unlockedAchievements = achievementsData?.filter(ach => ach.is_unlocked) || [];
+        const { data: apiPayload, error: achError } = useSWR('/api/achievements', fetcher);
+        if (achError) {
+            return <div className={pageStyles.errorMessage}>{t('profile_page.achievements_page.error', { message: achError.message || 'Failed to load' })}</div>;
+        }
+        const achievements = Array.isArray(apiPayload)
+            ? apiPayload
+            : (Array.isArray(apiPayload?.achievements) ? apiPayload.achievements : []);
+        const unlockedAchievements = achievements.filter(ach => ach?.is_unlocked);
         return (
             <div className={styles.widget}>
                 <h3>{t('profile_page.achievements.title')}</h3>
-                <ul>
-                    {unlockedAchievements.map(ach => (
-                        <li key={ach.id}>
-                            {ach.name} ({ach.rarity}% rarity)
-                        </li>
-                    ))}
-                </ul>
+                {unlockedAchievements.length > 0 ? (
+                    <ul>
+                        {unlockedAchievements.map(ach => (
+                            <li key={ach.id}>
+                                {ach.name} ({Number(ach.rarity || 0).toFixed(1)}% {t('achievements.rarity')})
+                            </li>
+                        ))}
+                    </ul>
+                ) : (
+                    <p>{t('achievements_page.noAchievements')}</p>
+                )}
             </div>
         );
     };
