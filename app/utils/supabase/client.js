@@ -13,5 +13,10 @@ export const supabase = createBrowserClient(supabaseUrl, supabaseAnonKey, {
     secure: process.env.NODE_ENV === 'production',
     sameSite: 'lax',
     maxAge: 60 * 60 * 24 * 365,
+  },
+  auth: {
+    autoRefreshToken: true,
+    persistSession: true,
+    detectSessionInUrl: true,
   }
-}) 
+})

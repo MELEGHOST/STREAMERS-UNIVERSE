@@ -40,6 +40,17 @@ export async function GET(request) {
   console.log('[Auth Callback] Received code:', code);
   console.log('[Auth Callback] Origin:', origin);
   const { error } = await supabase.auth.exchangeCodeForSession(code);
+  // Принудительное продление куки после обмена, чтобы refresh-token был в cookie на год
+  try {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (session) {
+      const ref = new URL(process.env.NEXT_PUBLIC_SUPABASE_URL).hostname.split('.')[0];
+      const authCookieName = `sb-${ref}-auth-token`;
+      const verifierCookieName = `sb-${ref}-auth-token-code-verifier`;
+      cookieStore.set({ name: authCookieName, value: JSON.stringify(session), path: '/', sameSite: 'lax', httpOnly: true, secure: process.env.NODE_ENV === 'production', maxAge: 60 * 60 * 24 * 365 });
+      cookieStore.set({ name: verifierCookieName, value: '', path: '/', sameSite: 'lax', httpOnly: true, secure: process.env.NODE_ENV === 'production', maxAge: 60 * 60 * 24 * 365 });
+    }
+  } catch {}
 
   if (error) {
     console.error('[Auth Callback] Error exchanging code for session:', error.message);

@@ -57,7 +57,17 @@ export function AuthProvider({ children }) {
       }
     };
 
+    // Попытка восстановить сессию из cookie при маунте (SSR->CSR)
     fetchInitialSession();
+
+    // Авто-рефреш токенов, пока вкладка активна
+    const refresh = setInterval(async () => {
+      try {
+        await supabase.auth.getSession();
+      } catch {}
+    }, 1000 * 60 * 5); // каждые 5 минут
+
+    return () => clearInterval(refresh);
   }, []);
 
   useEffect(() => {
@@ -128,6 +138,10 @@ export function AuthProvider({ children }) {
       provider: 'twitch',
       options: {
         redirectTo: `${window.location.origin}/auth/callback`,
+        queryParams: {
+          force_verify: 'true'
+        },
+        skipBrowserRedirect: false,
       },
     });
     if (result.error) {
