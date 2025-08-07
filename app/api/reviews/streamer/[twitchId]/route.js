@@ -18,7 +18,7 @@ export async function GET(_req, { params }) {
 
     const { data, error } = await supabase
       .from('reviews')
-      .select('id, user_id, author_twitch_display_name, review_text, rating, created_at')
+      .select('id, user_id, author_twitch_nickname, review_text, rating, created_at')
       .eq('streamer_twitch_id', twitchId)
       .eq('status', 'approved')
       .order('created_at', { ascending: false })
@@ -28,8 +28,15 @@ export async function GET(_req, { params }) {
       console.error('[API /reviews/streamer] DB error:', error);
       return NextResponse.json({ error: 'Failed to fetch reviews' }, { status: 500 });
     }
+    const normalized = (data || []).map(r => ({
+      id: r.id,
+      author: r.author_twitch_nickname || null,
+      text: r.review_text,
+      rating: r.rating,
+      created_at: r.created_at,
+    }));
 
-    return NextResponse.json(data || []);
+    return NextResponse.json(normalized);
   } catch (e) {
     console.error('[API /reviews/streamer] Unexpected:', e);
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });

@@ -47,7 +47,7 @@ export default function ClientProvidersContent({ children }) {
               {children}
             </main>
             {process.env.NEXT_PUBLIC_VERCEL_ANALYTICS === 'enabled' && <Analytics />}
-            {process.env.NEXT_PUBLIC_VERCEL_SPEED_INSIGHTS !== 'disabled' && <SpeedInsights />}
+            {process.env.NEXT_PUBLIC_VERCEL_SPEED_INSIGHTS === 'enabled' && <SpeedInsights />}
           </RouteGuard>
         </Providers>
       </I18nProvider>
