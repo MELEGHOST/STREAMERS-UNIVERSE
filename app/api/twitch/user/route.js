@@ -102,6 +102,7 @@ export async function GET(request) {
             view_count: v.viewCount,
             duration: v.duration,
             created_at: v.creationDate,
+            user_login: userResponse.name,
           }));
           console.log(`[API /api/twitch/user] Fetched ${videos.length} VODs.`);
       } catch (videoError) {
@@ -255,30 +256,28 @@ export async function GET(request) {
             const currentRole = determineRole(currentFollowersCount, currentBroadcasterType);
             console.log(`[API /api/twitch/user] Determined role for owner ${userId}: ${currentRole}`);
             
-            // <<< Данные для UPSERT >>>
-            const dataToUpsert = {
-                user_id: currentSupabaseUserId,
-                twitch_broadcaster_type: currentBroadcasterType,
-                // twitch_follower_count: currentFollowersCount, // Удаляем, чтобы избежать ошибки
+            // Обновляем только существующий профиль, чтобы не триггерить INSERT-триггеры с отсутствующими полями в БД
+            const updatePayload = {
+              twitch_broadcaster_type: currentBroadcasterType,
+              updated_at: new Date().toISOString(),
             };
 
-            console.log(`[API /api/twitch/user] Upserting profile data for owner ${currentSupabaseUserId}. Data:`, dataToUpsert);
+            console.log(`[API /api/twitch/user] Updating profile data for owner ${currentSupabaseUserId}. Data:`, updatePayload);
 
-            const { data: upsertData, error: upsertError } = await supabaseAdmin
-                .from('user_profiles')
-                .upsert(dataToUpsert, { onConflict: 'user_id' })
-                .select()
-                .single();
+            const { data: updatedProfile, error: updateErrorDb } = await supabaseAdmin
+              .from('user_profiles')
+              .update(updatePayload)
+              .eq('user_id', currentSupabaseUserId)
+              .select()
+              .maybeSingle();
 
-            if (upsertError) {
-                console.error(`[API /api/twitch/user] Error upserting profile data for ${currentSupabaseUserId}:`, upsertError);
-                // Не прерываем выполнение, просто логируем ошибку обновления
+            if (updateErrorDb) {
+              console.error(`[API /api/twitch/user] Error updating profile data for ${currentSupabaseUserId}:`, updateErrorDb);
+            } else if (updatedProfile) {
+              console.log(`[API /api/twitch/user] Profile data updated successfully for ${currentSupabaseUserId}.`);
+              profileData = profileData || updatedProfile;
             } else {
-                console.log(`[API /api/twitch/user] Profile data upserted successfully for ${currentSupabaseUserId}. Result:`, upsertData);
-                // Если профиль был только что создан (profileData был null), обновим локальную переменную
-                if (!profileData) {
-                    profileData = upsertData; 
-                }
+              console.log(`[API /api/twitch/user] Profile not found for ${currentSupabaseUserId}. Skipping create to avoid DB trigger errors.`);
             }
 
       } catch (updateError) {

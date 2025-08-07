@@ -164,48 +164,52 @@ function ProfilePageContent() {
     const ReviewsWidget = () => {
         const [reviews, setReviews] = useState([]);
         const [reviewsLoading, setReviewsLoading] = useState(true);
+        const [reviewsError, setReviewsError] = useState(null);
 
         useEffect(() => {
             const fetchReviews = async () => {
                 if (!twitchUserId) return;
                 setReviewsLoading(true);
+                setReviewsError(null);
                 try {
                     const response = await fetch(`/api/reviews/streamer/${twitchUserId}`);
                     if (!response.ok) throw new Error('Failed to fetch reviews');
                     const data = await response.json();
-                    setReviews(data);
-                } catch (error) {
-                    console.error("Failed to fetch reviews", error);
-                    setError('Error loading reviews');
+                    setReviews(Array.isArray(data) ? data : []);
+                } catch (err) {
+                    console.error('[ProfilePage] Failed to fetch reviews:', err);
+                    setReviewsError('Не удалось загрузить отзывы');
                 } finally {
                     setReviewsLoading(false);
                 }
             };
             fetchReviews();
-        }, []);
+        }, [twitchUserId]);
 
         if (reviewsLoading) {
-            return <div className={styles.loadingContainer}><p>Загрузка...</p></div>
-  }
+            return <div className={styles.loadingContainer}><p>Загрузка...</p></div>;
+        }
 
-  return (
+        return (
             <div className={styles.widget}>
                 <h3>{t('profile_page.reviews.title')}</h3>
-                {reviews.length > 0 ? (
+                {reviewsError ? (
+                    <p className={pageStyles.errorMessage}>{reviewsError}</p>
+                ) : reviews.length > 0 ? (
                     <ul>
-                        {reviews.map(review => (
+                        {reviews.map((review) => (
                             <li key={review.id}>
-                                <strong>{review.author}:</strong> &quot;{review.text}&quot; ({'★'.repeat(review.rating)})
+                                <strong>{review.author ?? t('common.unknown')}:</strong> &quot;{review.text}&quot; ({'★'.repeat(Number(review.rating) || 0)})
                             </li>
                         ))}
                     </ul>
                 ) : (
                     <p>{t('profile_page.reviews.noReviews')}</p>
                 )}
-                 <Link href={`/reviews/streamer/${twitchUserId}`} className={styles.widgetLink}>
+                <Link href={`/reviews/streamer/${twitchUserId}`} className={styles.widgetLink}>
                     {t('profile_page.reviews.readAll')}
                 </Link>
-          </div>
+            </div>
         );
     };
 
