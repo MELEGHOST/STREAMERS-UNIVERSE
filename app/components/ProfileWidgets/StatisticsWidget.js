@@ -1,6 +1,9 @@
+'use client';
+
 import React from 'react';
 import styles from './StatisticsWidget.module.css';
 import { FaTwitch, FaUserFriends, FaEye, FaCalendarAlt } from 'react-icons/fa';
+import { useTranslation } from 'react-i18next';
 
 // Импортируем кнопки социальных сетей
 import VkButton from '../SocialButtons/VkButton';
@@ -13,8 +16,10 @@ import BoostyButton from '../SocialButtons/BoostyButton';
 import YandexMusicButton from '../SocialButtons/YandexMusicButton';
 
 
-const StatisticsWidget = ({ twitchData, profileData }) => {
+const StatisticsWidget = ({ twitchData, twitchUserData, profileData, stats }) => {
+    const { t } = useTranslation();
     const socialLinks = profileData?.social_links || {};
+    const source = twitchUserData || twitchData || {};
 
     const formatNumber = (num) => {
         if (num === null || num === undefined) return 'N/A';
@@ -27,23 +32,23 @@ const StatisticsWidget = ({ twitchData, profileData }) => {
             <div className={styles.statsGrid}>
                 <div className={styles.statItem}>
                     <FaUserFriends className={styles.statIcon} />
-                    <span className={styles.statValue}>{formatNumber(twitchData?.followers_count)}</span>
-                    <span className={styles.statLabel}>Фолловеры</span>
+                    <span className={styles.statValue}>{formatNumber(stats?.[0]?.value ?? source?.followers_count)}</span>
+                    <span className={styles.statLabel}>{t('followers')}</span>
                 </div>
                 <div className={styles.statItem}>
                     <FaEye className={styles.statIcon} />
-                    <span className={styles.statValue}>{formatNumber(twitchData?.view_count)}</span>
-                    <span className={styles.statLabel}>Просмотры</span>
+                    <span className={styles.statValue}>{formatNumber(stats?.[1]?.value ?? source?.view_count)}</span>
+                    <span className={styles.statLabel}>{t('profile_page.views')}</span>
                 </div>
                 <div className={styles.statItem}>
                     <FaTwitch className={styles.statIcon} />
-                    <span className={styles.statValue}>{twitchData?.broadcaster_type || 'N/A'}</span>
-                    <span className={styles.statLabel}>Статус</span>
+                    <span className={styles.statValue}>{source?.broadcaster_type || 'N/A'}</span>
+                    <span className={styles.statLabel}>{t('profile_page.broadcasterLabel', { defaultValue: 'Статус' })}</span>
                 </div>
                 <div className={styles.statItem}>
                     <FaCalendarAlt className={styles.statIcon} />
-                    <span className={styles.statValue}>{new Date(twitchData?.created_at).toLocaleDateString('ru-RU')}</span>
-                    <span className={styles.statLabel}>На Twitch c</span>
+                    <span className={styles.statValue}>{source?.created_at ? new Date(source.created_at).toLocaleDateString('ru-RU') : '—'}</span>
+                    <span className={styles.statLabel}>{t('profile_page.onTwitchSince', { defaultValue: 'На Twitch с' })}</span>
                 </div>
             </div>
 

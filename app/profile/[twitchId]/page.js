@@ -304,11 +304,11 @@ export default function UserProfilePage() {
             <div className={styles.profileSections}>
                 <section className={styles.profileSection}>
                     <h2 className={styles.sectionTitle}>{t('profile.' + profileWidget)}</h2>
-                    {profileWidget === 'statistics' ? (
-                        <StatisticsWidget twitchUserData={twitchUserData} profileData={profileData} />
-                    ) : (
-                        <AchievementsWidget profileData={profileData} />
-                    )}
+                        {profileWidget === 'statistics' ? (
+                            <StatisticsWidget twitchUserData={twitchUserData} profileData={profileData} />
+                        ) : (
+                            <AchievementsWidget />
+                        )}
                 </section>
                 <section className={styles.profileSection}>
                     <h2 className={styles.sectionTitle}>{t('profile.videos')}</h2>
