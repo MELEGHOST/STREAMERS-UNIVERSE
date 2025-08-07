@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { verifyJwt } from '../../../utils/jwt';
+import { handleAchievementTrigger } from '../../../utils/achievements';
 
 export async function POST(request) {
     console.log('[API /set-referrer] Received POST request');

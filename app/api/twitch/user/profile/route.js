@@ -54,8 +54,9 @@ export async function PUT(request) {
         const { data, error } = await supabaseAdmin
             .from('user_profiles')
             .update(dataToUpdate)
-            .eq('id', userId)
+            .eq('user_id', userId)
             .select() // Возвращаем обновленную запись
+            .single()
 
         if (error) {
             console.error(`[API /twitch/user/profile] Error updating profile:`, error);
@@ -63,7 +64,7 @@ export async function PUT(request) {
         }
 
         // --- Запускаем проверку достижений ---
-        await handleAchievementTrigger(userId, 'social_links');
+        await handleAchievementTrigger(supabaseAdmin, userId, 'social_links');
         // ------------------------------------
 
         return NextResponse.json(data, { status: 200 });

@@ -21,7 +21,7 @@ async function isAdmin(token) {
         const { data, error } = await supabaseAdmin
             .from('user_profiles')
             .select('role')
-            .eq('id', user.id)
+            .eq('user_id', user.id)
             .single();
 
         if (error) {
@@ -44,7 +44,13 @@ export async function POST(request) {
     }
     
     // Получаем ID пользователя из токена для логгирования
-    const { data: { user } } = await supabaseAdmin.auth.getUser(token);
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const supabaseServiceKey = process.env.SUPABASE_SERVICE_KEY;
+    const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey, { auth: { persistSession: false } });
+    const { data: { user }, error: userError } = await supabaseAdmin.auth.getUser(token);
+    if (userError || !user) {
+        return NextResponse.json({ error: 'Invalid admin token' }, { status: 401 });
+    }
 
     try {
         const body = await request.json();

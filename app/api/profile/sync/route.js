@@ -63,7 +63,7 @@ export async function POST({ headers }) {
   const { data: profile, error: profileError } = await supabaseAdmin
     .from('user_profiles')
     .select('*')
-    .eq('id', user.id)
+    .eq('user_id', user.id)
     .single();
 
   if (profileError && profileError.code !== 'PGRST116') {
@@ -81,12 +81,12 @@ export async function POST({ headers }) {
   if (profile) {
     // Если профиль существует, обновляем broadcaster_type, если он изменился
     if (profile.broadcaster_type !== broadcasterType) {
-      await supabaseAdmin.from('user_profiles').update({ broadcaster_type: broadcasterType }).eq('id', user.id);
+      await supabaseAdmin.from('user_profiles').update({ broadcaster_type: broadcasterType }).eq('user_id', user.id);
       console.log(`[Sync Profile API] Updated broadcaster_type for user ${user.id} to '${broadcasterType}'`);
     }
     // Триггеры ачивок, если нужно
-    await handleAchievementTrigger(user.id, 'twitch_status');
-    await handleAchievementTrigger(user.id, 'twitch_partner');
+    await handleAchievementTrigger(supabaseAdmin, user.id, 'twitch_status');
+    await handleAchievementTrigger(supabaseAdmin, user.id, 'twitch_partner');
     
     // Возвращаем обновленный профиль
     const updatedProfile = { ...profile, broadcaster_type: broadcasterType };
@@ -95,7 +95,7 @@ export async function POST({ headers }) {
 
   // Если профиль не существует, создаем новый
   const newUserProfile = {
-    id: user.id,
+    user_id: user.id,
     twitch_user_id: user.user_metadata.provider_id,
     twitch_user_name: user.user_metadata.user_name,
     twitch_display_name: user.user_metadata.name,
@@ -117,8 +117,8 @@ export async function POST({ headers }) {
   }
 
   // Триггеры ачивок для нового пользователя
-  await handleAchievementTrigger(user.id, 'twitch_status');
-  await handleAchievementTrigger(user.id, 'twitch_partner');
+  await handleAchievementTrigger(supabaseAdmin, user.id, 'twitch_status');
+  await handleAchievementTrigger(supabaseAdmin, user.id, 'twitch_partner');
   
   return NextResponse.json(createdProfile);
 } 

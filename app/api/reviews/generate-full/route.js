@@ -4,7 +4,7 @@ import { verifyJwt } from '../../../utils/jwt'; // Путь может потр�
 import OpenAI from 'openai';
 import ytdl from 'ytdl-core';
 import { PassThrough } from 'stream';
-import { validateTwitchUser } from '../../../../utils/twitchApi.js'; // Путь может потребовать корректировки
+import { validateTwitchUser } from '../../../../utils/twitchApi.js';
 
 // Функция для получения аудио потока с YouTube (та же, что и была)
 async function getYoutubeAudioStream(url) {
@@ -179,7 +179,7 @@ export async function POST(request) {
             const { data: profileData, error: profileError } = await supabaseAdmin
                 .from('user_profiles')
                 .select('user_id')
-                .or(`user_metadata->>user_name.eq.${nicknameLower},raw_user_meta_data->>login.eq.${nicknameLower},raw_user_meta_data->>name.eq.${nicknameLower}`) // Ищем по разным полям
+                 .or(`user_metadata->>user_name.eq.${nicknameLower},raw_user_meta_data->>login.eq.${nicknameLower},raw_user_meta_data->>name.eq.${nicknameLower}`)
                 .maybeSingle();
 
             if (profileError) throw new Error(`Database error (author lookup): ${profileError.message}`);

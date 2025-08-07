@@ -4,12 +4,13 @@ import { oneLine, stripIndent } from 'common-tags';
 // Убрана глобальная инициализация, чтоб не валилось при билде
 export async function POST(req) {
   try {
-    if (!process.env.OPENAI_API_KEY) {
+    const apiKey = process.env.OPENROUTER_API_KEY || process.env.OPENAI_API_KEY;
+    if (!apiKey) {
       console.error('OPENROUTER_API_KEY missing!');
       return NextResponse.json({ error: 'OPENROUTER_API_KEY is not configured.' }, { status: 500 });
     }
     const openai = new OpenAI({
-      apiKey: process.env.OPENAI_API_KEY,
+      apiKey,
       baseURL: 'https://openrouter.ai/api/v1'
     });
     const { title } = await req.json();

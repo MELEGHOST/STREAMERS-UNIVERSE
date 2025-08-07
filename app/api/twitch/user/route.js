@@ -267,8 +267,8 @@ export async function GET(request) {
             const { data: upsertData, error: upsertError } = await supabaseAdmin
                 .from('user_profiles')
                 .upsert(dataToUpsert, { onConflict: 'user_id' })
-                .select() // <<< Добавляем select, чтобы увидеть результат
-                .single(); // <<< Ожидаем одну строку
+                .select()
+                .single();
 
             if (upsertError) {
                 console.error(`[API /api/twitch/user] Error upserting profile data for ${currentSupabaseUserId}:`, upsertError);

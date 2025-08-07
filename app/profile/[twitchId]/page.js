@@ -5,7 +5,7 @@ import { useRouter, useParams } from 'next/navigation';
 import useSWR from 'swr';
 import Image from 'next/image';
 import CyberAvatar from '../../components/CyberAvatar';
-import styles from '../profile/profile.module.css';
+import styles from '../profile.module.css';
 import pageStyles from '../../../styles/page.module.css';
 import { useAuth } from '../../contexts/AuthContext';
 import { pluralize } from '../../utils/pluralize';
@@ -94,11 +94,11 @@ const formatDuration = (durationString) => {
 };
 
 const formatDate = (dateString, locale) => {
-  if (!dateString) return t('common.unknown');
+  if (!dateString) return null;
   try {
     return new Date(dateString).toLocaleDateString(locale, { year: 'numeric', month: 'long', day: 'numeric' });
   } catch {
-    return t('common.unknown');
+    return null;
   }
 };
 
@@ -230,7 +230,7 @@ export default function UserProfilePage() {
   const broadcasterType = twitchUserData?.broadcaster_type || profileData?.twitch_broadcaster_type;
   const profileDescription = isRegistered ? profileData?.description : twitchUserData?.description;
   const profileSocialLinks = isRegistered ? profileData?.social_links : null;
-  const formattedDate = createdAt ? formatDate(createdAt, t.language) : t('common.unknown');
+  const formattedDate = createdAt ? (formatDate(createdAt, t.language) || t('common.unknown')) : t('common.unknown');
 
   const handleLogout = async () => {
     await signOut();
