@@ -40,10 +40,11 @@ export default function SmartCutoutImage({ src, width = 300, height = 300, class
         ctx.clearRect(0, 0, width, height);
         ctx.drawImage(img, 0, 0, width, height);
 
-        const segmentation = await net.segmentPerson(img, { internalResolution: 'medium', segmentationThreshold: 0.7 });
+        const segmentation = await net.segmentPerson(img, { internalResolution: 'high', segmentationThreshold: 0.8 });
         // Make foreground opaque, background transparent for proper cutout
+        const refined = await bodyPix.smoothsegmentation(segmentation, 5);
         const mask = bodyPix.toMask(
-          segmentation,
+          refined,
           { r: 255, g: 255, b: 255, a: 255 },
           { r: 0, g: 0, b: 0, a: 0 }
         );
@@ -55,11 +56,15 @@ export default function SmartCutoutImage({ src, width = 300, height = 300, class
         const mctx = maskCanvas.getContext('2d');
         mctx.putImageData(mask, 0, 0);
 
-        // Apply mask to the drawn image
+        // Apply mask to the drawn image with slight edge feathering for cleaner contour
+        ctx.save();
         ctx.globalCompositeOperation = 'destination-in';
         ctx.imageSmoothingEnabled = true;
+        ctx.filter = 'blur(1.2px)';
         ctx.drawImage(maskCanvas, 0, 0, width, height);
+        ctx.filter = 'none';
         ctx.globalCompositeOperation = 'source-over';
+        ctx.restore();
       } catch (e) {
         console.warn('[SmartCutoutImage] Fallback to plain image:', e);
         setFailed(true);
