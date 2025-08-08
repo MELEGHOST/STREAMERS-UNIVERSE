@@ -16,7 +16,7 @@
     "followers": "Подписчики",
     "following": "Подписки",
     "profile": {
-      "notWithUs": "Пользователь ещё не с нами",
+      "notWithUs": "Этот пользователь еще не с нами во вселенной, но вы можете его пригласить!",
       "back": "Назад",
       "adminPanel": "Админ панель",
       "adminPanelTitle": "Модерация",
@@ -28,7 +28,6 @@
       "editProfileTitle": "Редактировать",
       "logout": "Выйти",
       "avatarAlt": "Аватар {{name}}",
-      "notWithUs": "Этот пользователь еще не с нами во вселенной, но вы можете его пригласить!",
       "followers_one": "фолловер",
       "followers_few": "фолловера",
       "followers_many": "фолловеров",
@@ -73,7 +72,7 @@
     },
     "logout": "Выйти",
     "login": "Войти через Twitch",
-    "loading": "Загрузка",
+    "loading_text": "Загрузка",
     "enterMenu": "Войти в меню",
     "inviteButton": {
       "invite": "Пригласить {{name}}",
@@ -218,10 +217,9 @@
             "partner": "Партнёр",
             "default": "Стример"
         },
-        "followingsTitle": "Вдохновители",
+        "followingsTitle": "Мои вдохновители",
         "noFollowings": "Вы пока ни на кого не подписаны на Twitch.",
         "failedToFetch": "Не удалось загрузить данные.",
-        "followersTitle": "Мои последователи",
         "followerName": "Подписчик {{number}}",
         "edit_profile": {
             "title": "Редактирование профиля",
@@ -272,11 +270,8 @@
             "error": "Не удалось загрузить достижения: {{message}}",
             "condition": "Условие разблокировки"
         },
-        "followersTitle": "Мои последователи",
-        "followingsTitle": "Мои вдохновители",
         "failedToFetchFollowers": "Не удалось загрузить список последователей",
-        "noFollowers": "У вас пока нет последователей.",
-        "avatarAlt": "Аватар {{name}}"
+        "noFollowers": "У вас пока нет последователей."
     },
     "achievements": {
       "FIRST_REVIEW": {
@@ -361,7 +356,13 @@
         "telegram": "Ссылка на ваш канал или профиль в Telegram",
         "tiktok": "Ссылка на ваш профиль в TikTok",
         "boosty": "Ссылка на ваш профиль в Boosty",
-        "yandex_music": "Ссылка на ваш профиль музыканта в Yandex Music"
+        "yandex_music": "Ссылка на профиль в Яндекс Музыке",
+        "instagram": "Имя пользователя или ссылка Instagram",
+        "x": "Имя пользователя или ссылка X (Twitter)",
+        "kick": "Имя пользователя или ссылка Kick",
+        "facebook": "Ссылка на профиль Facebook",
+        "reddit": "Имя пользователя Reddit или ссылка",
+        "steam": "ID профиля Steam или ссылка"
       },
       "saveButton": "Сохранить",
       "savingButton": "Сохранение...",
@@ -422,7 +423,9 @@
     },
     "roles": {
         "admin": "Админ",
-        "streamer": "Стример"
+        "streamer": "Стример",
+        "viewer": "Зритель",
+        "companion": "Компаньон"
     },
     "edit": {
         "widgetLabel": "Выберите виджет для профиля",

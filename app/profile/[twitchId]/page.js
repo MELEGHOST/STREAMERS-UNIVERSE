@@ -5,6 +5,7 @@ import { useRouter, useParams } from 'next/navigation';
 import useSWR from 'swr';
 import Image from 'next/image';
 import CyberAvatar from '../../components/CyberAvatar';
+import AvatarSocialOverlay, { SUPPORTED_PLATFORMS } from '../../components/AvatarSocialOverlay.jsx';
 import styles from '../profile.module.css';
 import pageStyles from '../../../styles/page.module.css';
 import { useAuth } from '../../contexts/AuthContext';
@@ -129,6 +130,7 @@ export default function UserProfilePage() {
   const { t } = useTranslation();
 
   const { user, isAuthenticated, supabase, isLoading: authIsLoading, signOut } = useAuth();
+  const [isOverlayOpen, setIsOverlayOpen] = useState(false);
   
   const currentUserTwitchId = !authIsLoading ? user?.user_metadata?.provider_id : undefined;
   const isOwnProfile = !authIsLoading && !!currentUserTwitchId && currentUserTwitchId === profileTwitchId;
@@ -172,6 +174,17 @@ export default function UserProfilePage() {
   const userRolesArray = userRolesString?.split(',').map(role => role.trim().toLowerCase()).filter(Boolean) || [];
   const isAdmin = userRolesArray.includes('admin');
   const isStreamer = twitchUserData?.broadcaster_type === 'partner' || twitchUserData?.broadcaster_type === 'affiliate';
+
+  // Derived status text
+  const statusText = isAdmin
+    ? t('roles.admin')
+    : (isStreamer ? t('roles.streamer') : (userRolesArray.includes('companion') ? t('roles.companion', { defaultValue: 'Компаньон' }) : t('roles.viewer', { defaultValue: 'Зритель' })));
+
+  // Socials completion percent out of 14 platforms
+  const profileSocialLinks = isRegistered ? (profileData?.social_links || {}) : null;
+  const socialsTotal = SUPPORTED_PLATFORMS.length; // 14
+  const socialsFilled = SUPPORTED_PLATFORMS.reduce((acc, key) => acc + (profileSocialLinks?.[key] ? 1 : 0), 0);
+  const socialsPercent = Math.round((socialsFilled / socialsTotal) * 100);
 
   const getNicknameStyle = () => {
     const adminColor = '#ffd700';
@@ -227,9 +240,8 @@ export default function UserProfilePage() {
   const viewCount = twitchUserData?.view_count;
   const followersCount = twitchUserData?.followers_count ?? profileData?.twitch_follower_count;
   const createdAt = twitchUserData?.created_at;
-  const broadcasterType = twitchUserData?.broadcaster_type || profileData?.twitch_broadcaster_type;
+  // const broadcasterType = twitchUserData?.broadcaster_type || profileData?.twitch_broadcaster_type;
   const profileDescription = isRegistered ? profileData?.description : twitchUserData?.description;
-  const profileSocialLinks = isRegistered ? profileData?.social_links : null;
   const formattedDate = createdAt ? (formatDate(createdAt, t.language) || t('common.unknown')) : t('common.unknown');
 
   const handleLogout = async () => {
@@ -270,7 +282,9 @@ export default function UserProfilePage() {
         </div>
         <header className={styles.profileHeader}>
             <div className="pixel-card">
-                <CyberAvatar src={avatarUrl} alt={t('profile.avatarAlt', { name: displayName })} size={160} />
+                <div onClick={() => setIsOverlayOpen(true)} style={{ cursor: 'pointer' }}>
+                  <CyberAvatar src={avatarUrl} alt={t('profile.avatarAlt', { name: displayName })} size={160} />
+                </div>
             </div>
             <div className={styles.profileInfo}>
                 <h1 className={styles.displayName}>
@@ -281,22 +295,13 @@ export default function UserProfilePage() {
                 <p className={styles.loginName}>@{twitchUserData?.login || profileData?.twitch_login || '???'}</p>
                 <p className={styles.profileDescription}>{profileDescription}</p>
                 <div className={styles.profileDetails}>
-                    <div className={styles.detailItem}>
-                        <span className={styles.detailLabel}>{t('profile.broadcasterTypeLabel')}:</span>
-                        <span className={styles.detailValue}>{translateBroadcasterType(broadcasterType, t)}</span>
-                    </div>
-                    <div className={styles.detailItem}>
-                        <span className={styles.detailLabel}>{t('profile.createdAtLabel')}:</span>
-                        <span className={styles.detailValue}>{formattedDate}</span>
-                    </div>
-                    <div className={styles.detailItem}>
-                        <span className={styles.detailLabel}>{t('profile.followersLabel')}:</span>
-                        <span className={styles.detailValue}>{pluralize(followersCount, t('common.follower'))}</span>
-                    </div>
-                    <div className={styles.detailItem}>
-                        <span className={styles.detailLabel}>{t('profile.viewsLabel')}:</span>
-                        <span className={styles.detailValue}>{pluralize(viewCount, t('common.view'))}</span>
-                    </div>
+                    <div className={styles.detailItem}><span className={styles.detailLabel}>{t('profile.status', { defaultValue: 'Статус' })}:</span><span className={styles.detailValue}>{statusText}</span></div>
+                    <div className={styles.detailItem}><span className={styles.detailLabel}>{t('profile.level', { defaultValue: 'Уровень' })}:</span><span className={styles.detailValue}>0</span></div>
+                    <div className={styles.detailItem}><span className={styles.detailLabel}>{t('profile.socialsFilled', { defaultValue: 'Заполненность соцсетей' })}:</span><span className={styles.detailValue}>{socialsPercent}% ({socialsFilled}/{socialsTotal})</span></div>
+                    <div className={styles.detailItem}><span className={styles.detailLabel}>{t('profile.birthday', { defaultValue: 'День рождения' })}:</span><span className={styles.detailValue}>{profileData?.birthday ? formatDate(profileData.birthday, t.language) : '—'}</span></div>
+                    <div className={styles.detailItem}><span className={styles.detailLabel}>{t('profile.createdAtLabel')}:</span><span className={styles.detailValue}>{formattedDate}</span></div>
+                    <div className={styles.detailItem}><span className={styles.detailLabel}>{t('profile.followersLabel')}:</span><span className={styles.detailValue}>{pluralize(followersCount, t('common.follower'))}</span></div>
+                    <div className={styles.detailItem}><span className={styles.detailLabel}>{t('profile.viewsLabel')}:</span><span className={styles.detailValue}>{pluralize(viewCount, t('common.view'))}</span></div>
                 </div>
             </div>
         </header>
@@ -353,6 +358,14 @@ export default function UserProfilePage() {
             </aside>
         </div>
       </div>
+      {isOverlayOpen && (
+        <AvatarSocialOverlay
+          avatarUrl={avatarUrl}
+          displayName={displayName}
+          socialLinks={profileSocialLinks}
+          onClose={() => setIsOverlayOpen(false)}
+        />
+      )}
     </I18nProvider>
   );
 }
@@ -360,5 +373,6 @@ export default function UserProfilePage() {
 const SocialButton = ({ platform, link }) => {
     const Component = socialButtonComponents[platform];
     if (!Component) return null;
-    return <Component link={link} />;
+    // Our social button components expect 'value' prop
+    return <Component value={link} />;
 };

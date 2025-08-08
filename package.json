@@ -32,6 +32,8 @@
     "react-i18next": "^15.5.5",
     "react-icons": "^5.5.0",
     "styled-components": "^6.1.19",
+    "@tensorflow/tfjs": "^4.22.0",
+    "@tensorflow-models/body-pix": "^2.2.0",
     "swr": "^2.3.3",
     "ytdl-core": "^4.11.5",
     "swiper": "^11.1.14"

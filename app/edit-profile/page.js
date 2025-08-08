@@ -24,6 +24,7 @@ function EditProfilePageContent() {
     const [socialLinks, setSocialLinks] = useState({});
     const [profileWidget, setProfileWidget] = useState('statistics');
     const [birthday, setBirthday] = useState('');
+    const [role, setRole] = useState('viewer');
     
     const [loadingProfileData, setLoadingProfileData] = useState(true);
     const [saving, setSaving] = useState(false);
@@ -42,7 +43,7 @@ function EditProfilePageContent() {
         try {
             const { data, error: fetchError } = await supabase
                 .from('user_profiles')
-                .select('social_links, description, profile_widget, birthday')
+                .select('social_links, description, profile_widget, birthday, role')
                 .eq('user_id', user.id)
                 .maybeSingle();
 
@@ -51,7 +52,7 @@ function EditProfilePageContent() {
             if (data) {
                 setOriginalDescription(data.description || '');
                 setDescription(data.description || '');
-                const allPlatforms = ['vk', 'twitch', 'youtube', 'discord', 'telegram', 'tiktok', 'yandex_music', 'boosty'];
+                const allPlatforms = ['twitch','youtube','telegram','discord','vk','tiktok','yandex_music','boosty','instagram','x','kick','facebook','reddit','steam'];
                 const normalizedOriginal = {};
                 allPlatforms.forEach(platform => {
                   normalizedOriginal[platform] = data.social_links?.[platform] || null;
@@ -62,6 +63,7 @@ function EditProfilePageContent() {
                 setProfileWidget(data.profile_widget || 'statistics');
                 setOriginalBirthday(data.birthday || '');
                 setBirthday(data.birthday || '');
+                setRole(data.role || 'viewer');
             }
         } catch (err) {
             setError({ key: 'edit_profile.loadError', options: { message: err.message } });
@@ -115,6 +117,7 @@ function EditProfilePageContent() {
         if (JSON.stringify(normalizedSocialLinks) !== JSON.stringify(originalSocialLinks)) updates.social_links = normalizedSocialLinks;
         if (profileWidget !== originalProfileWidget) updates.profile_widget = profileWidget;
         if (birthday !== originalBirthday) updates.birthday = birthday || null;
+        if (role) updates.role = role;
 
         if (Object.keys(updates).length === 0) {
           setError(t('edit_profile.noChanges'));
@@ -180,6 +183,15 @@ function EditProfilePageContent() {
                     <input id="birthday" type="date" value={birthday} onChange={e => setBirthday(e.target.value)} className={styles.input} aria-label={t('profile.edit.birthday')} />
                 </div>
                 <div className={styles.formGroup}>
+                    <label className={styles.label} htmlFor="role">{t('profile.edit.status', { defaultValue: 'Статус' })}</label>
+                    <select id="role" className={styles.input} value={role} onChange={e => setRole(e.target.value)}>
+                        <option value="viewer">{t('roles.viewer', { defaultValue: 'Зритель' })}</option>
+                        <option value="streamer">{t('roles.streamer', { defaultValue: 'Стример' })}</option>
+                        <option value="companion">{t('roles.companion', { defaultValue: 'Компаньон' })}</option>
+                        <option value="admin">{t('roles.admin', { defaultValue: 'Админ' })}</option>
+                    </select>
+                </div>
+                <div className={styles.formGroup}>
                     <label className={styles.label} htmlFor="description">{t('profile.edit.description')}</label>
                     <textarea id="description" value={description} onChange={e => setDescription(e.target.value)} className={styles.textarea}></textarea>
                 </div>
@@ -219,7 +231,7 @@ function EditProfilePageContent() {
                 <div className={styles.formGroup}>
                     <label className={styles.label}>{t('profile.edit.socialLinks')}</label>
                     <div className={styles.socialLinksContainer}>
-                        {['twitch', 'youtube', 'telegram', 'discord', 'vk', 'tiktok', 'yandex_music', 'boosty'].map(platform => (
+                        {['twitch','youtube','telegram','discord','vk','tiktok','yandex_music','boosty','instagram','x','kick','facebook','reddit','steam'].map(platform => (
                             <div key={platform} className={styles.socialLinkItem}>
                                 <label className={styles.socialLinkLabel} htmlFor={platform}>{formatPlatformName(platform)}</label>
                                 <input

@@ -357,7 +357,9 @@
     },
     "roles": {
         "admin": "Admin",
-        "streamer": "Streamer"
+        "streamer": "Streamer",
+        "viewer": "Viewer",
+        "companion": "Companion"
     },
     "modal": {
         "close": "Close"

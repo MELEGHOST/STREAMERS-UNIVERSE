@@ -53,14 +53,14 @@ const StatisticsWidget = ({ twitchData, twitchUserData, profileData, stats }) =>
             </div>
 
             <div className={styles.socialLinksContainer}>
-                {socialLinks.twitch && <TwitchButton url={socialLinks.twitch} />}
-                {socialLinks.youtube && <YoutubeButton url={socialLinks.youtube} />}
-                {socialLinks.discord && <DiscordButton url={socialLinks.discord} />}
-                {socialLinks.telegram && <TelegramButton url={socialLinks.telegram} />}
-                {socialLinks.vk && <VkButton url={socialLinks.vk} />}
-                {socialLinks.tiktok && <TiktokButton url={socialLinks.tiktok} />}
-                {socialLinks.boosty && <BoostyButton url={socialLinks.boosty} />}
-                {socialLinks.yandex_music && <YandexMusicButton url={socialLinks.yandex_music} />}
+                {socialLinks.twitch && <TwitchButton value={socialLinks.twitch} />}
+                {socialLinks.youtube && <YoutubeButton value={socialLinks.youtube} />}
+                {socialLinks.discord && <DiscordButton value={socialLinks.discord} />}
+                {socialLinks.telegram && <TelegramButton value={socialLinks.telegram} />}
+                {socialLinks.vk && <VkButton value={socialLinks.vk} />}
+                {socialLinks.tiktok && <TiktokButton value={socialLinks.tiktok} />}
+                {socialLinks.boosty && <BoostyButton value={socialLinks.boosty} />}
+                {socialLinks.yandex_music && <YandexMusicButton value={socialLinks.yandex_music} />}
             </div>
         </div>
     );

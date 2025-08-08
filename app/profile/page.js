@@ -6,6 +6,8 @@ import { useAuth } from '../contexts/AuthContext';
 import styles from './profile.module.css';
 import pageStyles from '../../styles/page.module.css';
 import Image from 'next/image';
+import CyberAvatar from '../components/CyberAvatar';
+import AvatarSocialOverlay, { SUPPORTED_PLATFORMS } from '../components/AvatarSocialOverlay.jsx';
 import RouteGuard from '../components/RouteGuard';
 import { useTranslation } from 'react-i18next';
 import I18nProvider from '../components/I18nProvider'; // Добавляем импорт
@@ -33,6 +35,8 @@ function ProfilePageContent() {
     const twitchUserId = user?.user_metadata?.provider_id;
 
     const [authToken, setAuthToken] = useState(null);
+    const [isOverlayOpen, setIsOverlayOpen] = useState(false);
+    const [profileData, setProfileData] = useState(null);
     useEffect(() => {
         const getToken = async () => {
             if (supabase) {
@@ -80,11 +84,15 @@ function ProfilePageContent() {
 
       // Параллельная загрузка
       try {
-          await Promise.all([
+          const [, db] = await Promise.all([
               fetchTwitchUserData(),
-              // Другие функции загрузки, например, с нашей БД
-              // fetchMyDbData(), 
+              supabase
+                .from('user_profiles')
+                .select('social_links, birthday, role, description, profile_widget')
+                .eq('user_id', user.id)
+                .maybeSingle()
           ]);
+          if (db?.data) setProfileData(db.data);
       } catch (err) {
           setError('Error loading profile: ' + err.message);
       }
@@ -128,7 +136,7 @@ function ProfilePageContent() {
     }
 
     const displayName = twitchUserData?.display_name || user?.user_metadata?.full_name || t('loading.generic');
-    const bio = twitchUserData?.description || t('profile_page.noBio');
+    const bio = (profileData?.description) || twitchUserData?.description || t('profile_page.noBio');
 
     // --- Логика виджетов ---
     const StatsWidget = () => {
@@ -252,14 +260,11 @@ function ProfilePageContent() {
             <div className={pageStyles.container}>
                 <header className={styles.profileHeader}>
                     <div className={styles.avatarContainer}>
-                        <div className="pixel-card">
-                            <Image
+                        <div className="pixel-card" onClick={() => setIsOverlayOpen(true)} style={{ cursor: 'pointer' }}>
+                            <CyberAvatar
                                 src={twitchUserData?.profile_image_url || user.user_metadata.avatar_url}
                                 alt={t('profile_page.avatarAlt', { name: displayName })}
-                                width={120}
-                                height={120}
-                                className={styles.avatar}
-                                unoptimized
+                                size={160}
                             />
                         </div>
                         {twitchUserData?.offline_image_url && (
@@ -282,7 +287,21 @@ function ProfilePageContent() {
                             </p>
                          )}
                         <p className={styles.bio}>{bio}</p>
-
+                        <div className={styles.profileDetails}>
+                            <div className={styles.detailItem}><span className={styles.detailLabel}>{t('profile.status', { defaultValue: 'Статус' })}:</span><span className={styles.detailValue}>{userRole || profileData?.role || 'Зритель'}</span></div>
+                            <div className={styles.detailItem}><span className={styles.detailLabel}>{t('profile.level', { defaultValue: 'Уровень' })}:</span><span className={styles.detailValue}>0</span></div>
+                            {profileData?.social_links && (
+                                (() => {
+                                  const total = SUPPORTED_PLATFORMS.length;
+                                  const filled = SUPPORTED_PLATFORMS.reduce((a, k) => a + (profileData.social_links?.[k] ? 1 : 0), 0);
+                                  const percent = Math.round((filled / total) * 100);
+                                  return <div className={styles.detailItem}><span className={styles.detailLabel}>{t('profile.socialsFilled', { defaultValue: 'Заполненность соцсетей' })}:</span><span className={styles.detailValue}>{percent}% ({filled}/{total})</span></div>
+                                })()
+                            )}
+                            {profileData?.birthday && (
+                              <div className={styles.detailItem}><span className={styles.detailLabel}>{t('profile.birthday', { defaultValue: 'День рождения' })}:</span><span className={styles.detailValue}>{new Date(profileData.birthday).toLocaleDateString()}</span></div>
+                            )}
+                        </div>
                     </div>
                      <div className={styles.profileActions}>
                         <button onClick={() => router.push('/edit-profile')} className={styles.actionButton}>
@@ -337,6 +356,14 @@ function ProfilePageContent() {
     </section>
                 </main>
         </div>
+        {isOverlayOpen && (
+          <AvatarSocialOverlay
+            avatarUrl={twitchUserData?.profile_image_url || user.user_metadata.avatar_url}
+            displayName={displayName}
+            socialLinks={profileData?.social_links}
+            onClose={() => setIsOverlayOpen(false)}
+          />
+        )}
         </I18nProvider>
       );
     };
