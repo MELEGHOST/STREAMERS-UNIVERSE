@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import useSWR from 'swr';
 import Image from 'next/image';
-import CyberAvatar from '../../components/CyberAvatar';
+// import CyberAvatar from '../../components/CyberAvatar';
 import AvatarSocialOverlay, { SUPPORTED_PLATFORMS } from '../../components/AvatarSocialOverlay.jsx';
 import styles from '../profile.module.css';
 import pageStyles from '../../../styles/page.module.css';
@@ -26,6 +26,7 @@ import StatisticsWidget from '../../components/ProfileWidgets/StatisticsWidget';
 import AchievementsWidget from '../../components/ProfileWidgets/AchievementsWidget';
 import InviteButton from '../../components/InviteButton/InviteButton';
 import I18nProvider from '../../components/I18nProvider';
+import ProfileShowcaseCard from '../../components/ProfileCard/ProfileShowcaseCard.jsx';
 
 const socialButtonComponents = {
     vk: VkButton,
@@ -278,11 +279,16 @@ export default function UserProfilePage() {
             </div>
         </div>
         <header className={styles.profileHeader}>
-            <div className="pixel-card">
-                <div onClick={() => setIsOverlayOpen(true)} style={{ cursor: 'pointer' }}>
-                  <CyberAvatar src={avatarUrl} alt={t('profile.avatarAlt', { name: displayName })} size={160} />
-                </div>
-            </div>
+            <ProfileShowcaseCard
+              avatarUrl={avatarUrl}
+              displayName={displayName}
+              username={twitchUserData?.login || profileData?.twitch_login || '???'}
+              level={0}
+              socialsPercent={socialsPercent}
+              statusText={statusText}
+              birthdayText={profileData?.birthday ? (formatDate(profileData.birthday, t.language) || '') : ''}
+              onAvatarClick={() => setIsOverlayOpen(true)}
+            />
             <div className={styles.profileInfo}>
                 <h1 className={styles.displayName}>
                     <span style={nicknameStyle}>{displayName}</span>
@@ -292,10 +298,6 @@ export default function UserProfilePage() {
                 <p className={styles.loginName}>@{twitchUserData?.login || profileData?.twitch_login || '???'}</p>
                 <p className={styles.profileDescription}>{profileDescription}</p>
                 <div className={styles.profileDetails}>
-                    <div className={styles.detailItem}><span className={styles.detailLabel}>{t('profile.status', { defaultValue: 'Статус' })}:</span><span className={styles.detailValue}>{statusText}</span></div>
-                    <div className={styles.detailItem}><span className={styles.detailLabel}>{t('profile.level', { defaultValue: 'Уровень' })}:</span><span className={styles.detailValue}>0</span></div>
-                    <div className={styles.detailItem}><span className={styles.detailLabel}>{t('profile.socialsFilled', { defaultValue: 'Заполненность соцсетей' })}:</span><span className={styles.detailValue}>{socialsPercent}% ({socialsFilled}/{socialsTotal})</span></div>
-                    <div className={styles.detailItem}><span className={styles.detailLabel}>{t('profile.birthday', { defaultValue: 'День рождения' })}:</span><span className={styles.detailValue}>{profileData?.birthday ? formatDate(profileData.birthday, t.language) : '—'}</span></div>
                     <div className={styles.detailItem}><span className={styles.detailLabel}>{t('profile.createdAtLabel')}:</span><span className={styles.detailValue}>{formattedDate}</span></div>
                     <div className={styles.detailItem}><span className={styles.detailLabel}>{t('profile.followersLabel')}:</span><span className={styles.detailValue}>{pluralize(followersCount, t('common.follower'))}</span></div>
                     <div className={styles.detailItem}><span className={styles.detailLabel}>{t('profile.viewsLabel')}:</span><span className={styles.detailValue}>{pluralize(viewCount, t('common.view'))}</span></div>

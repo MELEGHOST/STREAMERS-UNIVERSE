@@ -6,8 +6,9 @@ import { useAuth } from '../contexts/AuthContext';
 import styles from './profile.module.css';
 import pageStyles from '../../styles/page.module.css';
 import Image from 'next/image';
-import CyberAvatar from '../components/CyberAvatar';
+// import CyberAvatar from '../components/CyberAvatar';
 import AvatarSocialOverlay, { SUPPORTED_PLATFORMS } from '../components/AvatarSocialOverlay.jsx';
+import ProfileShowcaseCard from '../components/ProfileCard/ProfileShowcaseCard.jsx';
 import RouteGuard from '../components/RouteGuard';
 import { useTranslation } from 'react-i18next';
 import I18nProvider from '../components/I18nProvider'; // Добавляем импорт
@@ -260,22 +261,21 @@ function ProfilePageContent() {
             <div className={pageStyles.container}>
                 <header className={styles.profileHeader}>
                     <div className={styles.avatarContainer}>
-                        <div className="pixel-card" onClick={() => setIsOverlayOpen(true)} style={{ cursor: 'pointer' }}>
-                            <CyberAvatar
-                                src={twitchUserData?.profile_image_url || user.user_metadata.avatar_url}
-                                alt={t('profile_page.avatarAlt', { name: displayName })}
-                                size={160}
-                            />
-                        </div>
-                        {twitchUserData?.offline_image_url && (
-                            <Image
-                                src={twitchUserData.offline_image_url}
-                                alt={t('profile_page.offlineBannerAlt', { name: displayName })}
-                                layout="fill"
-                                objectFit="cover"
-                                className={styles.profileBanner}
-                            />
-                        )}
+                        <ProfileShowcaseCard
+                          avatarUrl={twitchUserData?.profile_image_url || user.user_metadata.avatar_url}
+                          displayName={displayName}
+                          username={twitchUserData?.login || user.user_metadata.user_name}
+                          level={0}
+                          socialsPercent={(() => {
+                            const total = SUPPORTED_PLATFORMS.length;
+                            const links = profileData?.social_links || {};
+                            const filled = SUPPORTED_PLATFORMS.reduce((a,k)=>a+(links?.[k]?1:0),0);
+                            return Math.round((filled/total)*100);
+                          })()}
+                          statusText={userRole || profileData?.role || 'Зритель'}
+                          birthdayText={profileData?.birthday ? new Date(profileData.birthday).toLocaleDateString() : ''}
+                          onAvatarClick={() => setIsOverlayOpen(true)}
+                        />
                     </div>
             
                     <div className={styles.profileInfo}>
