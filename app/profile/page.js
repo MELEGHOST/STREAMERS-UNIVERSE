@@ -266,12 +266,8 @@ function ProfilePageContent() {
                           displayName={displayName}
                           username={twitchUserData?.login || user.user_metadata.user_name}
                           level={0}
-                          socialsPercent={(() => {
-                            const total = SUPPORTED_PLATFORMS.length;
-                            const links = profileData?.social_links || {};
-                            const filled = SUPPORTED_PLATFORMS.reduce((a,k)=>a+(links?.[k]?1:0),0);
-                            return Math.round((filled/total)*100);
-                          })()}
+                          followersCount={twitchUserData?.followers_count || 0}
+                          followersTarget={profileData?.followers_target || 1000}
                           statusText={userRole || profileData?.role || 'Зритель'}
                           birthdayText={profileData?.birthday ? new Date(profileData.birthday).toLocaleDateString() : ''}
                           onAvatarClick={() => setIsOverlayOpen(true)}

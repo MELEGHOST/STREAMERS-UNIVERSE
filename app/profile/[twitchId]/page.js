@@ -5,7 +5,7 @@ import { useRouter, useParams } from 'next/navigation';
 import useSWR from 'swr';
 import Image from 'next/image';
 // import CyberAvatar from '../../components/CyberAvatar';
-import AvatarSocialOverlay, { SUPPORTED_PLATFORMS } from '../../components/AvatarSocialOverlay.jsx';
+import AvatarSocialOverlay from '../../components/AvatarSocialOverlay.jsx';
 import styles from '../profile.module.css';
 import pageStyles from '../../../styles/page.module.css';
 import { useAuth } from '../../contexts/AuthContext';
@@ -180,9 +180,7 @@ export default function UserProfilePage() {
 
   // Socials completion percent out of 14 platforms
   const profileSocialLinks = isRegistered ? (profileData?.social_links || {}) : null;
-  const socialsTotal = SUPPORTED_PLATFORMS.length; // 14
-  const socialsFilled = SUPPORTED_PLATFORMS.reduce((acc, key) => acc + (profileSocialLinks?.[key] ? 1 : 0), 0);
-  const socialsPercent = Math.round((socialsFilled / socialsTotal) * 100);
+  // const socialsPercent = Math.round((socialsFilled / socialsTotal) * 100);
 
   const getNicknameStyle = () => {
     const adminColor = '#ffd700';
@@ -284,7 +282,8 @@ export default function UserProfilePage() {
               displayName={displayName}
               username={twitchUserData?.login || profileData?.twitch_login || '???'}
               level={0}
-              socialsPercent={socialsPercent}
+              followersCount={followersCount || 0}
+              followersTarget={profileData?.followers_target || 1000}
               statusText={statusText}
               birthdayText={profileData?.birthday ? (formatDate(profileData.birthday, t.language) || '') : ''}
               onAvatarClick={() => setIsOverlayOpen(true)}

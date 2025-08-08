@@ -25,6 +25,7 @@ function EditProfilePageContent() {
     const [profileWidget, setProfileWidget] = useState('statistics');
     const [birthday, setBirthday] = useState('');
     const [role, setRole] = useState('viewer');
+    const [followersTarget, setFollowersTarget] = useState(1000);
     
     const [loadingProfileData, setLoadingProfileData] = useState(true);
     const [saving, setSaving] = useState(false);
@@ -43,7 +44,7 @@ function EditProfilePageContent() {
         try {
             const { data, error: fetchError } = await supabase
                 .from('user_profiles')
-                .select('social_links, description, profile_widget, birthday, role')
+                .select('social_links, description, profile_widget, birthday, role, followers_target')
                 .eq('user_id', user.id)
                 .maybeSingle();
 
@@ -64,6 +65,7 @@ function EditProfilePageContent() {
                 setOriginalBirthday(data.birthday || '');
                 setBirthday(data.birthday || '');
                 setRole(data.role || 'viewer');
+                setFollowersTarget(data.followers_target || 1000);
             }
         } catch (err) {
             setError({ key: 'edit_profile.loadError', options: { message: err.message } });
@@ -118,6 +120,7 @@ function EditProfilePageContent() {
         if (profileWidget !== originalProfileWidget) updates.profile_widget = profileWidget;
         if (birthday !== originalBirthday) updates.birthday = birthday || null;
         if (role) updates.role = role;
+        if (followersTarget) updates.followers_target = Number(followersTarget) || 1000;
 
         if (Object.keys(updates).length === 0) {
           setError(t('edit_profile.noChanges'));
@@ -181,6 +184,10 @@ function EditProfilePageContent() {
                 <div className={styles.formGroup}>
                     <label className={styles.label} htmlFor="birthday">{t('profile.edit.birthday')}</label>
                     <input id="birthday" type="date" value={birthday} onChange={e => setBirthday(e.target.value)} className={styles.input} aria-label={t('profile.edit.birthday')} />
+                </div>
+                <div className={styles.formGroup}>
+                    <label className={styles.label} htmlFor="followersTarget">{t('profile.edit.followersTarget', { defaultValue: 'Цель по фолловерам' })}</label>
+                    <input id="followersTarget" type="number" min="1" value={followersTarget} onChange={e => setFollowersTarget(e.target.value)} className={styles.input} />
                 </div>
                 <div className={styles.formGroup}>
                     <label className={styles.label} htmlFor="role">{t('profile.edit.status', { defaultValue: 'Статус' })}</label>
