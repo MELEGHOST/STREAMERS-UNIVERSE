@@ -30,6 +30,7 @@ export default function ProfileShowcaseCard({
   onAvatarClick,
 }) {
   const followersPercent = Math.max(0, Math.min(100, Math.round(((Number(followersCount) || 0) / (followersTarget || 1)) * 100)));
+  const angle = `${followersPercent * 3.6}deg`;
   return (
     <div className={styles.card}>
       <div className={styles.top}>
@@ -58,8 +59,12 @@ export default function ProfileShowcaseCard({
 
       <div className={styles.bottom}>
         <div className={styles.statsRow}>
-          <CircularStat label="Цель" value={followersPercent} inner={Number(followersCount) || 0} />
-          <CircularStat label="Уровень" value={level} inner={Number(level) || 0} />
+          <div style={{ '--angle': angle }}>
+            <CircularStat label="Цель" value={followersPercent} inner={Number(followersCount) || 0} />
+          </div>
+          <div style={{ '--angle': `${(Number(level) || 0) * 3.6}deg` }}>
+            <CircularStat label="Уровень" value={level} inner={Number(level) || 0} />
+          </div>
         </div>
         <div className={styles.metaRow}>
           {birthdayText && (

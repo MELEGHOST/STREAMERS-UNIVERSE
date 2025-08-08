@@ -37,10 +37,16 @@ export default function SmartCutoutImage({ src, width = 300, height = 300, class
         const ctx = canvas.getContext('2d');
 
         // Draw scaled image
+        ctx.clearRect(0, 0, width, height);
         ctx.drawImage(img, 0, 0, width, height);
 
         const segmentation = await net.segmentPerson(img, { internalResolution: 'medium', segmentationThreshold: 0.7 });
-        const mask = bodyPix.toMask(segmentation);
+        // Make foreground opaque, background transparent for proper cutout
+        const mask = bodyPix.toMask(
+          segmentation,
+          { r: 255, g: 255, b: 255, a: 255 },
+          { r: 0, g: 0, b: 0, a: 0 }
+        );
 
         // Compose foregroud only
         const maskCanvas = document.createElement('canvas');
