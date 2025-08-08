@@ -1,7 +1,6 @@
 'use client';
 
 import React, { useEffect } from 'react';
-import Image from 'next/image';
 import SmartCutoutImage from './SmartCutoutImage.jsx';
 import styles from './AvatarSocialOverlay.module.css';
 

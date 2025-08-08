@@ -65,10 +65,7 @@ const RoleBadge = ({ role, t }) => {
     );
 };
 
-const translateBroadcasterType = (type, t) => {
-    const key = `profile.broadcasterType.${type || 'normal'}`;
-    return t(key, { defaultValue: type || 'User' });
-};
+// removed unused translateBroadcasterType to satisfy linter
 
 const formatDuration = (durationString) => {
   try {
