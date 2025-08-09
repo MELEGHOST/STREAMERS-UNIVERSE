@@ -273,53 +273,28 @@ function ProfilePageContent() {
                           onAvatarClick={() => setIsOverlayOpen(true)}
                         />
                     </div>
-            
-                    <div className={styles.profileInfo}>
-                        <h1>{displayName}</h1>
-                        <p className={styles.login}>@{twitchUserData?.login || user.user_metadata.user_name}</p>
-                         {twitchUserData?.broadcaster_type && (
-                            <p className={styles.broadcasterType}>
-                                {translateBroadcasterType(twitchUserData.broadcaster_type, t)}
-                            </p>
-                         )}
-                        <p className={styles.bio}>{bio}</p>
-                        <div className={styles.profileDetails}>
-                            <div className={styles.detailItem}><span className={styles.detailLabel}>{t('profile.status', { defaultValue: 'Статус' })}:</span><span className={styles.detailValue}>{userRole || profileData?.role || 'Зритель'}</span></div>
-                            <div className={styles.detailItem}><span className={styles.detailLabel}>{t('profile.level', { defaultValue: 'Уровень' })}:</span><span className={styles.detailValue}>0</span></div>
-                            {profileData?.social_links && (
-                                (() => {
-                                  const total = SUPPORTED_PLATFORMS.length;
-                                  const filled = SUPPORTED_PLATFORMS.reduce((a, k) => a + (profileData.social_links?.[k] ? 1 : 0), 0);
-                                  const percent = Math.round((filled / total) * 100);
-                                  return <div className={styles.detailItem}><span className={styles.detailLabel}>{t('profile.socialsFilled', { defaultValue: 'Заполненность соцсетей' })}:</span><span className={styles.detailValue}>{percent}% ({filled}/{total})</span></div>
-                                })()
-                            )}
-                            {profileData?.birthday && (
-                              <div className={styles.detailItem}><span className={styles.detailLabel}>{t('profile.birthday', { defaultValue: 'День рождения' })}:</span><span className={styles.detailValue}>{new Date(profileData.birthday).toLocaleDateString()}</span></div>
-                            )}
-                        </div>
-                    </div>
-                     <div className={styles.profileActions}>
-                        <button onClick={() => router.push('/edit-profile')} className={styles.actionButton}>
-                            <FaEdit /> {t('profile_page.editProfile')}
-                        </button>
-                         <button onClick={() => router.push('/reviews/create')} className={styles.actionButton}>
-                            <FaPlus /> {t('profile_page.addReview')}
-                        </button>
-                        <button onClick={() => router.push('/achievements')} className={styles.actionButton}>
-                            <FaTrophy /> {t('profile_page.myAchievements')}
-                        </button>
-                         {userRole === 'admin' && (
-                            <button onClick={() => router.push('/admin/reviews')} className={styles.actionButton}>
-                                <FaShieldAlt /> {t('profile_page.adminPanel')}
-                            </button>
-                        )}
-                        <button onClick={() => supabase.auth.signOut()} className={`${styles.actionButton} ${styles.logoutButton}`}>
-                            <FaSignOutAlt /> {t('logout')}
-                        </button>
-                     </div>
 
                 </header>
+
+                <div className={styles.actionsBar}>
+                  <button onClick={() => router.push('/edit-profile')} className={styles.chip}>
+                    <FaEdit /> {t('profile_page.editProfile', { defaultValue: 'Редактировать профиль' })}
+                  </button>
+                  <button onClick={() => router.push('/reviews/create')} className={styles.chip}>
+                    <FaPlus /> {t('profile_page.addReview', { defaultValue: 'Добавить отзыв' })}
+                  </button>
+                  <button onClick={() => router.push('/achievements')} className={styles.chip}>
+                    <FaTrophy /> {t('profile_page.myAchievements', { defaultValue: 'Мои достижения' })}
+                  </button>
+                  {userRole === 'admin' && (
+                    <button onClick={() => router.push('/admin/reviews')} className={styles.chip}>
+                      <FaShieldAlt /> {t('profile_page.adminPanel', { defaultValue: 'Админ-панель' })}
+                    </button>
+                  )}
+                  <button onClick={() => supabase.auth.signOut()} className={styles.chip}>
+                    <FaSignOutAlt /> {t('logout', { defaultValue: 'Выйти' })}
+                  </button>
+                </div>
 
                 <main className={styles.mainContent}>
                     <div className={styles.widgetsGrid}>

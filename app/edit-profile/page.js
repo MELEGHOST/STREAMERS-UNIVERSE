@@ -18,7 +18,7 @@ function simpleSanitize(input) {
 function EditProfilePageContent() {
     const { user, isAuthenticated } = useAuth();
     const router = useRouter();
-    const { t } = useTranslation();
+    const { t } = useTranslation('common');
 
     const [description, setDescription] = useState('');
     const [socialLinks, setSocialLinks] = useState({});
@@ -83,7 +83,7 @@ function EditProfilePageContent() {
     const handleSave = async (e) => {
       e.preventDefault();
       if (!user) {
-        setError(t('edit_profile.userError'));
+        setError(t('edit_profile.userError', { defaultValue: 'Пользователь не найден. Войдите снова.' }));
         return;
       }
   
@@ -94,27 +94,27 @@ function EditProfilePageContent() {
       try {
         const session = await supabase.auth.getSession();
         if (!session.data.session) {
-          setError('Session expired. Please log in again.');
+          setError(t('edit_profile.sessionExpired', { defaultValue: 'Сессия истекла. Войдите заново.' }));
           return;
         }
         // Validate birthday:
         if (birthday && isNaN(new Date(birthday).getTime())) {
-          setError('Invalid birthday format. Please use YYYY-MM-DD.');
+          setError(t('edit_profile.invalidBirthday', { defaultValue: 'Неверный формат даты. Используйте ГГГГ-ММ-ДД.' }));
           return;
         }
-        // Validate social links:
-        for (const [platform, url] of Object.entries(socialLinks)) {
-          if (url && !/^https?:\/\//i.test(url)) {
-            setError(`Invalid URL for ${platform}: Must start with http:// or https://`);
-            return;
-          }
-        }
+        // Social links: больше не требуем http/https — можно сохранять юзернеймы/ID
+        // Только ограничим длину и уберем лишние пробелы
         // Sanitize description:
         const safeDescription = simpleSanitize(description);
         const updates = {};
         if (safeDescription !== originalDescription) updates.description = safeDescription || null;
         const normalizedSocialLinks = Object.fromEntries(
-          Object.entries(socialLinks).map(([key, value]) => [key, value?.trim() || null])
+          Object.entries(socialLinks).map(([key, value]) => {
+            const cleaned = (value ?? '').toString().trim();
+            if (!cleaned) return [key, null];
+            if (cleaned.length > 150) return [key, cleaned.slice(0, 150)];
+            return [key, cleaned];
+          })
         );
         if (JSON.stringify(normalizedSocialLinks) !== JSON.stringify(originalSocialLinks)) updates.social_links = normalizedSocialLinks;
         if (profileWidget !== originalProfileWidget) updates.profile_widget = profileWidget;
@@ -123,7 +123,7 @@ function EditProfilePageContent() {
         if (followersTarget) updates.followers_target = Number(followersTarget) || 1000;
 
         if (Object.keys(updates).length === 0) {
-          setError(t('edit_profile.noChanges'));
+          setError(t('edit_profile.noChanges', { defaultValue: 'Нет изменений для сохранения.' }));
           setSaving(false);
           return;
         }
@@ -138,7 +138,7 @@ function EditProfilePageContent() {
         setOriginalProfileWidget(profileWidget);
         setOriginalBirthday(birthday);
 
-        setSuccessMessage({ key: 'edit_profile.successMessage' });
+        setSuccessMessage({ key: 'edit_profile.successMessage', defaultValue: 'Профиль обновлен.' });
  
         setTimeout(() => {
             const userTwitchId = user?.user_metadata?.provider_id;
@@ -150,7 +150,7 @@ function EditProfilePageContent() {
         }, 1000);
  
       } catch (err) {
-        setError({ key: 'edit_profile.saveError', options: { message: err.message } });
+        setError({ key: 'edit_profile.saveError', options: { message: err.message, defaultValue: 'Не удалось сохранить профиль: {{message}}' } });
       } finally {
         setSaving(false);
       }
@@ -177,12 +177,12 @@ function EditProfilePageContent() {
     return (
         <div className={styles.container}>
             <button onClick={handleBack} className={styles.backButton}>
-                &larr; {t('profile.back')}
+                &larr; {t('profile.back', { defaultValue: 'Назад' })}
             </button>
-            <h1 className={styles.title}>{t('profile.edit.title')}</h1>
+            <h1 className={styles.title}>{t('profile.edit.title', { defaultValue: 'Редактирование профиля' })}</h1>
             <form onSubmit={handleSave} className={styles.form}>
                 <div className={styles.formGroup}>
-                    <label className={styles.label} htmlFor="birthday">{t('profile.edit.birthday')}</label>
+                    <label className={styles.label} htmlFor="birthday">{t('profile.edit.birthday', { defaultValue: 'Дата рождения' })}</label>
                     <input id="birthday" type="date" value={birthday} onChange={e => setBirthday(e.target.value)} className={styles.input} aria-label={t('profile.edit.birthday')} />
                 </div>
                 <div className={styles.formGroup}>
@@ -199,44 +199,44 @@ function EditProfilePageContent() {
                     </select>
                 </div>
                 <div className={styles.formGroup}>
-                    <label className={styles.label} htmlFor="description">{t('profile.edit.description')}</label>
+                    <label className={styles.label} htmlFor="description">{t('profile.edit.description', { defaultValue: 'Описание' })}</label>
                     <textarea id="description" value={description} onChange={e => setDescription(e.target.value)} className={styles.textarea}></textarea>
                 </div>
                 <div className={styles.formGroup}>
-                    <label className={styles.label}>{t('profile.edit.widgetLabel')}</label>
+                    <label className={styles.label}>{t('profile.edit.widgetLabel', { defaultValue: 'Виджет профиля на странице' })}</label>
                     <button type="button" onClick={() => setShowModal(true)} className={styles.widgetButton}>
-                        {profileWidget === 'statistics' ? t('profile.edit.widgetStatistics') : t('profile.edit.widgetAchievements')}
+                        {profileWidget === 'statistics' ? t('profile.edit.widgetStatistics', { defaultValue: 'Статистика' }) : t('profile.edit.widgetAchievements', { defaultValue: 'Достижения' })}
                     </button>
                 </div>
 
                 {showModal && (
                     <div className={styles.modalOverlay} onClick={() => setShowModal(false)} role="dialog" aria-modal="true">
                         <div className={styles.modalContent} onClick={e => e.stopPropagation()}>
-                            <h2>{t('profile.edit.selectWidget')}</h2>
+                            <h2>{t('profile.edit.selectWidget', { defaultValue: 'Выберите виджет' })}</h2>
                             <div className={styles.widgetPreview}>
                                 <div onClick={() => { setTempWidget('statistics'); }}>
-                                    <h3>{t('profile.edit.widgetStatistics')}</h3>
+                                    <h3>{t('profile.edit.widgetStatistics', { defaultValue: 'Статистика' })}</h3>
                                     <div className={styles.previewBox}>
-                                        <p>{t('profile.edit.subscribers')}: 1000</p>
-                                        <p>{t('profile.edit.views')}: 50000</p>
+                                        <p>{t('profile.edit.subscribers', { defaultValue: 'Подписчики' })}: 1000</p>
+                                        <p>{t('profile.edit.views', { defaultValue: 'Просмотры' })}: 50000</p>
                                         {/* Другие статы без дубликатов */}
                                     </div>
                                 </div>
                                 <div onClick={() => { setTempWidget('achievements'); }}>
-                                    <h3>{t('profile.edit.widgetAchievements')}</h3>
+                                    <h3>{t('profile.edit.widgetAchievements', { defaultValue: 'Достижения' })}</h3>
                                     <div className={styles.previewBox}>
-                                        <p>{t('profile.edit.rareAchievement1')} (0.5% {t('profile.edit.players')})</p>
-                                        <p>{t('profile.edit.rareAchievement2')} (1% {t('profile.edit.players')})</p>
+                                        <p>{t('profile.edit.rareAchievement1', { defaultValue: 'Редкое достижение #1' })} (0.5% {t('profile.edit.players', { defaultValue: 'игроков' })})</p>
+                                        <p>{t('profile.edit.rareAchievement2', { defaultValue: 'Редкое достижение #2' })} (1% {t('profile.edit.players', { defaultValue: 'игроков' })})</p>
                                     </div>
                                 </div>
                             </div>
-                            <button onClick={() => { setProfileWidget(tempWidget); setShowModal(false); }}>{t('profile.edit.close')}</button>
+                            <button onClick={() => { setProfileWidget(tempWidget); setShowModal(false); }}>{t('profile.edit.close', { defaultValue: 'Готово' })}</button>
                         </div>
                     </div>
                 )}
 
                 <div className={styles.formGroup}>
-                    <label className={styles.label}>{t('profile.edit.socialLinks')}</label>
+                    <label className={styles.label}>{t('profile.edit.socialLinks', { defaultValue: 'Ссылки и юзернеймы соцсетей' })}</label>
                     <div className={styles.socialLinksContainer}>
                         {['twitch','youtube','telegram','discord','vk','tiktok','yandex_music','boosty','instagram','x','kick','facebook','reddit','steam'].map(platform => (
                             <div key={platform} className={styles.socialLinkItem}>
@@ -247,7 +247,7 @@ function EditProfilePageContent() {
                                     value={socialLinks[platform] || ''}
                                     onChange={e => handleSocialLinkChange(platform, e.target.value)}
                                     className={styles.input}
-                                    placeholder={t(`edit_profile.socialsPlaceholder.${platform}`)}
+                                    placeholder={t(`edit_profile.socialsPlaceholder.${platform}`, { defaultValue: 'вставьте ссылку или ник' })}
                                 />
                             </div>
                         ))}
@@ -255,10 +255,10 @@ function EditProfilePageContent() {
                 </div>
 
                 {error && <p className={styles.errorMessage}>{typeof error === 'string' ? error : t(error.key, error.options)}</p>}
-                {successMessage && <p className={styles.successMessage}>{t(successMessage.key)}</p>}
+                {successMessage && <p className={styles.successMessage}>{t(successMessage.key, { defaultValue: successMessage.defaultValue })}</p>}
                 
                 <button type="submit" className={styles.saveButton} disabled={saving}>
-                    {saving ? t('profile.edit.saving') : t('profile.save')}
+                    {saving ? t('profile.edit.saving', { defaultValue: 'Сохраняем…' }) : t('profile.save', { defaultValue: 'Сохранить' })}
                 </button>
             </form>
         </div>

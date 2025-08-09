@@ -4,6 +4,8 @@
   z-index: 1000;
   display: grid;
   place-items: center;
+  opacity: 0;
+  animation: fadeIn 180ms ease-out forwards;
 }
 
 .backdrop {
@@ -11,6 +13,8 @@
   inset: 0;
   background: rgba(0,0,0,0.65);
   backdrop-filter: blur(2px);
+  opacity: 0;
+  animation: backdropIn 220ms ease-out forwards;
 }
 
 .closeBtn {
@@ -34,6 +38,9 @@
   position: relative;
   width: min(90vw, 560px);
   height: min(90vh, 560px);
+  transform: scale(0.96);
+  filter: drop-shadow(0 20px 80px rgba(0,0,0,0.45));
+  animation: popInCard 240ms cubic-bezier(.2,.8,.2,1) forwards;
 }
 
 .avatarWrapper {
@@ -79,12 +86,14 @@
   text-decoration: none;
   border: 2px solid var(--color, #999);
   color: var(--color, #999);
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  transition: transform 0.2s ease, box-shadow 0.2s ease, background-color .2s ease, border-color .2s ease;
 }
 
 .ringItem:hover {
   transform: translate(-50%, -50%) rotate(calc(var(--i) * var(--angle))) translateY(calc(-1 * var(--radius))) rotate(calc(-1 * var(--i) * var(--angle))) scale(1.06);
   box-shadow: 0 10px 26px rgba(0,0,0,0.35);
+  background: radial-gradient(circle at 30% 30%, rgba(255,255,255,0.35), rgba(0,0,0,0.35));
+  border-color: #fff;
 }
 
 .badge {
@@ -94,6 +103,10 @@
   padding: 10px 14px;
   border-radius: 999px;
 }
+
+@keyframes fadeIn { to { opacity: 1; } }
+@keyframes backdropIn { to { opacity: 1; } }
+@keyframes popInCard { to { transform: scale(1); } }
 
 @keyframes popIn {
   from { transform: translate(-50%, -50%) scale(0.75); opacity: 0; }

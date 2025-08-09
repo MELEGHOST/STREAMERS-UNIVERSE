@@ -46,16 +46,10 @@
     width: 100%;
 }
 
-.profileInfo {
-    text-align: left;
-}
+.profileInfo { display: none; }
 
-.profileDetails {
-  display: grid;
-  grid-template-columns: auto 1fr;
-  gap: 0.4rem 0.8rem;
-  margin-top: 0.75rem;
-}
+/* подробности перенесены в карточку, скрываем старый блок */
+.profileDetails { display: none; }
 
 .detailItem { display: contents; }
 .detailLabel { color: var(--foreground-secondary); text-align: right; font-weight: 600; }
@@ -159,6 +153,28 @@
   border-bottom: 1px solid var(--border-primary);
   padding-bottom: 0.5rem;
 }
+
+/* Новая компактная плашка кнопок под карточкой */
+.actionsBar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin: -8px 0 16px 0;
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border-radius: 12px;
+  border: 1px solid rgba(255,255,255,0.1);
+  background: rgba(255,255,255,0.06);
+  color: #e9e9e9;
+  transition: background .2s ease, transform .08s ease;
+}
+.chip:hover { background: rgba(255,255,255,0.12); }
+.chip:active { transform: translateY(1px); }
 
 /* Стили для верхней панели с кнопками */
 .topBar {
@@ -366,13 +382,7 @@
 }
 
 /* Стили для кнопки Выйти (пока наследуются от actionButton) */
-.logoutButton {
-  /* Можно добавить специфичные стили, например:
-  background-color: var(--error-bg-secondary);
-  border-color: var(--error-border);
-  color: var(--error-color);
-  */
-}
+.logoutButton { display: inline-flex; }
 
 /* .logoutButton:hover {
   background-color: var(--error-bg-tertiary);
@@ -492,6 +502,7 @@
     /* Ограничение в две строки с многоточием */
     display: -webkit-box;
     line-clamp: 2;
+    /* standard property already present; vendor prefixed below for compatibility */
     -webkit-line-clamp: 2;
     -webkit-box-orient: vertical;  
     overflow: hidden;
@@ -516,9 +527,7 @@
     border-color: var(--accent-primary);
 }
 
-.inviteButton .icon {
-    /* Можно добавить иконку */
-}
+.inviteButton .icon { display: inline-block; }
 
 .inviteButton:hover {
     background-color: var(--accent-primary);
@@ -687,7 +696,7 @@
     justify-content: center;
 }
 
-.socialButton { /* intentionally blank for future overrides */ }
+.socialButton { display: inline-flex; }
 
 .pixel-card {
     border: 4px solid #000;

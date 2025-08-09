@@ -2,6 +2,26 @@
 
 import React, { useEffect, useRef, useState } from 'react';
 
+// Shared loaders (so модель грузится 1 раз для всех инстансов)
+let libsPromise = null;
+let netPromise = null;
+
+async function loadBodyPix() {
+  if (!libsPromise) {
+    libsPromise = Promise.all([
+      import('@tensorflow/tfjs'),
+      import('@tensorflow-models/body-pix'),
+    ]);
+  }
+  const [tf, bodyPix] = await libsPromise;
+  try { await tf.setBackend('webgl'); await tf.ready(); } catch {}
+  if (!netPromise) {
+    netPromise = bodyPix.load({ architecture: 'MobileNetV1', outputStride: 16, multiplier: 0.75, quantBytes: 2 });
+  }
+  const net = await netPromise;
+  return { tf, bodyPix, net };
+}
+
 // Lightweight wrapper around BodyPix to cut out the person from an image at runtime
 // Falls back to showing the original image if the model cannot be loaded
 
@@ -13,15 +33,7 @@ export default function SmartCutoutImage({ src, width = 300, height = 300, class
     let isCancelled = false;
     async function run() {
       try {
-        const [tf, bodyPix] = await Promise.all([
-          import('@tensorflow/tfjs'),
-          import('@tensorflow-models/body-pix'),
-        ]);
-
-        // Prefer WebGL if available
-        try { await tf.setBackend('webgl'); await tf.ready(); } catch {}
-
-        const net = await bodyPix.load({ architecture: 'MobileNetV1', outputStride: 16, multiplier: 0.75, quantBytes: 2 });
+        const { bodyPix, net } = await loadBodyPix();
 
         const img = new Image();
         img.crossOrigin = 'anonymous';
@@ -36,11 +48,15 @@ export default function SmartCutoutImage({ src, width = 300, height = 300, class
         canvas.height = height;
         const ctx = canvas.getContext('2d');
 
-        // Draw scaled image
+        // Не показываем исходное изображение до готовности маски,
+        // чтобы избежать "плохой" обрезки до загрузки модели
         ctx.clearRect(0, 0, width, height);
-        ctx.drawImage(img, 0, 0, width, height);
 
-        const segmentation = await net.segmentPerson(img, { internalResolution: 'high', segmentationThreshold: 0.8 });
+        const segmentation = await net.segmentPerson(img, {
+          internalResolution: 'high',
+          segmentationThreshold: 0.82,
+        });
+
         // Make foreground opaque, background transparent for proper cutout
         const mask = bodyPix.toMask(
           segmentation,
@@ -55,13 +71,14 @@ export default function SmartCutoutImage({ src, width = 300, height = 300, class
         const mctx = maskCanvas.getContext('2d');
         mctx.putImageData(mask, 0, 0);
 
-        // Apply mask to the drawn image with slight edge feathering for cleaner contour
+        // Рисуем изображение и применяем маску без размытия — чтобы не было ореола
         ctx.save();
+        ctx.clearRect(0, 0, width, height);
+        ctx.drawImage(img, 0, 0, width, height);
         ctx.globalCompositeOperation = 'destination-in';
         ctx.imageSmoothingEnabled = true;
-        ctx.filter = 'blur(1.2px)';
+        ctx.imageSmoothingQuality = 'high';
         ctx.drawImage(maskCanvas, 0, 0, width, height);
-        ctx.filter = 'none';
         ctx.globalCompositeOperation = 'source-over';
         ctx.restore();
       } catch (e) {
