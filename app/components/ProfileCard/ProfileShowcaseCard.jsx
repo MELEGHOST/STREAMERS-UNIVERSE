@@ -5,11 +5,10 @@ import SmartCutoutImage from '../SmartCutoutImage.jsx';
 import { FiUpload, FiLink } from 'react-icons/fi';
 import styles from './ProfileShowcaseCard.module.css';
 
-function CircularStat({ label, value = 0, inner, accent = '#ff3a00' }) {
+function CircularStat({ label, value = 0, inner }) {
   const clamped = Math.max(0, Math.min(100, Number(value) || 0));
-  const bg = `conic-gradient(${accent} ${clamped * 3.6}deg, rgba(255,255,255,0.08) 0)`;
   return (
-    <div className={styles.circularStat} style={{ background: bg }}>
+    <div className={styles.circularStat}>
       <div className={styles.circularInner}>
         <div className={styles.circularValue}>{inner ?? `${clamped}%`}</div>
         <div className={styles.circularLabel}>{label}</div>
@@ -37,9 +36,6 @@ export default function ProfileShowcaseCard({
         <button className={styles.avatarButton} onClick={onAvatarClick} aria-label="Открыть соцсети">
           <SmartCutoutImage src={avatarUrl} width={280} height={280} className={styles.cutout} alt={displayName} />
         </button>
-        <div className={styles.fold}>
-          <div className={styles.dots}><span/><span/><span/></div>
-        </div>
       </div>
 
       <div className={styles.overlayBar}>

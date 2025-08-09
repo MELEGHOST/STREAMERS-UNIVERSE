@@ -42,9 +42,8 @@ export default function SmartCutoutImage({ src, width = 300, height = 300, class
 
         const segmentation = await net.segmentPerson(img, { internalResolution: 'high', segmentationThreshold: 0.8 });
         // Make foreground opaque, background transparent for proper cutout
-        const refined = await bodyPix.smoothsegmentation(segmentation, 5);
         const mask = bodyPix.toMask(
-          refined,
+          segmentation,
           { r: 255, g: 255, b: 255, a: 255 },
           { r: 0, g: 0, b: 0, a: 0 }
         );

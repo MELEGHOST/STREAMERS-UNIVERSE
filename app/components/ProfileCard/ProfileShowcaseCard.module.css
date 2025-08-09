@@ -33,21 +33,9 @@
   transform: translateY(20px);
 }
 
-.fold {
-  position: absolute;
-  top: 0;
-  right: 0;
-  width: 86px;
-  height: 86px;
-  background: linear-gradient(135deg, rgba(0,0,0,0.7), rgba(0,0,0,0.28));
-  border-bottom-left-radius: 20px;
-  display: grid;
-  place-items: start end;
-  padding: 10px;
-}
-
-.dots { display: inline-flex; gap: 6px; }
-.dots span { width: 5px; height: 5px; background: #cfcfcf; border-radius: 50%; opacity: .9; }
+/* Убрали уголок и троеточие как неиспользуемые элементы */
+.fold { display: none; }
+.dots { display: none; }
 
 .overlayBar {
   position: absolute;
@@ -65,7 +53,7 @@
 
 .titleBlock { flex: 1; }
 .displayName { font-weight: 700; font-size: 18px; color: #f6f6f6; }
-.username { color: rgba(255,255,255,0.7); font-size: 13px; }
+.username { color: #ff3a00; font-size: 13px; text-decoration: underline; text-underline-offset: 2px; }
 
 .actions { display: inline-flex; gap: 8px; }
 .iconBtn {

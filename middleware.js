@@ -26,7 +26,7 @@ export async function middleware(req) {
       cookieOptions: {
         path: '/',
         secure: process.env.NODE_ENV === 'production',
-        httpOnly: false,
+        httpOnly: true,
         sameSite: 'lax',
         maxAge: 60 * 60 * 24 * 365,
       },

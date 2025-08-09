@@ -138,9 +138,7 @@ export function AuthProvider({ children }) {
       provider: 'twitch',
       options: {
         redirectTo: `${window.location.origin}/auth/callback`,
-        queryParams: {
-          force_verify: 'true'
-        },
+        // Не заставляем Twitch каждый раз подтверждать логин повторно
         skipBrowserRedirect: false,
       },
     });
