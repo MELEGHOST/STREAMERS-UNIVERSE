@@ -102,8 +102,15 @@ function EditProfilePageContent() {
           setError(t('edit_profile.invalidBirthday', { defaultValue: 'Неверный формат даты. Используйте ГГГГ-ММ-ДД.' }));
           return;
         }
-        // Social links: больше не требуем http/https — можно сохранять юзернеймы/ID
-        // Только ограничим длину и уберем лишние пробелы
+        // Требуем только полноценные ссылки (http/https), чтобы кнопки меню соцсетей были кликабельными
+        for (const [platform, url] of Object.entries(socialLinks)) {
+          const cleaned = (url ?? '').toString().trim();
+          if (cleaned && !/^https?:\/\//i.test(cleaned)) {
+            setError(t('edit_profile.invalidUrl', { defaultValue: `Некорректная ссылка для ${platform}. Добавьте http:// или https://` }));
+            setSaving(false);
+            return;
+          }
+        }
         // Sanitize description:
         const safeDescription = simpleSanitize(description);
         const updates = {};
@@ -112,8 +119,8 @@ function EditProfilePageContent() {
           Object.entries(socialLinks).map(([key, value]) => {
             const cleaned = (value ?? '').toString().trim();
             if (!cleaned) return [key, null];
-            if (cleaned.length > 150) return [key, cleaned.slice(0, 150)];
-            return [key, cleaned];
+            // уже проверено на http/https выше
+            return [key, cleaned.length > 300 ? cleaned.slice(0, 300) : cleaned];
           })
         );
         if (JSON.stringify(normalizedSocialLinks) !== JSON.stringify(originalSocialLinks)) updates.social_links = normalizedSocialLinks;

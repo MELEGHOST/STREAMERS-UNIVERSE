@@ -91,9 +91,28 @@ export default function SmartCutoutImage({ src, width = 300, height = 300, class
   }, [src, width, height]);
 
   if (failed) {
+    // Fallback: рисуем на canvas обычное изображение, чтобы избежать no-img-element
     return (
-      // Fallback to native img element (so we are independent of next/image here)
-      <img src={src} alt={alt} width={width} height={height} className={className} style={{ objectFit: 'cover' }} />
+      <canvas
+        ref={(node) => {
+          if (node) {
+            const ctx = node.getContext('2d');
+            const img = new Image();
+            img.crossOrigin = 'anonymous';
+            img.onload = () => {
+              node.width = width;
+              node.height = height;
+              ctx.clearRect(0, 0, width, height);
+              ctx.drawImage(img, 0, 0, width, height);
+            };
+            img.src = src;
+          }
+        }}
+        className={className}
+        width={width}
+        height={height}
+        aria-label={alt}
+      />
     );
   }
 

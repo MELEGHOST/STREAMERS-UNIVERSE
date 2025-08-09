@@ -7,7 +7,7 @@ import styles from './profile.module.css';
 import pageStyles from '../../styles/page.module.css';
 import Image from 'next/image';
 // import CyberAvatar from '../components/CyberAvatar';
-import AvatarSocialOverlay, { SUPPORTED_PLATFORMS } from '../components/AvatarSocialOverlay.jsx';
+import AvatarSocialOverlay from '../components/AvatarSocialOverlay.jsx';
 import ProfileShowcaseCard from '../components/ProfileCard/ProfileShowcaseCard.jsx';
 import RouteGuard from '../components/RouteGuard';
 import { useTranslation } from 'react-i18next';
@@ -17,10 +17,7 @@ import Link from 'next/link';
 import StatisticsWidget from '../components/ProfileWidgets/StatisticsWidget';
 import useSWR from 'swr';
 
-// Функция для перевода типа канала
-function translateBroadcasterType(type, t) {
-    return t(`profile_page.broadcaster.${type || 'default'}`, { defaultValue: type });
-}
+// (удалено) translateBroadcasterType больше не используется
 
 // Предполагаемая функция fetcher для useSWR
 const fetcher = (url, token) => fetch(url, {
@@ -137,7 +134,7 @@ function ProfilePageContent() {
     }
 
     const displayName = twitchUserData?.display_name || user?.user_metadata?.full_name || t('loading.generic');
-    const bio = (profileData?.description) || twitchUserData?.description || t('profile_page.noBio');
+    // const bio = (profileData?.description) || twitchUserData?.description || t('profile_page.noBio');
 
     // --- Логика виджетов ---
     const StatsWidget = () => {
