@@ -59,6 +59,8 @@ export async function GET(request) {
   let twitchUserData = null;
   let videos = [];
   let followersCountFromTwitch = null; 
+  let followersGoalTarget = null;
+  let followersGoalCurrent = null;
 
   // --- Получение публичных данных с Twitch (ВКЛЮЧАЯ ФОЛЛОВЕРОВ) --- 
   try {
@@ -134,6 +136,24 @@ export async function GET(request) {
       return NextResponse.json({ error: error.message || 'Internal Server Error fetching Twitch data' }, { status: 500 });
   }
   
+  // --- Если владелец смотрит профиль, пробуем получить цели (goals) с user token ---
+  try {
+    if (token) {
+      const userClient = await getTwitchClientWithToken(token);
+      if (userClient) {
+        const goalsRes = await userClient.callApi({ url: 'goals', type: 'helix', query: { broadcaster_id: userId } });
+        const items = goalsRes?.data || goalsRes?.items || [];
+        const followerGoal = items.find((g) => (g.type || g.goalType || '').toString().toLowerCase().includes('follower'));
+        if (followerGoal) {
+          followersGoalTarget = Number(followerGoal.target_amount ?? followerGoal.target ?? 0) || null;
+          followersGoalCurrent = Number(followerGoal.current_amount ?? followerGoal.current ?? followersCountFromTwitch ?? 0) || null;
+        }
+      }
+    }
+  } catch (e) {
+    console.warn('[API /api/twitch/user] goals fetch skipped:', e?.message || e);
+  }
+
   // --- Поиск профиля в базе и определение isOwnerViewing --- 
   try {
       // 1. Ищем пользователя в auth.users по Twitch ID (provider_id) - Возвращаем listUsers()
@@ -290,6 +310,12 @@ export async function GET(request) {
   // --- Финальная подготовка данных для ответа --- 
   if (twitchUserData) {
       twitchUserData.followers_count = followersCountFromTwitch ?? twitchUserData.followers_count; 
+      if (followersGoalTarget !== null) {
+        twitchUserData.followers_goal = {
+          current: followersGoalCurrent ?? twitchUserData.followers_count ?? null,
+          target: followersGoalTarget,
+        };
+      }
   }
   
   // <<< Лог: Финальное значение profileData перед возвратом >>>

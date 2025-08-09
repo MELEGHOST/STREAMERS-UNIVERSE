@@ -149,28 +149,18 @@ export function AuthProvider({ children }) {
   }, []);
 
   const signOut = useCallback(async () => {
-    // Сначала немедленно очищаем локальное состояние, чтобы UI отреагировал мгновенно
+    try {
+      const res = await fetch('/api/auth/signout', { method: 'POST' });
+      if (!res.ok) {
+        console.error('[Auth] signout API failed');
+      }
+    } catch (e) {
+      console.error('[Auth] signout API error', e);
+    }
+    // локальный сброс состояния и редирект
     setUser(null);
     setSession(null);
     setUserRole(null);
-    // А затем отправляем запрос на выход из Supabase
-    const { error } = await supabase.auth.signOut();
-    if (error) {
-        console.error('Error signing out:', error);
-    }
-    // Динамически вычисляем имя куки
-    if (supabaseUrl) {
-        const ref = new URL(supabaseUrl).hostname.split('.')[0];
-        const authCookieName = `sb-${ref}-auth-token`;
-        const verifierCookieName = `sb-${ref}-auth-token-code-verifier`;
-        document.cookie = `${authCookieName}=; Max-Age=0; path=/; secure; samesite=strict`;
-        document.cookie = `${verifierCookieName}=; Max-Age=0; path=/; secure; samesite=strict`;
-    } else {
-        // Фallback на старые имена, если url не доступен
-        document.cookie = 'sb-access-token=; Max-Age=0; path=/';
-        document.cookie = 'sb-refresh-token=; Max-Age=0; path=/';
-    }
-    // Принудительный релоад на главную для полного сброса
     window.location.href = '/';
   }, []);
 

@@ -282,8 +282,8 @@ export default function UserProfilePage() {
               displayName={displayName}
               username={twitchUserData?.login || profileData?.twitch_login || '???'}
               level={0}
-              followersCount={followersCount || 0}
-              followersTarget={profileData?.followers_target || 1000}
+              followersCount={(twitchUserData?.followers_goal?.current ?? followersCount) || 0}
+              followersTarget={twitchUserData?.followers_goal?.target || 1000}
               statusText={statusText}
               birthdayText={profileData?.birthday ? (formatDate(profileData.birthday, t.language) || '') : ''}
               onAvatarClick={() => setIsOverlayOpen(true)}

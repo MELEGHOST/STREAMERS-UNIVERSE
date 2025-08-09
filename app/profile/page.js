@@ -256,6 +256,9 @@ function ProfilePageContent() {
     return (
         <I18nProvider>
             <div className={pageStyles.container}>
+                <div style={{ display:'flex', justifyContent:'space-between', width:'100%', marginBottom:'12px' }}>
+                  <button onClick={() => router.back()} className={styles.backButton}>{t('profile.back', { defaultValue: 'Назад' })}</button>
+                </div>
                 <header className={styles.profileHeader} style={{ justifyContent: 'center' }}>
                     <div className={styles.avatarContainer} style={{ display:'flex', justifyContent:'center', width:'100%' }}>
                         <ProfileShowcaseCard
@@ -263,8 +266,8 @@ function ProfilePageContent() {
                           displayName={displayName}
                           username={twitchUserData?.login || user.user_metadata.user_name}
                           level={0}
-                          followersCount={twitchUserData?.followers_count || 0}
-                          followersTarget={profileData?.followers_target || 1000}
+                          followersCount={twitchUserData?.followers_goal?.current ?? twitchUserData?.followers_count ?? 0}
+                          followersTarget={twitchUserData?.followers_goal?.target ?? 1000}
                           statusText={userRole || profileData?.role || 'Зритель'}
                           birthdayText={profileData?.birthday ? new Date(profileData.birthday).toLocaleDateString() : ''}
                           onAvatarClick={() => setIsOverlayOpen(true)}
