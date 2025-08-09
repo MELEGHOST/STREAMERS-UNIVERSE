@@ -1,5 +1,5 @@
 .card {
-  width: 300px;
+  width: 280px;
   border-radius: 28px;
   background: #0b0b0c;
   border: 2px solid #0a0a0a;
@@ -9,7 +9,7 @@
 }
 
 .top {
-  height: 200px;
+  height: 180px;
   background: #ff3700;
   position: relative;
   display: grid;
@@ -26,8 +26,8 @@
 }
 
 .cutout {
-  width: 240px;
-  height: 240px;
+  width: 220px;
+  height: 220px;
   object-fit: cover;
   filter: drop-shadow(0 12px 30px rgba(0,0,0,0.6));
   transform: translateY(20px);
@@ -41,7 +41,7 @@
   position: absolute;
   left: 16px;
   right: 16px;
-  top: 162px;
+  top: 145px;
   background: rgba(0,0,0,0.8);
   border: 1px solid rgba(255,255,255,0.1);
   border-radius: 20px;
@@ -73,7 +73,7 @@
 }
 
 .circularStat {
-  height: 100px;
+  height: 88px;
   border-radius: 16px;
   border: 1px solid rgba(255,255,255,0.08);
   background: rgba(0,0,0,0.5);
@@ -84,10 +84,10 @@
 .circularStat::before {
   content: '';
   position: absolute;
-  inset: 8px;
+  inset: 7px;
   border-radius: 999px;
   background: conic-gradient(#ff3a00 var(--angle, 0deg), rgba(255,255,255,0.09) 0);
-  mask: radial-gradient(circle 32px at center, transparent 62%, #000 63%);
+  mask: radial-gradient(circle 28px at center, transparent 62%, #000 63%);
 }
 
 .circularInner {
@@ -95,8 +95,8 @@
   z-index: 1;
   height: 100%; width: 100%; display: grid; place-items: center;
 }
-.circularValue { color: #fff; font-weight: 800; font-size: 20px; line-height: 1; }
-.circularLabel { color: rgba(255,255,255,0.65); font-size: 11px; margin-top: 6px; }
+.circularValue { color: #fff; font-weight: 800; font-size: 18px; line-height: 1; }
+.circularLabel { color: rgba(255,255,255,0.65); font-size: 10px; margin-top: 6px; }
 
 .metaRow {
   display: grid;

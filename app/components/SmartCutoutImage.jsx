@@ -54,7 +54,7 @@ export default function SmartCutoutImage({ src, width = 300, height = 300, class
 
         const segmentation = await net.segmentPerson(img, {
           internalResolution: 'high',
-          segmentationThreshold: 0.82,
+          segmentationThreshold: 0.85,
         });
 
         // Make foreground opaque, background transparent for proper cutout
@@ -79,6 +79,20 @@ export default function SmartCutoutImage({ src, width = 300, height = 300, class
         ctx.imageSmoothingEnabled = true;
         ctx.imageSmoothingQuality = 'high';
         ctx.drawImage(maskCanvas, 0, 0, width, height);
+        // лёгкое «расширение» маски для устранения тонкой каймы
+        try {
+          const expand = document.createElement('canvas');
+          expand.width = width; expand.height = height;
+          const ex = expand.getContext('2d');
+          ex.drawImage(maskCanvas, 0, 0, width, height);
+          ex.globalCompositeOperation = 'source-in';
+          ex.filter = 'blur(0.6px)';
+          ex.drawImage(maskCanvas, 0, 0, width, height);
+          ex.filter = 'none';
+          ctx.globalCompositeOperation = 'destination-in';
+          ctx.drawImage(expand, 0, 0);
+          ctx.globalCompositeOperation = 'source-over';
+        } catch {}
         ctx.globalCompositeOperation = 'source-over';
         ctx.restore();
       } catch (e) {

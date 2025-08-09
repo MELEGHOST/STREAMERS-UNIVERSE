@@ -25,7 +25,7 @@ function EditProfilePageContent() {
     const [profileWidget, setProfileWidget] = useState('statistics');
     const [birthday, setBirthday] = useState('');
     // Роль управляется системой, на странице редактирования её больше не меняем
-    const [followersTarget, setFollowersTarget] = useState(1000);
+    // followers target пока не поддерживается на уровне схемы
     
     const [loadingProfileData, setLoadingProfileData] = useState(true);
     const [saving, setSaving] = useState(false);
@@ -44,7 +44,7 @@ function EditProfilePageContent() {
         try {
             const { data, error: fetchError } = await supabase
                 .from('user_profiles')
-                .select('social_links, description, profile_widget, birthday, role, followers_target')
+                .select('social_links, description, profile_widget, birthday, role')
                 .eq('user_id', user.id)
                 .maybeSingle();
 
@@ -65,7 +65,7 @@ function EditProfilePageContent() {
                 setOriginalBirthday(data.birthday || '');
                 setBirthday(data.birthday || '');
                 // role показывать/редактировать не будем
-                setFollowersTarget(data.followers_target || 1000);
+                // followers_target колонки нет в БД — используем дефолт в UI без сохранения
             }
         } catch (err) {
             setError({ key: 'edit_profile.loadError', options: { message: err.message } });
@@ -161,7 +161,7 @@ function EditProfilePageContent() {
         if (profileWidget !== originalProfileWidget) updates.profile_widget = profileWidget;
         if (birthday !== originalBirthday) updates.birthday = birthday || null;
         // updates.role не меняем с этой страницы
-        if (followersTarget) updates.followers_target = Number(followersTarget) || 1000;
+        // followers_target не сохраняем — колонки нет в БД
 
         if (Object.keys(updates).length === 0) {
           setError(t('edit_profile.noChanges', { defaultValue: 'Нет изменений для сохранения.' }));
@@ -226,10 +226,7 @@ function EditProfilePageContent() {
                     <label className={styles.label} htmlFor="birthday">{t('profile.edit.birthday', { defaultValue: 'Дата рождения' })}</label>
                     <input id="birthday" type="date" value={birthday} onChange={e => setBirthday(e.target.value)} className={styles.input} aria-label={t('profile.edit.birthday')} />
                 </div>
-                <div className={styles.formGroup}>
-                    <label className={styles.label} htmlFor="followersTarget">{t('profile.edit.followersTarget', { defaultValue: 'Цель по фолловерам' })}</label>
-                    <input id="followersTarget" type="number" min="1" value={followersTarget} onChange={e => setFollowersTarget(e.target.value)} className={styles.input} />
-                </div>
+                {/* Поле цели по фолловерам временно скрыто, т.к. колонки нет в БД */}
                 {/* Статус/роль убраны из редактирования */}
                 <div className={styles.formGroup}>
                     <label className={styles.label} htmlFor="description">{t('profile.edit.description', { defaultValue: 'Описание' })}</label>

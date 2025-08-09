@@ -256,8 +256,8 @@ function ProfilePageContent() {
     return (
         <I18nProvider>
             <div className={pageStyles.container}>
-                <header className={styles.profileHeader}>
-                    <div className={styles.avatarContainer}>
+                <header className={styles.profileHeader} style={{ justifyContent: 'center' }}>
+                    <div className={styles.avatarContainer} style={{ display:'flex', justifyContent:'center', width:'100%' }}>
                         <ProfileShowcaseCard
                           avatarUrl={twitchUserData?.profile_image_url || user.user_metadata.avatar_url}
                           displayName={displayName}
