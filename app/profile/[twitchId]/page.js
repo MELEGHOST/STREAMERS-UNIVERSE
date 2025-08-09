@@ -9,7 +9,6 @@ import AvatarSocialOverlay from '../../components/AvatarSocialOverlay.jsx';
 import styles from '../profile.module.css';
 import pageStyles from '../../../styles/page.module.css';
 import { useAuth } from '../../contexts/AuthContext';
-import { pluralize } from '../../utils/pluralize';
 import { useTranslation } from 'react-i18next';
 import Link from 'next/link';
 import { FaArrowLeft, FaShieldAlt, FaBookOpen, FaTrophy, FaEdit, FaSignOutAlt } from 'react-icons/fa';
@@ -125,7 +124,7 @@ export default function UserProfilePage() {
   const router = useRouter();
   const params = useParams();
   const profileTwitchId = params.twitchId;
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
 
   const { user, isAuthenticated, supabase, isLoading: authIsLoading, signOut } = useAuth();
   const [isOverlayOpen, setIsOverlayOpen] = useState(false);
@@ -238,7 +237,7 @@ export default function UserProfilePage() {
   const createdAt = twitchUserData?.created_at;
   // const broadcasterType = twitchUserData?.broadcaster_type || profileData?.twitch_broadcaster_type;
   const profileDescription = isRegistered ? profileData?.description : twitchUserData?.description;
-  const formattedDate = createdAt ? (formatDate(createdAt, t.language) || t('common.unknown')) : t('common.unknown');
+  const formattedDate = createdAt ? (formatDate(createdAt, i18n.language) || t('common.unknown')) : t('common.unknown');
 
   const handleLogout = async () => {
     await signOut();
@@ -285,7 +284,7 @@ export default function UserProfilePage() {
               followersCount={(twitchUserData?.followers_goal?.current ?? followersCount) || 0}
               followersTarget={twitchUserData?.followers_goal?.target || 1000}
               statusText={statusText}
-              birthdayText={profileData?.birthday ? (formatDate(profileData.birthday, t.language) || '') : ''}
+              birthdayText={profileData?.birthday ? (formatDate(profileData.birthday, i18n.language) || '') : ''}
               onAvatarClick={() => setIsOverlayOpen(true)}
             />
             <div className={styles.profileInfo}>
@@ -298,8 +297,8 @@ export default function UserProfilePage() {
                 <p className={styles.profileDescription}>{profileDescription}</p>
                 <div className={styles.profileDetails}>
                     <div className={styles.detailItem}><span className={styles.detailLabel}>{t('profile.createdAtLabel')}:</span><span className={styles.detailValue}>{formattedDate}</span></div>
-                    <div className={styles.detailItem}><span className={styles.detailLabel}>{t('profile.followersLabel')}:</span><span className={styles.detailValue}>{pluralize(followersCount, t('common.follower'))}</span></div>
-                    <div className={styles.detailItem}><span className={styles.detailLabel}>{t('profile.viewsLabel')}:</span><span className={styles.detailValue}>{pluralize(viewCount, t('common.view'))}</span></div>
+                    <div className={styles.detailItem}><span className={styles.detailLabel}>{t('profile.followersLabel')}:</span><span className={styles.detailValue}>{new Intl.NumberFormat('ru-RU').format(followersCount ?? 0)}</span></div>
+                    <div className={styles.detailItem}><span className={styles.detailLabel}>{t('profile.viewsLabel')}:</span><span className={styles.detailValue}>{new Intl.NumberFormat('ru-RU').format(viewCount ?? 0)}</span></div>
                 </div>
             </div>
         </header>
@@ -316,11 +315,11 @@ export default function UserProfilePage() {
                 <section className={styles.profileSection}>
                     <h2 className={styles.sectionTitle}>{t('profile.videos')}</h2>
                     <div className={styles.videosGrid}>
-                        {videos && videos.length > 0 ? videos.map((video) => (
+                        {Array.isArray(videos) && videos.length > 0 ? videos.map((video) => (
                             <div key={video.id} className={styles.videoItem}>
                                 <Link href={`https://www.twitch.tv/${video.user_login}/video/${video.id}`} target="_blank" rel="noopener noreferrer">
                                     <Image
-                                        src={video.thumbnail_url && typeof video.thumbnail_url === 'string' ? video.thumbnail_url.replace('%{width}', '200').replace('%{height}', '112') : '/default_thumbnail.png'}
+                                        src={video.thumbnail_url && typeof video.thumbnail_url === 'string' ? video.thumbnail_url.replace('%{width}', '200').replace('%{height}', '112') : 'https://static-cdn.jtvnw.net/jtv_user_pictures/placeholder-user.png'}
                                         alt={video.title}
                                         width={200}
                                         height={112}
@@ -332,7 +331,7 @@ export default function UserProfilePage() {
                                     </div>
                                 </Link>
                             </div>
-                        )) : <p>{t('profile.noVideos')}</p>}
+                        )) : <p>{t('profile.noVideos', { defaultValue: 'Видео недоступны' })}</p>}
                     </div>
                 </section>
             </div>

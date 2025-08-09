@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { getTwitchClient /*, getTwitchClientWithToken */ } from '../../../utils/twitchClient';
+import { getTwitchClient, getTwitchClientWithToken } from '../../../utils/twitchClient';
 // import { createClient } from '@supabase/supabase-js';
 import { getSupabaseAdmin } from '../../../utils/supabase/admin'; // Импорт админ клиента
 import { verifyJwt } from '../../../utils/jwt';

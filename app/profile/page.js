@@ -28,7 +28,7 @@ const fetcher = (url, token) => fetch(url, {
 
 function ProfilePageContent() {
     const { t } = useTranslation();
-    const { user, supabase, loading: authLoading, userRole } = useAuth();
+    const { user, supabase, isLoading: authLoading, userRole, signOut } = useAuth();
     const router = useRouter();
     const twitchUserId = user?.user_metadata?.provider_id;
 
@@ -114,7 +114,7 @@ function ProfilePageContent() {
     if (authLoading || loading || !twitchUserData) {
         return (
             <div className={pageStyles.loadingContainer}>
-                <p>Загрузка профиля...</p>
+                <p>{t('loading.profile')}</p>
             </div>
         );
     }
@@ -150,7 +150,7 @@ function ProfilePageContent() {
     };
 
     const AchievementsWidget = () => {
-        const { data: apiPayload, error: achError } = useSWR('/api/achievements', fetcher);
+        const { data: apiPayload, error: achError } = useSWR(authToken !== null ? ['/api/achievements', authToken] : null, ([url, token]) => fetcher(url, token));
         if (achError) {
             return <div className={pageStyles.errorMessage}>{t('profile_page.achievements_page.error', { message: achError.message || 'Failed to load' })}</div>;
         }
@@ -161,7 +161,7 @@ function ProfilePageContent() {
         return (
             <div className={styles.widget}>
                 <h3>{t('profile_page.achievements.title')}</h3>
-                {unlockedAchievements.length > 0 ? (
+                 {unlockedAchievements.length > 0 ? (
                     <ul>
                         {unlockedAchievements.map(ach => (
                             <li key={ach.id}>
@@ -170,7 +170,7 @@ function ProfilePageContent() {
                         ))}
                     </ul>
                 ) : (
-                    <p>{t('achievements_page.noAchievements')}</p>
+                     <p>{t('profile_page.achievements_page.noAchievements')}</p>
                 )}
             </div>
         );
@@ -199,7 +199,7 @@ function ProfilePageContent() {
                 }
             };
             fetchReviews();
-        }, []); // twitchUserId из замыкания; изменений не требуется
+        }, [user]);
 
         if (reviewsLoading) {
             return <div className={styles.loadingContainer}><p>Загрузка...</p></div>;
@@ -291,7 +291,7 @@ function ProfilePageContent() {
                       <FaShieldAlt /> {t('profile_page.adminPanel', { defaultValue: 'Админ-панель' })}
                     </button>
                   )}
-                  <button onClick={() => supabase.auth.signOut()} className={styles.chip}>
+                   <button onClick={signOut} className={styles.chip}>
                     <FaSignOutAlt /> {t('logout', { defaultValue: 'Выйти' })}
                   </button>
                 </div>
@@ -306,11 +306,11 @@ function ProfilePageContent() {
                     <section className={styles.profileSection}>
       <h2 className={styles.sectionTitle}>{t('profile.videos')}</h2>
       <div className={styles.videosGrid}>
-        {twitchUserData?.videos?.map((video) => (
+        {Array.isArray(twitchUserData?.videos) && twitchUserData.videos.length > 0 ? twitchUserData.videos.map((video) => (
           <div key={video.id} className={styles.videoItem}>
             <Link href={`https://www.twitch.tv/${video.user_login}/video/${video.id}`} target="_blank" rel="noopener noreferrer">
               <Image
-                src={video.thumbnail_url}
+                src={video.thumbnail_url && typeof video.thumbnail_url === 'string' ? video.thumbnail_url.replace('%{width}', '200').replace('%{height}', '112') : 'https://static-cdn.jtvnw.net/jtv_user_pictures/placeholder-user.png'}
                 alt={video.title}
                 width={200}
                 height={112}
@@ -322,7 +322,7 @@ function ProfilePageContent() {
               </div>
             </Link>
           </div>
-        )) || <p>No videos available</p>}
+        )) : <p>{t('profile.noVideos', { defaultValue: 'Видео недоступны' })}</p>}
       </div>
     </section>
                 </main>

@@ -28,7 +28,7 @@ const StatisticsWidget = ({ twitchData, twitchUserData, profileData, stats }) =>
     
     return (
         <div className={styles.widgetContainer}>
-            <h2 className={styles.widgetTitle}>{t('statistics.widget.title')}</h2>
+            <h2 className={styles.widgetTitle}>{t('statistics.widget.title', { defaultValue: 'Статистика' })}</h2>
             <div className={styles.statsGrid}>
                 <div className={styles.statItem}>
                     <FaUserFriends className={styles.statIcon} />

@@ -4,14 +4,20 @@ import { useEffect } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import { useAuth } from '../../contexts/AuthContext';
 
-const protectedRoutes = ['/menu', '/edit-profile', '/settings', '/followers', '/followings', '/my-reviews', '/achievements', '/admin'];
+const protectedRoutes = ['/menu', '/profile', '/edit-profile', '/settings', '/followers', '/followings', '/my-reviews', '/achievements', '/admin'];
 
 const RouteGuard = ({ children }) => {
   const { isAuthenticated, isLoading } = useAuth();
   const router = useRouter();
   const pathname = usePathname();
 
-  const isProtectedRoute = protectedRoutes.some(route => pathname.startsWith(route));
+  const isProtectedRoute = protectedRoutes.some(route => {
+    if (route === '/profile') {
+      // Защищаем только личный профиль по адресу "/profile"
+      return pathname === '/profile';
+    }
+    return pathname.startsWith(route);
+  });
 
   useEffect(() => {
     // Ждем окончания загрузки данных об аутентификации

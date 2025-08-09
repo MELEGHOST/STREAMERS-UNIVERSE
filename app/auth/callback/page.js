@@ -10,7 +10,6 @@ export default function CallbackPage() {
   useEffect(() => {
     const handle = async () => {
       try {
-        // supabase-js автоматически поймет code в URL и завершит PKCE
         const { data: { session }, error } = await supabase.auth.getSession();
         if (error) {
           console.error('[Callback] getSession error:', error.message);
@@ -20,7 +19,6 @@ export default function CallbackPage() {
         if (session) {
           router.replace('/menu?freshLogin=true');
         } else {
-          // Подстраховка: насильно инициируем обмен (на новых версиях не обязателен)
           const params = new URLSearchParams(window.location.search);
           const code = params.get('code');
           if (code) {
@@ -43,7 +41,9 @@ export default function CallbackPage() {
     handle();
   }, [router]);
 
-  return null;
+  return (
+    <div style={{display:'grid',placeItems:'center',height:'100vh',color:'#ccc'}}>Авторизуем…</div>
+  );
 }
 
 
