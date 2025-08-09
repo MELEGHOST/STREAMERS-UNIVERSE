@@ -85,7 +85,7 @@ export function AuthProvider({ children }) {
         // Улучшенная логика установки реферера
         if (_event === 'SIGNED_IN') {
           // Проверяем sessionStorage, так как он надежнее во время OAuth редиректа
-          const referrerId = sessionStorage.getItem('referrerId');
+          const referrerId = typeof sessionStorage !== 'undefined' ? sessionStorage.getItem('referrerId') : null;
           if (referrerId) {
             console.log(`[AuthContext] Found referrerId in sessionStorage: ${referrerId}. Attempting to set.`);
             try {
@@ -125,7 +125,7 @@ export function AuthProvider({ children }) {
 
   const signInWithTwitch = useCallback(async () => {
     // Перед входом, проверяем localStorage на наличие ref
-    const referrerId = localStorage.getItem('referrerId');
+    const referrerId = typeof localStorage !== 'undefined' ? localStorage.getItem('referrerId') : null;
     if (referrerId) {
       // Перемещаем его в sessionStorage, чтобы он "пережил" редирект на Twitch
       sessionStorage.setItem('referrerId', referrerId);
