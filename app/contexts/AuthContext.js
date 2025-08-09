@@ -2,7 +2,6 @@
 
 import { createContext, useState, useEffect, useCallback, useMemo, useContext } from 'react';
 import { supabase } from '../utils/supabase/client';
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL; // Добавляем, если не импортировано
 
 const AuthContext = createContext(undefined);
 

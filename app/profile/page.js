@@ -199,7 +199,7 @@ function ProfilePageContent() {
                 }
             };
             fetchReviews();
-        }, [twitchUserId]);
+        }, []); // twitchUserId из замыкания; изменений не требуется
 
         if (reviewsLoading) {
             return <div className={styles.loadingContainer}><p>Загрузка...</p></div>;
