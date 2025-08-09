@@ -60,6 +60,6 @@ export const config = {
      * We want the middleware to run on API routes to ensure
      * the session is available for server-side API logic.
      */
-    '/((?!_next/static|_next/image|favicon.ico|images).*)',
+    '/((?!_next/static|_next/image|favicon.ico|images|auth/callback).*)',
   ],
 }; 
