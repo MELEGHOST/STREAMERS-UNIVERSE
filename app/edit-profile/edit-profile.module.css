@@ -71,6 +71,21 @@
   margin-bottom: 1.5rem;
 }
 
+/* Грид для соцсетей: лейбл + поле в две колонки на десктопе */
+.socialLinksContainer {
+  display: grid;
+  grid-template-columns: 160px 1fr;
+  gap: 10px 16px;
+}
+.socialLinkItem { display: contents; }
+.socialLinkLabel { align-self: center; color: var(--foreground-secondary); }
+.socialLinkItem .input { width: 100%; }
+
+@media (max-width: 640px) {
+  .socialLinksContainer { grid-template-columns: 1fr; }
+  .socialLinkLabel { display: none; }
+}
+
 .label {
   margin-bottom: 0.5rem;
   font-weight: 600;

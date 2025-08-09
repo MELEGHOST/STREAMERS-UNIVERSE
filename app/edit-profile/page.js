@@ -24,7 +24,7 @@ function EditProfilePageContent() {
     const [socialLinks, setSocialLinks] = useState({});
     const [profileWidget, setProfileWidget] = useState('statistics');
     const [birthday, setBirthday] = useState('');
-    const [role, setRole] = useState('viewer');
+    // Роль управляется системой, на странице редактирования её больше не меняем
     const [followersTarget, setFollowersTarget] = useState(1000);
     
     const [loadingProfileData, setLoadingProfileData] = useState(true);
@@ -64,7 +64,7 @@ function EditProfilePageContent() {
                 setProfileWidget(data.profile_widget || 'statistics');
                 setOriginalBirthday(data.birthday || '');
                 setBirthday(data.birthday || '');
-                setRole(data.role || 'viewer');
+                // role показывать/редактировать не будем
                 setFollowersTarget(data.followers_target || 1000);
             }
         } catch (err) {
@@ -80,6 +80,41 @@ function EditProfilePageContent() {
         }
     }, [isAuthenticated, user, fetchProfileData]);
   
+    // Автодополнение доменов для юзернеймов
+    const buildUrl = (platform, value) => {
+      const v = (value ?? '').toString().trim().replace(/^@+/, '');
+      if (!v) return '';
+      switch (platform) {
+        case 'twitch': return `https://twitch.tv/${v}`;
+        case 'youtube': return v.startsWith('@') ? `https://youtube.com/${v}` : `https://youtube.com/${v.startsWith('channel/')||v.startsWith('c/')? v : `@${v}`}`;
+        case 'telegram': return `https://t.me/${v}`;
+        case 'discord': return /discord\.(gg|com)\//i.test(v) ? `https://${v}`.replace(/^https:\/\//, 'https://') : `https://discord.gg/${v}`;
+        case 'vk': return `https://vk.com/${v}`;
+        case 'tiktok': return `https://www.tiktok.com/@${v}`;
+        case 'boosty': return `https://boosty.to/${v}`;
+        case 'instagram': return `https://instagram.com/${v}`;
+        case 'x': return `https://x.com/${v}`;
+        case 'kick': return `https://kick.com/${v}`;
+        case 'facebook': return `https://facebook.com/${v}`;
+        case 'reddit': return v.startsWith('u/') ? `https://reddit.com/${v}` : `https://reddit.com/u/${v}`;
+        case 'steam': return `https://steamcommunity.com/id/${v}`;
+        // yandex_music и некоторые другие лучше сохранять только как полные ссылки
+        default: return v;
+      }
+    };
+
+    const autoPrefix = (platform, value) => {
+      const v = (value ?? '').toString().trim();
+      if (!v) return '';
+      if (/^https?:\/\//i.test(v)) return v; // уже полноценная ссылка
+      const built = buildUrl(platform, v);
+      return /^https?:\/\//i.test(built) ? built : `https://${built}`;
+    };
+
+    const handleInputBlur = (platform) => {
+      setSocialLinks(prev => ({ ...prev, [platform]: autoPrefix(platform, prev[platform]) }));
+    };
+
     const handleSave = async (e) => {
       e.preventDefault();
       if (!user) {
@@ -104,7 +139,7 @@ function EditProfilePageContent() {
         }
         // Требуем только полноценные ссылки (http/https), чтобы кнопки меню соцсетей были кликабельными
         for (const [platform, url] of Object.entries(socialLinks)) {
-          const cleaned = (url ?? '').toString().trim();
+          const cleaned = autoPrefix(platform, url);
           if (cleaned && !/^https?:\/\//i.test(cleaned)) {
             setError(t('edit_profile.invalidUrl', { defaultValue: `Некорректная ссылка для ${platform}. Добавьте http:// или https://` }));
             setSaving(false);
@@ -117,16 +152,15 @@ function EditProfilePageContent() {
         if (safeDescription !== originalDescription) updates.description = safeDescription || null;
         const normalizedSocialLinks = Object.fromEntries(
           Object.entries(socialLinks).map(([key, value]) => {
-            const cleaned = (value ?? '').toString().trim();
+            const cleaned = autoPrefix(key, value);
             if (!cleaned) return [key, null];
-            // уже проверено на http/https выше
             return [key, cleaned.length > 300 ? cleaned.slice(0, 300) : cleaned];
           })
         );
         if (JSON.stringify(normalizedSocialLinks) !== JSON.stringify(originalSocialLinks)) updates.social_links = normalizedSocialLinks;
         if (profileWidget !== originalProfileWidget) updates.profile_widget = profileWidget;
         if (birthday !== originalBirthday) updates.birthday = birthday || null;
-        if (role) updates.role = role;
+        // updates.role не меняем с этой страницы
         if (followersTarget) updates.followers_target = Number(followersTarget) || 1000;
 
         if (Object.keys(updates).length === 0) {
@@ -196,15 +230,7 @@ function EditProfilePageContent() {
                     <label className={styles.label} htmlFor="followersTarget">{t('profile.edit.followersTarget', { defaultValue: 'Цель по фолловерам' })}</label>
                     <input id="followersTarget" type="number" min="1" value={followersTarget} onChange={e => setFollowersTarget(e.target.value)} className={styles.input} />
                 </div>
-                <div className={styles.formGroup}>
-                    <label className={styles.label} htmlFor="role">{t('profile.edit.status', { defaultValue: 'Статус' })}</label>
-                    <select id="role" className={styles.input} value={role} onChange={e => setRole(e.target.value)}>
-                        <option value="viewer">{t('roles.viewer', { defaultValue: 'Зритель' })}</option>
-                        <option value="streamer">{t('roles.streamer', { defaultValue: 'Стример' })}</option>
-                        <option value="companion">{t('roles.companion', { defaultValue: 'Компаньон' })}</option>
-                        <option value="admin">{t('roles.admin', { defaultValue: 'Админ' })}</option>
-                    </select>
-                </div>
+                {/* Статус/роль убраны из редактирования */}
                 <div className={styles.formGroup}>
                     <label className={styles.label} htmlFor="description">{t('profile.edit.description', { defaultValue: 'Описание' })}</label>
                     <textarea id="description" value={description} onChange={e => setDescription(e.target.value)} className={styles.textarea}></textarea>
@@ -242,24 +268,26 @@ function EditProfilePageContent() {
                     </div>
                 )}
 
-                <div className={styles.formGroup}>
-                    <label className={styles.label}>{t('profile.edit.socialLinks', { defaultValue: 'Ссылки и юзернеймы соцсетей' })}</label>
+                <fieldset className={styles.fieldset}>
+                    <legend className={styles.legend}>{t('profile.edit.socialLinks', { defaultValue: 'Соцсети' })}</legend>
                     <div className={styles.socialLinksContainer}>
-                        {['twitch','youtube','telegram','discord','vk','tiktok','yandex_music','boosty','instagram','x','kick','facebook','reddit','steam'].map(platform => (
-                            <div key={platform} className={styles.socialLinkItem}>
-                                <label className={styles.socialLinkLabel} htmlFor={platform}>{formatPlatformName(platform)}</label>
-                                <input
-                                    id={platform}
-                                    type="text"
-                                    value={socialLinks[platform] || ''}
-                                    onChange={e => handleSocialLinkChange(platform, e.target.value)}
-                                    className={styles.input}
-                                    placeholder={t(`edit_profile.socialsPlaceholder.${platform}`, { defaultValue: 'вставьте ссылку или ник' })}
-                                />
-                            </div>
-                        ))}
+                      {['twitch','youtube','telegram','discord','vk','tiktok','yandex_music','boosty','instagram','x','kick','facebook','reddit','steam'].map(platform => (
+                        <div key={platform} className={styles.socialLinkItem}>
+                          <label className={styles.socialLinkLabel} htmlFor={platform}>{formatPlatformName(platform)}</label>
+                          <input
+                            id={platform}
+                            type="text"
+                            value={socialLinks[platform] || ''}
+                            onChange={e => handleSocialLinkChange(platform, e.target.value)}
+                            onBlur={() => handleInputBlur(platform)}
+                            className={styles.input}
+                            placeholder={t(`edit_profile.socialsPlaceholder.${platform}`, { defaultValue: 'вставьте ссылку или ник' })}
+                          />
+                          <div className={styles.hint}>{t('edit_profile.socialsHint', { defaultValue: 'Можно вставить ссылку полностью или ник — мы подставим префикс автоматически.' })}</div>
+                        </div>
+                      ))}
                     </div>
-                </div>
+                </fieldset>
 
                 {error && <p className={styles.errorMessage}>{typeof error === 'string' ? error : t(error.key, error.options)}</p>}
                 {successMessage && <p className={styles.successMessage}>{t(successMessage.key, { defaultValue: successMessage.defaultValue })}</p>}
