@@ -28,9 +28,11 @@ export function AuthProvider({ children }) {
   }, []);
 
   useEffect(() => {
-    const fetchInitialSession = async () => {
+    let unsub;
+    const init = async () => {
       setLoading(true);
       try {
+        // Триажим текущую сессию (может быть уже в cookie после редиректа)
         const { data: { session } } = await supabase.auth.getSession();
         setSession(session);
         setUser(session?.user ?? null);
@@ -40,88 +42,71 @@ export function AuthProvider({ children }) {
             .select('role')
             .eq('user_id', session.user.id)
             .single();
-          if (error) {
-            console.error('Error fetching user role:', error);
-            setUserRole('user');
-          } else {
-            setUserRole(profileData?.role || 'user');
-          }
+          setUserRole(error ? 'user' : (profileData?.role || 'user'));
         } else {
           setUserRole(null);
         }
       } catch (error) {
         console.error('Error fetching initial session:', error);
-      } finally {
-        setLoading(false);
       }
-    };
 
-    // Попытка восстановить сессию из cookie при маунте (SSR->CSR)
-    fetchInitialSession();
+      // Подпишемся и снимаем loading только после первого события (INITIAL_SESSION)
+      const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, newSession) => {
+        console.log(`[AuthContext] Auth event: ${_event}`);
+        setSession(newSession);
+        setUser(newSession?.user ?? null);
+        if (newSession?.user) {
+          const { data: profileData } = await supabase
+            .from('user_profiles')
+            .select('role')
+            .eq('user_id', newSession.user.id)
+            .single();
+          setUserRole(profileData?.role || 'user');
+
+          if (_event === 'SIGNED_IN') {
+            const referrerId = typeof sessionStorage !== 'undefined' ? sessionStorage.getItem('referrerId') : null;
+            if (referrerId) {
+              try {
+                const response = await fetch('/api/profile/set-referrer', {
+                  method: 'POST',
+                  headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${newSession.access_token}`
+                  },
+                  body: JSON.stringify({ referrerTwitchId: referrerId })
+                });
+                sessionStorage.removeItem('referrerId');
+                if (!response.ok) {
+                  console.error('[AuthContext] Failed to set referrer after SIGNED_IN');
+                }
+              } catch (error) {
+                console.error('[AuthContext] Error calling set-referrer API:', error);
+                sessionStorage.removeItem('referrerId');
+              }
+            }
+          }
+        } else if (_event === 'SIGNED_OUT') {
+          setUserRole(null);
+        }
+        // снимаем loading после первого же события
+        setLoading(false);
+      });
+      unsub = subscription?.unsubscribe;
+    };
+    init();
 
     // Авто-рефреш токенов, пока вкладка активна
     const refresh = setInterval(async () => {
-      try {
-        await supabase.auth.getSession();
-      } catch {}
-    }, 1000 * 60 * 5); // каждые 5 минут
-
-    return () => clearInterval(refresh);
-  }, []);
-
-  useEffect(() => {
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
-      console.log(`[AuthContext] Auth event: ${_event}`);
-      setSession(session);
-      setUser(session?.user ?? null);
-      if (session?.user && (_event === 'INITIAL_SESSION' || _event === 'SIGNED_IN')) {
-        const { data: profileData } = await supabase
-          .from('user_profiles')
-          .select('role')
-          .eq('user_id', session.user.id)
-          .single();
-        setUserRole(profileData?.role || 'user');
-
-        // Улучшенная логика установки реферера
-        if (_event === 'SIGNED_IN') {
-          // Проверяем sessionStorage, так как он надежнее во время OAuth редиректа
-          const referrerId = typeof sessionStorage !== 'undefined' ? sessionStorage.getItem('referrerId') : null;
-          if (referrerId) {
-            console.log(`[AuthContext] Found referrerId in sessionStorage: ${referrerId}. Attempting to set.`);
-            try {
-              const response = await fetch('/api/profile/set-referrer', {
-                method: 'POST',
-                headers: {
-                  'Content-Type': 'application/json',
-                  'Authorization': `Bearer ${session.access_token}`
-                },
-                body: JSON.stringify({ referrerTwitchId: referrerId })
-              });
-              if (response.ok) {
-                console.log('[AuthContext] Referrer successfully set after sign-in.');
-                // Очищаем sessionStorage после успешной установки
-                sessionStorage.removeItem('referrerId');
-              } else {
-                const errorText = await response.text();
-                console.error(`[AuthContext] Failed to set referrer: ${errorText}`);
-                // Очищаем в любом случае, чтобы избежать повторных попыток
-                sessionStorage.removeItem('referrerId');
-              }
-            } catch (error) {
-              console.error('[AuthContext] Error calling set-referrer API:', error);
-              sessionStorage.removeItem('referrerId');
-            }
-          }
-        }
-      } else if (_event === 'SIGNED_OUT') {
-        setUserRole(null);
-      }
-    });
+      try { await supabase.auth.getSession(); } catch {}
+    }, 1000 * 60 * 5);
 
     return () => {
-      subscription?.unsubscribe();
+      try { unsub?.(); } catch {}
+      clearInterval(refresh);
     };
   }, []);
+
+  // Убрали дублирующую подписку onAuthStateChange
 
   const signInWithTwitch = useCallback(async () => {
     // Перед входом, проверяем localStorage на наличие ref

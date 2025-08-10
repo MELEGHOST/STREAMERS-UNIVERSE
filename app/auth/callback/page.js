@@ -8,37 +8,39 @@ export default function CallbackPage() {
   const router = useRouter();
 
   useEffect(() => {
-    const handle = async () => {
+    let unsub;
+    const run = async () => {
       try {
-        const { data: { session }, error } = await supabase.auth.getSession();
-        if (error) {
-          console.error('[Callback] getSession error:', error.message);
-          router.replace('/?error=auth_error');
+        // 1) Быстрый путь: сессия уже есть
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session) {
+          window.location.replace('/menu?freshLogin=true');
           return;
         }
-        if (session) {
-          router.replace('/menu?freshLogin=true');
-        } else {
-          const params = new URLSearchParams(window.location.search);
-          const code = params.get('code');
-          if (code) {
-            const { error: exchError } = await supabase.auth.exchangeCodeForSession(code);
-            if (exchError) {
-              console.error('[Callback] exchangeCodeForSession error:', exchError.message);
-              router.replace('/?error=auth_error');
-              return;
-            }
-            router.replace('/menu?freshLogin=true');
-          } else {
-            router.replace('/?error=auth_error');
+
+        // 2) Ждём событие аутентификации (INITIAL_SESSION или SIGNED_IN)
+        const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, s) => {
+          if (s) {
+            window.location.replace('/menu?freshLogin=true');
           }
+        });
+        unsub = subscription?.unsubscribe;
+
+        // 3) Подстраховка: если в URL есть ошибка — отправим на главную
+        const url = new URL(window.location.href);
+        if (url.searchParams.get('error') || url.searchParams.get('error_description')) {
+          window.location.replace('/?error=auth_error');
         }
       } catch (e) {
         console.error('[Callback] unexpected error', e);
-        router.replace('/?error=auth_error');
+        window.location.replace('/?error=auth_error');
       }
     };
-    handle();
+    run();
+
+    return () => {
+      try { unsub?.(); } catch {}
+    };
   }, [router]);
 
   return (
