@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation';
 import styled from 'styled-components';
 import { useState, useRef, useEffect } from 'react';
 import { FaUser, FaUsers, FaUserFriends, FaCog, FaSearch, FaPen } from 'react-icons/fa';
-import Image from 'next/image';
+import Logo from '../components/Logo/Logo';
 
 export default function MenuPage() {
   const { t } = useTranslation();
@@ -137,7 +137,7 @@ export default function MenuPage() {
   return (
     <div className={styles.container}>
       <div className={styles.logoContainer}>
-        <Image src="/logo.png" alt="Streamers Universe" width={400} height={150} priority={true} />
+        <Logo width={400} height={150} />
       </div>
       {isMobile ? (
         <div className={styles.mobileMenu}>

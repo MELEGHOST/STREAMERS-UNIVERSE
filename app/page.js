@@ -5,7 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from './contexts/AuthContext';
 import HoldLoginButton from './components/HoldLoginButton/HoldLoginButton';
 import LoginButton from './components/LoginButton/LoginButton';
-import Image from 'next/image';
+import Logo from './components/Logo/Logo';
 import styles from './home.module.css'; // Используем стили для главной
 import { useTranslation } from 'react-i18next';
 
@@ -61,14 +61,7 @@ export default function HomePage() {
     <div className={styles.container}>
         <StarryBackground />
         <div className={styles.content}>
-            <Image 
-                src="/logo.png" // <<< Убедись, что лого лежит в /public/logo.png
-                alt="Streamers Universe Logo"
-                width={200} // <<< Размер лого
-                height={200}
-                className={styles.logo}
-                priority // Для LCP
-            />
+            <Logo width={200} height={200} className={styles.logo} />
             
             {error && <p className={styles.errorMessage}>{t('error')}: {error}</p>}
 
