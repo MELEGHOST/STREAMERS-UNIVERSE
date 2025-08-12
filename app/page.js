@@ -1,7 +1,7 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
-import { useSearchParams } from 'next/navigation';
+import React, { useEffect, useRef, useState } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from './contexts/AuthContext';
 import HoldLoginButton from './components/HoldLoginButton/HoldLoginButton';
 import LoginButton from './components/LoginButton/LoginButton';
@@ -11,9 +11,11 @@ import { useTranslation } from 'react-i18next';
 
 export default function HomePage() {
   const { t } = useTranslation();
+  const router = useRouter();
   const { isAuthenticated, isLoading } = useAuth();
   const searchParams = useSearchParams();
   const [error, setError] = useState('');
+  const rePushTriedRef = useRef(false);
 
   useEffect(() => {
     const errorDescription = searchParams.get('error_description');
@@ -21,6 +23,23 @@ export default function HomePage() {
       setError(errorDescription);
     }
   }, [searchParams]);
+
+  // Подстраховка: если после OAuth нас скинуло на главную,
+  // а флаг свежего логина ещё есть — докинем редирект в /menu сами
+  useEffect(() => {
+    if (rePushTriedRef.current) return;
+    const freshByQuery = searchParams.get('freshLogin') === 'true';
+    const freshBySession = (() => { try { return sessionStorage.getItem('freshLogin') === '1'; } catch { return false; } })();
+    if ((freshByQuery || freshBySession) && !isLoading) {
+      rePushTriedRef.current = true;
+      const target = '/menu?freshLogin=true';
+      // Если уже аутентифицированы — сразу идём; если нет — даём крохотную паузу
+      const delay = isAuthenticated ? 0 : 150;
+      setTimeout(() => {
+        router.replace(target);
+      }, delay);
+    }
+  }, [searchParams, isLoading, isAuthenticated, router]);
 
   // Простой компонент для звездного фона
   const StarryBackground = () => (

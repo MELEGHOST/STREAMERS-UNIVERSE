@@ -123,7 +123,8 @@ export function AuthProvider({ children }) {
       options: {
         redirectTo: `${window.location.origin}/auth/callback`,
         queryParams: { force_verify: 'false' },
-        skipBrowserRedirect: false,
+        // Отдадим управление редиректом нашей кнопке (учёт Telegram WebApp и т.п.)
+        skipBrowserRedirect: true,
       },
     });
     if (result.error) {

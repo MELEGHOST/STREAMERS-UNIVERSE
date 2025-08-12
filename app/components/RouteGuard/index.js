@@ -1,17 +1,22 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '../../contexts/AuthContext';
 
 const protectedRoutes = ['/menu', '/profile', '/edit-profile', '/settings', '/followers', '/followings', '/my-reviews', '/achievements', '/admin'];
 
 const RouteGuard = ({ children }) => {
-  const { isAuthenticated, isLoading } = useAuth();
+  const { isAuthenticated, isLoading, refreshSession } = useAuth();
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
-  const freshLogin = searchParams?.get('freshLogin') === 'true';
+  const freshLoginParam = searchParams?.get('freshLogin') === 'true';
+  const freshLoginFlag = typeof window !== 'undefined' && sessionStorage.getItem('freshLogin') === '1';
+  const freshLogin = freshLoginParam || freshLoginFlag;
+
+  const isAuthedRef = useRef(isAuthenticated);
+  useEffect(() => { isAuthedRef.current = isAuthenticated; }, [isAuthenticated]);
 
   const isProtectedRoute = protectedRoutes.some(route => {
     if (route === '/profile') {
@@ -22,26 +27,38 @@ const RouteGuard = ({ children }) => {
   });
 
   useEffect(() => {
-    // Пока идет загрузка — не дергаем редирект, особенно после свежего логина
-    if (isLoading) {
-      return;
-    }
+    // Пока идет загрузка — не дергаем редирект
+    if (isLoading) return;
 
-    // Если пользователь не аутентифицирован и пытается зайти на защищенный роут:
-    // - если freshLogin=true (мы только что вернулись из OAuth-коллбэка), даем контексту догрузить сессию
-    // - иначе уходим на главную
-    if (!isAuthenticated && isProtectedRoute) {
-      if (freshLogin) {
-        return;
+    // Не защищенный роут — ничего не делаем
+    if (!isProtectedRoute) return;
+
+    // Свежий логин — даем контексту добежать
+    if (freshLogin) return;
+
+    // Уже аутентифицирован — все ок
+    if (isAuthenticated) return;
+
+    // Подстраховка от гонок: перед редиректом дёрнем refreshSession и дадим чуть времени
+    let canceled = false;
+    const timerId = setTimeout(async () => {
+      try { await refreshSession(); } catch {}
+      if (!canceled && !isAuthedRef.current) {
+        console.log(`[RouteGuard] Access to ${pathname} denied. Redirecting to home.`);
+        router.replace('/');
       }
-      console.log(`[RouteGuard] Access to ${pathname} denied. Redirecting to home.`);
-      router.replace('/');
-    }
-  }, [isLoading, isAuthenticated, isProtectedRoute, pathname, router, freshLogin]);
+    }, 800);
+
+    return () => {
+      canceled = true;
+      clearTimeout(timerId);
+    };
+  }, [isLoading, isAuthenticated, isProtectedRoute, pathname, router, freshLogin, refreshSession]);
 
   // После успешной аутентификации очищаем флаг freshLogin из URL
   useEffect(() => {
     if (freshLogin && isAuthenticated) {
+      try { sessionStorage.removeItem('freshLogin'); } catch {}
       router.replace(pathname);
     }
   }, [freshLogin, isAuthenticated, router, pathname]);

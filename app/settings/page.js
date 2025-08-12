@@ -66,6 +66,11 @@ function SettingsPageContent() {
   }
 
   if (!isAuthenticated) {
+    const freshByQuery = typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('freshLogin') === 'true';
+    const freshBySession = (() => { try { return sessionStorage.getItem('freshLogin') === '1'; } catch { return false; } })();
+    if (freshByQuery || freshBySession) {
+      return <div className={pageStyles.loadingContainer}><p>Загрузка...</p></div>;
+    }
     router.replace('/');
     return null;
   }
