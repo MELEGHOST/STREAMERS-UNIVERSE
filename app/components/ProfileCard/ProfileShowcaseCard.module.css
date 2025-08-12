@@ -73,7 +73,7 @@
 }
 
 .circularStat {
-  height: 88px;
+  height: 72px; /* было 88 — делаем компактнее */
   border-radius: 16px;
   border: 1px solid rgba(255,255,255,0.08);
   background: rgba(0,0,0,0.5);
@@ -87,7 +87,8 @@
   inset: 7px;
   border-radius: 999px;
   background: conic-gradient(#ff3a00 var(--angle, 0deg), rgba(255,255,255,0.09) 0);
-  mask: radial-gradient(circle 28px at center, transparent 62%, #000 63%);
+  /* Делаем внутренний «чёрный круг», чтобы числа были внутри него */
+  mask: radial-gradient(circle 22px at center, transparent 60%, #000 61%);
 }
 
 .circularInner {
@@ -95,7 +96,12 @@
   z-index: 1;
   height: 100%; width: 100%; display: grid; place-items: center;
 }
-.circularValue { color: #fff; font-weight: 800; font-size: 18px; line-height: 1; }
+.circularValue {
+  color: #fff;
+  font-weight: 800;
+  font-size: 16px; /* чуть меньше */
+  line-height: 1;
+}
 .circularLabel { color: rgba(255,255,255,0.65); font-size: 10px; margin-top: 6px; }
 
 .metaRow {

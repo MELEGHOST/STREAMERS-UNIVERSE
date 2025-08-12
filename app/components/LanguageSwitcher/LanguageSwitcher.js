@@ -14,8 +14,10 @@ const LanguageSwitcher = () => {
   ];
 
   const changeLanguage = (lng) => {
+    try { localStorage.setItem('i18nextLng', lng); localStorage.setItem('app:lang', lng); } catch {}
     i18n.changeLanguage(lng).then(() => {
-      window.location.reload();
+      // Мгновенно применяем без перезагрузки; I18nProvider слушает storage в других вкладках
+      document.documentElement.lang = lng;
     });
   };
 

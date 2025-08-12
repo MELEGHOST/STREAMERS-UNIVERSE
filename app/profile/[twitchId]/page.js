@@ -173,9 +173,10 @@ export default function UserProfilePage() {
   const isStreamer = twitchUserData?.broadcaster_type === 'partner' || twitchUserData?.broadcaster_type === 'affiliate';
 
   // Derived status text
-  const statusText = isAdmin
-    ? t('roles.admin')
-    : (isStreamer ? t('roles.streamer') : (userRolesArray.includes('companion') ? t('roles.companion', { defaultValue: 'Компаньон' }) : t('roles.viewer', { defaultValue: 'Зритель' })));
+  // Для карточки ожидаем строку ролей (на англ. ключевые классы), а локализацию показываем текстом внутри бейджа
+  const statusText = [isAdmin ? 'admin' : null, isStreamer ? 'streamer' : null, userRolesArray.includes('companion') ? 'companion' : null]
+    .filter(Boolean)
+    .join(', ');
 
   // Socials completion percent out of 14 platforms
   const profileSocialLinks = isRegistered ? (profileData?.social_links || {}) : null;

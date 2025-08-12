@@ -268,7 +268,7 @@ function ProfilePageContent() {
                           level={0}
                           followersCount={twitchUserData?.followers_goal?.current ?? twitchUserData?.followers_count ?? 0}
                           followersTarget={twitchUserData?.followers_goal?.target ?? 1000}
-                          statusText={userRole || profileData?.role || 'Зритель'}
+                           statusText={(userRole || profileData?.role || '').toString().toLowerCase()}
                           birthdayText={profileData?.birthday ? new Date(profileData.birthday).toLocaleDateString() : ''}
                           onAvatarClick={() => setIsOverlayOpen(true)}
                         />

@@ -72,7 +72,22 @@ export default function ProfileShowcaseCard({
           {statusText && (
             <div className={styles.metaItem}>
               <span className={styles.metaLabel}>Статус</span>
-              <span className={styles.metaValue}>{statusText}</span>
+              <span className={styles.metaValue}>
+                {/* Красивые бейджи ролей — ищем цветовые классы в profile.module.css */}
+                {String(statusText)
+                  .split(',')
+                  .map((r) => r.trim().toLowerCase())
+                  .filter(Boolean)
+                  .map((role) => (
+                    <span
+                      key={role}
+                      className={`${styles.roleBadge || ''} ${role === 'admin' ? 'admin' : role === 'streamer' ? 'streamer' : ''}`.trim()}
+                      style={role === 'admin' ? { background: '#ffd700', color: '#1c1c1c', border: '1px solid #e0b000', marginRight: 6, padding: '2px 8px', borderRadius: 8, fontWeight: 700, fontSize: 12 } : role === 'streamer' ? { background: '#9146ff', color: '#fff', border: '1px solid #6c1fff', marginRight: 6, padding: '2px 8px', borderRadius: 8, fontWeight: 700, fontSize: 12 } : {}}
+                    >
+                      {role}
+                    </span>
+                  ))}
+              </span>
             </div>
           )}
         </div>
