@@ -81,10 +81,10 @@ export async function getTwitchClientWithToken(jwtToken) {
         }
         
         // Ищем токен доступа Twitch внутри данных пользователя
-        const twitchAccessToken = verifiedToken.user_metadata?.provider_token;
+        const twitchAccessToken = verifiedToken.user_metadata?.provider_token || verifiedToken.provider_token;
 
         if (!twitchAccessToken) {
-            console.error("[getTwitchClientWithToken] Токен доступа Twitch не найден в JWT user_metadata.", { sub: verifiedToken.sub });
+            console.error("[getTwitchClientWithToken] Токен доступа Twitch не найден в JWT.", { sub: verifiedToken.sub });
             // Логируем все содержимое токена для дебага, но осторожно с секретами!
             console.log("Verified JWT content for debugging:", verifiedToken);
             return null;
