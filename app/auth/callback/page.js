@@ -18,7 +18,7 @@ export default function CallbackPage() {
         // Если пришли по коду OAuth — явно обменяем на сессию
         if (hasCode && hasState) {
           try {
-            const { data, error } = await supabase.auth.exchangeCodeForSession(window.location.href);
+            const { error } = await supabase.auth.exchangeCodeForSession(window.location.href);
             if (error) {
               console.error('[Callback] exchangeCodeForSession error', error);
             } else {
