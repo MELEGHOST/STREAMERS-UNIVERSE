@@ -1,4 +1,4 @@
-import { log } from 'console';
+// Удален лишний импорт 'log' из console
 
 // Кеш для токена Twitch (простой вариант в памяти)
 let twitchAppAccessToken = null;

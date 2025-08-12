@@ -171,6 +171,8 @@ export async function POST(request) {
         // --- Поиск User ID автора или валидация ника через Twitch API (СТАРАЯ ЛОГИКА) ---
         let authorUserId = null; // ID автора в НАШЕЙ базе (может быть null)
         let validatedTwitchUser = null; // Данные автора с Twitch (если не в нашей базе)
+        let streamerTwitchId = null; // Twitch ID автора/стримера
+        let streamerDisplayName = null;
 
         try {
             const nicknameLower = authorTwitchName.toLowerCase();
@@ -178,7 +180,7 @@ export async function POST(request) {
             // Пытаемся найти по разным полям, где мог сохраниться логин
             const { data: profileData, error: profileError } = await supabaseAdmin
                 .from('user_profiles')
-                .select('user_id')
+                .select('user_id, twitch_user_id, twitch_display_name')
                  .or(`user_metadata->>user_name.eq.${nicknameLower},raw_user_meta_data->>login.eq.${nicknameLower},raw_user_meta_data->>name.eq.${nicknameLower}`)
                 .maybeSingle();
 
@@ -186,6 +188,8 @@ export async function POST(request) {
 
             if (profileData) {
                  authorUserId = profileData.user_id;
+                 streamerTwitchId = profileData.twitch_user_id || null;
+                 streamerDisplayName = profileData.twitch_display_name || null;
                  console.log(`[API /generate-full] Автор ${nicknameLower} найден в БД. User ID: ${authorUserId}`);
             } else {
                 console.log(`[API /generate-full] Автор ${nicknameLower} не найден в БД. Проверяем на Twitch...`);
@@ -195,6 +199,8 @@ export async function POST(request) {
                     return NextResponse.json({ error: `Пользователь Twitch с никнеймом '${authorTwitchName}' не найден.` }, { status: 404 });
                 } else {
                     console.log(`[API /generate-full] Автор ${authorTwitchName} найден на Twitch. ID: ${validatedTwitchUser.id}, Display Name: ${validatedTwitchUser.display_name}`);
+                    streamerTwitchId = validatedTwitchUser.id;
+                    streamerDisplayName = validatedTwitchUser.display_name || validatedTwitchUser.displayName || null;
                     // authorUserId остается null, но мы знаем, что юзер валиден
                 }
             }
@@ -292,6 +298,9 @@ Please generate the review JSON based on this content. Remember the JSON format 
                 source_file_path: finalSourceIdentifier, // Путь к файлу в storage или URL
                 status: 'pending', // Ставим на модерацию
                 author_twitch_nickname: authorTwitchName, // Ник автора, чей контент анализировался
+                streamer_twitch_id: streamerTwitchId,
+                author_twitch_display_name: streamerDisplayName,
+                streamer_display_name: streamerDisplayName,
                 generated_by_user_id: userId // ID пользователя, кто запустил генерацию
             })
             .select('id')

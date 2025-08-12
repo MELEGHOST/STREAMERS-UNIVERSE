@@ -69,7 +69,7 @@ export async function POST(request) {
 
     // Извлекаем роль из вложенного объекта 'profile'
     const userRole = apiData?.profile?.role || 'user';
-    const isAdmin = userRole === 'admin' || userRole.includes('admin');
+    const isAdmin = typeof userRole === 'string' && (userRole === 'admin' || userRole.toLowerCase().includes('admin'));
 
     console.log(`[check-admin] Роль для пользователя ${user.email} (${userTwitchId}): ${userRole}. Админ: ${isAdmin}`);
     

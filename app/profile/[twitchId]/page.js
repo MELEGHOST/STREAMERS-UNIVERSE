@@ -155,8 +155,8 @@ export default function UserProfilePage() {
 
   const apiUrl = `/api/twitch/user?userId=${profileTwitchId}&fetchProfile=true`;
   const { data: apiData, error: apiError, isLoading: isDataLoading } = useSWR(
-  profileTwitchId && authToken ? [apiUrl, authToken] : null,
-  ([url, token]) => fetcher(url, token)
+    profileTwitchId ? [apiUrl, authToken] : null,
+    ([url, token]) => fetcher(url, token)
   );
   const loadingProfile = (!profileTwitchId || authIsLoading || isDataLoading);
   const error = apiError ? (apiError.message || 'Unknown error') : null;

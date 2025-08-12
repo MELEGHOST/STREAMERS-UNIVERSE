@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { headers } from 'next/headers';
 import { getTwitchClientWithToken } from '../../../../utils/twitchClient';
 import { verifyJwt } from '../../../../utils/jwt';
+import { getSupabaseAdmin } from '../../../../utils/supabase/admin';
 
 export async function GET() {
   try {
@@ -19,7 +20,24 @@ export async function GET() {
     if (!decodedToken || !decodedToken.sub) {
         return NextResponse.json({ message: 'Invalid token' }, { status: 401 });
     }
-    const userId = decodedToken.sub;
+    const supabaseUserId = decodedToken.sub;
+
+    // Определяем Twitch ID (viewer) из токена/профиля
+    let twitchUserId = decodedToken.user_metadata?.provider_id || null;
+    if (!twitchUserId) {
+      try {
+        const supabaseAdmin = getSupabaseAdmin();
+        const { data: profile } = await supabaseAdmin
+          .from('user_profiles')
+          .select('twitch_user_id')
+          .eq('user_id', supabaseUserId)
+          .maybeSingle();
+        twitchUserId = profile?.twitch_user_id || null;
+      } catch {}
+    }
+    if (!twitchUserId) {
+      return NextResponse.json({ message: 'Twitch user id not found for current user' }, { status: 400 });
+    }
 
     // Получаем клиент Twitch с токеном пользователя
     const twitchClient = await getTwitchClientWithToken(supabaseToken);
@@ -28,7 +46,7 @@ export async function GET() {
     }
 
     // Получаем каналы, на которые подписан пользователь
-    const follows = await twitchClient.channels.getFollowedChannels({ userId, limit: 100 });
+    const follows = await twitchClient.channels.getFollowedChannels({ userId: twitchUserId, limit: 100 });
     
     // --- Запускаем проверку достижений за подписки ---
     // ------------------------------------------------

@@ -227,9 +227,9 @@ export async function GET(request) {
           console.log(`[API /api/twitch/user] Found Supabase User ID: ${supabaseUserIdFromTwitchId} for Twitch ID ${userId} (via identities)`);
           
           // 2. Если нашли Supabase User ID, ищем профиль в user_profiles
-          const { data: profile, error: profileError } = await supabaseAdmin
+           const { data: profile, error: profileError } = await supabaseAdmin
               .from('user_profiles')
-              .select('description, role, social_links, profile_widget')
+              .select('description, role, social_links, profile_widget, twitch_broadcaster_type')
               .eq('user_id', supabaseUserIdFromTwitchId)
               .maybeSingle();
 

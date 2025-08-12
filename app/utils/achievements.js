@@ -29,9 +29,22 @@ async function getUserProfile(supabaseAdmin, userId) {
 
 async function getReferralCount(supabaseAdmin, userId) {
   try {
-    const { count, error } = await supabaseAdmin.from('user_profiles').select('*', { count: 'exact', head: true }).eq('referrer_id', userId);
+    // Для подсчета рефералов находим Twitch ID текущего пользователя,
+    // затем считаем количество профилей, где он указан как referred_by_twitch_id
+    const { data: me, error: meError } = await supabaseAdmin
+      .from('user_profiles')
+      .select('twitch_user_id')
+      .eq('user_id', userId)
+      .maybeSingle();
+    if (meError || !me?.twitch_user_id) {
+      return 0;
+    }
+    const { count, error } = await supabaseAdmin
+      .from('user_profiles')
+      .select('*', { count: 'exact', head: true })
+      .eq('referred_by_twitch_id', me.twitch_user_id);
     if (error) throw error;
-    return count;
+    return count || 0;
   } catch (e) {
     console.error(e);
     return 0;

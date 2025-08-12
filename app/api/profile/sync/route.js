@@ -80,8 +80,8 @@ export async function POST({ headers }) {
 
   if (profile) {
     // Если профиль существует, обновляем broadcaster_type, если он изменился
-    if (profile.broadcaster_type !== broadcasterType) {
-      await supabaseAdmin.from('user_profiles').update({ broadcaster_type: broadcasterType }).eq('user_id', user.id);
+    if (profile.twitch_broadcaster_type !== broadcasterType) {
+      await supabaseAdmin.from('user_profiles').update({ twitch_broadcaster_type: broadcasterType }).eq('user_id', user.id);
       console.log(`[Sync Profile API] Updated broadcaster_type for user ${user.id} to '${broadcasterType}'`);
     }
     // Триггеры ачивок, если нужно
@@ -102,7 +102,7 @@ export async function POST({ headers }) {
     twitch_profile_image_url: user.user_metadata.avatar_url,
     email: user.email,
     role: 'user', 
-    broadcaster_type: broadcasterType, // Сразу добавляем тип
+    twitch_broadcaster_type: broadcasterType, // Сразу добавляем тип
   };
   
   const { data: createdProfile, error: createError } = await supabaseAdmin

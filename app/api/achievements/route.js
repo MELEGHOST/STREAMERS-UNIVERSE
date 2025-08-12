@@ -35,7 +35,7 @@ export async function GET(request) {
       console.error('[API /achievements] Missing Supabase URL or Service Key');
       return NextResponse.json({ error: 'Server configuration error' }, { status: 500 });
     }
-    const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
+    const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey, { auth: { persistSession: false } });
 
     const token = request.headers.get('Authorization')?.split(' ')[1];
     const verifiedToken = await verifyJwt(token);
@@ -58,7 +58,10 @@ export async function GET(request) {
     
     let userAchievements = [];
     if (userId) {
-      const { data: uaData } = await supabaseAdmin.from('user_achievements').select('achievement_id').eq('user_id', userId);
+      const { data: uaData } = await supabaseAdmin
+        .from('user_achievements')
+        .select('achievement_id')
+        .eq('user_id', userId);
       userAchievements = uaData || [];
     }
     

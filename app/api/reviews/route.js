@@ -33,6 +33,13 @@ export async function GET() {
 
 // POST - Создание нового ручного отзыва
 export async function POST(request) {
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const supabaseServiceKey = process.env.SUPABASE_SERVICE_KEY;
+    if (!supabaseUrl || !supabaseServiceKey) {
+        console.error("[API /reviews] Critical Error: Supabase URL or Service Key is missing!");
+        return NextResponse.json({ error: 'Supabase configuration missing' }, { status: 500 });
+    }
+    const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey, { auth: { persistSession: false } });
     const token = request.headers.get('Authorization')?.split(' ')[1];
     const verifiedToken = await verifyJwt(token);
 
@@ -106,11 +113,7 @@ export async function POST(request) {
         console.log(`[API /api/reviews] Manual review created by ${userId} with ID: ${reviewData.id}, Status: ${reviewData.status}`);
         const message = 'Review created and published successfully.';
 
-        // --- Запускаем проверку достижений ---
-        // Эта функция сама проверит все нужные достижения, связанные с созданием отзыва.
-        // For now, comment out the trigger in POST, and assume a separate process handles it.
-        // Or add: if (review.moderated) await handleAchievementTrigger(...)
-        // ------------------------------------
+        // TODO: Триггерить ачивки за количество отзывов по cron/воркеру
 
         return NextResponse.json({ id: reviewData.id, status: reviewData.status, message }, { status: 201 });
 

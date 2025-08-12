@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
-import { verifyJwt } from '../../../../utils/jwt'; // Убедись, что путь правильный
-import { handleAchievementTrigger } from '../../../../utils/achievements'; // <<< Импортируем
+import { verifyJwt } from '../../../../utils/jwt';
+import { handleAchievementTrigger } from '../../../../utils/achievements';
 
 export async function PUT(request) {
     const token = request.headers.get('Authorization')?.split(' ')[1]; // Получаем JWT
@@ -49,8 +49,7 @@ export async function PUT(request) {
     console.log(`[API /twitch/user/profile] Updating profile for user ${userId} with data:`, dataToUpdate);
 
     try {
-        // 2. Обновляем или создаем профиль в нашей базе
-        // Мы используем upsert, чтобы создать профиль, если его нет, или обновить, если есть.
+        // Обновляем профиль. Создание выполняется в /api/profile/sync
         const { data, error } = await supabaseAdmin
             .from('user_profiles')
             .update(dataToUpdate)
