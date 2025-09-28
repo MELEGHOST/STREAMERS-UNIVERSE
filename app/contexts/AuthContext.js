@@ -92,6 +92,9 @@ export function AuthProvider({ children }) {
         setLoading(false);
       });
       unsub = subscription?.unsubscribe;
+
+      // Фолбэк: если событие не пришло (редкий случай) — снимаем загрузку спустя таймаут
+      setTimeout(() => setLoading(false), 1500);
     };
     init();
 

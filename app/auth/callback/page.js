@@ -9,6 +9,7 @@ export default function CallbackPage() {
 
   useEffect(() => {
     let unsub;
+    let fallbackTimer;
     const run = async () => {
       try {
         const url = new URL(window.location.href);
@@ -61,6 +62,17 @@ export default function CallbackPage() {
         });
         unsub = subscription?.unsubscribe;
 
+        // 3.1) Фолбэк: если за 5с не получили сессию — попробуем ещё раз и уйдем с ошибкой/успехом
+        fallbackTimer = setTimeout(async () => {
+          const { data: { session: lateSession } } = await supabase.auth.getSession();
+          if (lateSession) {
+            try { sessionStorage.setItem('freshLogin', '1'); } catch {}
+            window.location.replace('/menu?freshLogin=true');
+          } else {
+            window.location.replace('/?error=auth_timeout');
+          }
+        }, 5000);
+
         // 3) Подстраховка: если в URL есть ошибка — отправим на главную
         if (url.searchParams.get('error') || url.searchParams.get('error_description')) {
           window.location.replace('/?error=auth_error');
@@ -74,6 +86,7 @@ export default function CallbackPage() {
 
     return () => {
       try { unsub?.(); } catch {}
+      try { clearTimeout(fallbackTimer); } catch {}
     };
   }, [router]);
 
