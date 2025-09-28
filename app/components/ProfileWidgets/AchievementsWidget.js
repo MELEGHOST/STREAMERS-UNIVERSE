@@ -7,76 +7,116 @@ import { useState, useEffect } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 
 function AchievementCard({ achievement, t }) {
-    const nameKey = `achievements.${achievement.code}.name`;
-    const descriptionKey = `achievements.${achievement.code}.description`;
+  const nameKey = `achievements.${achievement.code}.name`;
+  const descriptionKey = `achievements.${achievement.code}.description`;
 
-    return (
-        <div className={styles.achievementCard}>
-            <div className={styles.achievementIcon}>{achievement.icon || '🏅'}</div>
-            <div className={styles.achievementInfo}>
-                <h3 className={styles.achievementName}>{t(nameKey)}</h3>
-                <p className={styles.achievementDescription}>{t(descriptionKey)} ({achievement.rarity.toFixed(1)}% {t('achievements.rarity')})</p>
-            </div>
-        </div>
-    );
+  return (
+    <div className={styles.achievementCard}>
+      <div className={styles.achievementIcon}>{achievement.icon || '🏅'}</div>
+      <div className={styles.achievementInfo}>
+        <h3 className={styles.achievementName}>{t(nameKey)}</h3>
+        <p className={styles.achievementDescription}>
+          {t(descriptionKey)} ({achievement.rarity.toFixed(1)}%{' '}
+          {t('achievements.rarity')})
+        </p>
+      </div>
+    </div>
+  );
 }
 
-export default function AchievementsWidget({ }) {
-    const { t } = useTranslation();
-    const { supabase } = useAuth();
-    const [achievements, setAchievements] = useState([]);
-    const [loading, setLoading] = useState(true);
-    const [fetchError, setFetchError] = useState(null);
+export default function AchievementsWidget({}) {
+  const { t } = useTranslation();
+  const { supabase } = useAuth();
+  const [achievements, setAchievements] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [fetchError, setFetchError] = useState(null);
 
-    useEffect(() => {
-        let isActive = true;
-        async function fetchAchievements() {
-            try {
-                const token = supabase ? (await supabase.auth.getSession()).data.session?.access_token || null : null;
-                const response = await fetch('/api/achievements', {
-                    headers: {
-                        ...(token ? { Authorization: `Bearer ${token}` } : {})
-                    }
-                });
-                if (!response) throw new Error('No response from server');
-                if (!response.ok) throw new Error('Failed to fetch achievements');
-                const payload = await response.json();
-                const list = Array.isArray(payload) ? payload : Array.isArray(payload?.achievements) ? payload.achievements : [];
-                if (isActive) setAchievements(list);
-            } catch (e) {
-                console.error('[AchievementsWidget] Fetch error:', e);
-                if (isActive) setFetchError('Failed to load achievements');
-            } finally {
-                if (isActive) setLoading(false);
-            }
-        }
-        fetchAchievements();
-        return () => { isActive = false; };
-    }, [supabase]);
+  useEffect(() => {
+    let isActive = true;
+    async function fetchAchievements() {
+      try {
+        const token = supabase
+          ? (await supabase.auth.getSession()).data.session?.access_token ||
+            null
+          : null;
+        const response = await fetch('/api/achievements', {
+          headers: {
+            ...(token ? { Authorization: `Bearer ${token}` } : {}),
+          },
+        });
+        if (!response) throw new Error('No response from server');
+        if (!response.ok) throw new Error('Failed to fetch achievements');
+        const payload = await response.json();
+        const list = Array.isArray(payload)
+          ? payload
+          : Array.isArray(payload?.achievements)
+            ? payload.achievements
+            : [];
+        if (isActive) setAchievements(list);
+      } catch (e) {
+        console.error('[AchievementsWidget] Fetch error:', e);
+        if (isActive) setFetchError('Failed to load achievements');
+      } finally {
+        if (isActive) setLoading(false);
+      }
+    }
+    fetchAchievements();
+    return () => {
+      isActive = false;
+    };
+  }, [supabase]);
 
-    if (loading) return <div className={pageStyles.loadingContainer}><p>{t('loading.achievements')}</p></div>;
-    if (fetchError) return <div className={pageStyles.errorMessage}><p>{t('profile_page.achievements_page.error', { message: fetchError })}</p></div>;
-
-    const unlockedAchievements = Array.isArray(achievements) ? achievements.filter(ach => ach?.is_unlocked) : [];
-
+  if (loading)
     return (
-        <div className={styles.widgetContainer}>
-            <h2 className={styles.widgetTitle}>{t('profile_page.achievements_page.title', { defaultValue: t('achievements.widget.title') })}</h2>
-            {unlockedAchievements.length > 0 ? (
-                <div className={styles.achievementsList}>
-                    {unlockedAchievements.map(ach => (
-                        <AchievementCard key={ach.id} achievement={ach} t={t} />
-                    ))}
-                </div>
-            ) : (
-                <p className={styles.noAchievements}>{t('profile_page.achievements_page.noAchievements')}</p>
-            )}
-            <h3>{t('achievements.available')}</h3>
-            <div className={styles.achievementsList}>
-                    {Array.isArray(achievements) && achievements.filter(ach => !ach?.is_unlocked).map(ach => (
-                    <AchievementCard key={ach.id} achievement={ach} t={t} isLocked={true} />
-                ))}
-            </div>
-        </div>
+      <div className={pageStyles.loadingContainer}>
+        <p>{t('loading.achievements')}</p>
+      </div>
     );
-} 
+  if (fetchError)
+    return (
+      <div className={pageStyles.errorMessage}>
+        <p>
+          {t('profile_page.achievements_page.error', { message: fetchError })}
+        </p>
+      </div>
+    );
+
+  const unlockedAchievements = Array.isArray(achievements)
+    ? achievements.filter((ach) => ach?.is_unlocked)
+    : [];
+
+  return (
+    <div className={styles.widgetContainer}>
+      <h2 className={styles.widgetTitle}>
+        {t('profile_page.achievements_page.title', {
+          defaultValue: t('achievements.widget.title'),
+        })}
+      </h2>
+      {unlockedAchievements.length > 0 ? (
+        <div className={styles.achievementsList}>
+          {unlockedAchievements.map((ach) => (
+            <AchievementCard key={ach.id} achievement={ach} t={t} />
+          ))}
+        </div>
+      ) : (
+        <p className={styles.noAchievements}>
+          {t('profile_page.achievements_page.noAchievements')}
+        </p>
+      )}
+      <h3>{t('achievements.available')}</h3>
+      <div className={styles.achievementsList}>
+        {Array.isArray(achievements) &&
+          achievements
+            .filter((ach) => !ach?.is_unlocked)
+            .map((ach) => (
+              <AchievementCard
+                key={ach.id}
+                achievement={ach}
+                t={t}
+                isLocked={true}
+              />
+            ))}
+      </div>
+    </div>
+  );
+}

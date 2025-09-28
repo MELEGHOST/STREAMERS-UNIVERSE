@@ -5,7 +5,14 @@ import { useTranslation } from 'react-i18next';
 import { useRouter } from 'next/navigation';
 import styled from 'styled-components';
 import { useState, useRef, useEffect } from 'react';
-import { FaUser, FaUsers, FaUserFriends, FaCog, FaSearch, FaPen } from 'react-icons/fa';
+import {
+  FaUser,
+  FaUsers,
+  FaUserFriends,
+  FaCog,
+  FaSearch,
+  FaPen,
+} from 'react-icons/fa';
 import Logo from '../components/Logo/Logo';
 
 export default function MenuPage() {
@@ -64,12 +71,42 @@ export default function MenuPage() {
   const handleMouseLeave = handleEnd;
 
   const menuItems = [
-    { label: t('menu.profile', { defaultValue: 'Профиль' }), icon: FaUser, href: '/profile', color: '142, 249, 252' },
-    { label: t('menu.followers', { defaultValue: 'Подписчики' }), icon: FaUsers, href: '/followers', color: '142, 252, 157' },
-    { label: t('menu.followings', { defaultValue: 'Подписки' }), icon: FaUserFriends, href: '/followings', color: '215, 252, 142' },
-    { label: t('menu.settings', { defaultValue: 'Настройки' }), icon: FaCog, href: '/settings', color: '252, 142, 142' },
-    { label: t('menu.search', { defaultValue: 'Поиск' }), icon: FaSearch, href: '/search', color: '204, 142, 252' },
-    { label: t('menu.createReview', { defaultValue: 'Создать отзыв' }), icon: FaPen, href: '/reviews/create', color: '142, 202, 252' },
+    {
+      label: t('menu.profile', { defaultValue: 'Профиль' }),
+      icon: FaUser,
+      href: '/profile',
+      color: '142, 249, 252',
+    },
+    {
+      label: t('menu.followers', { defaultValue: 'Подписчики' }),
+      icon: FaUsers,
+      href: '/followers',
+      color: '142, 252, 157',
+    },
+    {
+      label: t('menu.followings', { defaultValue: 'Подписки' }),
+      icon: FaUserFriends,
+      href: '/followings',
+      color: '215, 252, 142',
+    },
+    {
+      label: t('menu.settings', { defaultValue: 'Настройки' }),
+      icon: FaCog,
+      href: '/settings',
+      color: '252, 142, 142',
+    },
+    {
+      label: t('menu.search', { defaultValue: 'Поиск' }),
+      icon: FaSearch,
+      href: '/search',
+      color: '204, 142, 252',
+    },
+    {
+      label: t('menu.createReview', { defaultValue: 'Создать отзыв' }),
+      icon: FaPen,
+      href: '/reviews/create',
+      color: '142, 202, 252',
+    },
   ];
 
   const HoloMenu = styled.div`
@@ -98,14 +135,17 @@ export default function MenuPage() {
       transform: translate(-50%, -50%) perspective(var(--perspective));
       z-index: 2;
       transform-style: preserve-3d;
-      animation: ${props => props.isIdle ? 'rotating 60s linear infinite' : 'none'};
+      animation: ${(props) =>
+        props.isIdle ? 'rotating 60s linear infinite' : 'none'};
     }
     @keyframes rotating {
       from {
-        transform: translate(-50%, -50%) perspective(var(--perspective)) rotateX(var(--rotateX)) rotateY(0);
+        transform: translate(-50%, -50%) perspective(var(--perspective))
+          rotateX(var(--rotateX)) rotateY(0);
       }
       to {
-        transform: translate(-50%, -50%) perspective(var(--perspective)) rotateX(var(--rotateX)) rotateY(1turn);
+        transform: translate(-50%, -50%) perspective(var(--perspective))
+          rotateX(var(--rotateX)) rotateY(1turn);
       }
     }
 
@@ -115,7 +155,8 @@ export default function MenuPage() {
       border-radius: 20px;
       overflow: hidden;
       inset: 0;
-      transform: rotateY(calc((360deg / var(--quantity)) * var(--index))) translateZ(var(--translateZ));
+      transform: rotateY(calc((360deg / var(--quantity)) * var(--index)))
+        translateZ(var(--translateZ));
       cursor: pointer;
       pointer-events: auto;
       background: rgba(0, 0, 0, 1);
@@ -127,7 +168,13 @@ export default function MenuPage() {
       width: 100%;
       height: 80%;
       object-fit: cover;
-      background: #0000 radial-gradient(circle, rgba(var(--color-card), 0.2) 0%, rgba(var(--color-card), 0.6) 80%, rgba(var(--color-card), 0.9) 100%);
+      background: #0000
+        radial-gradient(
+          circle,
+          rgba(var(--color-card), 0.2) 0%,
+          rgba(var(--color-card), 0.6) 80%,
+          rgba(var(--color-card), 0.9) 100%
+        );
       display: flex;
       justify-content: center;
       align-items: center;
@@ -154,9 +201,23 @@ export default function MenuPage() {
         </div>
       ) : (
         <HoloMenu isIdle={isIdle}>
-          <div className="wrapper" onTouchStart={handleTouchStart} onTouchMove={handleTouchMove} onTouchEnd={handleTouchEnd}
-            onMouseDown={handleMouseDown} onMouseMove={handleMouseMove} onMouseUp={handleMouseUp} onMouseLeave={handleMouseLeave}>
-            <div className="inner" style={{ '--quantity': menuItems.length, transform: `translate(-50%, -50%) perspective(var(--perspective)) rotateY(${rotation}deg)` }}>
+          <div
+            className="wrapper"
+            onTouchStart={handleTouchStart}
+            onTouchMove={handleTouchMove}
+            onTouchEnd={handleTouchEnd}
+            onMouseDown={handleMouseDown}
+            onMouseMove={handleMouseMove}
+            onMouseUp={handleMouseUp}
+            onMouseLeave={handleMouseLeave}
+          >
+            <div
+              className="inner"
+              style={{
+                '--quantity': menuItems.length,
+                transform: `translate(-50%, -50%) perspective(var(--perspective)) rotateY(${rotation}deg)`,
+              }}
+            >
               {menuItems.map((item, index) => (
                 <div
                   className="card"

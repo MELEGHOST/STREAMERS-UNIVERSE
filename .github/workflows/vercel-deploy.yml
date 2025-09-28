@@ -12,7 +12,7 @@ jobs:
       - name: Check out repository
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0  # Получаем всю историю для подсчёта коммитов
+          fetch-depth: 0 # Получаем всю историю для подсчёта коммитов
 
       - name: Count commits since last deploy
         id: commit_count
@@ -23,7 +23,7 @@ jobs:
           echo "COMMIT_COUNT=$COMMITS" >> $GITHUB_ENV
 
       - name: Deploy to Vercel
-        if: env.COMMIT_COUNT >= 3  # Запускаем, если 2 или больше коммитов
+        if: env.COMMIT_COUNT >= 3 # Запускаем, если 2 или больше коммитов
         uses: amondnet/vercel-action@v25
         with:
           vercel-token: ${{ secrets.VERCEL_TOKEN }}

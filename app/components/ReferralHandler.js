@@ -21,4 +21,4 @@ const ReferralHandler = () => {
   return null; // Этот компонент ничего не рендерит
 };
 
-export default ReferralHandler; 
+export default ReferralHandler;

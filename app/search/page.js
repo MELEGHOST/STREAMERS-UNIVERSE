@@ -33,10 +33,15 @@ export default function SearchPage() {
     setResults([]);
 
     try {
-      const response = await fetch(`/api/search/combined?query=${encodeURIComponent(searchQuery)}`);
+      const response = await fetch(
+        `/api/search/combined?query=${encodeURIComponent(searchQuery)}`
+      );
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.error || t('search.searchError', { status: response.statusText }));
+        throw new Error(
+          errorData.error ||
+            t('search.searchError', { status: response.statusText })
+        );
       }
       const data = await response.json();
       setResults(data);
@@ -66,43 +71,69 @@ export default function SearchPage() {
 
   useEffect(() => {
     function handleClickOutside(event) {
-      if (searchContainerRef.current && !searchContainerRef.current.contains(event.target)) {
+      if (
+        searchContainerRef.current &&
+        !searchContainerRef.current.contains(event.target)
+      ) {
         setIsDropdownVisible(false);
       }
     }
-    document.addEventListener("mousedown", handleClickOutside);
+    document.addEventListener('mousedown', handleClickOutside);
     return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
+      document.removeEventListener('mousedown', handleClickOutside);
     };
   }, [searchContainerRef]);
 
   const handleResultClick = (result) => {
     if (!result?.twitch_id) {
-        console.error('[SearchPage] Cannot navigate, missing twitch_id in result:', result);
-        setError(t('search.navigationError'));
-        return;
+      console.error(
+        '[SearchPage] Cannot navigate, missing twitch_id in result:',
+        result
+      );
+      setError(t('search.navigationError'));
+      return;
     }
     setIsDropdownVisible(false);
     router.push(`/profile/${result.twitch_id}`);
   };
 
   if (authLoading) {
-    return <div className={pageStyles.loadingContainer}><p>Загрузка...</p></div>;
+    return (
+      <div className={pageStyles.loadingContainer}>
+        <p>Загрузка...</p>
+      </div>
+    );
   }
 
   if (!isAuthenticated) {
-    const freshByQuery = typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('freshLogin') === 'true';
-    const freshBySession = (() => { try { return sessionStorage.getItem('freshLogin') === '1'; } catch { return false; } })();
+    const freshByQuery =
+      typeof window !== 'undefined' &&
+      new URLSearchParams(window.location.search).get('freshLogin') === 'true';
+    const freshBySession = (() => {
+      try {
+        return sessionStorage.getItem('freshLogin') === '1';
+      } catch {
+        return false;
+      }
+    })();
     if (freshByQuery || freshBySession) {
-      return <div className={pageStyles.loadingContainer}><p>Загрузка...</p></div>;
+      return (
+        <div className={pageStyles.loadingContainer}>
+          <p>Загрузка...</p>
+        </div>
+      );
     }
     router.replace('/');
-    return <div className={pageStyles.loadingContainer}><p>Перенаправление...</p></div>;
+    return (
+      <div className={pageStyles.loadingContainer}>
+        <p>Перенаправление...</p>
+      </div>
+    );
   }
 
   return (
     <div className={pageStyles.container}>
-      <button 
+      <button
         onClick={() => router.push('/menu')}
         className={pageStyles.backButton}
         style={{ position: 'absolute', top: '2rem', left: '2rem' }}
@@ -110,7 +141,7 @@ export default function SearchPage() {
         &larr; {t('search.backToMenu')}
       </button>
       <h1 className={pageStyles.title}>{t('search.title')}</h1>
-      
+
       <div className={styles.searchContainer} ref={searchContainerRef}>
         <StyledSearchInput
           value={query}
@@ -119,43 +150,62 @@ export default function SearchPage() {
           placeholder={t('search.placeholder')}
         />
         {isLoading && <div className={`${styles.searchSpinner} spinner`}></div>}
-        
+
         {isDropdownVisible && results.length > 0 && (
           <div className={styles.searchResultsDropdown}>
             {results.map((result) => (
-              <div 
+              <div
                 key={result.twitch_id || result.login}
                 className={styles.searchResultItem}
                 onClick={() => handleResultClick(result)}
               >
-                <Image 
-                  src={result.avatar_url || '/default_avatar.png'} 
+                <Image
+                  src={result.avatar_url || '/default_avatar.png'}
                   alt={result.display_name}
                   width={40}
                   height={40}
                   className={styles.searchResultAvatar}
                 />
                 <div className={styles.searchResultInfo}>
-                  <span className={styles.searchResultName}>{result.display_name}</span>
-                  <span className={styles.searchResultLogin}>@{result.login}</span>
+                  <span className={styles.searchResultName}>
+                    {result.display_name}
+                  </span>
+                  <span className={styles.searchResultLogin}>
+                    @{result.login}
+                  </span>
                 </div>
-                <span 
-                    className={`${styles.statusIndicator} ${result.registered ? styles.registered : styles.notRegistered}`}
-                    title={result.registered ? t('search.registered') : t('search.notRegistered')}
+                <span
+                  className={`${styles.statusIndicator} ${result.registered ? styles.registered : styles.notRegistered}`}
+                  title={
+                    result.registered
+                      ? t('search.registered')
+                      : t('search.notRegistered')
+                  }
                 ></span>
-                {result.is_live && <span className={styles.liveBadge}>LIVE</span>}
+                {result.is_live && (
+                  <span className={styles.liveBadge}>LIVE</span>
+                )}
               </div>
             ))}
           </div>
         )}
-        {isDropdownVisible && !isLoading && results.length === 0 && query.length >= 2 && (
-             <div className={`${styles.searchResultsDropdown} ${styles.noResults}`}>
-                {t('search.noResults', { query })}
-             </div>
-        )}
+        {isDropdownVisible &&
+          !isLoading &&
+          results.length === 0 &&
+          query.length >= 2 && (
+            <div
+              className={`${styles.searchResultsDropdown} ${styles.noResults}`}
+            >
+              {t('search.noResults', { query })}
+            </div>
+          )}
       </div>
 
-      {error && <p className={pageStyles.errorText}>{t('search.errorPrefix')}: {error}</p>}
+      {error && (
+        <p className={pageStyles.errorText}>
+          {t('search.errorPrefix')}: {error}
+        </p>
+      )}
     </div>
   );
 }

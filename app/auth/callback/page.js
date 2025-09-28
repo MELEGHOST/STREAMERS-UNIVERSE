@@ -18,12 +18,16 @@ export default function CallbackPage() {
         // Если пришли по коду OAuth — явно обменяем на сессию
         if (hasCode && hasState) {
           try {
-            const { error } = await supabase.auth.exchangeCodeForSession(window.location.href);
+            const { error } = await supabase.auth.exchangeCodeForSession(
+              window.location.href
+            );
             if (error) {
               console.error('[Callback] exchangeCodeForSession error', error);
             } else {
               // Успешный обмен — ставим флаг свежего логина
-              try { sessionStorage.setItem('freshLogin', '1'); } catch {}
+              try {
+                sessionStorage.setItem('freshLogin', '1');
+              } catch {}
               // Чистим URL от чувствительных параметров
               window.history.replaceState({}, document.title, '/auth/callback');
             }
@@ -34,17 +38,23 @@ export default function CallbackPage() {
 
         const waitForSession = async (retries = 20, delayMs = 100) => {
           for (let i = 0; i < retries; i++) {
-            const { data: { session } } = await supabase.auth.getSession();
+            const {
+              data: { session },
+            } = await supabase.auth.getSession();
             if (session) return session;
-            await new Promise(r => setTimeout(r, delayMs));
+            await new Promise((r) => setTimeout(r, delayMs));
           }
           return null;
         };
 
         // 1) Быстрый путь: сессия уже есть
-        const { data: { session } } = await supabase.auth.getSession();
+        const {
+          data: { session },
+        } = await supabase.auth.getSession();
         if (session) {
-          try { sessionStorage.setItem('freshLogin', '1'); } catch {}
+          try {
+            sessionStorage.setItem('freshLogin', '1');
+          } catch {}
           // Подстраховка: ждем, пока клиент точно сохранит сессию
           await waitForSession();
           window.location.replace('/menu?freshLogin=true');
@@ -52,9 +62,13 @@ export default function CallbackPage() {
         }
 
         // 2) Ждём событие аутентификации (INITIAL_SESSION или SIGNED_IN)
-        const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, s) => {
+        const {
+          data: { subscription },
+        } = supabase.auth.onAuthStateChange(async (_event, s) => {
           if (s) {
-            try { sessionStorage.setItem('freshLogin', '1'); } catch {}
+            try {
+              sessionStorage.setItem('freshLogin', '1');
+            } catch {}
             await waitForSession();
             window.location.replace('/menu?freshLogin=true');
           }
@@ -62,7 +76,10 @@ export default function CallbackPage() {
         unsub = subscription?.unsubscribe;
 
         // 3) Подстраховка: если в URL есть ошибка — отправим на главную
-        if (url.searchParams.get('error') || url.searchParams.get('error_description')) {
+        if (
+          url.searchParams.get('error') ||
+          url.searchParams.get('error_description')
+        ) {
           window.location.replace('/?error=auth_error');
         }
       } catch (e) {
@@ -73,13 +90,22 @@ export default function CallbackPage() {
     run();
 
     return () => {
-      try { unsub?.(); } catch {}
+      try {
+        unsub?.();
+      } catch {}
     };
   }, [router]);
 
   return (
-    <div style={{display:'grid',placeItems:'center',height:'100vh',color:'#ccc'}}>Авторизуем…</div>
+    <div
+      style={{
+        display: 'grid',
+        placeItems: 'center',
+        height: '100vh',
+        color: '#ccc',
+      }}
+    >
+      Авторизуем…
+    </div>
   );
 }
-
-

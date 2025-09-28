@@ -20,12 +20,14 @@ const TwitchButton = ({ value, count, className }) => {
   };
   const displayCount = formatCount(count);
   // Здесь count должен быть реальным, поэтому текст другой
-  const aboutText = displayCount ? `${displayCount} фолловеров` : 'Канал на Twitch'; 
+  const aboutText = displayCount
+    ? `${displayCount} фолловеров`
+    : 'Канал на Twitch';
 
   const twitchColor = '#9146ff';
 
   return (
-    <div 
+    <div
       className={`${styles.wrapper} ${className || ''}`}
       style={{ '--color': twitchColor }}
     >
@@ -43,14 +45,24 @@ const TwitchButton = ({ value, count, className }) => {
           </div>
         </div>
         <div className={styles.text}>
-          <a href={href} target="_blank" rel="noopener noreferrer" className={styles.icon}>
+          <a
+            href={href}
+            target="_blank"
+            rel="noopener noreferrer"
+            className={styles.icon}
+          >
             <div className={styles.layer}>
               <span />
               <span />
               <span />
               <span />
               <span className={styles.svgContainer}>
-                <svg className={styles.svg} fill="currentColor" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
+                <svg
+                  className={styles.svg}
+                  fill="currentColor"
+                  viewBox="0 0 512 512"
+                  xmlns="http://www.w3.org/2000/svg"
+                >
                   <path d="M80 0L32 96v352h128v64h64l64-64h96l128-128V0H80zm384 288l-64 64h-96l-64 64v-64H128V64h336v224zm-72-160h-32v96h32V128zm-80 0h-32v96h32V128z" />
                 </svg>
               </span>
@@ -61,6 +73,6 @@ const TwitchButton = ({ value, count, className }) => {
       </div>
     </div>
   );
-}
+};
 
-export default TwitchButton; 
+export default TwitchButton;

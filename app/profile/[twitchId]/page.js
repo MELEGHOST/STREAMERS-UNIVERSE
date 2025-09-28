@@ -11,7 +11,14 @@ import pageStyles from '../../../styles/page.module.css';
 import { useAuth } from '../../contexts/AuthContext';
 import { useTranslation } from 'react-i18next';
 import Link from 'next/link';
-import { FaArrowLeft, FaShieldAlt, FaBookOpen, FaTrophy, FaEdit, FaSignOutAlt } from 'react-icons/fa';
+import {
+  FaArrowLeft,
+  FaShieldAlt,
+  FaBookOpen,
+  FaTrophy,
+  FaEdit,
+  FaSignOutAlt,
+} from 'react-icons/fa';
 
 import VkButton from '../../components/SocialButtons/VkButton';
 import TwitchButton from '../../components/SocialButtons/TwitchButton';
@@ -28,41 +35,41 @@ import I18nProvider from '../../components/I18nProvider';
 import ProfileShowcaseCard from '../../components/ProfileCard/ProfileShowcaseCard.jsx';
 
 const socialButtonComponents = {
-    vk: VkButton,
-    twitch: TwitchButton,
-    youtube: YoutubeButton,
-    discord: DiscordButton,
-    telegram: TelegramButton,
-    tiktok: TiktokButton,
-    boosty: BoostyButton,
-    yandex_music: YandexMusicButton,
+  vk: VkButton,
+  twitch: TwitchButton,
+  youtube: YoutubeButton,
+  discord: DiscordButton,
+  telegram: TelegramButton,
+  tiktok: TiktokButton,
+  boosty: BoostyButton,
+  yandex_music: YandexMusicButton,
 };
 
 const RoleBadge = ({ role, t }) => {
-    let styleClass = '';
-    let text = '';
-    let icon = '';
+  let styleClass = '';
+  let text = '';
+  let icon = '';
 
-    switch (role) {
-        case 'admin':
-            styleClass = styles.admin;
-            text = t('roles.admin');
-            icon = '👑';
-            break;
-        case 'streamer':
-            styleClass = styles.streamer;
-            text = t('roles.streamer');
-            icon = '🎙️';
-            break;
-        default:
-            return null;
-    }
-    
-    return (
-        <span className={`${styles.roleBadge} ${styleClass}`}>
-            {icon} {text}
-        </span>
-    );
+  switch (role) {
+    case 'admin':
+      styleClass = styles.admin;
+      text = t('roles.admin');
+      icon = '👑';
+      break;
+    case 'streamer':
+      styleClass = styles.streamer;
+      text = t('roles.streamer');
+      icon = '🎙️';
+      break;
+    default:
+      return null;
+  }
+
+  return (
+    <span className={`${styles.roleBadge} ${styleClass}`}>
+      {icon} {text}
+    </span>
+  );
 };
 
 // removed unused translateBroadcasterType to satisfy linter
@@ -74,9 +81,12 @@ const formatDuration = (durationString) => {
     const hoursMatch = durationString.match(/(\d+)h/);
     const minutesMatch = durationString.match(/(\d+)m/);
     const secondsMatch = durationString.match(/(\d+)s/);
-    if (hoursMatch && hoursMatch[1]) totalSeconds += parseInt(hoursMatch[1], 10) * 3600;
-    if (minutesMatch && minutesMatch[1]) totalSeconds += parseInt(minutesMatch[1], 10) * 60;
-    if (secondsMatch && secondsMatch[1]) totalSeconds += parseInt(secondsMatch[1], 10);
+    if (hoursMatch && hoursMatch[1])
+      totalSeconds += parseInt(hoursMatch[1], 10) * 3600;
+    if (minutesMatch && minutesMatch[1])
+      totalSeconds += parseInt(minutesMatch[1], 10) * 60;
+    if (secondsMatch && secondsMatch[1])
+      totalSeconds += parseInt(secondsMatch[1], 10);
     const hours = Math.floor(totalSeconds / 3600);
     const minutes = Math.floor((totalSeconds % 3600) / 60);
     const seconds = totalSeconds % 60;
@@ -94,30 +104,34 @@ const formatDuration = (durationString) => {
 const formatDate = (dateString, locale) => {
   if (!dateString) return null;
   try {
-    return new Date(dateString).toLocaleDateString(locale, { year: 'numeric', month: 'long', day: 'numeric' });
+    return new Date(dateString).toLocaleDateString(locale, {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+    });
   } catch {
     return null;
   }
 };
 
 const fetcher = async (url, token) => {
-    const headers = {};
-    if (token) {
-        headers['Authorization'] = `Bearer ${token}`;
-    }
-    const res = await fetch(url, { headers });
-    if (!res) throw new Error('No response from server');
+  const headers = {};
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`;
+  }
+  const res = await fetch(url, { headers });
+  if (!res) throw new Error('No response from server');
 
-    if (!res.ok) {
-        const errorInfo = {
-            status: res.status,
-            message: `Ошибка API (${res.status}): ${await res.text() || res.statusText}`,
-            exists: res.status !== 404
-        };
-        console.error(`[SWR fetcher] ${errorInfo.message}`);
-        throw errorInfo;
-    }
-    return res.json();
+  if (!res.ok) {
+    const errorInfo = {
+      status: res.status,
+      message: `Ошибка API (${res.status}): ${(await res.text()) || res.statusText}`,
+      exists: res.status !== 404,
+    };
+    console.error(`[SWR fetcher] ${errorInfo.message}`);
+    throw errorInfo;
+  }
+  return res.json();
 };
 
 export default function UserProfilePage() {
@@ -126,60 +140,91 @@ export default function UserProfilePage() {
   const profileTwitchId = params.twitchId;
   const { t, i18n } = useTranslation();
 
-  const { user, isAuthenticated, supabase, isLoading: authIsLoading, signOut } = useAuth();
+  const {
+    user,
+    isAuthenticated,
+    supabase,
+    isLoading: authIsLoading,
+    signOut,
+  } = useAuth();
   const [isOverlayOpen, setIsOverlayOpen] = useState(false);
-  
-  const currentUserTwitchId = !authIsLoading ? user?.user_metadata?.provider_id : undefined;
-  const isOwnProfile = !authIsLoading && !!currentUserTwitchId && currentUserTwitchId === profileTwitchId;
-  
+
+  const currentUserTwitchId = !authIsLoading
+    ? user?.user_metadata?.provider_id
+    : undefined;
+  const isOwnProfile =
+    !authIsLoading &&
+    !!currentUserTwitchId &&
+    currentUserTwitchId === profileTwitchId;
+
   const [authToken, setAuthToken] = useState(null);
 
   useEffect(() => {
     const getToken = async () => {
-        if (isAuthenticated && supabase) {
-            try {
-                const { data: { session } } = await supabase.auth.getSession();
-                setAuthToken(session?.access_token || null);
-            } catch (sessionError) {
-                console.error("[UserProfilePage] Ошибка получения сессии для SWR:", sessionError);
-                setAuthToken(null);
-            }
-        } else {
-            setAuthToken(null);
+      if (isAuthenticated && supabase) {
+        try {
+          const {
+            data: { session },
+          } = await supabase.auth.getSession();
+          setAuthToken(session?.access_token || null);
+        } catch (sessionError) {
+          console.error(
+            '[UserProfilePage] Ошибка получения сессии для SWR:',
+            sessionError
+          );
+          setAuthToken(null);
         }
-    };
-      if (!authIsLoading) {
-         getToken();
+      } else {
+        setAuthToken(null);
       }
+    };
+    if (!authIsLoading) {
+      getToken();
+    }
   }, [isAuthenticated, supabase, authIsLoading]);
 
   const apiUrl = `/api/twitch/user?userId=${profileTwitchId}&fetchProfile=true`;
-  const { data: apiData, error: apiError, isLoading: isDataLoading } = useSWR(
-    profileTwitchId ? [apiUrl, authToken] : null,
-    ([url, token]) => fetcher(url, token)
+  const {
+    data: apiData,
+    error: apiError,
+    isLoading: isDataLoading,
+  } = useSWR(profileTwitchId ? [apiUrl, authToken] : null, ([url, token]) =>
+    fetcher(url, token)
   );
-  const loadingProfile = (!profileTwitchId || authIsLoading || isDataLoading);
-  const error = apiError ? (apiError.message || 'Unknown error') : null;
+  const loadingProfile = !profileTwitchId || authIsLoading || isDataLoading;
+  const error = apiError ? apiError.message || 'Unknown error' : null;
   const profileExists = error ? error.exists !== false : !!apiData?.twitch_user;
-  
+
   const twitchUserData = apiData?.twitch_user || null;
   const profileData = apiData?.profile || null;
   const videos = apiData?.twitch_user?.videos || [];
   const isRegistered = !!profileData;
 
   const userRolesString = isRegistered ? profileData?.role : null;
-  const userRolesArray = userRolesString?.split(',').map(role => role.trim().toLowerCase()).filter(Boolean) || [];
+  const userRolesArray =
+    userRolesString
+      ?.split(',')
+      .map((role) => role.trim().toLowerCase())
+      .filter(Boolean) || [];
   const isAdmin = userRolesArray.includes('admin');
-  const isStreamer = twitchUserData?.broadcaster_type === 'partner' || twitchUserData?.broadcaster_type === 'affiliate';
+  const isStreamer =
+    twitchUserData?.broadcaster_type === 'partner' ||
+    twitchUserData?.broadcaster_type === 'affiliate';
 
   // Derived status text
   // Для карточки ожидаем строку ролей (на англ. ключевые классы), а локализацию показываем текстом внутри бейджа
-  const statusText = [isAdmin ? 'admin' : null, isStreamer ? 'streamer' : null, userRolesArray.includes('companion') ? 'companion' : null]
+  const statusText = [
+    isAdmin ? 'admin' : null,
+    isStreamer ? 'streamer' : null,
+    userRolesArray.includes('companion') ? 'companion' : null,
+  ]
     .filter(Boolean)
     .join(', ');
 
   // Socials completion percent out of 14 platforms
-  const profileSocialLinks = isRegistered ? (profileData?.social_links || {}) : null;
+  const profileSocialLinks = isRegistered
+    ? profileData?.social_links || {}
+    : null;
   // const socialsPercent = Math.round((socialsFilled / socialsTotal) * 100);
 
   const getNicknameStyle = () => {
@@ -187,18 +232,18 @@ export default function UserProfilePage() {
     const streamerColor = '#9146ff';
 
     if (isAdmin && isStreamer) {
-        return {
-            background: `linear-gradient(90deg, ${adminColor} 0%, ${streamerColor} 100%)`,
-            WebkitBackgroundClip: 'text',
-            WebkitTextFillColor: 'transparent',
-            backgroundClip: 'text',
-            textFillColor: 'transparent',
-            display: 'inline-block' // Необходимо для работы background-clip
-        };
+      return {
+        background: `linear-gradient(90deg, ${adminColor} 0%, ${streamerColor} 100%)`,
+        WebkitBackgroundClip: 'text',
+        WebkitTextFillColor: 'transparent',
+        backgroundClip: 'text',
+        textFillColor: 'transparent',
+        display: 'inline-block', // Необходимо для работы background-clip
+      };
     } else if (isAdmin) {
-        return { color: adminColor };
+      return { color: adminColor };
     } else if (isStreamer) {
-        return { color: streamerColor };
+      return { color: streamerColor };
     }
     return {}; // Стиль по умолчанию
   };
@@ -207,38 +252,53 @@ export default function UserProfilePage() {
   const profileWidget = profileData?.profile_widget;
 
   if (loadingProfile) {
-      return (
-          <div className={styles.skeletonHeader}>
-              <div className={styles.skeletonAvatar}></div>
-              <div className={styles.skeletonInfo}>
-                  <div className={styles.skeletonTextLarge}></div>
-                  <div className={styles.skeletonText}></div>
-                  <div className={`${styles.skeletonText} ${styles.short}`}></div>
-              </div>
-          </div>
-      );
+    return (
+      <div className={styles.skeletonHeader}>
+        <div className={styles.skeletonAvatar}></div>
+        <div className={styles.skeletonInfo}>
+          <div className={styles.skeletonTextLarge}></div>
+          <div className={styles.skeletonText}></div>
+          <div className={`${styles.skeletonText} ${styles.short}`}></div>
+        </div>
+      </div>
+    );
   }
 
   if (!profileExists) {
-       return (
-           <div className={pageStyles.container}> 
-              <h1 style={{ textAlign: 'center' }}>Профиль не найден</h1>
-               <p className={pageStyles.errorMessage}>{error || "Пользователь с таким Twitch ID не найден."}</p>
-               <button onClick={() => router.push('/menu')} className={pageStyles.backButton} style={{ display: 'block', margin: '2rem auto' }}>
-                   &larr; Назад в меню
-               </button>
-           </div>
-       );
+    return (
+      <div className={pageStyles.container}>
+        <h1 style={{ textAlign: 'center' }}>Профиль не найден</h1>
+        <p className={pageStyles.errorMessage}>
+          {error || 'Пользователь с таким Twitch ID не найден.'}
+        </p>
+        <button
+          onClick={() => router.push('/menu')}
+          className={pageStyles.backButton}
+          style={{ display: 'block', margin: '2rem auto' }}
+        >
+          &larr; Назад в меню
+        </button>
+      </div>
+    );
   }
 
-  const displayName = twitchUserData?.display_name || profileData?.twitch_display_name || 'Неизвестно';
-  const avatarUrl = twitchUserData?.profile_image_url || profileData?.twitch_profile_image_url;
+  const displayName =
+    twitchUserData?.display_name ||
+    profileData?.twitch_display_name ||
+    'Неизвестно';
+  const avatarUrl =
+    twitchUserData?.profile_image_url || profileData?.twitch_profile_image_url;
   const viewCount = twitchUserData?.view_count;
-  const followersCount = twitchUserData?.followers_count ?? profileData?.twitch_follower_count;
+  const followersCount =
+    twitchUserData?.followers_count ?? profileData?.twitch_follower_count;
   const createdAt = twitchUserData?.created_at;
   // const broadcasterType = twitchUserData?.broadcaster_type || profileData?.twitch_broadcaster_type;
-  const profileDescription = isRegistered ? profileData?.description : twitchUserData?.description;
-  const formattedDate = createdAt ? (formatDate(createdAt, i18n.language) || t('common.unknown')) : t('common.unknown');
+  const profileDescription = isRegistered
+    ? profileData?.description
+    : twitchUserData?.description;
+  const formattedDate = createdAt
+    ? formatDate(createdAt, i18n.language) || t('common.unknown')
+    : t('common.unknown');
 
   const handleLogout = async () => {
     await signOut();
@@ -249,111 +309,172 @@ export default function UserProfilePage() {
     <I18nProvider>
       <div className={styles.container}>
         <div className={styles.profileControls}>
-            <button onClick={() => router.back()} className={styles.controlButton}>
-                <FaArrowLeft /> {t('profile.back')}
-            </button>
-            <div className={styles.rightControls}>
-                {isOwnProfile && (
-                    <>
-                        {isAdmin && (
-                            <Link href="/admin/reviews" className={styles.controlButton}>
-                                <FaShieldAlt /> {t('profile.adminPanel')}
-                            </Link>
-                        )}
-                        <Link href="/my-reviews" className={styles.controlButton}>
-                            <FaBookOpen /> {t('profile.myReviews')}
-                        </Link>
-                        <Link href="/achievements" className={styles.controlButton}>
-                            <FaTrophy /> {t('profile.achievements')}
-                        </Link>
-                        <Link href="/edit-profile" className={styles.controlButton}>
-                            <FaEdit /> {t('profile.edit')}
-                        </Link>
-                        <button onClick={handleLogout} className={styles.controlButton}>
-                            <FaSignOutAlt /> {t('logout')}
-                        </button>
-                    </>
+          <button
+            onClick={() => router.back()}
+            className={styles.controlButton}
+          >
+            <FaArrowLeft /> {t('profile.back')}
+          </button>
+          <div className={styles.rightControls}>
+            {isOwnProfile && (
+              <>
+                {isAdmin && (
+                  <Link href="/admin/reviews" className={styles.controlButton}>
+                    <FaShieldAlt /> {t('profile.adminPanel')}
+                  </Link>
                 )}
-            </div>
+                <Link href="/my-reviews" className={styles.controlButton}>
+                  <FaBookOpen /> {t('profile.myReviews')}
+                </Link>
+                <Link href="/achievements" className={styles.controlButton}>
+                  <FaTrophy /> {t('profile.achievements')}
+                </Link>
+                <Link href="/edit-profile" className={styles.controlButton}>
+                  <FaEdit /> {t('profile.edit')}
+                </Link>
+                <button onClick={handleLogout} className={styles.controlButton}>
+                  <FaSignOutAlt /> {t('logout')}
+                </button>
+              </>
+            )}
+          </div>
         </div>
         <header className={styles.profileHeader}>
-            <ProfileShowcaseCard
-              avatarUrl={avatarUrl}
-              displayName={displayName}
-              username={twitchUserData?.login || profileData?.twitch_login || '???'}
-              level={0}
-              followersCount={(twitchUserData?.followers_goal?.current ?? followersCount) || 0}
-              followersTarget={twitchUserData?.followers_goal?.target || 1000}
-              statusText={statusText}
-              birthdayText={profileData?.birthday ? (formatDate(profileData.birthday, i18n.language) || '') : ''}
-              onAvatarClick={() => setIsOverlayOpen(true)}
-            />
-            <div className={styles.profileInfo}>
-                <h1 className={styles.displayName}>
-                    <span style={nicknameStyle}>{displayName}</span>
-                    {isAdmin && <RoleBadge role="admin" t={t} />}
-                    {isStreamer && <RoleBadge role="streamer" t={t} />}
-                </h1>
-                <p className={styles.loginName}>@{twitchUserData?.login || profileData?.twitch_login || '???'}</p>
-                <p className={styles.profileDescription}>{profileDescription}</p>
-                <div className={styles.profileDetails}>
-                    <div className={styles.detailItem}><span className={styles.detailLabel}>{t('profile.createdAtLabel')}:</span><span className={styles.detailValue}>{formattedDate}</span></div>
-                    <div className={styles.detailItem}><span className={styles.detailLabel}>{t('profile.followersLabel')}:</span><span className={styles.detailValue}>{new Intl.NumberFormat('ru-RU').format(followersCount ?? 0)}</span></div>
-                    <div className={styles.detailItem}><span className={styles.detailLabel}>{t('profile.viewsLabel')}:</span><span className={styles.detailValue}>{new Intl.NumberFormat('ru-RU').format(viewCount ?? 0)}</span></div>
-                </div>
+          <ProfileShowcaseCard
+            avatarUrl={avatarUrl}
+            displayName={displayName}
+            username={
+              twitchUserData?.login || profileData?.twitch_login || '???'
+            }
+            level={0}
+            followersCount={
+              (twitchUserData?.followers_goal?.current ?? followersCount) || 0
+            }
+            followersTarget={twitchUserData?.followers_goal?.target || 1000}
+            statusText={statusText}
+            birthdayText={
+              profileData?.birthday
+                ? formatDate(profileData.birthday, i18n.language) || ''
+                : ''
+            }
+            onAvatarClick={() => setIsOverlayOpen(true)}
+          />
+          <div className={styles.profileInfo}>
+            <h1 className={styles.displayName}>
+              <span style={nicknameStyle}>{displayName}</span>
+              {isAdmin && <RoleBadge role="admin" t={t} />}
+              {isStreamer && <RoleBadge role="streamer" t={t} />}
+            </h1>
+            <p className={styles.loginName}>
+              @{twitchUserData?.login || profileData?.twitch_login || '???'}
+            </p>
+            <p className={styles.profileDescription}>{profileDescription}</p>
+            <div className={styles.profileDetails}>
+              <div className={styles.detailItem}>
+                <span className={styles.detailLabel}>
+                  {t('profile.createdAtLabel')}:
+                </span>
+                <span className={styles.detailValue}>{formattedDate}</span>
+              </div>
+              <div className={styles.detailItem}>
+                <span className={styles.detailLabel}>
+                  {t('profile.followersLabel')}:
+                </span>
+                <span className={styles.detailValue}>
+                  {new Intl.NumberFormat('ru-RU').format(followersCount ?? 0)}
+                </span>
+              </div>
+              <div className={styles.detailItem}>
+                <span className={styles.detailLabel}>
+                  {t('profile.viewsLabel')}:
+                </span>
+                <span className={styles.detailValue}>
+                  {new Intl.NumberFormat('ru-RU').format(viewCount ?? 0)}
+                </span>
+              </div>
             </div>
+          </div>
         </header>
         <div className={styles.profileContent}>
-            <div className={styles.profileSections}>
-                <section className={styles.profileSection}>
-                    <h2 className={styles.sectionTitle}>{t('profile.' + profileWidget)}</h2>
-                        {profileWidget === 'statistics' ? (
-                            <StatisticsWidget twitchUserData={twitchUserData} profileData={profileData} />
-                        ) : (
-                            <AchievementsWidget />
-                        )}
-                </section>
-                <section className={styles.profileSection}>
-                    <h2 className={styles.sectionTitle}>{t('profile.videos')}</h2>
-                    <div className={styles.videosGrid}>
-                        {Array.isArray(videos) && videos.length > 0 ? videos.map((video) => (
-                            <div key={video.id} className={styles.videoItem}>
-                                <Link href={`https://www.twitch.tv/${video.user_login}/video/${video.id}`} target="_blank" rel="noopener noreferrer">
-                                    <Image
-                                        src={video.thumbnail_url && typeof video.thumbnail_url === 'string' ? video.thumbnail_url.replace('%{width}', '200').replace('%{height}', '112') : 'https://static-cdn.jtvnw.net/jtv_user_pictures/placeholder-user.png'}
-                                        alt={video.title}
-                                        width={200}
-                                        height={112}
-                                        className={styles.videoThumbnail}
-                                    />
-                                    <div className={styles.videoInfo}>
-                                        <h3 className={styles.videoTitle}>{video.title}</h3>
-                                        <p className={styles.videoDuration}>{formatDuration(video.duration || '0s')}</p>
-                                    </div>
-                                </Link>
-                            </div>
-                        )) : <p>{t('profile.noVideos', { defaultValue: 'Видео недоступны' })}</p>}
+          <div className={styles.profileSections}>
+            <section className={styles.profileSection}>
+              <h2 className={styles.sectionTitle}>
+                {t('profile.' + profileWidget)}
+              </h2>
+              {profileWidget === 'statistics' ? (
+                <StatisticsWidget
+                  twitchUserData={twitchUserData}
+                  profileData={profileData}
+                />
+              ) : (
+                <AchievementsWidget />
+              )}
+            </section>
+            <section className={styles.profileSection}>
+              <h2 className={styles.sectionTitle}>{t('profile.videos')}</h2>
+              <div className={styles.videosGrid}>
+                {Array.isArray(videos) && videos.length > 0 ? (
+                  videos.map((video) => (
+                    <div key={video.id} className={styles.videoItem}>
+                      <Link
+                        href={`https://www.twitch.tv/${video.user_login}/video/${video.id}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                      >
+                        <Image
+                          src={
+                            video.thumbnail_url &&
+                            typeof video.thumbnail_url === 'string'
+                              ? video.thumbnail_url
+                                  .replace('%{width}', '200')
+                                  .replace('%{height}', '112')
+                              : 'https://static-cdn.jtvnw.net/jtv_user_pictures/placeholder-user.png'
+                          }
+                          alt={video.title}
+                          width={200}
+                          height={112}
+                          className={styles.videoThumbnail}
+                        />
+                        <div className={styles.videoInfo}>
+                          <h3 className={styles.videoTitle}>{video.title}</h3>
+                          <p className={styles.videoDuration}>
+                            {formatDuration(video.duration || '0s')}
+                          </p>
+                        </div>
+                      </Link>
                     </div>
-                </section>
-            </div>
-            <aside className={styles.profileSidebar}>
-                <section className={styles.sidebarSection}>
-                    <h3 className={styles.sidebarTitle}>{t('profile.socialLinks')}</h3>
-                    <div className={styles.socialLinks}>
-                        {profileSocialLinks && Object.entries(profileSocialLinks).map(([platform, link]) => (
-                            <div key={platform} className={styles.socialLinkItem}>
-                                <SocialButton platform={platform} link={link} />
-                            </div>
-                        ))}
-                    </div>
-                </section>
-                {!isOwnProfile && (
-                    <section className={styles.sidebarSection}>
-                        <h3 className={styles.sidebarTitle}>{t('profile.invite')}</h3>
-                        <InviteButton />
-                    </section>
+                  ))
+                ) : (
+                  <p>
+                    {t('profile.noVideos', {
+                      defaultValue: 'Видео недоступны',
+                    })}
+                  </p>
                 )}
-            </aside>
+              </div>
+            </section>
+          </div>
+          <aside className={styles.profileSidebar}>
+            <section className={styles.sidebarSection}>
+              <h3 className={styles.sidebarTitle}>
+                {t('profile.socialLinks')}
+              </h3>
+              <div className={styles.socialLinks}>
+                {profileSocialLinks &&
+                  Object.entries(profileSocialLinks).map(([platform, link]) => (
+                    <div key={platform} className={styles.socialLinkItem}>
+                      <SocialButton platform={platform} link={link} />
+                    </div>
+                  ))}
+              </div>
+            </section>
+            {!isOwnProfile && (
+              <section className={styles.sidebarSection}>
+                <h3 className={styles.sidebarTitle}>{t('profile.invite')}</h3>
+                <InviteButton />
+              </section>
+            )}
+          </aside>
         </div>
       </div>
       {isOverlayOpen && (
@@ -369,8 +490,8 @@ export default function UserProfilePage() {
 }
 
 const SocialButton = ({ platform, link }) => {
-    const Component = socialButtonComponents[platform];
-    if (!Component) return null;
-    // Our social button components expect 'value' prop
-    return <Component value={link} />;
+  const Component = socialButtonComponents[platform];
+  if (!Component) return null;
+  // Our social button components expect 'value' prop
+  return <Component value={link} />;
 };

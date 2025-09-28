@@ -1,44 +1,76 @@
 @keyframes wobble {
-    0%, 100% { transform: translate(0, 0); }
-    25% { transform: translate(-2px, -10px); }
-    50% { transform: translate(2px, 3px); }
-    75% { transform: translate(-1px, 5px); }
+  0%,
+  100% {
+    transform: translate(0, 0);
   }
-  
-  @keyframes blurMove {
-    0%, 100% {
-      text-shadow:
-        5px 5px 20px rgba(255, 255, 255, 0.8),
-        10px 10px 30px rgba(255, 0, 255, 0.6);
-    }
-    50% {
-      filter: blur(1px);
-      text-shadow:
-        10px 10px 25px rgba(255, 255, 255, 0.8),
-        15px 15px 35px rgba(255, 0, 255, 0.6);
-    }
+  25% {
+    transform: translate(-2px, -10px);
   }
-  
-  @keyframes circling {
-    0% { transform: translate(-10px, -20%) rotate(0deg); }
-    100% { transform: translate(-10px, -20%) rotate(200deg); }
+  50% {
+    transform: translate(2px, 3px);
   }
-  
-  @keyframes shootingStar {
-      0% { transform: translateX(0) translateY(0); opacity: 1; }
-      50% { transform: translateX(-55em) translateY(0); opacity: 1; }
-      70% { transform: translateX(-70em) translateY(0); opacity: 0; }
-      100% { transform: translateX(0) translateY(0); opacity: 0; }
+  75% {
+    transform: translate(-1px, 5px);
   }
-  
-  @keyframes glowingStars {
-      0% { opacity: 0; }
-      50% { opacity: 1; }
-      100% { opacity: 0; }
+}
+
+@keyframes blurMove {
+  0%,
+  100% {
+    text-shadow:
+      5px 5px 20px rgba(255, 255, 255, 0.8),
+      10px 10px 30px rgba(255, 0, 255, 0.6);
   }
+  50% {
+    filter: blur(1px);
+    text-shadow:
+      10px 10px 25px rgba(255, 255, 255, 0.8),
+      15px 15px 35px rgba(255, 0, 255, 0.6);
+  }
+}
+
+@keyframes circling {
+  0% {
+    transform: translate(-10px, -20%) rotate(0deg);
+  }
+  100% {
+    transform: translate(-10px, -20%) rotate(200deg);
+  }
+}
+
+@keyframes shootingStar {
+  0% {
+    transform: translateX(0) translateY(0);
+    opacity: 1;
+  }
+  50% {
+    transform: translateX(-55em) translateY(0);
+    opacity: 1;
+  }
+  70% {
+    transform: translateX(-70em) translateY(0);
+    opacity: 0;
+  }
+  100% {
+    transform: translateX(0) translateY(0);
+    opacity: 0;
+  }
+}
+
+@keyframes glowingStars {
+  0% {
+    opacity: 0;
+  }
+  50% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
+}
 
 .wrapper {
-    /* This empty class can be used on the root div if needed */
+  /* This empty class can be used on the root div if needed */
 }
 
 .text {
@@ -53,7 +85,7 @@
   transition: color 0.25s;
 }
 .text::before {
-  content: "";
+  content: '';
   position: absolute;
   top: -290%;
   left: 90%;
@@ -65,11 +97,11 @@
   transition: 1s ease;
   z-index: -1;
   animation-delay: 1s;
-  display: none; 
+  display: none;
 }
 .text::after {
-  content: "";
-  display: none; 
+  content: '';
+  display: none;
   position: absolute;
   top: -290%;
   left: 10%;
@@ -86,11 +118,11 @@
 }
 
 .spaceButton:hover .text {
-  color: hsl(0 0% 86%); 
+  color: hsl(0 0% 86%);
 }
 
 .galaxy::before {
-  content: "";
+  content: '';
   position: absolute;
   top: 0;
   left: 0;
@@ -113,11 +145,11 @@
     520px 50px #fff;
   z-index: -1;
   transition: all 1.5s ease-in-out;
-  animation: 1s glowingStars linear alternate infinite; 
+  animation: 1s glowingStars linear alternate infinite;
   animation-delay: 0.4s;
 }
 .galaxy::after {
-  content: "";
+  content: '';
   position: absolute;
   top: -150px;
   left: -65px;
@@ -142,14 +174,14 @@
     150px 369px #fff;
   z-index: -1;
   transition: all 2s ease-in-out;
-  animation: 1s glowingStars linear alternate infinite; 
+  animation: 1s glowingStars linear alternate infinite;
   animation-delay: 0.8s;
 }
 .spaceButton {
   --cut: 0.1em;
-  --bg-default: hsl(0 0% 12%); 
-  --bg-hover: hsl(0 0% 18%); 
-  --bg-active: hsl(245 100% 30%); 
+  --bg-default: hsl(0 0% 12%);
+  --bg-hover: hsl(0 0% 18%);
+  --bg-active: hsl(245 100% 30%);
 
   background: var(--bg-default);
 
@@ -165,46 +197,49 @@
   border-radius: 2rem;
   position: relative;
   box-shadow:
-    0 0 0em 0em hsla(12, 97%, 61%, 0.3), 
+    0 0 0em 0em hsla(12, 97%, 61%, 0.3),
     0 0.05em 0 0 hsl(0, 0%, 30%) inset,
     0 -0.05em 0 0 hsl(0, 0%, 10%) inset;
   transition:
     box-shadow 0.25s ease-out,
     scale 0.25s,
-    background 0.35s ease-out; 
-  scale: 1; 
+    background 0.35s ease-out;
+  scale: 1;
   transform-style: preserve-3d;
   perspective: 100vmin;
   overflow: hidden;
 }
 
 .spaceButton:hover {
-  scale: 1.05; 
-  background: var(--bg-hover); 
-  box-shadow: 
+  scale: 1.05;
+  background: var(--bg-hover);
+  box-shadow:
     0 0 3em 1.5em hsla(12, 97%, 61%, 0.2),
     0 0.05em 0 0 hsl(0, 0%, 40%) inset,
     0 -0.05em 0 0 hsl(0, 0%, 15%) inset;
 }
 
 .spaceButton:hover .galaxy {
-  opacity: 0.7; 
+  opacity: 0.7;
 }
 
 .spaceButton:active {
-  scale: 1; 
-  background: radial-gradient( 
+  scale: 1;
+  background:
+    radial-gradient(
         120% 120% at 126% 126%,
         hsl(245 97% 98% / 0.9) 40%,
         transparent 50%
-      ) 0px 0 / 100% 100% no-repeat,
+      )
+      0px 0 / 100% 100% no-repeat,
     radial-gradient(
         120% 120% at 120% 120%,
         hsl(245 97% 70% / 1) 30%,
         transparent 70%
-      ) 0px 0 / 100% 100% no-repeat,
+      )
+      0px 0 / 100% 100% no-repeat,
     var(--bg-active);
-  box-shadow: 
+  box-shadow:
     0 0 6em 3em hsl(245 97% 61% / 0.5),
     0 0.05em 0 0 hsl(245 97% 80%) inset,
     0 -0.05em 0 0 hsl(245 97% 20%) inset;
@@ -218,18 +253,22 @@
   text-shadow:
     5px 5px 20px rgba(255, 255, 255, 0.8),
     10px 10px 30px rgba(255, 0, 255, 0.6);
-  color: hsl(0 0% 90%); 
+  color: hsl(0 0% 90%);
 }
 
-.spaceButton:active .galaxy { 
+.spaceButton:active .galaxy {
   opacity: 1;
 }
 
-.spaceButton:active .galaxy::before { 
-  animation: circling 2s linear infinite, glowingStars 1s linear alternate infinite 0.4s;
+.spaceButton:active .galaxy::before {
+  animation:
+    circling 2s linear infinite,
+    glowingStars 1s linear alternate infinite 0.4s;
 }
 .spaceButton:active .galaxy::after {
-  animation: circling 1.5s linear infinite, glowingStars 1s linear alternate infinite 0.8s;
+  animation:
+    circling 1.5s linear infinite,
+    glowingStars 1s linear alternate infinite 0.8s;
 }
 
 .galaxy {
@@ -240,9 +279,9 @@
   left: 50%;
   translate: -50% -50%;
   overflow: hidden;
-  opacity: 0; 
-  transition: opacity 0.35s ease-out; 
-} 
+  opacity: 0;
+  transition: opacity 0.35s ease-out;
+}
 
 @media (max-width: 480px) {
   .spaceButton {
@@ -250,4 +289,4 @@
     padding: 1em;
     font-size: 1.2rem;
   }
-} 
+}

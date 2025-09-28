@@ -17,8 +17,17 @@ async function getAchievements(supabaseAdmin) {
 // Function to get achievement rarity
 async function getAchievementRarity(supabaseAdmin, achievementId) {
   try {
-    const { count: totalActive } = await supabaseAdmin.from('user_profiles').select('*', { count: 'exact' }).gte('last_login', new Date(Date.now() - 30*24*60*60*1000).toISOString());
-    const { count: unlocked } = await supabaseAdmin.from('user_achievements').select('*', { count: 'exact' }).eq('achievement_id', achievementId);
+    const { count: totalActive } = await supabaseAdmin
+      .from('user_profiles')
+      .select('*', { count: 'exact' })
+      .gte(
+        'last_login',
+        new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString()
+      );
+    const { count: unlocked } = await supabaseAdmin
+      .from('user_achievements')
+      .select('*', { count: 'exact' })
+      .eq('achievement_id', achievementId);
     return totalActive > 0 ? (unlocked / totalActive) * 100 : 0;
   } catch (e) {
     console.error(e);
@@ -33,9 +42,14 @@ export async function GET(request) {
     const supabaseServiceKey = process.env.SUPABASE_SERVICE_KEY;
     if (!supabaseUrl || !supabaseServiceKey) {
       console.error('[API /achievements] Missing Supabase URL or Service Key');
-      return NextResponse.json({ error: 'Server configuration error' }, { status: 500 });
+      return NextResponse.json(
+        { error: 'Server configuration error' },
+        { status: 500 }
+      );
     }
-    const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey, { auth: { persistSession: false } });
+    const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey, {
+      auth: { persistSession: false },
+    });
 
     const token = request.headers.get('Authorization')?.split(' ')[1];
     const verifiedToken = await verifyJwt(token);
@@ -49,13 +63,17 @@ export async function GET(request) {
         handleAchievementTrigger(supabaseAdmin, userId, 'referrals'),
         handleAchievementTrigger(supabaseAdmin, userId, 'twitch_status'),
         handleAchievementTrigger(supabaseAdmin, userId, 'twitch_partner'),
-        handleAchievementTrigger(supabaseAdmin, userId, 'achievements_unlocked')
+        handleAchievementTrigger(
+          supabaseAdmin,
+          userId,
+          'achievements_unlocked'
+        ),
       ]);
       // Add more triggers as needed
     }
 
     const data = await getAchievements(supabaseAdmin);
-    
+
     let userAchievements = [];
     if (userId) {
       const { data: uaData } = await supabaseAdmin
@@ -64,15 +82,22 @@ export async function GET(request) {
         .eq('user_id', userId);
       userAchievements = uaData || [];
     }
-    
-    const enrichedData = await Promise.all(data.map(async (a) => ({
-      ...a,
-      rarity: await getAchievementRarity(supabaseAdmin, a.id),
-      is_unlocked: userId ? userAchievements.some(ua => ua.achievement_id === a.id) : false
-    })));
+
+    const enrichedData = await Promise.all(
+      data.map(async (a) => ({
+        ...a,
+        rarity: await getAchievementRarity(supabaseAdmin, a.id),
+        is_unlocked: userId
+          ? userAchievements.some((ua) => ua.achievement_id === a.id)
+          : false,
+      }))
+    );
     return NextResponse.json({ achievements: enrichedData });
   } catch (error) {
     console.error('[API /achievements] Error:', error);
-    return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
+    return NextResponse.json(
+      { error: 'Internal Server Error' },
+      { status: 500 }
+    );
   }
-} 
+}

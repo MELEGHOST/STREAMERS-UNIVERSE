@@ -5,7 +5,7 @@ import { useTranslation } from 'react-i18next';
 import { Providers } from '../providers';
 import I18nProvider from './I18nProvider';
 import { Analytics } from '@vercel/analytics/react';
-import { SpeedInsights } from "@vercel/speed-insights/next"
+import { SpeedInsights } from '@vercel/speed-insights/next';
 import ReferralHandler from './ReferralHandler';
 import RouteGuard from './RouteGuard';
 
@@ -23,11 +23,17 @@ function FontManager() {
     const savedFontFamily = localStorage.getItem('fontFamily');
 
     if (savedFontSize) {
-      document.documentElement.style.setProperty('--main-font-size', `${savedFontSize}px`);
+      document.documentElement.style.setProperty(
+        '--main-font-size',
+        `${savedFontSize}px`
+      );
     }
 
     if (savedFontFamily) {
-      document.documentElement.style.setProperty('--main-font-family', savedFontFamily);
+      document.documentElement.style.setProperty(
+        '--main-font-family',
+        savedFontFamily
+      );
     }
   }, []);
 
@@ -43,14 +49,16 @@ export default function ClientProvidersContent({ children }) {
         <ReferralHandler />
         <Providers>
           <RouteGuard>
-            <main>
-              {children}
-            </main>
-            {process.env.NEXT_PUBLIC_VERCEL_ANALYTICS === 'enabled' && <Analytics />}
-            {process.env.NEXT_PUBLIC_VERCEL_SPEED_INSIGHTS === 'enabled' && <SpeedInsights />}
+            <main>{children}</main>
+            {process.env.NEXT_PUBLIC_VERCEL_ANALYTICS === 'enabled' && (
+              <Analytics />
+            )}
+            {process.env.NEXT_PUBLIC_VERCEL_SPEED_INSIGHTS === 'enabled' && (
+              <SpeedInsights />
+            )}
           </RouteGuard>
         </Providers>
       </I18nProvider>
     </Suspense>
   );
-} 
+}

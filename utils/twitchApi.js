@@ -23,7 +23,9 @@ export async function getTwitchAppAccessToken() {
 
   console.log('[TwitchAPI] Requesting new App Access Token...');
   if (!TWITCH_CLIENT_ID || !TWITCH_CLIENT_SECRET) {
-    console.error('[TwitchAPI] Missing TWITCH_CLIENT_ID or TWITCH_CLIENT_SECRET');
+    console.error(
+      '[TwitchAPI] Missing TWITCH_CLIENT_ID or TWITCH_CLIENT_SECRET'
+    );
     throw new Error('Twitch API credentials are not configured.');
   }
 
@@ -42,22 +44,26 @@ export async function getTwitchAppAccessToken() {
 
     if (!response.ok) {
       const errorData = await response.text();
-      console.error(`[TwitchAPI] Failed to get token: ${response.status}`, errorData);
-      throw new Error(`Failed to get Twitch App Access Token: ${response.status}`);
+      console.error(
+        `[TwitchAPI] Failed to get token: ${response.status}`,
+        errorData
+      );
+      throw new Error(
+        `Failed to get Twitch App Access Token: ${response.status}`
+      );
     }
 
     const data = await response.json();
     if (!data.access_token || !data.expires_in) {
-        console.error('[TwitchAPI] Invalid token response:', data);
-        throw new Error('Invalid response from Twitch token endpoint.');
+      console.error('[TwitchAPI] Invalid token response:', data);
+      throw new Error('Invalid response from Twitch token endpoint.');
     }
 
     twitchAppAccessToken = data.access_token;
     // Устанавливаем время истечения (expires_in в секундах)
-    tokenExpirationTime = now + (data.expires_in * 1000); 
+    tokenExpirationTime = now + data.expires_in * 1000;
     console.log('[TwitchAPI] New App Access Token obtained.');
     return twitchAppAccessToken;
-
   } catch (error) {
     console.error('[TwitchAPI] Error fetching Twitch App Access Token:', error);
     // Сбрасываем кеш при ошибке
@@ -86,7 +92,7 @@ async function fetchTwitchApi(endpoint, queryParams = null) {
     const response = await fetch(url.toString(), {
       headers: {
         'Client-ID': TWITCH_CLIENT_ID,
-        'Authorization': `Bearer ${token}`,
+        Authorization: `Bearer ${token}`,
       },
     });
 
@@ -94,20 +100,26 @@ async function fetchTwitchApi(endpoint, queryParams = null) {
       // Попытка получить тело ошибки
       let errorBody = '';
       try {
-         errorBody = await response.text();
-      } catch { /* ignore */ }
-      console.error(`[TwitchAPI] API Error ${response.status} for ${endpoint}:`, errorBody);
-      throw new Error(`Twitch API request failed for ${endpoint} with status ${response.status}`);
+        errorBody = await response.text();
+      } catch {
+        /* ignore */
+      }
+      console.error(
+        `[TwitchAPI] API Error ${response.status} for ${endpoint}:`,
+        errorBody
+      );
+      throw new Error(
+        `Twitch API request failed for ${endpoint} with status ${response.status}`
+      );
     }
-    
+
     // Twitch иногда возвращает 204 No Content, например, если ничего не найдено
     if (response.status === 204) {
-        return { data: [] }; // Возвращаем пустой массив данных
+      return { data: [] }; // Возвращаем пустой массив данных
     }
 
     const data = await response.json();
     return data;
-
   } catch (error) {
     console.error(`[TwitchAPI] Error during fetch to ${endpoint}:`, error);
     throw error; // Пробрасываем ошибку
@@ -141,18 +153,18 @@ export async function getTwitchUsers(logins) {
   if (!logins || (Array.isArray(logins) && logins.length === 0)) {
     return [];
   }
-  
+
   const loginArray = Array.isArray(logins) ? logins : [logins];
   console.log(`[TwitchAPI] Getting users by login: ${loginArray.join(', ')}`);
 
   // Twitch API позволяет запрашивать до 100 логинов за раз
   if (loginArray.length > 100) {
-      console.warn('[TwitchAPI] Too many logins requested (>100), trimming.');
-      loginArray.length = 100; 
+    console.warn('[TwitchAPI] Too many logins requested (>100), trimming.');
+    loginArray.length = 100;
   }
 
   const params = new URLSearchParams();
-  loginArray.forEach(login => params.append('login', login.toLowerCase())); // Twitch API чувствителен к регистру логина? Обычно нет, но на всякий случай приводим к lower
+  loginArray.forEach((login) => params.append('login', login.toLowerCase())); // Twitch API чувствителен к регистру логина? Обычно нет, но на всякий случай приводим к lower
 
   const result = await fetchTwitchApi('users', params);
   console.log(`[TwitchAPI] Got data for ${result?.data?.length || 0} users.`);
@@ -165,7 +177,7 @@ export async function getTwitchUsers(logins) {
  * @returns {Promise<object|null>} Данные пользователя, если найден, иначе null.
  */
 export async function validateTwitchUser(login) {
-   if (!login) return null;
-   const users = await getTwitchUsers(login.toLowerCase());
-   return users.length > 0 ? users[0] : null; // Возвращаем первого найденного или null
-} 
+  if (!login) return null;
+  const users = await getTwitchUsers(login.toLowerCase());
+  return users.length > 0 ? users[0] : null; // Возвращаем первого найденного или null
+}

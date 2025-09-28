@@ -11,7 +11,7 @@
 .backdrop {
   position: absolute;
   inset: 0;
-  background: rgba(0,0,0,0.65);
+  background: rgba(0, 0, 0, 0.65);
   backdrop-filter: blur(2px);
   opacity: 0;
   animation: backdropIn 220ms ease-out forwards;
@@ -31,7 +31,7 @@
   font-size: 18px;
   display: grid;
   place-items: center;
-  box-shadow: 0 6px 20px rgba(0,0,0,0.3);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
 }
 
 .center {
@@ -39,8 +39,8 @@
   width: min(90vw, 560px);
   height: min(90vh, 560px);
   transform: scale(0.96);
-  filter: drop-shadow(0 20px 80px rgba(0,0,0,0.45));
-  animation: popInCard 240ms cubic-bezier(.2,.8,.2,1) forwards;
+  filter: drop-shadow(0 20px 80px rgba(0, 0, 0, 0.45));
+  animation: popInCard 240ms cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
 }
 
 .avatarWrapper {
@@ -52,7 +52,7 @@
   height: 240px;
   border-radius: 18px;
   overflow: hidden;
-  box-shadow: 0 12px 40px rgba(0,0,0,0.5);
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.5);
   animation: popIn 220ms ease-out;
 }
 
@@ -77,8 +77,14 @@
   left: 50%;
   width: 68px;
   height: 68px;
-  transform: translate(-50%, -50%) rotate(calc(var(--i) * var(--angle))) translateY(calc(-1 * var(--radius))) rotate(calc(-1 * var(--i) * var(--angle)));
-  background: radial-gradient(circle at 30% 30%, rgba(255,255,255,0.25), rgba(0,0,0,0.25));
+  transform: translate(-50%, -50%) rotate(calc(var(--i) * var(--angle)))
+    translateY(calc(-1 * var(--radius)))
+    rotate(calc(-1 * var(--i) * var(--angle)));
+  background: radial-gradient(
+    circle at 30% 30%,
+    rgba(255, 255, 255, 0.25),
+    rgba(0, 0, 0, 0.25)
+  );
   border-radius: 999px;
   pointer-events: auto;
   display: grid;
@@ -86,13 +92,23 @@
   text-decoration: none;
   border: 2px solid var(--color, #999);
   color: var(--color, #999);
-  transition: transform 0.2s ease, box-shadow 0.2s ease, background-color .2s ease, border-color .2s ease;
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.2s ease,
+    background-color 0.2s ease,
+    border-color 0.2s ease;
 }
 
 .ringItem:hover {
-  transform: translate(-50%, -50%) rotate(calc(var(--i) * var(--angle))) translateY(calc(-1 * var(--radius))) rotate(calc(-1 * var(--i) * var(--angle))) scale(1.06);
-  box-shadow: 0 10px 26px rgba(0,0,0,0.35);
-  background: radial-gradient(circle at 30% 30%, rgba(255,255,255,0.35), rgba(0,0,0,0.35));
+  transform: translate(-50%, -50%) rotate(calc(var(--i) * var(--angle)))
+    translateY(calc(-1 * var(--radius)))
+    rotate(calc(-1 * var(--i) * var(--angle))) scale(1.06);
+  box-shadow: 0 10px 26px rgba(0, 0, 0, 0.35);
+  background: radial-gradient(
+    circle at 30% 30%,
+    rgba(255, 255, 255, 0.35),
+    rgba(0, 0, 0, 0.35)
+  );
   border-color: #fff;
 }
 
@@ -104,13 +120,29 @@
   border-radius: 999px;
 }
 
-@keyframes fadeIn { to { opacity: 1; } }
-@keyframes backdropIn { to { opacity: 1; } }
-@keyframes popInCard { to { transform: scale(1); } }
-
-@keyframes popIn {
-  from { transform: translate(-50%, -50%) scale(0.75); opacity: 0; }
-  to { transform: translate(-50%, -50%) scale(1); opacity: 1; }
+@keyframes fadeIn {
+  to {
+    opacity: 1;
+  }
+}
+@keyframes backdropIn {
+  to {
+    opacity: 1;
+  }
+}
+@keyframes popInCard {
+  to {
+    transform: scale(1);
+  }
 }
 
-
+@keyframes popIn {
+  from {
+    transform: translate(-50%, -50%) scale(0.75);
+    opacity: 0;
+  }
+  to {
+    transform: translate(-50%, -50%) scale(1);
+    opacity: 1;
+  }
+}

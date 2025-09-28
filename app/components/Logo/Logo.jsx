@@ -39,7 +39,8 @@ export default function Logo({ width = 400, height = 150, className = '' }) {
             fill: 'none',
             stroke: 'url(#strokeGrad)',
             strokeWidth: 18,
-            fontFamily: 'Montserrat, Inter, system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, Noto Sans, sans-serif',
+            fontFamily:
+              'Montserrat, Inter, system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, Noto Sans, sans-serif',
             fontWeight: 800,
             fontSize: 210,
             letterSpacing: 10,
@@ -56,7 +57,8 @@ export default function Logo({ width = 400, height = 150, className = '' }) {
             fill: 'none',
             stroke: 'url(#strokeGrad)',
             strokeWidth: 18,
-            fontFamily: 'Montserrat, Inter, system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, Noto Sans, sans-serif',
+            fontFamily:
+              'Montserrat, Inter, system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, Noto Sans, sans-serif',
             fontWeight: 800,
             fontSize: 210,
             letterSpacing: 10,
@@ -68,5 +70,3 @@ export default function Logo({ width = 400, height = 150, className = '' }) {
     </svg>
   );
 }
-
-

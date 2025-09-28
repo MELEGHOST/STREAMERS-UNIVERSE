@@ -10,8 +10,10 @@ export async function POST() {
     {
       cookies: {
         get: (name) => cookieStore.get(name)?.value,
-        set: (name, value, options) => cookieStore.set({ name, value, ...options }),
-        remove: (name, options) => cookieStore.set({ name, value: '', ...options }),
+        set: (name, value, options) =>
+          cookieStore.set({ name, value, ...options }),
+        remove: (name, options) =>
+          cookieStore.set({ name, value: '', ...options }),
       },
     }
   );
@@ -19,7 +21,10 @@ export async function POST() {
   try {
     const { error } = await supabase.auth.signOut();
     if (error) {
-      return NextResponse.json({ ok: false, error: error.message }, { status: 500 });
+      return NextResponse.json(
+        { ok: false, error: error.message },
+        { status: 500 }
+      );
     }
     return NextResponse.json({ ok: true });
   } catch (e) {
@@ -28,4 +33,3 @@ export async function POST() {
 }
 
 export const dynamic = 'force-dynamic';
-

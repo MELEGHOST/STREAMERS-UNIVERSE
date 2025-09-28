@@ -1,53 +1,60 @@
 .inviteButton {
-    padding: 10px 20px;
-    font-size: 1rem;
-    font-weight: bold;
-    color: #fff;
-    background: linear-gradient(45deg, #f09433 0%, #e6683c 25%, #dc2743 50%, #cc2366 75%, #bc1888 100%);
-    border: none;
-    border-radius: 8px;
-    cursor: pointer;
-    transition: all 0.3s ease;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    gap: 8px;
-    position: relative;
-    overflow: hidden;
-    box-shadow: 0 4px 15px rgba(0,0,0,0.2);
-  }
-  
-  .inviteButton:before {
-    content: '🚀';
-    display: inline-block;
-    transition: transform 0.3s ease;
-  }
-  
-  .inviteButton:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 6px 20px rgba(0,0,0,0.3);
-  }
-  
-  .inviteButton:hover:before {
-    transform: rotate(-15deg) scale(1.1);
-  }
-  
-  .inviteButton:active {
-    transform: translateY(0);
-    box-shadow: 0 4px 15px rgba(0,0,0,0.2);
-  }
-  
-  .inviteButton.copied {
-    background: linear-gradient(45deg, #4caf50, #81c784);
-    cursor: default;
-  }
-  
-  .inviteButton.copied:before {
-    content: '✅';
-    transform: scale(1.1);
-  }
-  
-  .inviteButton:disabled {
-    opacity: 0.9;
-    cursor: not-allowed;
-  } 
+  padding: 10px 20px;
+  font-size: 1rem;
+  font-weight: bold;
+  color: #fff;
+  background: linear-gradient(
+    45deg,
+    #f09433 0%,
+    #e6683c 25%,
+    #dc2743 50%,
+    #cc2366 75%,
+    #bc1888 100%
+  );
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  position: relative;
+  overflow: hidden;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+}
+
+.inviteButton:before {
+  content: '🚀';
+  display: inline-block;
+  transition: transform 0.3s ease;
+}
+
+.inviteButton:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
+}
+
+.inviteButton:hover:before {
+  transform: rotate(-15deg) scale(1.1);
+}
+
+.inviteButton:active {
+  transform: translateY(0);
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+}
+
+.inviteButton.copied {
+  background: linear-gradient(45deg, #4caf50, #81c784);
+  cursor: default;
+}
+
+.inviteButton.copied:before {
+  content: '✅';
+  transform: scale(1.1);
+}
+
+.inviteButton:disabled {
+  opacity: 0.9;
+  cursor: not-allowed;
+}

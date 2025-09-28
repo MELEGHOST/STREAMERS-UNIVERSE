@@ -20,7 +20,12 @@ const availableFonts = [
 function SettingsPageContent() {
   const router = useRouter();
   const { t } = useTranslation();
-  const { isLoading: authLoading, isAuthenticated, currentTheme, toggleTheme } = useAuth();
+  const {
+    isLoading: authLoading,
+    isAuthenticated,
+    currentTheme,
+    toggleTheme,
+  } = useAuth();
   const [fontSize, setFontSize] = useState(16);
   const [fontFamily, setFontFamily] = useState(availableFonts[0].value);
 
@@ -31,12 +36,18 @@ function SettingsPageContent() {
     if (savedFontSize) {
       const size = parseInt(savedFontSize, 10);
       setFontSize(size);
-      document.documentElement.style.setProperty('--main-font-size', `${size}px`);
+      document.documentElement.style.setProperty(
+        '--main-font-size',
+        `${size}px`
+      );
     }
 
     if (savedFontFamily) {
       setFontFamily(savedFontFamily);
-      document.documentElement.style.setProperty('--main-font-family', savedFontFamily);
+      document.documentElement.style.setProperty(
+        '--main-font-family',
+        savedFontFamily
+      );
     }
   }, []);
 
@@ -44,7 +55,10 @@ function SettingsPageContent() {
     const newSize = e.target.value;
     setFontSize(newSize);
     localStorage.setItem('fontSize', newSize);
-    document.documentElement.style.setProperty('--main-font-size', `${newSize}px`);
+    document.documentElement.style.setProperty(
+      '--main-font-size',
+      `${newSize}px`
+    );
   };
 
   const handleFontFamilyChange = (e) => {
@@ -62,14 +76,30 @@ function SettingsPageContent() {
   }, [authLoading, isAuthenticated, router]);
 
   if (authLoading) {
-    return <div className={pageStyles.loadingContainer}><p>Загрузка...</p></div>;
+    return (
+      <div className={pageStyles.loadingContainer}>
+        <p>Загрузка...</p>
+      </div>
+    );
   }
 
   if (!isAuthenticated) {
-    const freshByQuery = typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('freshLogin') === 'true';
-    const freshBySession = (() => { try { return sessionStorage.getItem('freshLogin') === '1'; } catch { return false; } })();
+    const freshByQuery =
+      typeof window !== 'undefined' &&
+      new URLSearchParams(window.location.search).get('freshLogin') === 'true';
+    const freshBySession = (() => {
+      try {
+        return sessionStorage.getItem('freshLogin') === '1';
+      } catch {
+        return false;
+      }
+    })();
     if (freshByQuery || freshBySession) {
-      return <div className={pageStyles.loadingContainer}><p>Загрузка...</p></div>;
+      return (
+        <div className={pageStyles.loadingContainer}>
+          <p>Загрузка...</p>
+        </div>
+      );
     }
     router.replace('/');
     return null;
@@ -125,8 +155,10 @@ function SettingsPageContent() {
               onChange={handleFontFamilyChange}
               className={styles.fontFamilySelector}
             >
-              {availableFonts.map(font => (
-                <option key={font.name} value={font.value}>{font.name}</option>
+              {availableFonts.map((font) => (
+                <option key={font.name} value={font.value}>
+                  {font.name}
+                </option>
               ))}
             </select>
           </div>
@@ -146,7 +178,5 @@ function SettingsPageContent() {
 }
 
 export default function SettingsPage() {
-  return (
-    <SettingsPageContent />
-  );
-} 
+  return <SettingsPageContent />;
+}

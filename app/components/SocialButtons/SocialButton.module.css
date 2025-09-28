@@ -44,11 +44,11 @@
 }
 
 .tooltipContainer:hover .tooltip {
-   opacity: 1;
-   visibility: visible;
-   pointer-events: auto;
-   transform: translateX(-50%) translateY(-15px);
- }
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+  transform: translateX(-50%) translateY(-15px);
+}
 
 .icon {
   text-decoration: none;
@@ -88,12 +88,12 @@
 }
 
 .layer span.svgContainer {
-    padding: 0;
+  padding: 0;
 }
 
 .layer span.svgContainer svg {
-    width: 55%; 
-    height: 55%;
+  width: 55%;
+  height: 55%;
 }
 
 .tooltipContainer:hover .layer span {
@@ -199,4 +199,4 @@
 }
 .text {
   /* This is a wrapper, no specific styles needed from what I see */
-} 
+}

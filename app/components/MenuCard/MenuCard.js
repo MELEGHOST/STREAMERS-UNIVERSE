@@ -3,9 +3,20 @@
 import Link from 'next/link';
 import styles from './MenuCard.module.css';
 
-const MenuCard = ({ href, icon, label, description, isActive, onPointerEnter }) => {
+const MenuCard = ({
+  href,
+  icon,
+  label,
+  description,
+  isActive,
+  onPointerEnter,
+}) => {
   return (
-    <li className={styles.listItem} data-active={isActive} onPointerEnter={onPointerEnter}>
+    <li
+      className={styles.listItem}
+      data-active={isActive}
+      onPointerEnter={onPointerEnter}
+    >
       <Link href={href} className={styles.linkWrapper}>
         <div className={styles.collapsedView}>
           <div className={styles.icon}>{icon}</div>
@@ -21,4 +32,4 @@ const MenuCard = ({ href, icon, label, description, isActive, onPointerEnter }) 
   );
 };
 
-export default MenuCard; 
+export default MenuCard;

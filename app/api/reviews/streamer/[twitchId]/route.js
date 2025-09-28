@@ -9,16 +9,25 @@ export async function GET(_req, { params }) {
     }
 
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-    const supabaseServiceKey = process.env.SUPABASE_SERVICE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+    const supabaseServiceKey =
+      process.env.SUPABASE_SERVICE_KEY ||
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
     if (!supabaseUrl || !supabaseServiceKey) {
       console.error('[API /reviews/streamer] Supabase config missing');
-      return NextResponse.json({ error: 'Server configuration error' }, { status: 500 });
+      return NextResponse.json(
+        { error: 'Server configuration error' },
+        { status: 500 }
+      );
     }
-    const supabase = createClient(supabaseUrl, supabaseServiceKey, { auth: { persistSession: false } });
+    const supabase = createClient(supabaseUrl, supabaseServiceKey, {
+      auth: { persistSession: false },
+    });
 
     const { data, error } = await supabase
       .from('reviews')
-      .select('id, user_id, author_twitch_nickname, review_text, rating, created_at')
+      .select(
+        'id, user_id, author_twitch_nickname, review_text, rating, created_at'
+      )
       .eq('streamer_twitch_id', twitchId)
       .eq('status', 'approved')
       .order('created_at', { ascending: false })
@@ -26,9 +35,12 @@ export async function GET(_req, { params }) {
 
     if (error) {
       console.error('[API /reviews/streamer] DB error:', error);
-      return NextResponse.json({ error: 'Failed to fetch reviews' }, { status: 500 });
+      return NextResponse.json(
+        { error: 'Failed to fetch reviews' },
+        { status: 500 }
+      );
     }
-    const normalized = (data || []).map(r => ({
+    const normalized = (data || []).map((r) => ({
       id: r.id,
       author: r.author_twitch_nickname || null,
       text: r.review_text,
@@ -39,10 +51,11 @@ export async function GET(_req, { params }) {
     return NextResponse.json(normalized);
   } catch (e) {
     console.error('[API /reviews/streamer] Unexpected:', e);
-    return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
+    return NextResponse.json(
+      { error: 'Internal Server Error' },
+      { status: 500 }
+    );
   }
 }
 
 export const dynamic = 'force-dynamic';
-
-

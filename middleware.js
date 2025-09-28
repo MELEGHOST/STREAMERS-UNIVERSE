@@ -39,9 +39,15 @@ export async function middleware(req) {
   if (process.env.NODE_ENV !== 'production') {
     console.log('[Middleware] Updating session...');
   }
-  const { data: { user }, error } = await supabase.auth.getUser();
+  const {
+    data: { user },
+    error,
+  } = await supabase.auth.getUser();
   if (error) {
-    if (process.env.NODE_ENV !== 'production' && error.name !== 'AuthSessionMissingError') {
+    if (
+      process.env.NODE_ENV !== 'production' &&
+      error.name !== 'AuthSessionMissingError'
+    ) {
       console.error('[Middleware] Error getting user:', error);
     }
   } else {
@@ -67,4 +73,4 @@ export const config = {
      */
     '/((?!_next/static|_next/image|favicon.ico|images|auth/callback).*)',
   ],
-}; 
+};

@@ -11,4 +11,4 @@ export default function GlobalError({ error, reset }) {
       </body>
     </html>
   );
-} 
+}
