@@ -67,9 +67,8 @@ function AchievementsPageContent() {
 
   // --- Запрос данных через SWR --- 
   const { data: apiData, error: apiError, isLoading: dataIsLoading } = useSWR(
-      // Ключ SWR - массив. Если токен еще не загружен, SWR не будет делать запрос.
-      // Если пользователь не аутентифицирован, токен будет null, и fetcher его не отправит.
-      ['/api/achievements', authToken], 
+      // Не дергаем API, пока не получили access_token
+      authToken ? ['/api/achievements', authToken] : null,
       ([url, token]) => fetcher(url, token), 
       {
           revalidateOnFocus: true,
@@ -84,7 +83,11 @@ function AchievementsPageContent() {
   const error = apiError ? (apiError.message === 'No response from server' ? 'Сервер не отвечает, попробуй позже, бро!' : apiError.message) : null;
 
   // --- Извлекаем данные из ответа API ---
-  const achievements = useMemo(() => apiData || [], [apiData]);
+  const achievements = useMemo(() => {
+      if (Array.isArray(apiData)) return apiData;
+      if (apiData && Array.isArray(apiData.achievements)) return apiData.achievements;
+      return [];
+  }, [apiData]);
   const myAchievements = useMemo(() => achievements.filter(ach => ach.is_unlocked), [achievements]);
 
    // --- Рендеринг --- 
