@@ -2,13 +2,17 @@
 
 import React from 'react';
 import styles from './SocialButton.module.css'; // Импортируем общий модуль
-import { SiBoosty } from "react-icons/si";
+import { SiBoosty } from 'react-icons/si';
 
 const BoostyButton = ({ value, count, className }) => {
   if (!value) return null;
 
-  const href = value.startsWith('http') ? value : `https://boosty.to/${value.replace('@', '')}`;
-  const displayUsername = value.replace('https://boosty.to/', '').replace('@', '');
+  const href = value.startsWith('http')
+    ? value
+    : `https://boosty.to/${value.replace('@', '')}`;
+  const displayUsername = value
+    .replace('https://boosty.to/', '')
+    .replace('@', '');
 
   const formatCount = (num) => {
     if (typeof num !== 'number' || isNaN(num)) return null;
@@ -16,13 +20,15 @@ const BoostyButton = ({ value, count, className }) => {
     return `${num}`;
   };
   const displayCount = formatCount(count);
-  const aboutText = displayCount ? `${displayCount} подписчиков` : 'Страница Boosty';
+  const aboutText = displayCount
+    ? `${displayCount} подписчиков`
+    : 'Страница Boosty';
 
   const boostyColor = '#f15f2c'; // Уникальный цвет для Boosty
 
   return (
-    <div 
-      className={`${styles.wrapper} ${className || ''}`} 
+    <div
+      className={`${styles.wrapper} ${className || ''}`}
       style={{ '--color': boostyColor }}
     >
       <div className={styles.tooltipContainer}>
@@ -39,14 +45,19 @@ const BoostyButton = ({ value, count, className }) => {
           </div>
         </div>
         <div className={styles.text}>
-          <a href={href} target="_blank" rel="noopener noreferrer" className={styles.icon}>
+          <a
+            href={href}
+            target="_blank"
+            rel="noopener noreferrer"
+            className={styles.icon}
+          >
             <div className={styles.layer}>
               <span />
               <span />
               <span />
               <span />
               <span className={styles.svgContainer}>
-                 <SiBoosty className={styles.svg} /> 
+                <SiBoosty className={styles.svg} />
               </span>
             </div>
             <div className={styles.textLabel}>Boosty</div>
@@ -55,6 +66,6 @@ const BoostyButton = ({ value, count, className }) => {
       </div>
     </div>
   );
-}
+};
 
-export default BoostyButton; 
+export default BoostyButton;

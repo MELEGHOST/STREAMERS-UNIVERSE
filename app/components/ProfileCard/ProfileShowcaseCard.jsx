@@ -28,13 +28,29 @@ export default function ProfileShowcaseCard({
   birthdayText,
   onAvatarClick,
 }) {
-  const followersPercent = Math.max(0, Math.min(100, Math.round(((Number(followersCount) || 0) / (followersTarget || 1)) * 100)));
+  const followersPercent = Math.max(
+    0,
+    Math.min(
+      100,
+      Math.round(((Number(followersCount) || 0) / (followersTarget || 1)) * 100)
+    )
+  );
   const angle = `${followersPercent * 3.6}deg`;
   return (
     <div className={styles.card}>
       <div className={styles.top}>
-        <button className={styles.avatarButton} onClick={onAvatarClick} aria-label="Открыть соцсети">
-          <SmartCutoutImage src={avatarUrl} width={280} height={280} className={styles.cutout} alt={displayName} />
+        <button
+          className={styles.avatarButton}
+          onClick={onAvatarClick}
+          aria-label="Открыть соцсети"
+        >
+          <SmartCutoutImage
+            src={avatarUrl}
+            width={280}
+            height={280}
+            className={styles.cutout}
+            alt={displayName}
+          />
         </button>
       </div>
 
@@ -56,10 +72,18 @@ export default function ProfileShowcaseCard({
       <div className={styles.bottom}>
         <div className={styles.statsRow}>
           <div style={{ '--angle': angle }}>
-            <CircularStat label="Цель" value={followersPercent} inner={Number(followersCount) || 0} />
+            <CircularStat
+              label="Цель"
+              value={followersPercent}
+              inner={Number(followersCount) || 0}
+            />
           </div>
           <div style={{ '--angle': `${(Number(level) || 0) * 3.6}deg` }}>
-            <CircularStat label="Уровень" value={level} inner={Number(level) || 0} />
+            <CircularStat
+              label="Уровень"
+              value={level}
+              inner={Number(level) || 0}
+            />
           </div>
         </div>
         <div className={styles.metaRow}>
@@ -82,7 +106,31 @@ export default function ProfileShowcaseCard({
                     <span
                       key={role}
                       className={`${styles.roleBadge || ''} ${role === 'admin' ? 'admin' : role === 'streamer' ? 'streamer' : ''}`.trim()}
-                      style={role === 'admin' ? { background: '#ffd700', color: '#1c1c1c', border: '1px solid #e0b000', marginRight: 6, padding: '2px 8px', borderRadius: 8, fontWeight: 700, fontSize: 12 } : role === 'streamer' ? { background: '#9146ff', color: '#fff', border: '1px solid #6c1fff', marginRight: 6, padding: '2px 8px', borderRadius: 8, fontWeight: 700, fontSize: 12 } : {}}
+                      style={
+                        role === 'admin'
+                          ? {
+                              background: '#ffd700',
+                              color: '#1c1c1c',
+                              border: '1px solid #e0b000',
+                              marginRight: 6,
+                              padding: '2px 8px',
+                              borderRadius: 8,
+                              fontWeight: 700,
+                              fontSize: 12,
+                            }
+                          : role === 'streamer'
+                            ? {
+                                background: '#9146ff',
+                                color: '#fff',
+                                border: '1px solid #6c1fff',
+                                marginRight: 6,
+                                padding: '2px 8px',
+                                borderRadius: 8,
+                                fontWeight: 700,
+                                fontSize: 12,
+                              }
+                            : {}
+                      }
                     >
                       {role}
                     </span>
@@ -95,5 +143,3 @@ export default function ProfileShowcaseCard({
     </div>
   );
 }
-
-

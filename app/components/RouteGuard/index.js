@@ -4,7 +4,17 @@ import { useEffect, useRef } from 'react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '../../contexts/AuthContext';
 
-const protectedRoutes = ['/menu', '/profile', '/edit-profile', '/settings', '/followers', '/followings', '/my-reviews', '/achievements', '/admin'];
+const protectedRoutes = [
+  '/menu',
+  '/profile',
+  '/edit-profile',
+  '/settings',
+  '/followers',
+  '/followings',
+  '/my-reviews',
+  '/achievements',
+  '/admin',
+];
 
 const RouteGuard = ({ children }) => {
   const { isAuthenticated, isLoading, refreshSession } = useAuth();
@@ -12,13 +22,17 @@ const RouteGuard = ({ children }) => {
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const freshLoginParam = searchParams?.get('freshLogin') === 'true';
-  const freshLoginFlag = typeof window !== 'undefined' && sessionStorage.getItem('freshLogin') === '1';
+  const freshLoginFlag =
+    typeof window !== 'undefined' &&
+    sessionStorage.getItem('freshLogin') === '1';
   const freshLogin = freshLoginParam || freshLoginFlag;
 
   const isAuthedRef = useRef(isAuthenticated);
-  useEffect(() => { isAuthedRef.current = isAuthenticated; }, [isAuthenticated]);
+  useEffect(() => {
+    isAuthedRef.current = isAuthenticated;
+  }, [isAuthenticated]);
 
-  const isProtectedRoute = protectedRoutes.some(route => {
+  const isProtectedRoute = protectedRoutes.some((route) => {
     if (route === '/profile') {
       // Защищаем только личный профиль по адресу "/profile"
       return pathname === '/profile';
@@ -42,9 +56,13 @@ const RouteGuard = ({ children }) => {
     // Подстраховка от гонок: перед редиректом дёрнем refreshSession и дадим чуть времени
     let canceled = false;
     const timerId = setTimeout(async () => {
-      try { await refreshSession(); } catch {}
+      try {
+        await refreshSession();
+      } catch {}
       if (!canceled && !isAuthedRef.current) {
-        console.log(`[RouteGuard] Access to ${pathname} denied. Redirecting to home.`);
+        console.log(
+          `[RouteGuard] Access to ${pathname} denied. Redirecting to home.`
+        );
         router.replace('/');
       }
     }, 800);
@@ -53,12 +71,22 @@ const RouteGuard = ({ children }) => {
       canceled = true;
       clearTimeout(timerId);
     };
-  }, [isLoading, isAuthenticated, isProtectedRoute, pathname, router, freshLogin, refreshSession]);
+  }, [
+    isLoading,
+    isAuthenticated,
+    isProtectedRoute,
+    pathname,
+    router,
+    freshLogin,
+    refreshSession,
+  ]);
 
   // После успешной аутентификации очищаем флаг freshLogin из URL
   useEffect(() => {
     if (freshLogin && isAuthenticated) {
-      try { sessionStorage.removeItem('freshLogin'); } catch {}
+      try {
+        sessionStorage.removeItem('freshLogin');
+      } catch {}
       router.replace(pathname);
     }
   }, [freshLogin, isAuthenticated, router, pathname]);
@@ -68,9 +96,9 @@ const RouteGuard = ({ children }) => {
   if (isLoading && isProtectedRoute) {
     return null; // или <GlobalSpinner />
   }
-  
+
   // Рендерим дочерние элементы, если все проверки пройдены
   return <>{children}</>;
 };
 
-export default RouteGuard; 
+export default RouteGuard;

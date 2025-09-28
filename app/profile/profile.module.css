@@ -38,22 +38,34 @@
 }
 
 .profileHeader {
-    display: flex;
-    flex-direction: row;
-    align-items: center;
-    gap: 2rem;
-    margin-bottom: 2rem;
-    width: 100%;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 2rem;
+  margin-bottom: 2rem;
+  width: 100%;
 }
 
-.profileInfo { display: none; }
+.profileInfo {
+  display: none;
+}
 
 /* подробности перенесены в карточку, скрываем старый блок */
-.profileDetails { display: none; }
+.profileDetails {
+  display: none;
+}
 
-.detailItem { display: contents; }
-.detailLabel { color: var(--foreground-secondary); text-align: right; font-weight: 600; }
-.detailValue { color: var(--foreground-primary); }
+.detailItem {
+  display: contents;
+}
+.detailLabel {
+  color: var(--foreground-secondary);
+  text-align: right;
+  font-weight: 600;
+}
+.detailValue {
+  color: var(--foreground-primary);
+}
 
 .rightControls {
   display: flex;
@@ -104,9 +116,15 @@
 }
 
 @keyframes skeleton-loading {
-  0% { background-color: var(--background-tertiary); }
-  50% { background-color: var(--border-primary); }
-  100% { background-color: var(--background-tertiary); }
+  0% {
+    background-color: var(--background-tertiary);
+  }
+  50% {
+    background-color: var(--border-primary);
+  }
+  100% {
+    background-color: var(--background-tertiary);
+  }
 }
 
 .skeletonHeader {
@@ -138,7 +156,9 @@
   margin-bottom: 0.5rem;
 }
 
-.skeletonText.short { width: 50%; }
+.skeletonText.short {
+  width: 50%;
+}
 
 .profileContent {
   padding: 1.5rem;
@@ -168,31 +188,42 @@
   gap: 8px;
   padding: 8px 12px;
   border-radius: 12px;
-  border: 1px solid rgba(255,255,255,0.1);
-  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.06);
   color: #e9e9e9;
-  transition: background .2s ease, transform .08s ease;
+  transition:
+    background 0.2s ease,
+    transform 0.08s ease;
 }
-.chip:hover { background: rgba(255,255,255,0.12); }
-.chip:active { transform: translateY(1px); }
+.chip:hover {
+  background: rgba(255, 255, 255, 0.12);
+}
+.chip:active {
+  transform: translateY(1px);
+}
 
 /* Стили для верхней панели с кнопками */
 .topBar {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 1.5rem; 
+  margin-bottom: 1.5rem;
   width: 100%;
 }
 
-.backButton, .editButton {
+.backButton,
+.editButton {
   display: inline-block;
   padding: 0.7em 1.2em;
   font-size: 0.9rem;
   border-radius: var(--border-radius);
   cursor: pointer;
   text-decoration: none; /* Для Link */
-  transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease, transform 0.1s ease;
+  transition:
+    background-color 0.2s ease,
+    border-color 0.2s ease,
+    color 0.2s ease,
+    transform 0.1s ease;
 }
 
 .backButton {
@@ -220,7 +251,8 @@
   color: #fff;
 }
 
-.backButton:active, .editButton:active {
+.backButton:active,
+.editButton:active {
   transform: scale(0.98);
 }
 
@@ -285,7 +317,11 @@
   background-color: var(--background-tertiary);
   color: var(--foreground-secondary);
   font-weight: 500;
-  transition: background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease, transform 0.1s ease;
+  transition:
+    background-color 0.2s ease,
+    color 0.2s ease,
+    border-color 0.2s ease,
+    transform 0.1s ease;
   display: inline-flex;
   align-items: center;
   gap: 0.4rem;
@@ -303,86 +339,90 @@
 
 /* Стиль для отображения роли */
 .userRole {
-    display: inline-block;
-    background-color: var(--accent-secondary);
-    color: var(--foreground-primary);
-    padding: 0.2em 0.6em;
-    border-radius: var(--border-radius-sm);
-    font-size: 0.8rem;
-    font-weight: 600;
-    margin-top: 0.5rem;
-    border: 1px solid var(--border-secondary);
+  display: inline-block;
+  background-color: var(--accent-secondary);
+  color: var(--foreground-primary);
+  padding: 0.2em 0.6em;
+  border-radius: var(--border-radius-sm);
+  font-size: 0.8rem;
+  font-weight: 600;
+  margin-top: 0.5rem;
+  border: 1px solid var(--border-secondary);
 }
 
 /* --- Стили для секции VODs --- */
 .vodsContainer {
-    display: grid;
-    /* Адаптивная сетка: минимум 250px, максимум 1fr */
-    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); 
-    gap: 1.5rem;
-    margin-top: 1rem;
+  display: grid;
+  /* Адаптивная сетка: минимум 250px, максимум 1fr */
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 1.5rem;
+  margin-top: 1rem;
 }
 
 .vodCard {
-    display: block; /* Чтобы Link занимал всю карточку */
-    background-color: var(--background-secondary);
-    border-radius: var(--border-radius-lg);
-    overflow: hidden;
-    text-decoration: none;
-    color: inherit;
-    transition: transform 0.2s ease, box-shadow 0.2s ease;
-    border: 1px solid var(--border-secondary);
+  display: block; /* Чтобы Link занимал всю карточку */
+  background-color: var(--background-secondary);
+  border-radius: var(--border-radius-lg);
+  overflow: hidden;
+  text-decoration: none;
+  color: inherit;
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.2s ease;
+  border: 1px solid var(--border-secondary);
 }
 
 .vodCard:hover {
-    transform: translateY(-4px);
-    box-shadow: 0 6px 12px hsla(from var(--shadow-color) h s l / 0.1);
-    border-color: var(--border-primary);
+  transform: translateY(-4px);
+  box-shadow: 0 6px 12px hsla(from var(--shadow-color) h s l / 0.1);
+  border-color: var(--border-primary);
 }
 
 .vodThumbnail {
-    width: 100%;
-    height: auto; /* Сохраняем пропорции */
-    aspect-ratio: 16 / 9; /* Соотношение сторон для видео */
-    background-color: var(--background-tertiary); /* Фон для заглушки */
-    object-fit: cover; /* Масштабируем изображение */
-    display: block; /* Убираем лишние отступы */
+  width: 100%;
+  height: auto; /* Сохраняем пропорции */
+  aspect-ratio: 16 / 9; /* Соотношение сторон для видео */
+  background-color: var(--background-tertiary); /* Фон для заглушки */
+  object-fit: cover; /* Масштабируем изображение */
+  display: block; /* Убираем лишние отступы */
 }
 
 .vodInfo {
-    padding: 0.8rem 1rem;
+  padding: 0.8rem 1rem;
 }
 
 .vodTitle {
-    font-size: 1rem;
-    font-weight: 600;
-    margin: 0 0 0.5rem 0;
-    color: var(--foreground-primary);
-    /* Ограничение текста в 2 строки */
-    display: -webkit-box;
-    -webkit-line-clamp: 2;
-    -webkit-box-orient: vertical;  
-    overflow: hidden;
-    text-overflow: ellipsis;
-    min-height: 2.4em; /* Высота для двух строк */
+  font-size: 1rem;
+  font-weight: 600;
+  margin: 0 0 0.5rem 0;
+  color: var(--foreground-primary);
+  /* Ограничение текста в 2 строки */
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-height: 2.4em; /* Высота для двух строк */
 }
 
 .vodMeta {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.4rem 1rem;
-    font-size: 0.85rem;
-    color: var(--foreground-secondary);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem 1rem;
+  font-size: 0.85rem;
+  color: var(--foreground-secondary);
 }
 
 .vodMeta span {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.3rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
 }
 
 /* Стили для кнопки Выйти (пока наследуются от actionButton) */
-.logoutButton { display: inline-flex; }
+.logoutButton {
+  display: inline-flex;
+}
 
 /* .logoutButton:hover {
   background-color: var(--error-bg-tertiary);
@@ -391,160 +431,168 @@
 
 /* Стиль для админского значка */
 .adminBadge {
-    margin-right: 0.5em;
-    font-size: 1em; /* Или другой размер по вкусу */
-    color: var(--accent-secondary); /* Цвет для выделения, можно другой */
-    cursor: default; /* Убрать курсор-указатель */
-    display: inline-block; /* Для правильного позиционирования */
+  margin-right: 0.5em;
+  font-size: 1em; /* Или другой размер по вкусу */
+  color: var(--accent-secondary); /* Цвет для выделения, можно другой */
+  cursor: default; /* Убрать курсор-указатель */
+  display: inline-block; /* Для правильного позиционирования */
 }
 
 /* Стиль для кнопки админ панели */
 .adminButton {
-    color: var(--accent-gold);
-    border-color: var(--accent-gold);
-    background-color: hsla(from var(--accent-gold) h s l / 0.1);
+  color: var(--accent-gold);
+  border-color: var(--accent-gold);
+  background-color: hsla(from var(--accent-gold) h s l / 0.1);
 }
 
 .adminButton:hover {
-    background-color: hsla(from var(--accent-gold) h s l / 0.2);
-    color: var(--accent-gold);
+  background-color: hsla(from var(--accent-gold) h s l / 0.2);
+  color: var(--accent-gold);
 }
 
 .adminButton:focus {
-    box-shadow: 0 0 0 3px hsla(from var(--accent-gold) h s l / 0.3);
-    border-color: var(--accent-gold);
+  box-shadow: 0 0 0 3px hsla(from var(--accent-gold) h s l / 0.3);
+  border-color: var(--accent-gold);
 }
 
 /* Стили для секции дополнительной информации */
 .additionalInfo {
-    margin-top: 2rem;
-    padding: 1.5rem;
-    background-color: var(--background-secondary);
-    border-radius: var(--border-radius-lg);
-    border: 1px solid var(--border-secondary);
+  margin-top: 2rem;
+  padding: 1.5rem;
+  background-color: var(--background-secondary);
+  border-radius: var(--border-radius-lg);
+  border: 1px solid var(--border-secondary);
 }
 
 .description {
-    margin-bottom: 1.5rem;
-    color: var(--foreground-primary);
-    line-height: 1.6;
-    white-space: pre-wrap; /* Сохраняем переносы строк */
+  margin-bottom: 1.5rem;
+  color: var(--foreground-primary);
+  line-height: 1.6;
+  white-space: pre-wrap; /* Сохраняем переносы строк */
 }
 
 .socialLinksContainer {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 1rem;
-    justify-content: center; /* Или left, если нужно */
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  justify-content: center; /* Или left, если нужно */
 }
 
 /* Стили для секции видео */
 .videosSection {
-    margin-top: 2.5rem;
+  margin-top: 2.5rem;
 }
 
 .sectionTitle {
-    text-align: center;
-    font-size: 1.5rem;
-    margin-bottom: 1.5rem;
-    color: var(--foreground-primary);
-    border-bottom: 1px solid var(--border-primary);
-    padding-bottom: 0.5rem;
+  text-align: center;
+  font-size: 1.5rem;
+  margin-bottom: 1.5rem;
+  color: var(--foreground-primary);
+  border-bottom: 1px solid var(--border-primary);
+  padding-bottom: 0.5rem;
 }
 
 .videosGrid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-    gap: 1.5rem;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 1.5rem;
 }
 
 @media (max-width: 768px) {
-    .videosGrid {
-        grid-template-columns: 1fr;
-    }
+  .videosGrid {
+    grid-template-columns: 1fr;
+  }
 }
 
 .videoCard {
-    display: block;
-    text-decoration: none;
-    color: inherit;
-    background-color: var(--background-secondary);
-    border-radius: var(--border-radius-md);
-    overflow: hidden;
-    border: 1px solid var(--border-secondary);
-    transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+  display: block;
+  text-decoration: none;
+  color: inherit;
+  background-color: var(--background-secondary);
+  border-radius: var(--border-radius-md);
+  overflow: hidden;
+  border: 1px solid var(--border-secondary);
+  transition:
+    transform 0.2s ease-in-out,
+    box-shadow 0.2s ease-in-out;
 }
 
 .videoCard:hover {
-    transform: translateY(-3px);
-    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
-    border-color: var(--border-tertiary);
+  transform: translateY(-3px);
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+  border-color: var(--border-tertiary);
 }
 
 .videoThumbnail {
-    width: 100%;
-    height: auto;
-    aspect-ratio: 16 / 9; /* Стандартное соотношение сторон для видео */
-    object-fit: cover;
-    display: block; /* Убрать лишний отступ под картинкой */
-    background-color: var(--background-tertiary); /* Фон для незагруженных превью */
+  width: 100%;
+  height: auto;
+  aspect-ratio: 16 / 9; /* Стандартное соотношение сторон для видео */
+  object-fit: cover;
+  display: block; /* Убрать лишний отступ под картинкой */
+  background-color: var(
+    --background-tertiary
+  ); /* Фон для незагруженных превью */
 }
 
 .videoInfo {
-    padding: 1rem;
+  padding: 1rem;
 }
 
 .videoTitle {
-    font-size: 1rem;
-    font-weight: 600;
-    margin: 0 0 0.5rem 0;
-    color: var(--foreground-primary);
-    /* Ограничение в две строки с многоточием */
-    display: -webkit-box;
-    line-clamp: 2;
-    /* standard property already present; vendor prefixed below for compatibility */
-    -webkit-line-clamp: 2;
-    -webkit-box-orient: vertical;  
-    overflow: hidden;
-    text-overflow: ellipsis;
-    min-height: 2.4em; /* Примерная высота для двух строк */
+  font-size: 1rem;
+  font-weight: 600;
+  margin: 0 0 0.5rem 0;
+  color: var(--foreground-primary);
+  /* Ограничение в две строки с многоточием */
+  display: -webkit-box;
+  line-clamp: 2;
+  /* standard property already present; vendor prefixed below for compatibility */
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-height: 2.4em; /* Примерная высота для двух строк */
 }
 
 .videoMeta {
-    font-size: 0.85rem;
-    color: var(--foreground-secondary);
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.5rem;
+  font-size: 0.85rem;
+  color: var(--foreground-secondary);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
 }
 
-.videoMeta span { white-space: nowrap; }
+.videoMeta span {
+  white-space: nowrap;
+}
 
 /* Стиль для кнопки Пригласить */
 .inviteButton {
-    background-color: var(--accent-primary-muted);
-    color: var(--accent-primary);
-    border-color: var(--accent-primary);
+  background-color: var(--accent-primary-muted);
+  color: var(--accent-primary);
+  border-color: var(--accent-primary);
 }
 
-.inviteButton .icon { display: inline-block; }
+.inviteButton .icon {
+  display: inline-block;
+}
 
 .inviteButton:hover {
-    background-color: var(--accent-primary);
-    color: white;
+  background-color: var(--accent-primary);
+  color: white;
 }
 
 /* Подсказка, что пользователь не зарегистрирован */
 .notRegisteredHint {
-    font-size: 0.9rem;
-    font-style: italic;
-    color: var(--foreground-secondary);
-    margin-top: 0.8rem;
-    padding: 0.5rem 1rem;
-    background-color: var(--background-tertiary);
-    border-radius: var(--border-radius);
-    border: 1px dashed var(--border-primary);
-    text-align: center;
+  font-size: 0.9rem;
+  font-style: italic;
+  color: var(--foreground-secondary);
+  margin-top: 0.8rem;
+  padding: 0.5rem 1rem;
+  background-color: var(--background-tertiary);
+  border-radius: var(--border-radius);
+  border: 1px dashed var(--border-primary);
+  text-align: center;
 }
 
 .displayName {
@@ -569,7 +617,7 @@
   display: inline-flex;
   align-items: center;
   gap: 0.3em;
-  text-shadow: 1px 1px 2px rgba(0,0,0,0.4);
+  text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.4);
 }
 
 /* Toned down gradients */
@@ -588,11 +636,11 @@
 }
 
 @media (max-width: 768px) {
-    .profileHeader {
-        flex-direction: column;
-        align-items: center;
-        text-align: center;
-    }
+  .profileHeader {
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+  }
 }
 
 .userRoles {
@@ -617,7 +665,9 @@
   width: 100%;
   height: 100%;
   object-fit: cover;
-  border-radius: var(--border-radius); /* Можно оставить или убрать, если у CyberAvatar свои стили */
+  border-radius: var(
+    --border-radius
+  ); /* Можно оставить или убрать, если у CyberAvatar свои стили */
 }
 
 .profileInfo {
@@ -636,8 +686,10 @@
   border-radius: 15px;
   padding: 0.6rem 1.2rem;
   color: white;
-  text-shadow: 0 0 3px rgba(0,0,0,0.5);
-  transition: transform 0.2s, box-shadow 0.2s;
+  text-shadow: 0 0 3px rgba(0, 0, 0, 0.5);
+  transition:
+    transform 0.2s,
+    box-shadow 0.2s;
   border: none;
   cursor: pointer;
   font-weight: 500;
@@ -657,64 +709,76 @@
   outline: none;
   box-shadow: 0 0 0 3px hsla(from var(--accent-primary) h s l / 0.3);
   border-color: var(--accent-primary);
-} 
+}
 
 .navButton {
-    background: linear-gradient(to right, #ff00ff, #00ffff);
-    box-shadow: 0 0 10px #ff00ff;
-    border-radius: 20px;
-    padding: 0.5rem 1rem;
-    color: white;
-    text-shadow: 0 0 5px black;
-    transition: transform 0.2s, box-shadow 0.2s;
+  background: linear-gradient(to right, #ff00ff, #00ffff);
+  box-shadow: 0 0 10px #ff00ff;
+  border-radius: 20px;
+  padding: 0.5rem 1rem;
+  color: white;
+  text-shadow: 0 0 5px black;
+  transition:
+    transform 0.2s,
+    box-shadow 0.2s;
 }
 
 .navButton:hover {
-    transform: scale(1.05);
-    box-shadow: 0 0 20px #ff00ff;
+  transform: scale(1.05);
+  box-shadow: 0 0 20px #ff00ff;
 }
 
 .actionButton {
-    background: linear-gradient(to right, #ff00ff, #00ffff);
-    box-shadow: 0 0 10px #ff00ff;
-    border-radius: 20px;
-    padding: 0.5rem 1rem;
-    color: white;
-    text-shadow: 0 0 5px black;
-    transition: transform 0.2s, box-shadow 0.2s;
+  background: linear-gradient(to right, #ff00ff, #00ffff);
+  box-shadow: 0 0 10px #ff00ff;
+  border-radius: 20px;
+  padding: 0.5rem 1rem;
+  color: white;
+  text-shadow: 0 0 5px black;
+  transition:
+    transform 0.2s,
+    box-shadow 0.2s;
 }
 
 .actionButton:hover {
-    transform: scale(1.05);
-    box-shadow: 0 0 20px #ff00ff;
+  transform: scale(1.05);
+  box-shadow: 0 0 20px #ff00ff;
 }
 
 .socialLinksContainer {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 1rem;
-    justify-content: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  justify-content: center;
 }
 
-.socialButton { display: inline-flex; }
+.socialButton {
+  display: inline-flex;
+}
 
 .pixel-card {
-    border: 4px solid #000;
-    background-color: #fff;
-    box-shadow: 8px 8px 0 #000;
-    image-rendering: pixelated;
-    border-radius: 4px;
-    padding: 10px;
-    position: relative;
-    overflow: hidden;
+  border: 4px solid #000;
+  background-color: #fff;
+  box-shadow: 8px 8px 0 #000;
+  image-rendering: pixelated;
+  border-radius: 4px;
+  padding: 10px;
+  position: relative;
+  overflow: hidden;
 }
 .pixel-card::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: repeating-linear-gradient(45deg, transparent, transparent 10px, rgba(0,0,0,0.05) 10px, rgba(0,0,0,0.05) 20px);
-    pointer-events: none;
-} 
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: repeating-linear-gradient(
+    45deg,
+    transparent,
+    transparent 10px,
+    rgba(0, 0, 0, 0.05) 10px,
+    rgba(0, 0, 0, 0.05) 20px
+  );
+  pointer-events: none;
+}

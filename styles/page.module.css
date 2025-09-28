@@ -1,176 +1,182 @@
 .container {
-    display: flex;
-    flex-direction: column;
-    padding: 1rem;
-    max-width: var(--max-width);
-    margin: 0 auto;
-    text-align: center;
-  }
-  
-  .container h1 {
-      font-size: 2rem;
-      margin-bottom: 1rem;
-      color: var(--foreground-primary);
-  }
+  display: flex;
+  flex-direction: column;
+  padding: 1rem;
+  max-width: var(--max-width);
+  margin: 0 auto;
+  text-align: center;
+}
 
-  .container p {
-      color: var(--foreground-secondary);
-      margin-bottom: 2rem;
-  }
-  
-  .loadingContainer {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    min-height: 100vh;
-    color: var(--foreground-secondary);
-  }
-  
-  .loadingContainer p {
-    margin-top: 1rem;
-  }
+.container h1 {
+  font-size: 2rem;
+  margin-bottom: 1rem;
+  color: var(--foreground-primary);
+}
 
-  .backButton {
-    display: inline-block;
-    padding: 0.7em 1.2em;
-    font-size: 0.9rem;
-    color: var(--foreground-secondary);
-    background-color: transparent;
-    border: 1px solid var(--border-primary);
-    border-radius: var(--border-radius);
-    cursor: pointer;
-    transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease;
-  }
-  
-  .backButton:hover {
-    background-color: var(--background-tertiary);
-    border-color: var(--foreground-secondary);
-    color: var(--foreground-primary);
-  }
+.container p {
+  color: var(--foreground-secondary);
+  margin-bottom: 2rem;
+}
 
-  /* Стили для кнопки входа */
-  .ctaButton {
-    display: inline-flex; /* Используем flex для выравнивания иконки и текста */
-    align-items: center;
-    justify-content: center;
-    padding: 12px 24px;
-    font-size: 1rem; /* Или 16px */
-    font-weight: 600;
-    color: #fff;
-    background-color: #6441a5; /* Фирменный цвет Twitch */
-    border: none;
-    border-radius: 8px;
-    cursor: pointer;
-    transition: background-color 0.3s ease, transform 0.1s ease;
-    text-decoration: none;
-    white-space: nowrap; /* Предотвращаем перенос текста */
-  }
+.loadingContainer {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  color: var(--foreground-secondary);
+}
 
-  .ctaButton:hover {
-    background-color: #7d5bbe; /* Немного светлее при наведении */
-  }
+.loadingContainer p {
+  margin-top: 1rem;
+}
 
-  .ctaButton:active {
-    transform: scale(0.98);
-  }
+.backButton {
+  display: inline-block;
+  padding: 0.7em 1.2em;
+  font-size: 0.9rem;
+  color: var(--foreground-secondary);
+  background-color: transparent;
+  border: 1px solid var(--border-primary);
+  border-radius: var(--border-radius);
+  cursor: pointer;
+  transition:
+    background-color 0.2s ease,
+    border-color 0.2s ease,
+    color 0.2s ease;
+}
 
-  .ctaButton:disabled {
-    background-color: #b3a2d1; /* Бледный цвет для неактивной кнопки */
-    cursor: not-allowed;
-  }
+.backButton:hover {
+  background-color: var(--background-tertiary);
+  border-color: var(--foreground-secondary);
+  color: var(--foreground-primary);
+}
 
-  /* Класс для Twitch кнопки (может и не нужен, но оставим для ясности) */
-  .twitchButton {
-    /* Здесь можно добавить специфичные для Twitch стили, если понадобятся */
-  }
+/* Стили для кнопки входа */
+.ctaButton {
+  display: inline-flex; /* Используем flex для выравнивания иконки и текста */
+  align-items: center;
+  justify-content: center;
+  padding: 12px 24px;
+  font-size: 1rem; /* Или 16px */
+  font-weight: 600;
+  color: #fff;
+  background-color: #6441a5; /* Фирменный цвет Twitch */
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition:
+    background-color 0.3s ease,
+    transform 0.1s ease;
+  text-decoration: none;
+  white-space: nowrap; /* Предотвращаем перенос текста */
+}
 
-  /* Стили для иконки Twitch */
-  .twitchIcon {
-    margin-right: 8px; /* Отступ справа от иконки */
-    font-size: 1.2em; /* Чуть больше текста */
-    vertical-align: middle; /* Выравнивание по вертикали */
-  }
+.ctaButton:hover {
+  background-color: #7d5bbe; /* Немного светлее при наведении */
+}
 
-  /* Стили для спиннера внутри кнопки */
-  .button-spinner {
-    width: 1em; /* Размер как у текста */
-    height: 1em;
-    border-width: 2px;
-    margin-right: 8px;
-  }
+.ctaButton:active {
+  transform: scale(0.98);
+}
 
-  .profileSection p {
-    margin: 5px 0;
-    font-size: 1rem;
-  }
+.ctaButton:disabled {
+  background-color: #b3a2d1; /* Бледный цвет для неактивной кнопки */
+  cursor: not-allowed;
+}
 
-  /* Стили для страницы Вдохновителей (Followings) */
-  .channelsGrid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
-    gap: 20px;
-    width: 100%;
-    margin-top: 20px;
-  }
+/* Класс для Twitch кнопки (может и не нужен, но оставим для ясности) */
+.twitchButton {
+  /* Здесь можно добавить специфичные для Twitch стили, если понадобятся */
+}
 
-  .channelCard {
-    background-color: #2a2a3a;
-    border-radius: 12px;
-    padding: 15px;
-    text-decoration: none;
-    color: #e0e0e0;
-    transition: transform 0.2s ease, box-shadow 0.2s ease;
-    display: flex;
-    flex-direction: column;
-    border: 1px solid #3a3a4a;
-  }
+/* Стили для иконки Twitch */
+.twitchIcon {
+  margin-right: 8px; /* Отступ справа от иконки */
+  font-size: 1.2em; /* Чуть больше текста */
+  vertical-align: middle; /* Выравнивание по вертикали */
+}
 
-  .channelCard:hover {
-    transform: translateY(-5px);
-    box-shadow: 0 5px 15px rgba(0, 255, 255, 0.2);
-  }
+/* Стили для спиннера внутри кнопки */
+.button-spinner {
+  width: 1em; /* Размер как у текста */
+  height: 1em;
+  border-width: 2px;
+  margin-right: 8px;
+}
 
-  .channelAvatar {
-    width: 80px;
-    height: 80px;
-    border-radius: 50%;
-    margin-bottom: 15px;
-    align-self: center;
-    border: 3px solid #4f4f4f;
-  }
+.profileSection p {
+  margin: 5px 0;
+  font-size: 1rem;
+}
 
-  .channelInfo {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 10px;
-    margin-bottom: 10px;
-  }
+/* Стили для страницы Вдохновителей (Followings) */
+.channelsGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+  gap: 20px;
+  width: 100%;
+  margin-top: 20px;
+}
 
-  .channelName {
-    font-weight: bold;
-    font-size: 1.1rem;
-  }
+.channelCard {
+  background-color: #2a2a3a;
+  border-radius: 12px;
+  padding: 15px;
+  text-decoration: none;
+  color: #e0e0e0;
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.2s ease;
+  display: flex;
+  flex-direction: column;
+  border: 1px solid #3a3a4a;
+}
 
-  .liveIndicator {
-    background-color: #e91916;
-    color: white;
-    padding: 3px 8px;
-    border-radius: 4px;
-    font-size: 0.7rem;
-    font-weight: bold;
-  }
+.channelCard:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 5px 15px rgba(0, 255, 255, 0.2);
+}
 
-  .streamTitle {
-    font-size: 0.9rem;
-    color: #b0b0b0;
-    text-align: center;
-    line-height: 1.3;
-    margin: 0;
-  }
+.channelAvatar {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  margin-bottom: 15px;
+  align-self: center;
+  border: 3px solid #4f4f4f;
+}
 
-  .errorText {
-    color: #ff4d4d;
-  }
- 
+.channelInfo {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.channelName {
+  font-weight: bold;
+  font-size: 1.1rem;
+}
+
+.liveIndicator {
+  background-color: #e91916;
+  color: white;
+  padding: 3px 8px;
+  border-radius: 4px;
+  font-size: 0.7rem;
+  font-weight: bold;
+}
+
+.streamTitle {
+  font-size: 0.9rem;
+  color: #b0b0b0;
+  text-align: center;
+  line-height: 1.3;
+  margin: 0;
+}
+
+.errorText {
+  color: #ff4d4d;
+}

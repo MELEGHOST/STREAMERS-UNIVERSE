@@ -9,12 +9,19 @@ export default function I18nProvider({ children }) {
     // 1) Уважаем сохранённый язык (i18nextLng), если он есть
     let stored = null;
     try {
-      stored = localStorage.getItem('i18nextLng') || localStorage.getItem('app:lang');
+      stored =
+        localStorage.getItem('i18nextLng') || localStorage.getItem('app:lang');
     } catch {}
 
     // 2) Иначе берём из браузера
     const nav = (navigator.language || 'en').toLowerCase();
-    const normalizedFromNav = nav.startsWith('ru') ? 'ru' : nav.startsWith('uk') ? 'uk' : nav.startsWith('be') ? 'be' : 'en';
+    const normalizedFromNav = nav.startsWith('ru')
+      ? 'ru'
+      : nav.startsWith('uk')
+        ? 'uk'
+        : nav.startsWith('be')
+          ? 'be'
+          : 'en';
 
     const target = (stored && stored.split('-')[0]) || normalizedFromNav;
 
@@ -27,7 +34,11 @@ export default function I18nProvider({ children }) {
 
     // 3) Слушаем смену языка в других вкладках
     const onStorage = (e) => {
-      if (e.key === 'i18nextLng' && e.newValue && i18n.language !== e.newValue) {
+      if (
+        e.key === 'i18nextLng' &&
+        e.newValue &&
+        i18n.language !== e.newValue
+      ) {
         i18n.changeLanguage(e.newValue).catch(() => {});
       }
     };

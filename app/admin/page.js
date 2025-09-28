@@ -32,9 +32,12 @@ export default function AdminPage() {
     <div className={styles.container}>
       <h1>Админ-панель</h1>
       <p>Добро пожаловать в панель управления.</p>
-       <button onClick={() => router.push('/menu')} className={styles.backButton}>
+      <button
+        onClick={() => router.push('/menu')}
+        className={styles.backButton}
+      >
         &larr; Назад в меню
       </button>
     </div>
   );
-} 
+}

@@ -7,11 +7,14 @@ export async function POST(req) {
     const apiKey = process.env.OPENROUTER_API_KEY || process.env.OPENAI_API_KEY;
     if (!apiKey) {
       console.error('OPENROUTER_API_KEY missing!');
-      return NextResponse.json({ error: 'OPENROUTER_API_KEY is not configured.' }, { status: 500 });
+      return NextResponse.json(
+        { error: 'OPENROUTER_API_KEY is not configured.' },
+        { status: 500 }
+      );
     }
     const openai = new OpenAI({
       apiKey,
-      baseURL: 'https://openrouter.ai/api/v1'
+      baseURL: 'https://openrouter.ai/api/v1',
     });
     const { title } = await req.json();
     if (!title) {
@@ -20,14 +23,23 @@ export async function POST(req) {
     const stream = openai.beta.chat.completions.stream({
       model: 'openai/gpt-4-turbo-preview',
       messages: [
-        { role: 'system', content: oneLine`You are a helpful review generator.` },
-        { role: 'user', content: stripIndent`Generate a sample review for ${title}.` }
+        {
+          role: 'system',
+          content: oneLine`You are a helpful review generator.`,
+        },
+        {
+          role: 'user',
+          content: stripIndent`Generate a sample review for ${title}.`,
+        },
       ],
       stream: true,
     });
     return new Response(stream.toReadableStream());
   } catch (error) {
     console.error('Error generating review:', error);
-    return NextResponse.json({ error: 'Failed to generate review.' }, { status: 500 });
+    return NextResponse.json(
+      { error: 'Failed to generate review.' },
+      { status: 500 }
+    );
   }
-} 
+}

@@ -1,259 +1,264 @@
 /* Стили для страницы модерации */
 .title {
-    text-align: center;
-    margin-bottom: 2rem;
-    color: var(--primary-color);
+  text-align: center;
+  margin-bottom: 2rem;
+  color: var(--primary-color);
 }
 
 .noReviewsMessage {
-    text-align: center;
-    color: var(--secondary-text-color);
-    margin-top: 3rem;
+  text-align: center;
+  color: var(--secondary-text-color);
+  margin-top: 3rem;
 }
 
 .reviewsGrid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(350px, 1fr)); /* Адаптивная сетка */
-    gap: 1.5rem;
+  display: grid;
+  grid-template-columns: repeat(
+    auto-fill,
+    minmax(350px, 1fr)
+  ); /* Адаптивная сетка */
+  gap: 1.5rem;
 }
 
 .reviewCard {
-    position: relative; /* Для позиционирования лоадера */
-    background-color: var(--card-bg-color);
-    border: 1px solid var(--border-color);
-    border-radius: 8px;
-    padding: 1.5rem;
-    display: flex;
-    flex-direction: column;
-    gap: 1rem;
-    transition: opacity 0.3s ease;
+  position: relative; /* Для позиционирования лоадера */
+  background-color: var(--card-bg-color);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  padding: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  transition: opacity 0.3s ease;
 }
 
 .reviewCard.updating {
-    opacity: 0.6;
-    pointer-events: none; /* Блокируем взаимодействие во время обновления */
+  opacity: 0.6;
+  pointer-events: none; /* Блокируем взаимодействие во время обновления */
 }
 
 .cardLoader {
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background-color: rgba(0, 0, 0, 0.5);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    border-radius: 8px;
-    z-index: 5;
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  z-index: 5;
 }
 
 /* Используем стили спиннера из globals.css, но поменьше */
 .spinner-small {
-    width: 30px;
-    height: 30px;
-    border: 4px solid rgba(255, 255, 255, 0.3);
-    border-top-color: #fff;
-    border-radius: 50%;
-    animation: spin 1s linear infinite;
+  width: 30px;
+  height: 30px;
+  border: 4px solid rgba(255, 255, 255, 0.3);
+  border-top-color: #fff;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
 }
 
 /* Стили для мета-информации */
 .reviewMeta {
-    display: flex;
-    flex-direction: column;
-    gap: 0.5rem;
-    font-size: 0.9rem;
-    color: var(--secondary-text-color);
-    padding-bottom: 1rem;
-    border-bottom: 1px dashed var(--border-color);
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  font-size: 0.9rem;
+  color: var(--secondary-text-color);
+  padding-bottom: 1rem;
+  border-bottom: 1px dashed var(--border-color);
 }
 
 .reviewMeta span b {
-    color: var(--text-color); /* Выделяем заголовки */
+  color: var(--text-color); /* Выделяем заголовки */
 }
 
 .aiBadge {
-    background-color: var(--primary-color);
-    color: white;
-    padding: 0.2rem 0.5rem;
-    border-radius: 4px;
-    font-size: 0.8rem;
-    font-weight: bold;
-    align-self: flex-start; /* Чтобы не растягивался */
+  background-color: var(--primary-color);
+  color: white;
+  padding: 0.2rem 0.5rem;
+  border-radius: 4px;
+  font-size: 0.8rem;
+  font-weight: bold;
+  align-self: flex-start; /* Чтобы не растягивался */
 }
 
 .reviewImage {
-    max-width: 100%;
-    height: auto;
-    max-height: 200px; /* Ограничиваем высоту картинки */
-    object-fit: cover;
-    border-radius: 4px;
-    margin-top: 0.5rem;
+  max-width: 100%;
+  height: auto;
+  max-height: 200px; /* Ограничиваем высоту картинки */
+  object-fit: cover;
+  border-radius: 4px;
+  margin-top: 0.5rem;
 }
 
 .reviewText {
-    flex-grow: 1; /* Растягиваем текст, чтобы кнопки были внизу */
-    line-height: 1.6;
-    margin: 0;
+  flex-grow: 1; /* Растягиваем текст, чтобы кнопки были внизу */
+  line-height: 1.6;
+  margin: 0;
 }
 
 .sourceInfo {
-    font-size: 0.85rem;
-    color: var(--accent-color);
-    margin-top: 0.5rem;
+  font-size: 0.85rem;
+  color: var(--accent-color);
+  margin-top: 0.5rem;
 }
 
 .sourceInfo i {
-    color: var(--secondary-text-color);
+  color: var(--secondary-text-color);
 }
 
 /* Стили кнопок действий */
 .actions {
-    display: flex;
-    justify-content: flex-end; /* Кнопки справа */
-    gap: 0.75rem;
-    margin-top: 1rem;
-    padding-top: 1rem;
-    border-top: 1px solid var(--border-color);
+  display: flex;
+  justify-content: flex-end; /* Кнопки справа */
+  gap: 0.75rem;
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--border-color);
 }
 
 .actionButton {
-    padding: 0.6rem 1.2rem;
-    border: none;
-    border-radius: 5px;
-    cursor: pointer;
-    font-weight: bold;
-    transition: background-color 0.2s ease, opacity 0.2s ease;
+  padding: 0.6rem 1.2rem;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  font-weight: bold;
+  transition:
+    background-color 0.2s ease,
+    opacity 0.2s ease;
 }
 
 .actionButton:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
 .approveButton {
-    background-color: #28a745; /* Зеленый */
-    color: white;
+  background-color: #28a745; /* Зеленый */
+  color: white;
 }
 
 .approveButton:hover:not(:disabled) {
-    background-color: #218838;
+  background-color: #218838;
 }
 
 .rejectButton {
-    background-color: #dc3545; /* Красный */
-    color: white;
+  background-color: #dc3545; /* Красный */
+  color: white;
 }
 
 .rejectButton:hover:not(:disabled) {
-    background-color: #c82333;
+  background-color: #c82333;
 }
 
 .reviewsTableContainer {
-    overflow-x: auto; /* Добавляем горизонтальный скролл для таблицы */
-    background-color: var(--background-secondary);
-    border: 1px solid var(--border-secondary);
-    border-radius: var(--border-radius-lg);
-    padding: 0.5rem;
+  overflow-x: auto; /* Добавляем горизонтальный скролл для таблицы */
+  background-color: var(--background-secondary);
+  border: 1px solid var(--border-secondary);
+  border-radius: var(--border-radius-lg);
+  padding: 0.5rem;
 }
 
 .reviewsTable {
-    width: 100%;
-    border-collapse: collapse;
-    font-size: 0.9rem;
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9rem;
 }
 
 .reviewsTable th,
 .reviewsTable td {
-    padding: 0.8rem 1rem;
-    text-align: left;
-    border-bottom: 1px solid var(--border-primary);
-    vertical-align: top; /* Выравниваем по верху */
+  padding: 0.8rem 1rem;
+  text-align: left;
+  border-bottom: 1px solid var(--border-primary);
+  vertical-align: top; /* Выравниваем по верху */
 }
 
 .reviewsTable th {
-    color: var(--foreground-secondary);
-    font-weight: 600;
-    white-space: nowrap; /* Запрещаем перенос заголовков */
+  color: var(--foreground-secondary);
+  font-weight: 600;
+  white-space: nowrap; /* Запрещаем перенос заголовков */
 }
 
 .reviewsTable tbody tr:last-child td {
-    border-bottom: none;
+  border-bottom: none;
 }
 
 .reviewsTable td a {
-    color: var(--accent-secondary);
-    text-decoration: none;
+  color: var(--accent-secondary);
+  text-decoration: none;
 }
 
 .reviewsTable td a:hover {
-    text-decoration: underline;
+  text-decoration: underline;
 }
 
 /* Стили для просмотра сгенерированного текста */
 .reviewsTable details {
-    cursor: pointer;
+  cursor: pointer;
 }
 .reviewsTable details summary {
-    color: var(--foreground-secondary);
-    font-style: italic;
-    font-size: 0.85rem;
+  color: var(--foreground-secondary);
+  font-style: italic;
+  font-size: 0.85rem;
 }
 .generatedTextPreview {
-    margin-top: 0.5rem;
-    padding: 0.5rem;
-    background-color: var(--background-tertiary);
-    border-radius: var(--border-radius-sm);
-    max-height: 150px; /* Ограничиваем высоту */
-    overflow-y: auto; /* Добавляем скролл, если текст длинный */
-    font-size: 0.85rem;
-    white-space: pre-wrap;
-    line-height: 1.5;
-    color: var(--foreground-secondary);
+  margin-top: 0.5rem;
+  padding: 0.5rem;
+  background-color: var(--background-tertiary);
+  border-radius: var(--border-radius-sm);
+  max-height: 150px; /* Ограничиваем высоту */
+  overflow-y: auto; /* Добавляем скролл, если текст длинный */
+  font-size: 0.85rem;
+  white-space: pre-wrap;
+  line-height: 1.5;
+  color: var(--foreground-secondary);
 }
 
 /* Кнопки действий в таблице */
 .actionButtons {
-    display: flex;
-    gap: 0.5rem;
-    flex-wrap: wrap; /* Перенос кнопок */
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap; /* Перенос кнопок */
 }
 
 .actionButton {
-    padding: 0.4em 0.8em;
-    font-size: 0.85rem;
-    border-radius: var(--border-radius-sm);
-    cursor: pointer;
-    border: 1px solid var(--border-primary);
-    background-color: var(--background-tertiary);
-    color: var(--foreground-secondary);
-    font-weight: 500;
-    transition: all 0.2s ease;
+  padding: 0.4em 0.8em;
+  font-size: 0.85rem;
+  border-radius: var(--border-radius-sm);
+  cursor: pointer;
+  border: 1px solid var(--border-primary);
+  background-color: var(--background-tertiary);
+  color: var(--foreground-secondary);
+  font-weight: 500;
+  transition: all 0.2s ease;
 }
 
 .actionButton:hover {
-    background-color: var(--border-primary);
-    border-color: var(--border-secondary);
-    color: var(--foreground-primary);
+  background-color: var(--border-primary);
+  border-color: var(--border-secondary);
+  color: var(--foreground-primary);
 }
 
 .approveButton {
-    border-color: hsla(from var(--success-color) h s l / 0.5);
-    color: var(--success-color);
+  border-color: hsla(from var(--success-color) h s l / 0.5);
+  color: var(--success-color);
 }
 .approveButton:hover {
-    background-color: hsla(from var(--success-color) h s l / 0.1);
-    border-color: var(--success-color);
-    color: var(--success-color);
+  background-color: hsla(from var(--success-color) h s l / 0.1);
+  border-color: var(--success-color);
+  color: var(--success-color);
 }
 
 .rejectButton {
-    border-color: hsla(from var(--error-color) h s l / 0.5);
-    color: var(--error-color);
+  border-color: hsla(from var(--error-color) h s l / 0.5);
+  color: var(--error-color);
 }
 .rejectButton:hover {
-    background-color: hsla(from var(--error-color) h s l / 0.1);
-    border-color: var(--error-color);
-    color: var(--error-color);
-} 
+  background-color: hsla(from var(--error-color) h s l / 0.1);
+  border-color: var(--error-color);
+  color: var(--error-color);
+}

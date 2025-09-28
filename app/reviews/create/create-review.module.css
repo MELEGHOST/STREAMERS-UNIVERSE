@@ -1,230 +1,238 @@
 /* Стили для страницы создания отзыва */
 .title {
-    text-align: center;
-    margin-bottom: 2rem;
-    font-size: 1.8rem;
-    color: var(--foreground-primary);
+  text-align: center;
+  margin-bottom: 2rem;
+  font-size: 1.8rem;
+  color: var(--foreground-primary);
 }
 
 .container {
-    padding: 80px 20px 20px; /* Add top padding to not overlap with back button */
-    max-width: 600px;
-    margin: 0 auto;
-    color: var(--tg-theme-text-color);
-    background-color: var(--tg-theme-bg-color);
+  padding: 80px 20px 20px; /* Add top padding to not overlap with back button */
+  max-width: 600px;
+  margin: 0 auto;
+  color: var(--tg-theme-text-color);
+  background-color: var(--tg-theme-bg-color);
 }
 
 .form {
-    display: flex;
-    flex-direction: column;
-    gap: 20px; /* Увеличим немного отступ */
+  display: flex;
+  flex-direction: column;
+  gap: 20px; /* Увеличим немного отступ */
 }
 
 .form h2 {
-    margin-top: 0;
-    margin-bottom: 1.5rem;
-    font-size: 1.4rem;
-    color: var(--foreground-primary);
-    border-bottom: 1px solid var(--border-primary);
-    padding-bottom: 0.5rem;
+  margin-top: 0;
+  margin-bottom: 1.5rem;
+  font-size: 1.4rem;
+  color: var(--foreground-primary);
+  border-bottom: 1px solid var(--border-primary);
+  padding-bottom: 0.5rem;
 }
 
 .formGrid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-    gap: 1.5rem;
-    margin-bottom: 1.5rem;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 1.5rem;
+  margin-bottom: 1.5rem;
 }
 
 .formGroup {
-    display: flex;
-    flex-direction: column;
-    gap: 8px; /* Отступ между label и input */
+  display: flex;
+  flex-direction: column;
+  gap: 8px; /* Отступ между label и input */
 }
 
 .label {
-    font-weight: bold;
-    color: var(--tg-theme-hint-color); /* Сделаем метки чуть менее яркими */
-    font-size: 0.9em;
+  font-weight: bold;
+  color: var(--tg-theme-hint-color); /* Сделаем метки чуть менее яркими */
+  font-size: 0.9em;
 }
 
 .inputField,
 .textareaField,
 .selectInput {
-    padding: 12px 15px; /* Увеличим паддинги */
-    border: 1px solid var(--tg-theme-hint-color);
-    border-radius: 8px;
-    background-color: var(--tg-theme-secondary-bg-color); /* Используем вторичный фон для полей */
-    color: var(--tg-theme-text-color);
-    font-size: 1em;
-    width: 100%;
-    box-sizing: border-box; /* Важно для правильного расчета ширины */
-    transition: border-color 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+  padding: 12px 15px; /* Увеличим паддинги */
+  border: 1px solid var(--tg-theme-hint-color);
+  border-radius: 8px;
+  background-color: var(
+    --tg-theme-secondary-bg-color
+  ); /* Используем вторичный фон для полей */
+  color: var(--tg-theme-text-color);
+  font-size: 1em;
+  width: 100%;
+  box-sizing: border-box; /* Важно для правильного расчета ширины */
+  transition:
+    border-color 0.2s ease-in-out,
+    box-shadow 0.2s ease-in-out;
 }
 
 .inputField:focus,
 .textareaField:focus,
 .selectInput:focus {
-    outline: none;
-    border-color: var(--tg-theme-button-color);
-    box-shadow: 0 0 0 2px rgba(var(--tg-theme-button-rgb), 0.3); /* Добавим тень при фокусе */
+  outline: none;
+  border-color: var(--tg-theme-button-color);
+  box-shadow: 0 0 0 2px rgba(var(--tg-theme-button-rgb), 0.3); /* Добавим тень при фокусе */
 }
 
 .textareaField {
-    min-height: 120px;
-    resize: vertical;
+  min-height: 120px;
+  resize: vertical;
 }
 
 /* Стили для выбора рейтинга */
 .ratingContainer {
-    display: flex;
-    align-items: center;
-    gap: 5px;
+  display: flex;
+  align-items: center;
+  gap: 5px;
 }
 
 .star {
-    font-size: 2em;
-    color: var(--tg-theme-hint-color); /* Неактивная звезда */
-    cursor: pointer;
-    transition: color 0.2s ease-in-out;
+  font-size: 2em;
+  color: var(--tg-theme-hint-color); /* Неактивная звезда */
+  cursor: pointer;
+  transition: color 0.2s ease-in-out;
 }
 
 .star.filled {
-    color: #FFD700; /* Золотой цвет для активной звезды */
+  color: #ffd700; /* Золотой цвет для активной звезды */
 }
 
 .ratingValue {
-    font-weight: bold;
-    margin-left: 10px;
-    color: var(--tg-theme-text-color);
+  font-weight: bold;
+  margin-left: 10px;
+  color: var(--tg-theme-text-color);
 }
 
 .imagePreviewContainer {
-    margin-top: 10px;
-    text-align: center; /* Центрируем превью */
+  margin-top: 10px;
+  text-align: center; /* Центрируем превью */
 }
 
 .imagePreview {
-    max-width: 100%;
-    max-height: 200px;
-    border-radius: 8px;
-    object-fit: contain; /* Чтобы картинка вписывалась */
-    border: 1px solid var(--tg-theme-hint-color);
+  max-width: 100%;
+  max-height: 200px;
+  border-radius: 8px;
+  object-fit: contain; /* Чтобы картинка вписывалась */
+  border: 1px solid var(--tg-theme-hint-color);
 }
 
 .fileInput {
-    /* Можно скрыть стандартный input и стилизовать label */
-    /* Или оставить как есть для простоты */
-    padding: 10px 0;
-    color: var(--tg-theme-link-color);
+  /* Можно скрыть стандартный input и стилизовать label */
+  /* Или оставить как есть для простоты */
+  padding: 10px 0;
+  color: var(--tg-theme-link-color);
 }
 
 .buttonGroup {
-    display: flex;
-    justify-content: space-between; /* Разносим кнопки по краям */
-    gap: 15px; /* Отступ между кнопками */
-    margin-top: 15px; /* Отступ сверху */
+  display: flex;
+  justify-content: space-between; /* Разносим кнопки по краям */
+  gap: 15px; /* Отступ между кнопками */
+  margin-top: 15px; /* Отступ сверху */
 }
 
 .aiButtonGroup {
-    display: flex;
-    justify-content: flex-end; /* Кнопку AI вправо */
-    margin-bottom: -10px; /* Компенсируем лишний отступ */
+  display: flex;
+  justify-content: flex-end; /* Кнопку AI вправо */
+  margin-bottom: -10px; /* Компенсируем лишний отступ */
 }
 
 .aiButton {
-    /* Можно добавить специфичные стили для кнопки AI */
-    font-size: 0.9em;
-    padding: 8px 12px;
+  /* Можно добавить специфичные стили для кнопки AI */
+  font-size: 0.9em;
+  padding: 8px 12px;
 }
 
 .errorMessage,
 .successMessage {
-    text-align: center;
-    padding: 10px;
-    border-radius: 8px;
-    margin-top: 10px;
+  text-align: center;
+  padding: 10px;
+  border-radius: 8px;
+  margin-top: 10px;
 }
 
 .errorMessage {
-    color: var(--tg-theme-destructive-text-color);
-    background-color: rgba(var(--tg-theme-destructive-rgb), 0.1);
-    border: 1px solid var(--tg-theme-destructive-text-color);
+  color: var(--tg-theme-destructive-text-color);
+  background-color: rgba(var(--tg-theme-destructive-rgb), 0.1);
+  border: 1px solid var(--tg-theme-destructive-text-color);
 }
 
 .successMessage {
-    color: #2E7D32; /* Зеленый цвет для успеха */
-    background-color: rgba(46, 125, 50, 0.1);
-    border: 1px solid #2E7D32;
+  color: #2e7d32; /* Зеленый цвет для успеха */
+  background-color: rgba(46, 125, 50, 0.1);
+  border: 1px solid #2e7d32;
 }
 
 /* Адаптивность */
 @media (max-width: 768px) {
-    /* Дополнительные стили для планшетов, если нужны */
-    .container {
-        max-width: 95%; /* Чуть шире на планшетах */
-    }
+  /* Дополнительные стили для планшетов, если нужны */
+  .container {
+    max-width: 95%; /* Чуть шире на планшетах */
+  }
 }
 
 @media (max-width: 600px) {
-    .container {
-        padding: 15px;
-        max-width: 100%; /* На мобилках занимает всю ширину */
-    }
+  .container {
+    padding: 15px;
+    max-width: 100%; /* На мобилках занимает всю ширину */
+  }
 
-    .form {
-        gap: 15px;
-    }
-    
-    .inputField,
-    .textareaField,
-    .selectInput {
-        padding: 10px 12px; /* Чуть меньше паддинги полей */
-        font-size: 0.95em;
-    }
-    
-    .textareaField {
-        min-height: 100px;
-    }
-    
-    .star {
-        font-size: 1.8em; /* Звезды чуть меньше */
-    }
+  .form {
+    gap: 15px;
+  }
 
-    .buttonGroup {
-        flex-direction: column-reverse; /* Кнопки друг под другом, основная снизу */
-        gap: 10px;
-    }
+  .inputField,
+  .textareaField,
+  .selectInput {
+    padding: 10px 12px; /* Чуть меньше паддинги полей */
+    font-size: 0.95em;
+  }
 
-    .buttonGroup > * { /* Делаем кнопки на всю ширину */
-       width: 100%;
-    }
-    
-    .aiButtonGroup {
-       /* Можно тоже сделать кнопку во всю ширину или оставить справа */
-    }
+  .textareaField {
+    min-height: 100px;
+  }
+
+  .star {
+    font-size: 1.8em; /* Звезды чуть меньше */
+  }
+
+  .buttonGroup {
+    flex-direction: column-reverse; /* Кнопки друг под другом, основная снизу */
+    gap: 10px;
+  }
+
+  .buttonGroup > * {
+    /* Делаем кнопки на всю ширину */
+    width: 100%;
+  }
+
+  .aiButtonGroup {
+    /* Можно тоже сделать кнопку во всю ширину или оставить справа */
+  }
 }
 
 /* Кнопка отправки */
 .submitButton {
-    padding: 0.8em 1.5em;
-    font-size: 1rem;
-    border-radius: var(--border-radius);
-    cursor: pointer;
-    border: none;
-    background-color: var(--accent-primary);
-    color: var(--background-primary);
-    font-weight: 500;
-    transition: background-color 0.2s ease, opacity 0.2s ease, transform 0.1s ease;
-    display: block; /* Делаем блочной */
-    width: fit-content; /* Ширина по контенту */
-    margin-top: 1rem;
-    margin-left: auto; /* Сдвигаем вправо */
-    margin-right: 0;
+  padding: 0.8em 1.5em;
+  font-size: 1rem;
+  border-radius: var(--border-radius);
+  cursor: pointer;
+  border: none;
+  background-color: var(--accent-primary);
+  color: var(--background-primary);
+  font-weight: 500;
+  transition:
+    background-color 0.2s ease,
+    opacity 0.2s ease,
+    transform 0.1s ease;
+  display: block; /* Делаем блочной */
+  width: fit-content; /* Ширина по контенту */
+  margin-top: 1rem;
+  margin-left: auto; /* Сдвигаем вправо */
+  margin-right: 0;
 }
 
 .submitButton:hover:not(:disabled) {
-    background-color: hsl(from var(--accent-primary) h s calc(l * 1.1));
+  background-color: hsl(from var(--accent-primary) h s calc(l * 1.1));
 }
 
 .submitButton:disabled {
@@ -235,99 +243,104 @@
 }
 
 .submitButton:active:not(:disabled) {
-    transform: scale(0.98);
+  transform: scale(0.98);
 }
 
 /* Добавляем стили для вторичной кнопки (назад) */
 .secondaryButton {
-    background-color: var(--tg-theme-secondary-bg-color);
-    color: var(--tg-theme-button-color); /* Цвет текста как у основной кнопки */
-    border: 1px solid var(--tg-theme-button-color); /* Рамка в цвет основной кнопки */
+  background-color: var(--tg-theme-secondary-bg-color);
+  color: var(--tg-theme-button-color); /* Цвет текста как у основной кнопки */
+  border: 1px solid var(--tg-theme-button-color); /* Рамка в цвет основной кнопки */
 }
 
 .secondaryButton:hover:not(:disabled) {
-    background-color: rgba(var(--tg-theme-button-rgb), 0.1); /* Легкий фон при наведении */
-    color: var(--tg-theme-button-color);
+  background-color: rgba(
+    var(--tg-theme-button-rgb),
+    0.1
+  ); /* Легкий фон при наведении */
+  color: var(--tg-theme-button-color);
 }
 
 .secondaryButton:disabled {
-    background-color: var(--tg-theme-secondary-bg-color);
-    color: var(--tg-theme-hint-color); /* Бледный цвет текста */
-    border-color: var(--tg-theme-hint-color); /* Бледная рамка */
-    cursor: not-allowed;
-    opacity: 0.7;
+  background-color: var(--tg-theme-secondary-bg-color);
+  color: var(--tg-theme-hint-color); /* Бледный цвет текста */
+  border-color: var(--tg-theme-hint-color); /* Бледная рамка */
+  cursor: not-allowed;
+  opacity: 0.7;
 }
 
 .secondaryButton:active:not(:disabled) {
-    background-color: rgba(var(--tg-theme-button-rgb), 0.2);
-    transform: scale(0.98);
+  background-color: rgba(var(--tg-theme-button-rgb), 0.2);
+  transform: scale(0.98);
 }
 
 /* Разделитель */
 .divider {
-    border: none;
-    border-top: 1px solid var(--border-secondary);
-    margin: 3rem 0;
+  border: none;
+  border-top: 1px solid var(--border-secondary);
+  margin: 3rem 0;
 }
 
 /* Дисклеймер для AI */
 .aiDisclaimer {
-    font-size: 0.9rem;
-    color: var(--tg-theme-hint-color);
-    background-color: var(--tg-theme-secondary-bg-color);
-    padding: 0.8rem 1rem;
-    border-radius: 8px;
-    border: 1px solid var(--tg-theme-hint-color);
-    margin-bottom: 1.5rem;
+  font-size: 0.9rem;
+  color: var(--tg-theme-hint-color);
+  background-color: var(--tg-theme-secondary-bg-color);
+  padding: 0.8rem 1rem;
+  border-radius: 8px;
+  border: 1px solid var(--tg-theme-hint-color);
+  margin-bottom: 1.5rem;
 }
 
 .fileName {
-    display: inline-block;
-    margin-top: 5px; /* Отступ сверху */
-    font-size: 0.9em;
-    color: var(--tg-theme-hint-color);
-    font-style: italic;
+  display: inline-block;
+  margin-top: 5px; /* Отступ сверху */
+  font-size: 0.9em;
+  color: var(--tg-theme-hint-color);
+  font-style: italic;
 }
 
 .orSeparator {
-    display: block;
-    text-align: center;
-    margin: 10px 0;
-    font-weight: bold;
-    color: var(--tg-theme-hint-color);
+  display: block;
+  text-align: center;
+  margin: 10px 0;
+  font-weight: bold;
+  color: var(--tg-theme-hint-color);
 }
 
 .selectInput {
-    padding: 12px 15px;
-    border: 1px solid var(--tg-theme-hint-color);
-    border-radius: 8px;
-    background-color: var(--tg-theme-secondary-bg-color);
-    color: var(--tg-theme-text-color);
-    font-size: 1em;
-    width: 100%;
-    box-sizing: border-box;
-    transition: border-color 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
-    appearance: none;
-    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236c757d' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e");
-    background-position: right 15px center;
-    background-repeat: no-repeat;
-    background-size: 1em 1em;
+  padding: 12px 15px;
+  border: 1px solid var(--tg-theme-hint-color);
+  border-radius: 8px;
+  background-color: var(--tg-theme-secondary-bg-color);
+  color: var(--tg-theme-text-color);
+  font-size: 1em;
+  width: 100%;
+  box-sizing: border-box;
+  transition:
+    border-color 0.2s ease-in-out,
+    box-shadow 0.2s ease-in-out;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236c757d' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e");
+  background-position: right 15px center;
+  background-repeat: no-repeat;
+  background-size: 1em 1em;
 }
 
 .selectInput:focus {
-    outline: none;
-    border-color: var(--tg-theme-button-color);
-    box-shadow: 0 0 0 2px rgba(var(--tg-theme-button-rgb), 0.3);
+  outline: none;
+  border-color: var(--tg-theme-button-color);
+  box-shadow: 0 0 0 2px rgba(var(--tg-theme-button-rgb), 0.3);
 }
 
 .selectInput option {
-    background-color: var(--tg-theme-secondary-bg-color);
-    color: var(--tg-theme-text-color);
+  background-color: var(--tg-theme-secondary-bg-color);
+  color: var(--tg-theme-text-color);
 }
 
 .textareaField {
-    min-height: 120px;
-    resize: vertical;
+  min-height: 120px;
+  resize: vertical;
 }
 
 .error {
@@ -359,41 +372,43 @@
 }
 
 .titleContainer {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-  }
-  
-  .titleContainer .input {
-    flex-grow: 1;
-  }
-  
-  .generateButton {
-    padding: 10px 15px;
-    border: none;
-    border-radius: 8px;
-    background-color: #8A2BE2; /* BlueViolet */
-    color: white;
-    font-weight: bold;
-    cursor: pointer;
-    transition: background-color 0.2s, transform 0.2s;
-    white-space: nowrap;
-  }
-  
-  .generateButton:hover:not(:disabled) {
-    background-color: #9932CC; /* MediumOrchid */
-    transform: scale(1.02);
-  }
-  
-  .generateButton:disabled {
-    background-color: #555;
-    cursor: not-allowed;
-  }
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
 
-  .generalError {
-    text-align: center;
-    margin-top: 15px;
-  }
+.titleContainer .input {
+  flex-grow: 1;
+}
+
+.generateButton {
+  padding: 10px 15px;
+  border: none;
+  border-radius: 8px;
+  background-color: #8a2be2; /* BlueViolet */
+  color: white;
+  font-weight: bold;
+  cursor: pointer;
+  transition:
+    background-color 0.2s,
+    transform 0.2s;
+  white-space: nowrap;
+}
+
+.generateButton:hover:not(:disabled) {
+  background-color: #9932cc; /* MediumOrchid */
+  transform: scale(1.02);
+}
+
+.generateButton:disabled {
+  background-color: #555;
+  cursor: not-allowed;
+}
+
+.generalError {
+  text-align: center;
+  margin-top: 15px;
+}
 
 .backButton {
   position: absolute;
@@ -411,4 +426,4 @@
 
 .backButton:hover {
   background: rgba(255, 255, 255, 0.2);
-} 
+}

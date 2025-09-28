@@ -14,9 +14,17 @@ async function loadBodyPix() {
     ]);
   }
   const [tf, bodyPix] = await libsPromise;
-  try { await tf.setBackend('webgl'); await tf.ready(); } catch {}
+  try {
+    await tf.setBackend('webgl');
+    await tf.ready();
+  } catch {}
   if (!netPromise) {
-    netPromise = bodyPix.load({ architecture: 'MobileNetV1', outputStride: 16, multiplier: 0.75, quantBytes: 2 });
+    netPromise = bodyPix.load({
+      architecture: 'MobileNetV1',
+      outputStride: 16,
+      multiplier: 0.75,
+      quantBytes: 2,
+    });
   }
   const net = await netPromise;
   return { tf, bodyPix, net };
@@ -25,7 +33,13 @@ async function loadBodyPix() {
 // Lightweight wrapper around BodyPix to cut out the person from an image at runtime
 // Falls back to showing the original image if the model cannot be loaded
 
-export default function SmartCutoutImage({ src, width = 300, height = 300, className, alt = 'avatar' }) {
+export default function SmartCutoutImage({
+  src,
+  width = 300,
+  height = 300,
+  className,
+  alt = 'avatar',
+}) {
   const canvasRef = useRef(null);
   const [failed, setFailed] = useState(false);
 
@@ -38,7 +52,10 @@ export default function SmartCutoutImage({ src, width = 300, height = 300, class
         const img = new Image();
         img.crossOrigin = 'anonymous';
         img.src = src;
-        await new Promise((res, rej) => { img.onload = res; img.onerror = rej; });
+        await new Promise((res, rej) => {
+          img.onload = res;
+          img.onerror = rej;
+        });
 
         if (isCancelled) return;
 
@@ -82,7 +99,8 @@ export default function SmartCutoutImage({ src, width = 300, height = 300, class
         // лёгкое «расширение» маски для устранения тонкой каймы
         try {
           const expand = document.createElement('canvas');
-          expand.width = width; expand.height = height;
+          expand.width = width;
+          expand.height = height;
           const ex = expand.getContext('2d');
           ex.drawImage(maskCanvas, 0, 0, width, height);
           ex.globalCompositeOperation = 'source-in';
@@ -101,7 +119,9 @@ export default function SmartCutoutImage({ src, width = 300, height = 300, class
       }
     }
     run();
-    return () => { isCancelled = true; };
+    return () => {
+      isCancelled = true;
+    };
   }, [src, width, height]);
 
   if (failed) {
@@ -130,7 +150,13 @@ export default function SmartCutoutImage({ src, width = 300, height = 300, class
     );
   }
 
-  return <canvas ref={canvasRef} className={className} width={width} height={height} aria-label={alt} />;
+  return (
+    <canvas
+      ref={canvasRef}
+      className={className}
+      width={width}
+      height={height}
+      aria-label={alt}
+    />
+  );
 }
-
-

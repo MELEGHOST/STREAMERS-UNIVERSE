@@ -1,113 +1,117 @@
 /* Стили для страницы достижений */
 .title {
-    text-align: center;
-    margin-bottom: 2rem;
-    font-size: 1.8rem;
-    color: var(--foreground-primary);
+  text-align: center;
+  margin-bottom: 2rem;
+  font-size: 1.8rem;
+  color: var(--foreground-primary);
 }
 
 /* Стили для вкладок */
 .tabs {
-    display: flex;
-    justify-content: center;
-    margin-bottom: 2rem;
-    border-bottom: 2px solid var(--border-secondary);
+  display: flex;
+  justify-content: center;
+  margin-bottom: 2rem;
+  border-bottom: 2px solid var(--border-secondary);
 }
 
 .tabButton {
-    padding: 0.8rem 1rem;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    font-size: 1rem;
-    cursor: pointer;
-    border: none;
-    background-color: transparent;
-    color: var(--foreground-secondary);
-    border-bottom: 3px solid transparent; /* Линия под неактивной */
-    margin-bottom: -2px; /* Чтобы линия была вровень */
-    transition: color 0.2s ease, border-color 0.2s ease;
+  padding: 0.8rem 1rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-size: 1rem;
+  cursor: pointer;
+  border: none;
+  background-color: transparent;
+  color: var(--foreground-secondary);
+  border-bottom: 3px solid transparent; /* Линия под неактивной */
+  margin-bottom: -2px; /* Чтобы линия была вровень */
+  transition:
+    color 0.2s ease,
+    border-color 0.2s ease;
 }
 
 .tabButton:hover {
-    color: var(--foreground-primary);
+  color: var(--foreground-primary);
 }
 
 .tabButton.activeTab {
-    color: var(--accent-primary);
-    border-bottom-color: var(--accent-primary); /* Активная линия */
-    font-weight: 600;
+  color: var(--accent-primary);
+  border-bottom-color: var(--accent-primary); /* Активная линия */
+  font-weight: 600;
 }
 
 /* Список достижений */
 .achievementsList {
-    display: grid;
-    gap: 1.5rem;
-    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  display: grid;
+  gap: 1.5rem;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
 }
 
 .noAchievements {
-    text-align: center;
-    color: var(--foreground-secondary);
-    margin-top: 2rem;
-    font-style: italic;
-    grid-column: 1 / -1; /* Растянуть на всю ширину грида */
+  text-align: center;
+  color: var(--foreground-secondary);
+  margin-top: 2rem;
+  font-style: italic;
+  grid-column: 1 / -1; /* Растянуть на всю ширину грида */
 }
 
 /* Карточка достижения */
 .achievementCard {
-    background-color: var(--background-secondary);
-    border: 1px solid var(--border-secondary);
-    border-radius: var(--border-radius-lg);
-    padding: 1.2rem 1.5rem;
-    display: flex;
-    align-items: center;
-    gap: 1.5rem;
-    transition: background-color 0.2s ease, border-color 0.2s ease;
+  background-color: var(--background-secondary);
+  border: 1px solid var(--border-secondary);
+  border-radius: var(--border-radius-lg);
+  padding: 1.2rem 1.5rem;
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+  transition:
+    background-color 0.2s ease,
+    border-color 0.2s ease;
 }
 
 .achievementCard.locked {
-    opacity: 1;
-    background-color: var(--background-tertiary);
-    border-color: var(--border-primary);
-    filter: brightness(0.8);
+  opacity: 1;
+  background-color: var(--background-tertiary);
+  border-color: var(--border-primary);
+  filter: brightness(0.8);
 }
 
 @media (max-width: 768px) {
-    .achievementsList {
-        grid-template-columns: 1fr;
-    }
+  .achievementsList {
+    grid-template-columns: 1fr;
+  }
 }
 
 .achievementIcon {
-    font-size: 2.5rem; /* Размер иконки */
-    flex-shrink: 0; /* Не сжимать иконку */
+  font-size: 2.5rem; /* Размер иконки */
+  flex-shrink: 0; /* Не сжимать иконку */
 }
 
 .achievementInfo {
-    flex-grow: 1;
+  flex-grow: 1;
 }
 
 .achievementName {
-    margin: 0 0 0.3rem 0;
-    font-size: 1.1rem;
-    color: var(--foreground-primary);
+  margin: 0 0 0.3rem 0;
+  font-size: 1.1rem;
+  color: var(--foreground-primary);
 }
 
 .achievementCard.locked .achievementName {
-     color: var(--foreground-secondary);
+  color: var(--foreground-secondary);
 }
 
 .achievementDescription {
-    margin: 0 0 0.5rem 0;
-    font-size: 0.9rem;
-    color: var(--foreground-secondary);
-    line-height: 1.5;
+  margin: 0 0 0.5rem 0;
+  font-size: 0.9rem;
+  color: var(--foreground-secondary);
+  line-height: 1.5;
 }
 
 .achievementCondition {
-    margin: 0;
-    font-size: 0.8rem;
-    color: var(--foreground-tertiary);
-    font-style: italic;
-} 
+  margin: 0;
+  font-size: 0.8rem;
+  color: var(--foreground-tertiary);
+  font-style: italic;
+}

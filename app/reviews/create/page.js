@@ -15,16 +15,22 @@ export default function CreateReviewPage() {
     review: '',
     rating: 0,
     age_rating: '',
-    image_url: ''
+    image_url: '',
   });
   const [errors, setErrors] = useState({});
   const [isGenerating, setIsGenerating] = useState(false);
 
-  const categoryOptions = Object.keys(categories).map(cat => ({ value: cat, label: cat }));
+  const categoryOptions = Object.keys(categories).map((cat) => ({
+    value: cat,
+    label: cat,
+  }));
 
   const handleGenerate = async () => {
     if (!formData.title) {
-      setErrors(prev => ({ ...prev, title: t('create_review.form.titleError') }));
+      setErrors((prev) => ({
+        ...prev,
+        title: t('create_review.form.titleError'),
+      }));
       return;
     }
     setIsGenerating(true);
@@ -39,7 +45,7 @@ export default function CreateReviewPage() {
         throw new Error('Failed to generate review');
       }
       const data = await response.json();
-      setFormData(prev => ({
+      setFormData((prev) => ({
         ...prev,
         category: data.category || prev.category,
         review: data.review || prev.review,
@@ -48,7 +54,10 @@ export default function CreateReviewPage() {
       }));
     } catch (error) {
       console.error(error);
-      setErrors(prev => ({ ...prev, general: t('create_review.generateError') }));
+      setErrors((prev) => ({
+        ...prev,
+        general: t('create_review.generateError'),
+      }));
     } finally {
       setIsGenerating(false);
     }
@@ -56,16 +65,16 @@ export default function CreateReviewPage() {
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setFormData(prevState => ({
+    setFormData((prevState) => ({
       ...prevState,
-      [name]: value
+      [name]: value,
     }));
   };
 
   const handleCategoryChange = (e) => {
-    setFormData(prevState => ({
+    setFormData((prevState) => ({
       ...prevState,
-      category: e.target.value
+      category: e.target.value,
     }));
   };
 
@@ -82,7 +91,7 @@ export default function CreateReviewPage() {
       </button>
       <form onSubmit={handleSubmit} className={styles.form}>
         <h2>{t('create_review.title')}</h2>
-        
+
         <div className={styles.formGroup}>
           <label htmlFor="title">{t('create_review.form.titleLabel')}</label>
           <div className={styles.titleContainer}>
@@ -95,20 +104,24 @@ export default function CreateReviewPage() {
               className={styles.input}
               placeholder={t('create_review.form.titlePlaceholder')}
             />
-            <button 
-              type="button" 
-              onClick={handleGenerate} 
+            <button
+              type="button"
+              onClick={handleGenerate}
               className={styles.generateButton}
               disabled={isGenerating || !formData.title}
             >
-              {isGenerating ? t('create_review.generatingButton') : t('create_review.generateButton')}
+              {isGenerating
+                ? t('create_review.generatingButton')
+                : t('create_review.generateButton')}
             </button>
           </div>
           <p className={styles.error}>{errors.title}</p>
         </div>
 
         <div className={styles.formGroup}>
-          <label htmlFor="category">{t('create_review.form.categoryLabel')}</label>
+          <label htmlFor="category">
+            {t('create_review.form.categoryLabel')}
+          </label>
           <select
             id="category"
             name="category"
@@ -116,8 +129,10 @@ export default function CreateReviewPage() {
             onChange={handleCategoryChange}
             className={styles.select}
           >
-            <option value="" disabled>{t('create_review.form.categoryPlaceholder')}</option>
-            {categoryOptions.map(option => (
+            <option value="" disabled>
+              {t('create_review.form.categoryPlaceholder')}
+            </option>
+            {categoryOptions.map((option) => (
               <option key={option.value} value={option.value}>
                 {option.label}
               </option>
@@ -156,7 +171,9 @@ export default function CreateReviewPage() {
         </div>
 
         <div className={styles.formGroup}>
-          <label htmlFor="age_rating">{t('create_review.form.ageRatingLabel')}</label>
+          <label htmlFor="age_rating">
+            {t('create_review.form.ageRatingLabel')}
+          </label>
           <input
             type="text"
             id="age_rating"
@@ -168,9 +185,11 @@ export default function CreateReviewPage() {
           />
           <p className={styles.error}>{errors.age_rating}</p>
         </div>
-        
+
         <div className={styles.formGroup}>
-          <label htmlFor="image_url">{t('create_review.form.imageUrlLabel')}</label>
+          <label htmlFor="image_url">
+            {t('create_review.form.imageUrlLabel')}
+          </label>
           <input
             type="text"
             id="image_url"
@@ -183,9 +202,15 @@ export default function CreateReviewPage() {
           <p className={styles.error}>{errors.image_url}</p>
         </div>
 
-        <button type="submit" className={styles.submitButton}>{t('create_review.submitButton')}</button>
-        {errors.general && <p className={`${styles.error} ${styles.generalError}`}>{errors.general}</p>}
+        <button type="submit" className={styles.submitButton}>
+          {t('create_review.submitButton')}
+        </button>
+        {errors.general && (
+          <p className={`${styles.error} ${styles.generalError}`}>
+            {errors.general}
+          </p>
+        )}
       </form>
     </div>
   );
-} 
+}

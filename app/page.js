@@ -29,7 +29,13 @@ export default function HomePage() {
   useEffect(() => {
     if (rePushTriedRef.current) return;
     const freshByQuery = searchParams.get('freshLogin') === 'true';
-    const freshBySession = (() => { try { return sessionStorage.getItem('freshLogin') === '1'; } catch { return false; } })();
+    const freshBySession = (() => {
+      try {
+        return sessionStorage.getItem('freshLogin') === '1';
+      } catch {
+        return false;
+      }
+    })();
     if ((freshByQuery || freshBySession) && !isLoading) {
       rePushTriedRef.current = true;
       const target = '/menu?freshLogin=true';
@@ -43,9 +49,9 @@ export default function HomePage() {
 
   // Простой компонент для звездного фона
   const StarryBackground = () => (
-      <div className={styles.stars}>
-        {/* <div className={styles.twinkling}></div> */}
-      </div>
+    <div className={styles.stars}>
+      {/* <div className={styles.twinkling}></div> */}
+    </div>
   );
 
   if (isLoading) {
@@ -59,26 +65,30 @@ export default function HomePage() {
 
   return (
     <div className={styles.container}>
-        <StarryBackground />
-        <div className={styles.content}>
-            <Logo width={200} height={200} className={styles.logo} />
-            
-            {error && <p className={styles.errorMessage}>{t('error')}: {error}</p>}
+      <StarryBackground />
+      <div className={styles.content}>
+        <Logo width={200} height={200} className={styles.logo} />
 
-            <div className={styles.loggedOutContent}>
-                <h2>
-                    {isAuthenticated 
-                        ? "С возвращением во Вселенную!" 
-                        : "Добро пожаловать во Вселенную Стримеров!"}
-                </h2>
-                <p>
-                    {isAuthenticated
-                        ? "Нажмите кнопку, чтобы войти в Меню"
-                        : "Нажмите кнопку, чтобы войти через Twitch"}
-                </p>
-                {isAuthenticated ? <HoldLoginButton /> : <LoginButton />}
-            </div>
+        {error && (
+          <p className={styles.errorMessage}>
+            {t('error')}: {error}
+          </p>
+        )}
+
+        <div className={styles.loggedOutContent}>
+          <h2>
+            {isAuthenticated
+              ? 'С возвращением во Вселенную!'
+              : 'Добро пожаловать во Вселенную Стримеров!'}
+          </h2>
+          <p>
+            {isAuthenticated
+              ? 'Нажмите кнопку, чтобы войти в Меню'
+              : 'Нажмите кнопку, чтобы войти через Twitch'}
+          </p>
+          {isAuthenticated ? <HoldLoginButton /> : <LoginButton />}
         </div>
+      </div>
     </div>
   );
-} 
+}

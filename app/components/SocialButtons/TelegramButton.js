@@ -25,7 +25,7 @@ const TelegramButton = ({ value, count, className }) => {
   const telegramColor = '#229ed9';
 
   return (
-    <div 
+    <div
       className={`${styles.wrapper} ${className || ''}`}
       style={{ '--color': telegramColor }}
     >
@@ -43,17 +43,29 @@ const TelegramButton = ({ value, count, className }) => {
           </div>
         </div>
         <div className={styles.text}>
-          <a href={href} target="_blank" rel="noopener noreferrer" className={styles.icon}>
+          <a
+            href={href}
+            target="_blank"
+            rel="noopener noreferrer"
+            className={styles.icon}
+          >
             <div className={styles.layer}>
               <span />
               <span />
               <span />
               <span />
               <span className={styles.svgContainer}>
-                <svg className={styles.svg} xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 240">
-                  <path fill="currentColor" d="M120,0C53.7,0,0,53.7,0,120s53.7,120,120,120s120-53.7,120-120S186.3,0,120,0z M175.3,78.1l-21.2,100.1
+                <svg
+                  className={styles.svg}
+                  xmlns="http://www.w3.org/2000/svg"
+                  viewBox="0 0 240 240"
+                >
+                  <path
+                    fill="currentColor"
+                    d="M120,0C53.7,0,0,53.7,0,120s53.7,120,120,120s120-53.7,120-120S186.3,0,120,0z M175.3,78.1l-21.2,100.1
               c-1.6,7.1-5.8,8.9-11.7,5.6l-32.4-23.9l-15.6,15.1c-1.7,1.7-3.1,3.1-6.3,3.1l2.3-32.9l59.9-54.1c2.6-2.3-0.6-3.6-4-1.3l-74,46.6
-              l-31.9-10c-6.9-2.1-7-6.9,1.5-10.2l124.6-48.1C171.2,66.5,177.2,70.4,175.3,78.1z" />
+              l-31.9-10c-6.9-2.1-7-6.9,1.5-10.2l124.6-48.1C171.2,66.5,177.2,70.4,175.3,78.1z"
+                  />
                 </svg>
               </span>
             </div>
@@ -63,6 +75,6 @@ const TelegramButton = ({ value, count, className }) => {
       </div>
     </div>
   );
-}
+};
 
-export default TelegramButton; 
+export default TelegramButton;

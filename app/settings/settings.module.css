@@ -18,7 +18,9 @@
   align-items: center;
   gap: 0.5rem;
   font-size: 0.9rem;
-  transition: background-color 0.2s ease, border-color 0.2s ease;
+  transition:
+    background-color 0.2s ease,
+    border-color 0.2s ease;
 }
 
 .backButton:hover {
@@ -77,7 +79,9 @@
   background-color: var(--background-tertiary);
   color: var(--foreground-primary);
   cursor: pointer;
-  transition: background-color 0.2s ease, border-color 0.2s ease;
+  transition:
+    background-color 0.2s ease,
+    border-color 0.2s ease;
 }
 
 .themeToggleButton:hover {
@@ -111,8 +115,8 @@
   background: #ddd;
   outline: none;
   opacity: 0.7;
-  -webkit-transition: .2s;
-  transition: opacity .2s;
+  -webkit-transition: 0.2s;
+  transition: opacity 0.2s;
   border-radius: 5px;
 }
 
@@ -125,7 +129,7 @@
   appearance: none;
   width: 20px;
   height: 20px;
-  background: #4CAF50;
+  background: #4caf50;
   cursor: pointer;
   border-radius: 50%;
 }
@@ -133,7 +137,7 @@
 .fontSizeSlider::-moz-range-thumb {
   width: 20px;
   height: 20px;
-  background: #4CAF50;
+  background: #4caf50;
   cursor: pointer;
   border-radius: 50%;
 }
@@ -149,7 +153,7 @@
 
 .fontFamilySelector:focus {
   outline: none;
-  border-color: #4CAF50;
+  border-color: #4caf50;
 }
 
 .languageSelector {
@@ -199,4 +203,4 @@
 
 .languageDropdown button:hover {
   background-color: var(--hover-bg-color);
-} 
+}

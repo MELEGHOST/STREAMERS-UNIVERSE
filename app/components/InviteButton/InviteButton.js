@@ -12,13 +12,15 @@ const InviteButton = ({ targetUserName }) => {
 
   const handleInvite = async () => {
     if (!user?.user_metadata?.provider_id) {
-      console.error('Не удалось получить ID текущего пользователя для реферальной ссылки.');
+      console.error(
+        'Не удалось получить ID текущего пользователя для реферальной ссылки.'
+      );
       // Здесь можно показать более user-friendly ошибку
       return;
     }
 
     const inviteUrl = `${window.location.origin}/?ref=${user.user_metadata.provider_id}`;
-    
+
     try {
       await navigator.clipboard.writeText(inviteUrl);
       setIsCopied(true);
@@ -35,9 +37,11 @@ const InviteButton = ({ targetUserName }) => {
       className={`${styles.inviteButton} ${isCopied ? styles.copied : ''}`}
       disabled={isCopied}
     >
-      {isCopied ? t('inviteButton.copied') : t('inviteButton.invite', { name: targetUserName })}
+      {isCopied
+        ? t('inviteButton.copied')
+        : t('inviteButton.invite', { name: targetUserName })}
     </button>
   );
 };
 
-export default InviteButton; 
+export default InviteButton;

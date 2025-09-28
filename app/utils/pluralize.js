@@ -6,7 +6,12 @@
  * @param {string} genitivePlural - Родительный падеж, множественное число (5 фолловеров)
  * @returns {string} Правильная форма слова.
  */
-export function pluralize(number, nominativeSingular, genitiveSingular, genitivePlural) {
+export function pluralize(
+  number,
+  nominativeSingular,
+  genitiveSingular,
+  genitivePlural
+) {
   if (number === null || number === undefined) {
     return genitivePlural; // Или пустую строку, если число не определено
   }
@@ -29,4 +34,4 @@ export function pluralize(number, nominativeSingular, genitiveSingular, genitive
   }
 
   return genitivePlural;
-} 
+}

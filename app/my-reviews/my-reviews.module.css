@@ -1,227 +1,236 @@
 .header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    margin-bottom: 2rem;
-    padding-bottom: 1rem;
-    border-bottom: 1px solid var(--border-color); /* Используем переменную */
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 2rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid var(--border-color); /* Используем переменную */
 }
 
 .title {
-    margin: 0;
-    font-size: 2rem;
-    color: var(--primary-color); /* Используем переменную */
+  margin: 0;
+  font-size: 2rem;
+  color: var(--primary-color); /* Используем переменную */
 }
 
 .backButton {
-    background: none;
-    border: none;
-    color: var(--secondary-text-color); /* Используем переменную */
-    font-size: 1.5rem;
-    cursor: pointer;
-    padding: 0.5rem 1rem 0.5rem 0;
-    transition: color 0.2s ease;
+  background: none;
+  border: none;
+  color: var(--secondary-text-color); /* Используем переменную */
+  font-size: 1.5rem;
+  cursor: pointer;
+  padding: 0.5rem 1rem 0.5rem 0;
+  transition: color 0.2s ease;
 }
 
 .backButton:hover {
-    color: var(--primary-color); /* Используем переменную */
+  color: var(--primary-color); /* Используем переменную */
 }
 
 .noReviewsMessage {
-    text-align: center;
-    font-size: 1.2rem;
-    color: var(--secondary-text-color); /* Используем переменную */
-    margin-top: 4rem;
+  text-align: center;
+  font-size: 1.2rem;
+  color: var(--secondary-text-color); /* Используем переменную */
+  margin-top: 4rem;
 }
 
 .reviewsList {
-    display: grid;
-    gap: 1.5rem; 
+  display: grid;
+  gap: 1.5rem;
 }
 
 .reviewCard {
-    background-color: var(--secondary-bg-color);
-    border: 1px solid var(--border-color);
-    border-radius: 8px;
-    padding: 15px;
-    margin-bottom: 20px;
-    transition: box-shadow 0.3s ease;
-    position: relative; /* Для позиционирования лоадера удаления */
-    overflow: hidden; /* Чтобы лоадер не вылезал */
+  background-color: var(--secondary-bg-color);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  padding: 15px;
+  margin-bottom: 20px;
+  transition: box-shadow 0.3s ease;
+  position: relative; /* Для позиционирования лоадера удаления */
+  overflow: hidden; /* Чтобы лоадер не вылезал */
 }
 
 .reviewCard:hover {
-    box-shadow: 0 4px 15px rgba(0, 255, 255, 0.1);
+  box-shadow: 0 4px 15px rgba(0, 255, 255, 0.1);
 }
 
 /* Стиль для карточки во время удаления */
 .reviewCard.deleting {
-    opacity: 0.6;
-    pointer-events: none; /* Блокируем взаимодействие */
+  opacity: 0.6;
+  pointer-events: none; /* Блокируем взаимодействие */
 }
 
 .reviewCard.deleting::after {
-    content: 'Удаление...'; /* Можно добавить лоадер/текст */
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background-color: rgba(0, 0, 0, 0.5);
-    color: #fff;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 1.1em;
-    z-index: 10;
+  content: 'Удаление...'; /* Можно добавить лоадер/текст */
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.1em;
+  z-index: 10;
 }
 
 .reviewHeader {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 10px;
-    flex-wrap: wrap; /* Перенос на маленьких экранах */
-    gap: 10px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+  flex-wrap: wrap; /* Перенос на маленьких экранах */
+  gap: 10px;
 }
 
 .streamerInfo {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    text-decoration: none;
-    color: var(--primary-text-color);
-    transition: color 0.2s ease;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  text-decoration: none;
+  color: var(--primary-text-color);
+  transition: color 0.2s ease;
 }
 
 .streamerInfo:hover {
-    color: var(--accent-color);
+  color: var(--accent-color);
 }
 
 .streamerAvatar {
-    border-radius: 50%;
-    border: 1px solid var(--accent-color);
+  border-radius: 50%;
+  border: 1px solid var(--accent-color);
 }
 
 .streamerName {
-    font-weight: bold;
+  font-weight: bold;
 }
 
 .reviewDate {
-    font-size: 0.9em;
-    color: var(--secondary-text-color);
-    white-space: nowrap; /* Предотвращаем перенос даты */
+  font-size: 0.9em;
+  color: var(--secondary-text-color);
+  white-space: nowrap; /* Предотвращаем перенос даты */
 }
 
 .reviewText {
-    margin-bottom: 15px;
-    line-height: 1.6;
-    color: var(--primary-text-color);
+  margin-bottom: 15px;
+  line-height: 1.6;
+  color: var(--primary-text-color);
 }
 
 /* --- Стили для кнопок действий --- */
 .reviewActions {
-    display: flex;
-    justify-content: flex-end; /* Кнопки справа */
-    gap: 10px;
-    margin-top: 15px;
-    padding-top: 10px;
-    border-top: 1px solid var(--border-color); /* Разделитель */
+  display: flex;
+  justify-content: flex-end; /* Кнопки справа */
+  gap: 10px;
+  margin-top: 15px;
+  padding-top: 10px;
+  border-top: 1px solid var(--border-color); /* Разделитель */
 }
 
 .actionButton {
-    padding: 8px 15px;
-    border: none;
-    border-radius: 5px;
-    cursor: pointer;
-    font-size: 0.9em;
-    font-weight: 500;
-    transition: background-color 0.2s ease, opacity 0.2s ease;
-    display: inline-flex;
-    align-items: center;
-    gap: 5px;
+  padding: 8px 15px;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  font-size: 0.9em;
+  font-weight: 500;
+  transition:
+    background-color 0.2s ease,
+    opacity 0.2s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
 }
 
 .actionButton:disabled {
-    cursor: not-allowed;
-    opacity: 0.6;
+  cursor: not-allowed;
+  opacity: 0.6;
 }
 
 .editButton {
-    background-color: #4a90e2; /* Синий */
-    color: white;
+  background-color: #4a90e2; /* Синий */
+  color: white;
 }
 
 .editButton:hover:not(:disabled) {
-    background-color: #357abd;
+  background-color: #357abd;
 }
 
 .deleteButton {
-    background-color: #e94f4f; /* Красный */
-    color: white;
+  background-color: #e94f4f; /* Красный */
+  color: white;
 }
 
 .deleteButton:hover:not(:disabled) {
-    background-color: #d43f3f;
+  background-color: #d43f3f;
 }
 
 /* --- Стили для скелета загрузки --- */
 .skeleton {
-    position: relative;
-    overflow: hidden;
-    background-color: var(--background-secondary-alt); /* Цвет фона скелета */
+  position: relative;
+  overflow: hidden;
+  background-color: var(--background-secondary-alt); /* Цвет фона скелета */
 }
 
 .skeleton::after {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    transform: translateX(-100%);
-    background: linear-gradient(90deg, transparent, hsla(from var(--foreground-primary) h s l / 0.08), transparent);
-    animation: skeleton-loading 1.5s infinite;
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  transform: translateX(-100%);
+  background: linear-gradient(
+    90deg,
+    transparent,
+    hsla(from var(--foreground-primary) h s l / 0.08),
+    transparent
+  );
+  animation: skeleton-loading 1.5s infinite;
 }
 
 @keyframes skeleton-loading {
-    100% {
-        transform: translateX(100%);
-    }
+  100% {
+    transform: translateX(100%);
+  }
 }
 
 .skeleton .skeletonAvatar {
-    width: 40px;
-    height: 40px;
-    border-radius: 50%;
-    background-color: var(--background-tertiary); /* Более темный фон для элементов */
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background-color: var(
+    --background-tertiary
+  ); /* Более темный фон для элементов */
 }
 
 .skeleton .skeletonText {
-    height: 1em;
-    background-color: var(--background-tertiary);
-    border-radius: 4px;
+  height: 1em;
+  background-color: var(--background-tertiary);
+  border-radius: 4px;
 }
 
 .skeleton .skeletonButton {
-    width: 100px;
-    height: 38px; /* Примерная высота кнопки */
-    background-color: var(--background-tertiary);
-    border-radius: 8px;
+  width: 100px;
+  height: 38px; /* Примерная высота кнопки */
+  background-color: var(--background-tertiary);
+  border-radius: 8px;
 }
 
 /* --- Стили для пустого состояния --- */
 .noReviewsContainer {
-    text-align: center;
-    padding: 3rem 1rem;
-    background-color: var(--background-secondary);
-    border: 1px dashed var(--border-primary);
-    border-radius: var(--border-radius-lg);
-    margin-top: 2rem;
+  text-align: center;
+  padding: 3rem 1rem;
+  background-color: var(--background-secondary);
+  border: 1px dashed var(--border-primary);
+  border-radius: var(--border-radius-lg);
+  margin-top: 2rem;
 }
 
 .noReviewsMessage {
-    margin-bottom: 1.5rem;
-    font-size: 1.1rem;
-    color: var(--foreground-secondary);
+  margin-bottom: 1.5rem;
+  font-size: 1.1rem;
+  color: var(--foreground-secondary);
 }

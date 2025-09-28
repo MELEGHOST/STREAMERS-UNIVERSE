@@ -128,7 +128,6 @@
   fill: currentColor;
 }
 
-
 /* Текст под иконкой */
 .textLabel {
   text-align: center;
@@ -141,7 +140,6 @@
   overflow: hidden;
   text-overflow: ellipsis; /* Если текст не влезает */
 }
-
 
 /* Дополнительные стили для тултипа */
 .tooltip .profile .user {
@@ -182,4 +180,4 @@
 .textWrapper {
   /* This class is used in the JS but seems to only be a semantic wrapper.
      If it needs styles, they can be added here. */
-} 
+}
