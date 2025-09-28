@@ -27,7 +27,7 @@ const fetcher = (url, token) => fetch(url, {
 }).then(res => res.json());
 
 function ProfilePageContent() {
-    const { t } = useTranslation();
+    const { t, i18n } = useTranslation();
     const { user, supabase, isLoading: authLoading, userRole, signOut } = useAuth();
     const router = useRouter();
     const twitchUserId = user?.user_metadata?.provider_id;
@@ -138,12 +138,14 @@ function ProfilePageContent() {
 
     // --- Логика виджетов ---
     const StatsWidget = () => {
+        const localeMap = { ru: 'ru-RU', en: 'en-US', uk: 'uk-UA', be: 'be-BY' };
+        const numberFormatter = new Intl.NumberFormat(localeMap[i18n.language] || 'en-US');
         const stats = [
-            { title: t('followers'), value: twitchUserData?.followers_count || 0, icon: '👥' },
+            { title: t('followers'), value: numberFormatter.format(twitchUserData?.followers_count || 0), icon: '👥' },
             // TODO: Заменить на реальные данные о просмотрах, если Twitch API их отдает
-            { title: t('profile_page.views'), value: twitchUserData?.view_count || 0, icon: '👁️' },
+            { title: t('profile_page.views'), value: numberFormatter.format(twitchUserData?.view_count || 0), icon: '👁️' },
             // TODO: Придумать еще статы. Например, дата регистрации на Twitch
-            { title: t('profile_page.registrationDate'), value: twitchUserData ? new Date(twitchUserData.created_at).toLocaleDateString() : 'N/A', icon: '📅' }
+            { title: t('profile_page.registrationDate'), value: twitchUserData ? new Date(twitchUserData.created_at).toLocaleDateString(i18n.language) : 'N/A', icon: '📅' }
         ];
 
         return <StatisticsWidget stats={stats} />;
@@ -193,7 +195,7 @@ function ProfilePageContent() {
                     setReviews(Array.isArray(data) ? data : []);
                 } catch (err) {
                     console.error('[ProfilePage] Failed to fetch reviews:', err);
-                    setReviewsError('Не удалось загрузить отзывы');
+                    setReviewsError(t('profile_page.reviews.error', { defaultValue: 'Не удалось загрузить отзывы' }));
                 } finally {
                     setReviewsLoading(false);
                 }
@@ -202,7 +204,7 @@ function ProfilePageContent() {
         }, [user]);
 
         if (reviewsLoading) {
-            return <div className={styles.loadingContainer}><p>Загрузка...</p></div>;
+            return <div className={styles.loadingContainer}><p>{t('loading.reviews')}</p></div>;
         }
 
         return (
@@ -304,7 +306,7 @@ function ProfilePageContent() {
                         {/* Другие виджеты можно будет добавлять сюда */}
                     </div>
                     <section className={styles.profileSection}>
-      <h2 className={styles.sectionTitle}>{t('profile.videos')}</h2>
+      <h2 className={styles.sectionTitle}>{t('profile.videos', { defaultValue: 'Видео' })}</h2>
       <div className={styles.videosGrid}>
         {Array.isArray(twitchUserData?.videos) && twitchUserData.videos.length > 0 ? twitchUserData.videos.map((video) => (
           <div key={video.id} className={styles.videoItem}>

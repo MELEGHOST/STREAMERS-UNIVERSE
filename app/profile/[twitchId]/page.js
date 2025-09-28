@@ -222,10 +222,10 @@ export default function UserProfilePage() {
   if (!profileExists) {
        return (
            <div className={pageStyles.container}> 
-              <h1 style={{ textAlign: 'center' }}>Профиль не найден</h1>
-               <p className={pageStyles.errorMessage}>{error || "Пользователь с таким Twitch ID не найден."}</p>
+              <h1 style={{ textAlign: 'center' }}>{t('common.error', { defaultValue: 'Ошибка' })}</h1>
+               <p className={pageStyles.errorMessage}>{error || t('profile.notWithUs', { defaultValue: 'Пользователь не найден.' })}</p>
                <button onClick={() => router.push('/menu')} className={pageStyles.backButton} style={{ display: 'block', margin: '2rem auto' }}>
-                   &larr; Назад в меню
+                   &larr; {t('search.backToMenu', { defaultValue: 'Назад в меню' })}
                </button>
            </div>
        );
@@ -239,6 +239,9 @@ export default function UserProfilePage() {
   // const broadcasterType = twitchUserData?.broadcaster_type || profileData?.twitch_broadcaster_type;
   const profileDescription = isRegistered ? profileData?.description : twitchUserData?.description;
   const formattedDate = createdAt ? (formatDate(createdAt, i18n.language) || t('common.unknown')) : t('common.unknown');
+
+  const localeMap = { ru: 'ru-RU', en: 'en-US', uk: 'uk-UA', be: 'be-BY' };
+  const numberFormatter = new Intl.NumberFormat(localeMap[i18n.language] || 'en-US');
 
   const handleLogout = async () => {
     await signOut();
@@ -297,16 +300,16 @@ export default function UserProfilePage() {
                 <p className={styles.loginName}>@{twitchUserData?.login || profileData?.twitch_login || '???'}</p>
                 <p className={styles.profileDescription}>{profileDescription}</p>
                 <div className={styles.profileDetails}>
-                    <div className={styles.detailItem}><span className={styles.detailLabel}>{t('profile.createdAtLabel')}:</span><span className={styles.detailValue}>{formattedDate}</span></div>
-                    <div className={styles.detailItem}><span className={styles.detailLabel}>{t('profile.followersLabel')}:</span><span className={styles.detailValue}>{new Intl.NumberFormat('ru-RU').format(followersCount ?? 0)}</span></div>
-                    <div className={styles.detailItem}><span className={styles.detailLabel}>{t('profile.viewsLabel')}:</span><span className={styles.detailValue}>{new Intl.NumberFormat('ru-RU').format(viewCount ?? 0)}</span></div>
+                    <div className={styles.detailItem}><span className={styles.detailLabel}>{t('profile_page.registrationDate', { defaultValue: 'Дата регистрации' })}:</span><span className={styles.detailValue}>{formattedDate}</span></div>
+                    <div className={styles.detailItem}><span className={styles.detailLabel}>{t('followers', { defaultValue: 'Подписчики' })}:</span><span className={styles.detailValue}>{numberFormatter.format(followersCount ?? 0)}</span></div>
+                    <div className={styles.detailItem}><span className={styles.detailLabel}>{t('profile_page.views', { defaultValue: 'Просмотры' })}:</span><span className={styles.detailValue}>{numberFormatter.format(viewCount ?? 0)}</span></div>
                 </div>
             </div>
         </header>
         <div className={styles.profileContent}>
             <div className={styles.profileSections}>
                 <section className={styles.profileSection}>
-                    <h2 className={styles.sectionTitle}>{t('profile.' + profileWidget)}</h2>
+                    <h2 className={styles.sectionTitle}>{t(profileWidget === 'statistics' ? 'profile.widgetStatistics' : 'profile.widgetAchievements')}</h2>
                         {profileWidget === 'statistics' ? (
                             <StatisticsWidget twitchUserData={twitchUserData} profileData={profileData} />
                         ) : (
@@ -314,7 +317,7 @@ export default function UserProfilePage() {
                         )}
                 </section>
                 <section className={styles.profileSection}>
-                    <h2 className={styles.sectionTitle}>{t('profile.videos')}</h2>
+                    <h2 className={styles.sectionTitle}>{t('profile.videos', { defaultValue: 'Видео' })}</h2>
                     <div className={styles.videosGrid}>
                         {Array.isArray(videos) && videos.length > 0 ? videos.map((video) => (
                             <div key={video.id} className={styles.videoItem}>
@@ -338,7 +341,7 @@ export default function UserProfilePage() {
             </div>
             <aside className={styles.profileSidebar}>
                 <section className={styles.sidebarSection}>
-                    <h3 className={styles.sidebarTitle}>{t('profile.socialLinks')}</h3>
+                    <h3 className={styles.sidebarTitle}>{t('profile.socialLinks', { defaultValue: 'Социальные сети' })}</h3>
                     <div className={styles.socialLinks}>
                         {profileSocialLinks && Object.entries(profileSocialLinks).map(([platform, link]) => (
                             <div key={platform} className={styles.socialLinkItem}>
@@ -349,7 +352,7 @@ export default function UserProfilePage() {
                 </section>
                 {!isOwnProfile && (
                     <section className={styles.sidebarSection}>
-                        <h3 className={styles.sidebarTitle}>{t('profile.invite')}</h3>
+                        <h3 className={styles.sidebarTitle}>{t('profile.invite', { defaultValue: 'Пригласить' })}</h3>
                         <InviteButton />
                     </section>
                 )}
