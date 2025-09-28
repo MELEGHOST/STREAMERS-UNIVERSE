@@ -149,10 +149,14 @@ export function AuthProvider({ children }) {
       );
     }
 
+    const base = (process.env.NEXT_PUBLIC_SITE_URL || (typeof window !== 'undefined' ? window.location.origin : ''))
+      .replace(/\/$/, '');
+    const redirectTo = `${base}/auth/callback`;
+
     const result = await supabase.auth.signInWithOAuth({
       provider: 'twitch',
       options: {
-        redirectTo: `${window.location.origin}/auth/callback`,
+        redirectTo,
         queryParams: { force_verify: 'false' },
         // Отдадим управление редиректом нашей кнопке (учёт Telegram WebApp и т.п.)
         skipBrowserRedirect: true,
