@@ -21,7 +21,7 @@ function AchievementCard({ achievement, t }) {
     );
 }
 
-export default function AchievementsWidget({ }) {
+export default function AchievementsWidget() {
     const { t } = useTranslation();
     const { supabase } = useAuth();
     const [achievements, setAchievements] = useState([]);

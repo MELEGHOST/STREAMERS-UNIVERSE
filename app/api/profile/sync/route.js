@@ -3,7 +3,8 @@ import { createClient } from '@supabase/supabase-js';
 import { getTwitchClientWithToken } from '../../../utils/twitchClient';
 import { handleAchievementTrigger } from '../../../utils/achievements';
 
-export async function POST({ headers }) {
+export async function POST(request) {
+  const headers = request.headers;
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const supabaseServiceKey = process.env.SUPABASE_SERVICE_KEY;
   if (!supabaseUrl || !supabaseServiceKey) {

@@ -6,8 +6,8 @@ import { useAuth } from '../../contexts/AuthContext';
 
 const protectedRoutes = ['/menu', '/profile', '/edit-profile', '/settings', '/followers', '/followings', '/my-reviews', '/achievements', '/admin'];
 
-const RouteGuard = ({ children }) => {
-  const { isAuthenticated, isLoading, refreshSession } = useAuth();
+const RouteGuard = ({ children, adminOnly = false }) => {
+  const { isAuthenticated, isLoading, refreshSession, userRole } = useAuth();
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -36,8 +36,15 @@ const RouteGuard = ({ children }) => {
     // Свежий логин — даем контексту добежать
     if (freshLogin) return;
 
-    // Уже аутентифицирован — все ок
-    if (isAuthenticated) return;
+    // Уже аутентифицирован — все ок (но проверяем adminOnly)
+    if (isAuthenticated) {
+      // Если требуется админ, но пользователь не админ — редирект
+      if (adminOnly && userRole !== 'admin') {
+        console.log(`[RouteGuard] Admin access required for ${pathname}. Redirecting to menu.`);
+        router.replace('/menu?error=not_admin');
+      }
+      return;
+    }
 
     // Подстраховка от гонок: перед редиректом дёрнем refreshSession и дадим чуть времени
     let canceled = false;
@@ -53,7 +60,7 @@ const RouteGuard = ({ children }) => {
       canceled = true;
       clearTimeout(timerId);
     };
-  }, [isLoading, isAuthenticated, isProtectedRoute, pathname, router, freshLogin, refreshSession]);
+  }, [isLoading, isAuthenticated, isProtectedRoute, pathname, router, freshLogin, refreshSession, adminOnly, userRole]);
 
   // После успешной аутентификации очищаем флаг freshLogin из URL
   useEffect(() => {

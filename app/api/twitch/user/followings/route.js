@@ -6,7 +6,7 @@ import { getSupabaseAdmin } from '../../../../utils/supabase/admin';
 
 export async function GET() {
   try {
-    const headersList = headers();
+    const headersList = await headers();
     const authorization = headersList.get('authorization');
 
     if (!authorization) {

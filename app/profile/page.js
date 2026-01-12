@@ -199,7 +199,8 @@ function ProfilePageContent() {
                 }
             };
             fetchReviews();
-        }, [user]);
+            // eslint-disable-next-line react-hooks/exhaustive-deps
+        }, []);
 
         if (reviewsLoading) {
             return <div className={styles.loadingContainer}><p>Загрузка...</p></div>;

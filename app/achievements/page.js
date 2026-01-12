@@ -84,7 +84,11 @@ function AchievementsPageContent() {
   const error = apiError ? (apiError.message === 'No response from server' ? 'Сервер не отвечает, попробуй позже, бро!' : apiError.message) : null;
 
   // --- Извлекаем данные из ответа API ---
-  const achievements = useMemo(() => apiData || [], [apiData]);
+  const achievements = useMemo(() => {
+    if (!apiData) return [];
+    // API возвращает { achievements: [...] }
+    return Array.isArray(apiData) ? apiData : (Array.isArray(apiData?.achievements) ? apiData.achievements : []);
+  }, [apiData]);
   const myAchievements = useMemo(() => achievements.filter(ach => ach.is_unlocked), [achievements]);
 
    // --- Рендеринг --- 
