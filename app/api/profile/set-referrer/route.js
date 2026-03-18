@@ -16,8 +16,8 @@ export async function POST(request) {
     const currentUserId = verifiedToken.sub; 
     console.log(`[API /set-referrer] Authenticated user ID: ${currentUserId}`);
 
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-    const supabaseServiceKey = process.env.SUPABASE_SERVICE_KEY;
+    const supabaseUrl = process.env.NEXT_PUBLIC_bd_SUPABASE_URL;
+    const supabaseServiceKey = process.env.bd_SUPABASE_SERVICE_ROLE_KEY;
     if (!supabaseUrl || !supabaseServiceKey) {
         console.error("[API /set-referrer] Critical Error: Supabase URL or Service Key is missing!");
         return NextResponse.json({ error: 'Supabase configuration missing' }, { status: 500 });
@@ -110,3 +110,4 @@ export async function POST(request) {
         return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
     }
 } 
+

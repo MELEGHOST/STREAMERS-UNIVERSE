@@ -47,8 +47,8 @@ export async function POST(request) {
     const userId = verifiedToken.sub;
 
     // Проверки env
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-    const supabaseServiceKey = process.env.SUPABASE_SERVICE_KEY;
+    const supabaseUrl = process.env.NEXT_PUBLIC_bd_SUPABASE_URL;
+    const supabaseServiceKey = process.env.bd_SUPABASE_SERVICE_ROLE_KEY;
     const openRouterApiKey = process.env.OPENROUTER_API_KEY;
     if (!supabaseUrl || !supabaseServiceKey) {
         console.error("[API /generate-full] Critical Error: Supabase keys missing!");
@@ -328,3 +328,4 @@ Please generate the review JSON based on this content. Remember the JSON format 
         return NextResponse.json({ error: error.message || 'Internal Server Error' }, { status: statusCode });
     }
 } 
+

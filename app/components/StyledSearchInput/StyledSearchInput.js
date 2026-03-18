@@ -386,3 +386,4 @@ const StyledWrapper = styled.div`
 `;
 
 export default StyledSearchInput; 
+

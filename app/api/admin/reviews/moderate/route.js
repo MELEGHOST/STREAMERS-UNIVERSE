@@ -2,8 +2,8 @@ import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 
 async function isAdmin(token) {
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-    const supabaseServiceKey = process.env.SUPABASE_SERVICE_KEY;
+    const supabaseUrl = process.env.NEXT_PUBLIC_bd_SUPABASE_URL;
+    const supabaseServiceKey = process.env.bd_SUPABASE_SERVICE_ROLE_KEY;
     if (!supabaseUrl || !supabaseServiceKey) {
         console.error("[isAdmin/moderate] Critical Error: Supabase keys missing!");
         return false;
@@ -44,8 +44,8 @@ export async function POST(request) {
     }
     
     // Получаем ID пользователя из токена для логгирования
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-    const supabaseServiceKey = process.env.SUPABASE_SERVICE_KEY;
+    const supabaseUrl = process.env.NEXT_PUBLIC_bd_SUPABASE_URL;
+    const supabaseServiceKey = process.env.bd_SUPABASE_SERVICE_ROLE_KEY;
     const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey, { auth: { persistSession: false } });
     const { data: { user }, error: userError } = await supabaseAdmin.auth.getUser(token);
     if (userError || !user) {
@@ -87,3 +87,4 @@ export async function POST(request) {
         return NextResponse.json({ error: `Internal Server Error: ${error.message}` }, { status: 500 });
     }
 } 
+

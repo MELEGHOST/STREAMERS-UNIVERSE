@@ -3,9 +3,9 @@ import { createClient } from '@supabase/supabase-js';
 import { searchTwitchChannels, getTwitchUsers } from '../../../utils/twitchClient.js'; // Убедимся, что путь верный
 
 export async function GET(request) {
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-  const supabaseServiceKey = process.env.SUPABASE_SERVICE_KEY;
+  const supabaseUrl = process.env.NEXT_PUBLIC_bd_SUPABASE_URL;
+  const supabaseAnonKey = process.env.NEXT_PUBLIC_bd_SUPABASE_ANON_KEY;
+  const supabaseServiceKey = process.env.bd_SUPABASE_SERVICE_ROLE_KEY;
   if (!supabaseUrl || !supabaseAnonKey) {
     console.error("[API /search/combined] Supabase configuration missing");
     return NextResponse.json({ error: 'Server configuration error' }, { status: 500 });
@@ -131,3 +131,4 @@ export async function GET(request) {
 }
 
 export const dynamic = 'force-dynamic';
+

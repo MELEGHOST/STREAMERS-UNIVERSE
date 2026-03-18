@@ -67,3 +67,4 @@ const StatisticsWidget = ({ twitchData, twitchUserData, profileData, stats }) =>
 };
 
 export default StatisticsWidget; 
+

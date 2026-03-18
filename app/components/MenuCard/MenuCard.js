@@ -22,3 +22,4 @@ const MenuCard = ({ href, icon, label, description, isActive, onPointerEnter }) 
 };
 
 export default MenuCard; 
+

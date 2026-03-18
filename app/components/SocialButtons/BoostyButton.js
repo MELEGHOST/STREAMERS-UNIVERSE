@@ -58,3 +58,4 @@ const BoostyButton = ({ value, count, className }) => {
 }
 
 export default BoostyButton; 
+

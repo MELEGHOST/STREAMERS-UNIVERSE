@@ -29,8 +29,8 @@ async function getAchievementRarity(supabaseAdmin, achievementId) {
 // GET handler for the route
 export async function GET(request) {
   try {
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-    const supabaseServiceKey = process.env.SUPABASE_SERVICE_KEY;
+    const supabaseUrl = process.env.NEXT_PUBLIC_bd_SUPABASE_URL;
+    const supabaseServiceKey = process.env.bd_SUPABASE_SERVICE_ROLE_KEY;
     if (!supabaseUrl || !supabaseServiceKey) {
       console.error('[API /achievements] Missing Supabase URL or Service Key');
       return NextResponse.json({ error: 'Server configuration error' }, { status: 500 });
@@ -76,3 +76,4 @@ export async function GET(request) {
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }
 } 
+

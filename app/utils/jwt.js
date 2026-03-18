@@ -5,8 +5,8 @@ import { getSupabaseAdmin } from '../utils/supabase/admin';
 // 1) Пытаемся проверить локально с секретом (HS256)
 // 2) Если секрета нет или проверка упала — валидируем через Supabase Admin API и возвращаем эквивалент payload
 export async function verifyJwt(token) {
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const JWT_SECRET = process.env.SUPABASE_JWT_SECRET || process.env.JWT_SECRET || '';
+  const supabaseUrl = process.env.NEXT_PUBLIC_bd_SUPABASE_URL;
+  const JWT_SECRET = process.env.bd_SUPABASE_JWT_SECRET || process.env.JWT_SECRET || '';
 
   if (!supabaseUrl) {
     console.error('[Utils/jwt] Critical Error: Supabase URL is missing!');
@@ -62,3 +62,4 @@ export async function verifyJwt(token) {
     return null;
   }
 }
+

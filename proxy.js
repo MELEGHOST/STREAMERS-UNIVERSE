@@ -10,8 +10,8 @@ export async function proxy(req) {
 
   // В Edge Runtime переменные окружения могут быть недоступны
   // Пропускаем создание клиента если переменных нет
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  const supabaseUrl = process.env.NEXT_PUBLIC_bd_SUPABASE_URL;
+  const supabaseAnonKey = process.env.NEXT_PUBLIC_bd_SUPABASE_ANON_KEY;
 
   if (!supabaseUrl || !supabaseAnonKey) {
     // Просто пропускаем запрос без обработки Supabase

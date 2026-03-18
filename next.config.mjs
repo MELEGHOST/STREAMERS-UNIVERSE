@@ -17,8 +17,8 @@ const nextConfig = {
   },
   // Явно указываем переменные окружения для Edge Runtime
   env: {
-    NEXT_PUBLIC_SUPABASE_URL: process.env.NEXT_PUBLIC_SUPABASE_URL,
-    NEXT_PUBLIC_SUPABASE_ANON_KEY: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
+    NEXT_PUBLIC_bd_SUPABASE_URL: process.env.NEXT_PUBLIC_bd_SUPABASE_URL,
+    NEXT_PUBLIC_bd_SUPABASE_ANON_KEY: process.env.NEXT_PUBLIC_bd_SUPABASE_ANON_KEY,
   },
 };
 

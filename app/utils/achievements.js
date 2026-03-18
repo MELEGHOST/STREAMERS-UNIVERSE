@@ -177,3 +177,4 @@ export async function getAchievementRarity(supabaseAdmin, achievementId) {
     return 0;
   }
 } 
+

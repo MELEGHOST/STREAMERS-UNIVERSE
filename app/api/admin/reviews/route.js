@@ -3,8 +3,8 @@ import { createClient } from '@supabase/supabase-js';
 
 // --- Вспомогательная функция для проверки роли админа ---
 async function isAdmin(token) {
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-    const supabaseServiceKey = process.env.SUPABASE_SERVICE_KEY;
+    const supabaseUrl = process.env.NEXT_PUBLIC_bd_SUPABASE_URL;
+    const supabaseServiceKey = process.env.bd_SUPABASE_SERVICE_ROLE_KEY;
     if (!supabaseUrl || !supabaseServiceKey) {
         console.error("[isAdmin] Critical Error: Supabase keys missing!");
         return false;
@@ -49,8 +49,8 @@ export async function GET(request) {
     console.log(`[API Admin Reviews] Fetching pending reviews...`);
 
     try {
-        const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-        const supabaseServiceKey = process.env.SUPABASE_SERVICE_KEY;
+        const supabaseUrl = process.env.NEXT_PUBLIC_bd_SUPABASE_URL;
+        const supabaseServiceKey = process.env.bd_SUPABASE_SERVICE_ROLE_KEY;
         if (!supabaseUrl || !supabaseServiceKey) {
             console.error("[API /api/admin/reviews] Critical Error: Supabase keys missing!");
             return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
@@ -85,3 +85,4 @@ export async function GET(request) {
 */
 
 export const dynamic = 'force-dynamic'; 
+

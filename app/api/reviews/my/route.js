@@ -19,8 +19,8 @@ export async function GET(request) {
     const authorId = verifiedToken.sub; // Получаем Supabase User ID автора из токена
     console.log(`[API /api/reviews/my] Fetching reviews for author_id: ${authorId}`);
 
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-    const supabaseServiceKey = process.env.SUPABASE_SERVICE_KEY;
+    const supabaseUrl = process.env.NEXT_PUBLIC_bd_SUPABASE_URL;
+    const supabaseServiceKey = process.env.bd_SUPABASE_SERVICE_ROLE_KEY;
     if (!supabaseUrl || !supabaseServiceKey) {
         console.error("[API /reviews/my] Critical Error: Supabase URL or Service Key is missing!");
         return NextResponse.json({ error: 'Supabase configuration missing' }, { status: 500 });
@@ -42,3 +42,4 @@ export async function GET(request) {
 }
 
 export const dynamic = 'force-dynamic'; 
+

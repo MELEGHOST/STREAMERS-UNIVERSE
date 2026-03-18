@@ -3,8 +3,8 @@ import { createClient } from '@supabase/supabase-js';
 import { verifyJwt } from '../../utils/jwt'; // <<< Путь к app/utils/jwt
 
 export async function GET() {
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const supabaseServiceKey = process.env.SUPABASE_SERVICE_KEY;
+  const supabaseUrl = process.env.NEXT_PUBLIC_bd_SUPABASE_URL;
+  const supabaseServiceKey = process.env.bd_SUPABASE_SERVICE_ROLE_KEY;
   if (!supabaseUrl || !supabaseServiceKey) {
     console.error("[API /reviews] Critical Error: Supabase URL or Service Key is missing!");
     return NextResponse.json({ error: 'Supabase configuration missing' }, { status: 500 });
@@ -33,8 +33,8 @@ export async function GET() {
 
 // POST - Создание нового ручного отзыва
 export async function POST(request) {
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-    const supabaseServiceKey = process.env.SUPABASE_SERVICE_KEY;
+    const supabaseUrl = process.env.NEXT_PUBLIC_bd_SUPABASE_URL;
+    const supabaseServiceKey = process.env.bd_SUPABASE_SERVICE_ROLE_KEY;
     if (!supabaseUrl || !supabaseServiceKey) {
         console.error("[API /reviews] Critical Error: Supabase URL or Service Key is missing!");
         return NextResponse.json({ error: 'Supabase configuration missing' }, { status: 500 });
@@ -126,3 +126,4 @@ export async function POST(request) {
         return NextResponse.json({ error: error.message || 'Internal Server Error' }, { status: 500 });
     }
 } 
+
