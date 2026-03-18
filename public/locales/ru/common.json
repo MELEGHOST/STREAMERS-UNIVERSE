@@ -128,9 +128,12 @@
             "titleError": "Сначала введите название",
             "categoryLabel": "Категория",
             "categoryPlaceholder": "Выберите категорию",
+            "categoryError": "Выберите категорию",
             "reviewLabel": "Отзыв",
             "reviewPlaceholder": "Ваши впечатления...",
+            "reviewError": "Напишите текст отзыва",
             "ratingLabel": "Рейтинг",
+            "ratingError": "Рейтинг должен быть от 0 до 10",
             "ageRatingLabel": "Возрастной рейтинг",
             "ageRatingPlaceholder": "Например, 18+",
             "imageUrlLabel": "URL изображения",
@@ -139,7 +142,8 @@
         "generateButton": "✨ Сгенерировать с ИИ",
         "generatingButton": "Генерация...",
         "generateError": "Не удалось сгенерировать отзыв",
-        "submitButton": "Опубликовать"
+        "submitButton": "Опубликовать",
+        "submitError": "Не удалось создать отзыв"
     },
     "edit_review": {
         "authRequired": "Для редактирования отзыва необходимо авторизоваться.",

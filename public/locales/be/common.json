@@ -111,9 +111,12 @@
             "titleError": "Спачатку ўвядзіце назву",
             "categoryLabel": "Катэгорыя",
             "categoryPlaceholder": "Выберыце катэгорыю",
+            "categoryError": "Выберыце катэгорыю",
             "reviewLabel": "Водгук",
             "reviewPlaceholder": "Вашы ўражанні...",
+            "reviewError": "Напішыце тэкст водгуку",
             "ratingLabel": "Рэйтынг",
+            "ratingError": "Рэйтынг павінен быць ад 0 да 10",
             "ageRatingLabel": "Узроставы рэйтынг",
             "ageRatingPlaceholder": "Напрыклад, 18+",
             "imageUrlLabel": "URL выявы",
@@ -122,7 +125,8 @@
         "generateButton": "✨ Згенераваць з AI",
         "generatingButton": "Генерацыя...",
         "generateError": "Не атрымалася згенераваць водгук",
-        "submitButton": "Апублікаваць"
+        "submitButton": "Апублікаваць",
+        "submitError": "Не атрымалася стварыць водгук"
     },
     "edit_review": {
         "authRequired": "Для рэдагавання водгуку неабходна аўтарызавацца.",

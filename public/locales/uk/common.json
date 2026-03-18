@@ -111,9 +111,12 @@
             "titleError": "Спочатку введіть назву",
             "categoryLabel": "Категорія",
             "categoryPlaceholder": "Виберіть категорію",
+            "categoryError": "Виберіть категорію",
             "reviewLabel": "Відгук",
             "reviewPlaceholder": "Ваші враження...",
+            "reviewError": "Напишіть текст відгуку",
             "ratingLabel": "Рейтинг",
+            "ratingError": "Рейтинг має бути від 0 до 10",
             "ageRatingLabel": "Віковий рейтинг",
             "ageRatingPlaceholder": "Наприклад, 18+",
             "imageUrlLabel": "URL зображення",
@@ -122,7 +125,8 @@
         "generateButton": "✨ Згенерувати з AI",
         "generatingButton": "Генерація...",
         "generateError": "Не вдалося згенерувати відгук",
-        "submitButton": "Опублікувати"
+        "submitButton": "Опублікувати",
+        "submitError": "Не вдалося створити відгук"
     },
     "edit_review": {
         "authRequired": "Для редагування відгуку необхідно авторизуватися.",

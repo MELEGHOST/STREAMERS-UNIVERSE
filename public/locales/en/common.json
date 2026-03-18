@@ -110,9 +110,12 @@
             "titleError": "First, enter a title",
             "categoryLabel": "Category",
             "categoryPlaceholder": "Select a category",
+            "categoryError": "Select a category",
             "reviewLabel": "Review",
             "reviewPlaceholder": "Your impressions...",
+            "reviewError": "Write review text",
             "ratingLabel": "Rating",
+            "ratingError": "Rating must be between 0 and 10",
             "ageRatingLabel": "Age Rating",
             "ageRatingPlaceholder": "e.g., 18+",
             "imageUrlLabel": "Image URL",
@@ -121,7 +124,8 @@
         "generateButton": "✨ Generate with AI",
         "generatingButton": "Generating...",
         "generateError": "Failed to generate review",
-        "submitButton": "Publish"
+        "submitButton": "Publish",
+        "submitError": "Failed to create review"
     },
     "edit_review": {
         "authRequired": "Authorization is required to edit a review.",

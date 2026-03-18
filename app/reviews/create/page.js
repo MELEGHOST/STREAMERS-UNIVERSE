@@ -69,10 +69,49 @@ export default function CreateReviewPage() {
     }));
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    // TODO: Add validation and submission logic
-    console.log(formData);
+    setErrors({});
+
+    // Валидация
+    const newErrors = {};
+    if (!formData.title) newErrors.title = t('create_review.form.titleError');
+    if (!formData.category) newErrors.category = t('create_review.form.categoryError');
+    if (!formData.review) newErrors.review = t('create_review.form.reviewError');
+    if (!formData.rating || formData.rating < 0 || formData.rating > 10) {
+      newErrors.rating = t('create_review.form.ratingError');
+    }
+
+    if (Object.keys(newErrors).length > 0) {
+      setErrors(newErrors);
+      return;
+    }
+
+    try {
+      const response = await fetch('/api/reviews', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          category: formData.category,
+          item_name: formData.title,
+          text: formData.review,
+          rating: Math.max(1, Math.min(5, Math.round(formData.rating / 2))), // Конвертируем 0-10 в 1-5
+          age_rating: formData.age_rating || null,
+          image_url: formData.image_url || null,
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to create review');
+      }
+
+      await response.json();
+      router.push('/my-reviews');
+    } catch (error) {
+      console.error('Error creating review:', error);
+      setErrors({ general: error.message || t('create_review.submitError') });
+    }
   };
 
   return (
