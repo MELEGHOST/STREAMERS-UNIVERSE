@@ -166,14 +166,15 @@ body.dark-theme {
 }
 
 @media (prefers-color-scheme: dark) {
-  /* Переменные уже определены в :root, но можно переопределить тут для ясности */
-  --background-primary: #0d0d0f;
-  --background-secondary: #1a1a1d;
-  --background-tertiary: #2a2a2e;
-  --foreground-primary: #f5f5f7;
-  --foreground-secondary: #a0a0a5;
-  --foreground-tertiary: #707075;
-  --border-primary: #3a3a3f;
-  --border-secondary: #2a2a2e;
-  --shadow-color: #000000;
+  :root {
+    --background-primary: #0d0d0f;
+    --background-secondary: #1a1a1d;
+    --background-tertiary: #2a2a2e;
+    --foreground-primary: #f5f5f7;
+    --foreground-secondary: #a0a0a5;
+    --foreground-tertiary: #707075;
+    --border-primary: #3a3a3f;
+    --border-secondary: #2a2a2e;
+    --shadow-color: #000000;
+  }
 } 
