@@ -63,12 +63,15 @@
 .logoContainer {
   display: flex;
   justify-content: center;
-  margin: 50px 0 20px 0;
+  margin: 50px 0 40px 0;
   position: relative;
   z-index: 10;
 }
 
 .logoContainer img {
+  width: 800px;
+  max-width: 90%;
+  height: auto;
   filter: drop-shadow(0 0 30px rgba(138, 79, 255, 0.8))
           drop-shadow(0 0 60px rgba(79, 138, 255, 0.6))
           drop-shadow(0 0 90px rgba(255, 79, 138, 0.4)) !important;
@@ -177,4 +180,215 @@
     0 0 20px var(--card-color, rgba(255, 255, 255, 0.8)),
     0 2px 15px rgba(0, 0, 0, 1);
   transform: translateY(-3px);
+}
+
+
+/* === АДАПТИВНОСТЬ === */
+
+/* Большие экраны (Desktop, TV) - 1920px и выше */
+@media (min-width: 1920px) {
+  .logoContainer img {
+    width: 1000px;
+  }
+  
+  .mobileMenu {
+    max-width: 1200px;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 40px;
+    padding: 40px;
+  }
+  
+  .mobileCard {
+    padding: 60px 40px;
+  }
+  
+  .mobileCard svg {
+    width: 100px !important;
+    height: 100px !important;
+  }
+  
+  .mobileCard h4 {
+    font-size: 1.8rem;
+    margin-top: 25px;
+  }
+}
+
+/* Стандартные Desktop - 1200px - 1919px */
+@media (min-width: 1200px) and (max-width: 1919px) {
+  .logoContainer img {
+    width: 700px;
+  }
+  
+  .mobileMenu {
+    max-width: 900px;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 30px;
+    padding: 30px;
+  }
+  
+  .mobileCard {
+    padding: 45px 30px;
+  }
+  
+  .mobileCard svg {
+    width: 80px !important;
+    height: 80px !important;
+  }
+  
+  .mobileCard h4 {
+    font-size: 1.4rem;
+    margin-top: 20px;
+  }
+}
+
+/* Планшеты (Landscape) - 992px - 1199px */
+@media (min-width: 992px) and (max-width: 1199px) {
+  .logoContainer {
+    margin: 40px 0 30px 0;
+  }
+  
+  .logoContainer img {
+    width: 600px;
+  }
+  
+  .mobileMenu {
+    max-width: 800px;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 25px;
+    padding: 25px;
+  }
+  
+  .mobileCard {
+    padding: 40px 25px;
+  }
+  
+  .mobileCard svg {
+    width: 70px !important;
+    height: 70px !important;
+  }
+  
+  .mobileCard h4 {
+    font-size: 1.3rem;
+  }
+}
+
+/* Планшеты (Portrait) - 768px - 991px */
+@media (min-width: 768px) and (max-width: 991px) {
+  .logoContainer {
+    margin: 30px 0 25px 0;
+  }
+  
+  .logoContainer img {
+    width: 500px;
+  }
+  
+  .mobileMenu {
+    max-width: 700px;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 20px;
+    padding: 20px;
+  }
+  
+  .mobileCard {
+    padding: 35px 20px;
+  }
+  
+  .mobileCard svg {
+    width: 60px !important;
+    height: 60px !important;
+  }
+  
+  .mobileCard h4 {
+    font-size: 1.2rem;
+  }
+}
+
+/* Мобильные устройства (Landscape) - 576px - 767px */
+@media (min-width: 576px) and (max-width: 767px) {
+  .logoContainer {
+    margin: 25px 0 20px 0;
+  }
+  
+  .logoContainer img {
+    width: 400px;
+  }
+  
+  .mobileMenu {
+    max-width: 500px;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 15px;
+    padding: 15px;
+  }
+  
+  .mobileCard {
+    padding: 30px 15px;
+  }
+  
+  .mobileCard svg {
+    width: 50px !important;
+    height: 50px !important;
+  }
+  
+  .mobileCard h4 {
+    font-size: 1.1rem;
+  }
+}
+
+/* Мобильные устройства (Portrait) - до 575px */
+@media (max-width: 575px) {
+  .logoContainer {
+    margin: 20px 0 15px 0;
+  }
+  
+  .logoContainer img {
+    width: 300px;
+  }
+  
+  .mobileMenu {
+    max-width: 100%;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+    padding: 12px;
+  }
+  
+  .mobileCard {
+    padding: 25px 12px;
+  }
+  
+  .mobileCard svg {
+    width: 40px !important;
+    height: 40px !important;
+  }
+  
+  .mobileCard h4 {
+    font-size: 1rem;
+    margin-top: 12px;
+  }
+}
+
+/* Очень маленькие экраны - до 375px */
+@media (max-width: 375px) {
+  .logoContainer img {
+    width: 250px;
+  }
+  
+  .mobileMenu {
+    grid-template-columns: 1fr;
+    gap: 10px;
+    padding: 10px;
+  }
+  
+  .mobileCard {
+    padding: 20px 10px;
+  }
+  
+  .mobileCard svg {
+    width: 35px !important;
+    height: 35px !important;
+  }
+  
+  .mobileCard h4 {
+    font-size: 0.95rem;
+    margin-top: 10px;
+  }
 }

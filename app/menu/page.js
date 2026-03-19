@@ -3,65 +3,11 @@
 import styles from './menu.module.css';
 import { useTranslation } from 'react-i18next';
 import { useRouter } from 'next/navigation';
-import styled from 'styled-components';
-import { useState, useRef, useEffect } from 'react';
 import { FaUser, FaUsers, FaUserFriends, FaCog, FaSearch, FaPen } from 'react-icons/fa';
-import Logo from '../components/Logo/Logo';
 
 export default function MenuPage() {
   const { t } = useTranslation();
   const router = useRouter();
-  const [rotation, setRotation] = useState(0);
-  const [isIdle, setIsIdle] = useState(true);
-  const timerRef = useRef(null);
-  const startX = useRef(0);
-  const isDragging = useRef(false);
-  const [isMobile, setIsMobile] = useState(false);
-
-  useEffect(() => {
-    timerRef.current = setTimeout(() => setIsIdle(true), 120000);
-    return () => clearTimeout(timerRef.current);
-  }, []);
-
-  useEffect(() => {
-    const checkMobile = () => {
-      setIsMobile(window.innerWidth < 768);
-    };
-    checkMobile();
-    window.addEventListener('resize', checkMobile);
-    return () => window.removeEventListener('resize', checkMobile);
-  }, []);
-
-  const handleStart = (x) => {
-    setIsIdle(false);
-    clearTimeout(timerRef.current);
-    startX.current = x;
-    isDragging.current = true;
-  };
-
-  const handleMove = (x) => {
-    if (isDragging.current) {
-      const deltaX = x - startX.current;
-      setRotation((prev) => prev + deltaX * 0.5);
-      startX.current = x;
-    }
-  };
-
-  const handleEnd = () => {
-    isDragging.current = false;
-    timerRef.current = setTimeout(() => setIsIdle(true), 120000);
-  };
-
-  const handleTouchStart = (e) => handleStart(e.touches[0].clientX);
-  const handleTouchMove = (e) => handleMove(e.touches[0].clientX);
-  const handleTouchEnd = handleEnd;
-
-  const handleMouseDown = (e) => handleStart(e.clientX);
-  const handleMouseMove = (e) => {
-    if (isDragging.current) handleMove(e.clientX);
-  };
-  const handleMouseUp = handleEnd;
-  const handleMouseLeave = handleEnd;
 
   const menuItems = [
     { label: t('menu.profile', { defaultValue: 'Профиль' }), icon: FaUser, href: '/profile', color: '142, 249, 252' },
@@ -72,181 +18,24 @@ export default function MenuPage() {
     { label: t('menu.createReview', { defaultValue: 'Создать отзыв' }), icon: FaPen, href: '/reviews/create', color: '142, 202, 252' },
   ];
 
-  const HoloMenu = styled.div`
-    .wrapper {
-      width: 100%;
-      height: 500px;
-      position: relative;
-      text-align: center;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      overflow: visible;
-    }
-
-    .inner {
-      --w: 280px;
-      --h: 380px;
-      --translateZ: calc((var(--w) + var(--h)) / 2);
-      --rotateX: 0deg;
-      --perspective: 2000px;
-      position: absolute;
-      width: var(--w);
-      height: var(--h);
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%) perspective(var(--perspective));
-      z-index: 2;
-      transform-style: preserve-3d;
-      animation: ${props => props.isIdle ? 'rotating 60s linear infinite' : 'none'};
-    }
-    @keyframes rotating {
-      from {
-        transform: translate(-50%, -50%) perspective(var(--perspective)) rotateX(var(--rotateX)) rotateY(0);
-      }
-      to {
-        transform: translate(-50%, -50%) perspective(var(--perspective)) rotateX(var(--rotateX)) rotateY(1turn);
-      }
-    }
-
-    .card {
-      position: absolute;
-      border: 3px solid rgba(var(--color-card), 0.9);
-      border-radius: 25px;
-      overflow: hidden;
-      inset: 0;
-      transform: rotateY(calc((360deg / var(--quantity)) * var(--index))) translateZ(var(--translateZ));
-      cursor: pointer;
-      pointer-events: auto;
-      background: linear-gradient(135deg, rgba(0, 0, 0, 0.95) 0%, rgba(var(--color-card), 0.15) 100%);
-      backface-visibility: hidden;
-      box-shadow: 
-        0 0 30px rgba(var(--color-card), 0.6),
-        inset 0 0 60px rgba(var(--color-card), 0.1),
-        0 10px 40px rgba(0, 0, 0, 0.5);
-      transition: all 0.3s ease;
-    }
-
-    .card::before {
-      content: '';
-      position: absolute;
-      top: 0;
-      left: 0;
-      right: 0;
-      bottom: 0;
-      background: linear-gradient(
-        45deg,
-        transparent 30%,
-        rgba(var(--color-card), 0.2) 50%,
-        transparent 70%
-      );
-      opacity: 0;
-      transition: opacity 0.3s ease;
-    }
-
-    .card:hover {
-      border-color: rgba(var(--color-card), 1);
-      box-shadow: 
-        0 0 50px rgba(var(--color-card), 1),
-        inset 0 0 80px rgba(var(--color-card), 0.2),
-        0 15px 60px rgba(0, 0, 0, 0.7);
-      transform: rotateY(calc((360deg / var(--quantity)) * var(--index))) translateZ(calc(var(--translateZ) + 30px));
-    }
-
-    .card:hover::before {
-      opacity: 1;
-    }
-
-    .img {
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
-      background: radial-gradient(
-        circle at center,
-        rgba(var(--color-card), 0.3) 0%,
-        rgba(var(--color-card), 0.15) 40%,
-        transparent 70%
-      );
-      display: flex;
-      flex-direction: column;
-      justify-content: center;
-      align-items: center;
-      gap: 20px;
-      position: relative;
-    }
-
-    .img svg {
-      filter: drop-shadow(0 0 20px rgba(var(--color-card), 0.8));
-      transition: all 0.3s ease;
-    }
-
-    .card:hover .img svg {
-      filter: drop-shadow(0 0 30px rgba(var(--color-card), 1));
-      transform: scale(1.1);
-    }
-
-    .label {
-      color: white;
-      font-size: 1.3rem;
-      font-weight: 600;
-      text-shadow: 
-        0 0 10px rgba(var(--color-card), 0.8),
-        0 0 20px rgba(var(--color-card), 0.6),
-        0 2px 10px rgba(0, 0, 0, 0.8);
-      letter-spacing: 1px;
-      transition: all 0.3s ease;
-    }
-
-    .card:hover .label {
-      text-shadow: 
-        0 0 20px rgba(var(--color-card), 1),
-        0 0 40px rgba(var(--color-card), 0.8),
-        0 2px 15px rgba(0, 0, 0, 1);
-      transform: translateY(-5px);
-    }
-  `;
-
   return (
     <div className={styles.container}>
       <div className={styles.logoContainer}>
-        <img src="/images/logo-main.png" alt="Streamers Universe" style={{ width: '600px', maxWidth: '90%', height: 'auto' }} />
+        <img src="/images/logo-main.png" alt="Streamers Universe" />
       </div>
-      {isMobile ? (
-        <div className={styles.mobileMenu}>
-          {menuItems.map((item, index) => (
-            <div
-              key={index}
-              className={styles.mobileCard}
-              style={{ '--card-color': `rgb(${item.color})` }}
-              onClick={() => router.push(item.href)}
-            >
-              <item.icon size={50} color={`rgb(${item.color})`} />
-              <h4>{item.label}</h4>
-            </div>
-          ))}
-        </div>
-      ) : (
-        <HoloMenu isIdle={isIdle}>
-          <div className="wrapper" onTouchStart={handleTouchStart} onTouchMove={handleTouchMove} onTouchEnd={handleTouchEnd}
-            onMouseDown={handleMouseDown} onMouseMove={handleMouseMove} onMouseUp={handleMouseUp} onMouseLeave={handleMouseLeave}>
-            <div className="inner" style={{ '--quantity': menuItems.length, transform: `translate(-50%, -50%) perspective(var(--perspective)) rotateY(${rotation}deg)` }}>
-              {menuItems.map((item, index) => (
-                <div
-                  className="card"
-                  style={{ '--index': index, '--color-card': item.color }}
-                  key={index}
-                  onClick={() => router.push(item.href)}
-                >
-                  <div className="img">
-                    <item.icon size={100} color="white" />
-                    <h4 className="label">{item.label}</h4>
-                  </div>
-                </div>
-              ))}
-            </div>
+      <div className={styles.mobileMenu}>
+        {menuItems.map((item, index) => (
+          <div
+            key={index}
+            className={styles.mobileCard}
+            style={{ '--card-color': `rgb(${item.color})` }}
+            onClick={() => router.push(item.href)}
+          >
+            <item.icon size={50} color={`rgb(${item.color})`} />
+            <h4>{item.label}</h4>
           </div>
-        </HoloMenu>
-      )}
+        ))}
+      </div>
     </div>
   );
 }
