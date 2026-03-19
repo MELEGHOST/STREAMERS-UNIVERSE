@@ -481,10 +481,90 @@
   transform: translateY(-3px);
 } 
 
+.container {
+  position: relative;
+  min-height: 100vh;
+  overflow: hidden;
+  background: radial-gradient(ellipse at bottom, #1b2735 0%, #090a0f 100%);
+}
+
+.container::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-image: 
+    radial-gradient(2px 2px at 20px 30px, white, transparent),
+    radial-gradient(2px 2px at 60px 70px, white, transparent),
+    radial-gradient(1px 1px at 50px 50px, white, transparent),
+    radial-gradient(1px 1px at 130px 80px, white, transparent),
+    radial-gradient(2px 2px at 90px 10px, white, transparent),
+    radial-gradient(1px 1px at 200px 150px, white, transparent),
+    radial-gradient(1px 1px at 170px 120px, white, transparent),
+    radial-gradient(2px 2px at 250px 60px, white, transparent);
+  background-size: 300px 300px;
+  background-repeat: repeat;
+  animation: stars 200s linear infinite;
+  opacity: 0.8;
+  z-index: 0;
+}
+
+.container::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-image: 
+    radial-gradient(1px 1px at 40px 60px, rgba(255, 255, 255, 0.8), transparent),
+    radial-gradient(1px 1px at 110px 90px, rgba(255, 255, 255, 0.8), transparent),
+    radial-gradient(1px 1px at 180px 30px, rgba(255, 255, 255, 0.8), transparent),
+    radial-gradient(2px 2px at 220px 140px, rgba(255, 255, 255, 0.9), transparent);
+  background-size: 250px 250px;
+  background-repeat: repeat;
+  animation: stars 300s linear infinite reverse;
+  opacity: 0.6;
+  z-index: 0;
+}
+
+@keyframes stars {
+  from {
+    transform: translateY(0);
+  }
+  to {
+    transform: translateY(-300px);
+  }
+}
+
 .logoContainer {
   display: flex;
   justify-content: center;
   margin: 50px 0 20px 0;
+  position: relative;
+  z-index: 1;
+}
+
+.logoContainer img {
+  filter: drop-shadow(0 0 30px rgba(138, 79, 255, 0.8))
+          drop-shadow(0 0 60px rgba(79, 138, 255, 0.6))
+          drop-shadow(0 0 90px rgba(255, 79, 138, 0.4));
+  animation: logoGlow 3s ease-in-out infinite alternate;
+}
+
+@keyframes logoGlow {
+  0% {
+    filter: drop-shadow(0 0 30px rgba(138, 79, 255, 0.8))
+            drop-shadow(0 0 60px rgba(79, 138, 255, 0.6))
+            drop-shadow(0 0 90px rgba(255, 79, 138, 0.4));
+  }
+  100% {
+    filter: drop-shadow(0 0 40px rgba(138, 79, 255, 1))
+            drop-shadow(0 0 80px rgba(79, 138, 255, 0.8))
+            drop-shadow(0 0 120px rgba(255, 79, 138, 0.6));
+  }
 }
 
 .card {
