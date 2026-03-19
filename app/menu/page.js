@@ -85,8 +85,8 @@ export default function MenuPage() {
     }
 
     .inner {
-      --w: 250px;
-      --h: 350px;
+      --w: 280px;
+      --h: 380px;
       --translateZ: calc((var(--w) + var(--h)) / 2);
       --rotateX: 0deg;
       --perspective: 2000px;
@@ -111,33 +111,105 @@ export default function MenuPage() {
 
     .card {
       position: absolute;
-      border: 2px solid rgba(var(--color-card), 0.8);
-      border-radius: 20px;
+      border: 3px solid rgba(var(--color-card), 0.9);
+      border-radius: 25px;
       overflow: hidden;
       inset: 0;
       transform: rotateY(calc((360deg / var(--quantity)) * var(--index))) translateZ(var(--translateZ));
       cursor: pointer;
       pointer-events: auto;
-      background: rgba(0, 0, 0, 1);
+      background: linear-gradient(135deg, rgba(0, 0, 0, 0.95) 0%, rgba(var(--color-card), 0.15) 100%);
       backface-visibility: hidden;
-      box-shadow: 0 0 20px rgba(var(--color-card), 0.5);
+      box-shadow: 
+        0 0 30px rgba(var(--color-card), 0.6),
+        inset 0 0 60px rgba(var(--color-card), 0.1),
+        0 10px 40px rgba(0, 0, 0, 0.5);
+      transition: all 0.3s ease;
+    }
+
+    .card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: linear-gradient(
+        45deg,
+        transparent 30%,
+        rgba(var(--color-card), 0.2) 50%,
+        transparent 70%
+      );
+      opacity: 0;
+      transition: opacity 0.3s ease;
+    }
+
+    .card:hover {
+      border-color: rgba(var(--color-card), 1);
+      box-shadow: 
+        0 0 50px rgba(var(--color-card), 1),
+        inset 0 0 80px rgba(var(--color-card), 0.2),
+        0 15px 60px rgba(0, 0, 0, 0.7);
+      transform: rotateY(calc((360deg / var(--quantity)) * var(--index))) translateZ(calc(var(--translateZ) + 30px));
+    }
+
+    .card:hover::before {
+      opacity: 1;
     }
 
     .img {
       width: 100%;
-      height: 80%;
+      height: 100%;
       object-fit: cover;
-      background: #0000 radial-gradient(circle, rgba(var(--color-card), 0.2) 0%, rgba(var(--color-card), 0.6) 80%, rgba(var(--color-card), 0.9) 100%);
+      background: radial-gradient(
+        circle at center,
+        rgba(var(--color-card), 0.3) 0%,
+        rgba(var(--color-card), 0.15) 40%,
+        transparent 70%
+      );
       display: flex;
+      flex-direction: column;
       justify-content: center;
       align-items: center;
+      gap: 20px;
+      position: relative;
+    }
+
+    .img svg {
+      filter: drop-shadow(0 0 20px rgba(var(--color-card), 0.8));
+      transition: all 0.3s ease;
+    }
+
+    .card:hover .img svg {
+      filter: drop-shadow(0 0 30px rgba(var(--color-card), 1));
+      transform: scale(1.1);
+    }
+
+    .label {
+      color: white;
+      font-size: 1.3rem;
+      font-weight: 600;
+      text-shadow: 
+        0 0 10px rgba(var(--color-card), 0.8),
+        0 0 20px rgba(var(--color-card), 0.6),
+        0 2px 10px rgba(0, 0, 0, 0.8);
+      letter-spacing: 1px;
+      transition: all 0.3s ease;
+    }
+
+    .card:hover .label {
+      text-shadow: 
+        0 0 20px rgba(var(--color-card), 1),
+        0 0 40px rgba(var(--color-card), 0.8),
+        0 2px 15px rgba(0, 0, 0, 1);
+      transform: translateY(-5px);
     }
   `;
 
   return (
     <div className={styles.container}>
       <div className={styles.logoContainer}>
-        <Logo width={400} height={150} />
+        <img src="/images/logo-new.svg" alt="Streamers Universe" style={{ width: '600px', maxWidth: '90%', height: 'auto' }} />
       </div>
       {isMobile ? (
         <div className={styles.mobileMenu}>
@@ -145,6 +217,7 @@ export default function MenuPage() {
             <div
               key={index}
               className={styles.mobileCard}
+              style={{ '--card-color': `rgb(${item.color})` }}
               onClick={() => router.push(item.href)}
             >
               <item.icon size={50} color={`rgb(${item.color})`} />
@@ -177,4 +250,3 @@ export default function MenuPage() {
     </div>
   );
 }
-
