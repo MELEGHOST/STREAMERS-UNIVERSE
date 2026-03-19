@@ -1,398 +1,94 @@
-/* Общие стили контейнера, загрузки и ошибок - могут быть в page.module.css */
-
-/* --- Хедер --- */
-.header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 0.8rem 1.5rem; /* Немного меньше паддинги */
-  background-color: var(--background-secondary);
-  border-radius: var(--border-radius-lg);
-  margin-bottom: 2rem;
-  box-shadow: var(--shadow-elevation-low);
-}
-
-.logoLink {
-  display: flex;
-  align-items: center;
-  gap: 0.8rem;
-  text-decoration: none;
-  color: var(--foreground-primary);
-}
-
-.logoText {
-  font-weight: 600;
-  font-size: 1.1rem;
-}
-
-.userNav {
-  display: flex;
-  align-items: center;
-  gap: 0.8rem; /* Отступ между профилем и кнопкой выхода */
-}
-
-.userLink {
-  display: flex;
-  align-items: center;
-  gap: 0.6rem; /* Отступ между авой и ником */
-  padding: 0.4rem 0.8rem;
-  border-radius: var(--border-radius);
-  transition: background-color 0.2s ease;
-  text-decoration: none;
-}
-
-.userLink:hover {
-  background-color: var(--background-tertiary);
-}
-
-.userAvatar {
-  border-radius: 50%;
-  border: 2px solid transparent; /* Убираем рамку по умолчанию */
-  transition: border-color 0.2s ease;
-}
-
-.userLink:hover .userAvatar {
-  border-color: var(--accent-primary); /* Показываем рамку при наведении */
-}
-
-.userName {
-  font-size: 0.95rem;
-  font-weight: 500;
-  color: var(--foreground-primary);
-  /* Добавляем, чтобы имя не переносилось */
-  white-space: nowrap;
+/* === КОСМИЧЕСКИЙ ФОН === */
+.container {
+  position: relative;
+  min-height: 100vh;
   overflow: hidden;
-  text-overflow: ellipsis;
-  max-width: 150px; /* Ограничим максимальную ширину */
+  background: radial-gradient(ellipse at bottom, #1b2735 0%, #090a0f 100%) !important;
 }
 
-.logoutButton {
-  background: none;
-  border: none;
-  color: var(--foreground-secondary);
-  font-size: 1.4rem; /* Размер иконки */
-  padding: 0.5rem;
-  border-radius: var(--border-radius);
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: background-color 0.2s ease, color 0.2s ease;
-}
-
-.logoutButton:hover {
-  background-color: var(--background-tertiary);
-  color: var(--error-color); /* Красный при наведении */
-}
-
-/* --- Основной контент меню --- */
-.mainContent {
-  flex-grow: 1;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  width: 100%;
-}
-
-.mainTitle {
-  font-size: 2.5rem;
-  margin-bottom: 2rem;
-  color: var(--foreground-primary);
-  text-align: center;
-}
-
-/* Сетка для карточек меню */
-.mainNavGrid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-  gap: 1.5rem;
-  width: 100%;
-}
-
-.cardList {
-  display: grid;
-  gap: 8px;
-  list-style-type: none;
-  padding: 0;
-  margin: 0;
-  height: 380px;
-  width: 900px;
-  max-width: calc(100% - 4rem);
-  transition: grid-template-columns 0.6s linear(
-    0 0%, 0.1538 4.09%, 0.2926 8.29%, 0.4173 12.63%, 0.5282 17.12%,
-    0.6255 21.77%, 0.7099 26.61%, 0.782 31.67%, 0.8425 37%, 0.8887 42.23%,
-    0.9257 47.79%, 0.9543 53.78%, 0.9752 60.32%, 0.9883 67.11%, 0.9961 75%,
-    1 100%
-  );
-}
-
-.cardList > li {
-  min-width: 80px;
-}
-
-/* Стиль карточки меню */
-.navCard {
-  display: flex;
-  flex-direction: column; /* Иконка над текстом */
-  align-items: center;
-  justify-content: center;
-  padding: 2rem 1rem;
-  background-color: var(--background-secondary);
-  border-radius: var(--border-radius-lg);
-  border: 1px solid var(--border-secondary);
-  color: var(--foreground-primary);
-  text-decoration: none;
-  text-align: center;
-  transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
-  min-height: 150px; /* Минимальная высота карточки */
-}
-
-.navCard:hover {
-  transform: translateY(-5px); /* Эффект подъема */
-  box-shadow: var(--shadow-elevation-medium);
-  border-color: var(--accent-primary);
-  color: var(--accent-primary);
-}
-
-.navCardIcon {
-  font-size: 2.5rem; /* Крупная иконка */
-  margin-bottom: 1rem;
-}
-
-.navCardLabel {
-  font-size: 1.1rem;
-  font-weight: 500;
-}
-
-/* Особый стиль для админской карточки */
-.adminCard {
-  /* Можно добавить границу или фон, если нужно выделить */
-  /* border-left: 4px solid var(--accent-secondary); */
-}
-
-/* --- Футер (стили могут быть в page.module.css) --- */
-/* Убедимся, что старые стили для .navigation, .navButton и т.д. удалены или не конфликтуют */
-
-/* Удаляем или комментируем старые стили, если они больше не нужны */
-/*
-.navigation ul { ... }
-.navigation li a { ... }
-.navButton { ... }
-*/
-
-/* Стили для спиннера и сообщений (если не в page.module.css) */
-.loadingContainer {
-    /* ... стили ... */
-}
-.errorMessage {
-    /* ... стили ... */
-}
-
-/* Стили для поиска */
-.searchContainer {
-  position: relative; /* Для позиционирования выпадающего списка */
-  flex-grow: 1; /* Занимает доступное место между лого и нав */
-  margin: 0 2rem; /* Отступы */
-  max-width: 500px; /* Ограничение ширины */
-}
-
-.searchInput {
-  width: 100%;
-  padding: 0.8rem 1rem;
-  padding-right: 3rem; /* Место для спиннера */
-  border: 1px solid var(--border-secondary);
-  border-radius: var(--border-radius-lg);
-  background-color: var(--background-secondary);
-  color: var(--foreground-primary);
-  font-size: 1rem;
-  transition: border-color 0.2s ease, box-shadow 0.2s ease;
-}
-
-.searchInput:focus {
-  outline: none;
-  border-color: var(--accent-primary);
-  box-shadow: 0 0 0 3px hsla(from var(--accent-primary) h s l / 0.2);
-}
-
-.searchSpinner {
+.container::before {
+  content: '';
   position: absolute;
-  right: 1rem;
-  top: 50%;
-  transform: translateY(-50%);
-  width: 20px; /* Размер спиннера */
-  height: 20px;
-  border-width: 2px;
-}
-
-.searchResultsDropdown {
-  position: absolute;
-  top: 100%; /* Появляется под инпутом */
+  top: 0;
   left: 0;
   right: 0;
-  background-color: var(--background-secondary);
-  border: 1px solid var(--border-primary);
-  border-top: none; /* Убираем верхнюю границу, т.к. она есть у инпута */
-  border-radius: 0 0 var(--border-radius-lg) var(--border-radius-lg);
-  box-shadow: 0 4px 10px hsla(from var(--shadow-color) h s l / 0.1);
-  max-height: 400px; /* Ограничение высоты списка */
-  overflow-y: auto;
-  z-index: 100; /* Поверх других элементов */
-  padding: 0.5rem 0;
+  bottom: 0;
+  background-image: 
+    radial-gradient(2px 2px at 20px 30px, white, transparent),
+    radial-gradient(2px 2px at 60px 70px, white, transparent),
+    radial-gradient(1px 1px at 50px 50px, white, transparent),
+    radial-gradient(1px 1px at 130px 80px, white, transparent),
+    radial-gradient(2px 2px at 90px 10px, white, transparent),
+    radial-gradient(1px 1px at 200px 150px, white, transparent),
+    radial-gradient(1px 1px at 170px 120px, white, transparent),
+    radial-gradient(2px 2px at 250px 60px, white, transparent);
+  background-size: 300px 300px;
+  background-repeat: repeat;
+  animation: stars 200s linear infinite;
+  opacity: 0.8;
+  z-index: 0;
+  pointer-events: none;
 }
 
-.searchResultItem {
+.container::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-image: 
+    radial-gradient(1px 1px at 40px 60px, rgba(255, 255, 255, 0.8), transparent),
+    radial-gradient(1px 1px at 110px 90px, rgba(255, 255, 255, 0.8), transparent),
+    radial-gradient(1px 1px at 180px 30px, rgba(255, 255, 255, 0.8), transparent),
+    radial-gradient(2px 2px at 220px 140px, rgba(255, 255, 255, 0.9), transparent);
+  background-size: 250px 250px;
+  background-repeat: repeat;
+  animation: stars 300s linear infinite reverse;
+  opacity: 0.6;
+  z-index: 0;
+  pointer-events: none;
+}
+
+@keyframes stars {
+  from {
+    transform: translateY(0);
+  }
+  to {
+    transform: translateY(-300px);
+  }
+}
+
+/* === ЛОГОТИП СО СВЕЧЕНИЕМ === */
+.logoContainer {
   display: flex;
-  align-items: center;
-  padding: 0.7rem 1rem;
-  cursor: pointer;
-  transition: background-color 0.15s ease;
-  gap: 0.8rem;
+  justify-content: center;
+  margin: 50px 0 20px 0;
+  position: relative;
+  z-index: 10;
 }
 
-.searchResultItem:hover {
-  background-color: var(--background-tertiary);
+.logoContainer img {
+  filter: drop-shadow(0 0 30px rgba(138, 79, 255, 0.8))
+          drop-shadow(0 0 60px rgba(79, 138, 255, 0.6))
+          drop-shadow(0 0 90px rgba(255, 79, 138, 0.4)) !important;
+  animation: logoGlow 3s ease-in-out infinite alternate !important;
 }
 
-.searchResultAvatar {
-  border-radius: 50%; /* Круглый аватар */
-  flex-shrink: 0;
-  background-color: var(--background-tertiary);
-}
-
-.searchResultInfo {
-  display: flex;
-  flex-direction: column;
-  flex-grow: 1;
-  overflow: hidden; /* Чтобы текст не вылезал */
-}
-
-.searchResultName {
-  font-weight: 600;
-  color: var(--foreground-primary);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.searchResultLogin {
-  font-size: 0.85rem;
-  color: var(--foreground-secondary);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.liveBadge {
-  background-color: var(--error-color); /* Красный цвет для LIVE */
-  color: white;
-  font-size: 0.7rem;
-  font-weight: bold;
-  padding: 0.15rem 0.4rem;
-  border-radius: var(--border-radius-sm);
-  margin-left: auto; /* Прижимаем вправо */
-  flex-shrink: 0;
-}
-
-.inviteHint {
-  font-size: 0.8rem;
-  color: var(--accent-primary);
-  margin-left: auto;
-  font-style: italic;
-  flex-shrink: 0;
-}
-
-.searchError, .noResults {
-  padding: 0.7rem 1rem;
-  color: var(--foreground-secondary);
-  font-style: italic;
-  text-align: center;
-}
-
-.searchError {
-    color: var(--error-color);
-}
-
-/* --- Адаптация --- */
-@media (max-width: 768px) {
-  .header {
-      padding: 0.6rem 1rem; /* Уменьшаем паддинги */
+@keyframes logoGlow {
+  0% {
+    filter: drop-shadow(0 0 30px rgba(138, 79, 255, 0.8))
+            drop-shadow(0 0 60px rgba(79, 138, 255, 0.6))
+            drop-shadow(0 0 90px rgba(255, 79, 138, 0.4));
   }
-  .logoText {
-      display: none; /* Скрываем текст лого на мобилках */
-  }
-  .userName {
-      display: none; /* Скрываем имя юзера, оставляем аву */
-  }
-  .userLink {
-      padding: 0.4rem; /* Уменьшаем паддинг ссылки юзера */
-  }
-  .mainNavGrid {
-      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); /* Карточки поменьше */
-      gap: 1rem; /* Отступ поменьше */
-  }
-  .navCard {
-      min-height: 120px; /* Уменьшаем высоту карточки */
-      padding: 1.5rem 0.5rem;
-  }
-  .navCardIcon {
-      font-size: 2rem;
-      margin-bottom: 0.8rem;
-  }
-  .navCardLabel {
-      font-size: 1rem;
-  }
-  .mainTitle {
-      font-size: 1.5rem;
-      margin-bottom: 1.5rem;
+  100% {
+    filter: drop-shadow(0 0 40px rgba(138, 79, 255, 1))
+            drop-shadow(0 0 80px rgba(79, 138, 255, 0.8))
+            drop-shadow(0 0 120px rgba(255, 79, 138, 0.6));
   }
 }
 
-@media (max-width: 480px) {
-  .mainNavGrid {
-      grid-template-columns: repeat(2, 1fr); /* Строго 2 колонки на самых маленьких */
-      gap: 0.8rem;
-  }
-   .navCard {
-       min-height: 100px;
-       padding: 1rem 0.5rem;
-   }
-   .navCardIcon {
-       font-size: 1.8rem;
-   }
-   .navCardLabel {
-       font-size: 0.9rem;
-   }
-  .userNav {
-     gap: 0.5rem; /* Уменьшаем отступ в юзер-навигации */
-  }
-} 
-
-.cardGrid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: 20px;
-  padding: 20px;
-}
-
-.holoCard {
-  background: rgba(0, 255, 255, 0.1);
-  border: 1px solid rgba(0, 255, 255, 0.3);
-  box-shadow: 0 0 20px rgba(0, 255, 255, 0.5);
-  border-radius: 15px;
-  padding: 20px;
-  text-align: center;
-  cursor: pointer;
-  color: #00ffff;
-  transition: all 0.3s ease;
-}
-
-@media (max-width: 768px) {
-  .cardGrid {
-    grid-template-columns: 1fr;
-  }
-} 
-
+/* === МОБИЛЬНОЕ МЕНЮ === */
 .mobileMenu {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
@@ -400,6 +96,8 @@
   padding: 20px;
   max-width: 600px;
   margin: 0 auto;
+  position: relative;
+  z-index: 10;
 }
 
 .mobileCard {
@@ -479,100 +177,4 @@
     0 0 20px var(--card-color, rgba(255, 255, 255, 0.8)),
     0 2px 15px rgba(0, 0, 0, 1);
   transform: translateY(-3px);
-} 
-
-.container {
-  position: relative;
-  min-height: 100vh;
-  overflow: hidden;
-  background: radial-gradient(ellipse at bottom, #1b2735 0%, #090a0f 100%);
 }
-
-.container::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background-image: 
-    radial-gradient(2px 2px at 20px 30px, white, transparent),
-    radial-gradient(2px 2px at 60px 70px, white, transparent),
-    radial-gradient(1px 1px at 50px 50px, white, transparent),
-    radial-gradient(1px 1px at 130px 80px, white, transparent),
-    radial-gradient(2px 2px at 90px 10px, white, transparent),
-    radial-gradient(1px 1px at 200px 150px, white, transparent),
-    radial-gradient(1px 1px at 170px 120px, white, transparent),
-    radial-gradient(2px 2px at 250px 60px, white, transparent);
-  background-size: 300px 300px;
-  background-repeat: repeat;
-  animation: stars 200s linear infinite;
-  opacity: 0.8;
-  z-index: 0;
-}
-
-.container::after {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background-image: 
-    radial-gradient(1px 1px at 40px 60px, rgba(255, 255, 255, 0.8), transparent),
-    radial-gradient(1px 1px at 110px 90px, rgba(255, 255, 255, 0.8), transparent),
-    radial-gradient(1px 1px at 180px 30px, rgba(255, 255, 255, 0.8), transparent),
-    radial-gradient(2px 2px at 220px 140px, rgba(255, 255, 255, 0.9), transparent);
-  background-size: 250px 250px;
-  background-repeat: repeat;
-  animation: stars 300s linear infinite reverse;
-  opacity: 0.6;
-  z-index: 0;
-}
-
-@keyframes stars {
-  from {
-    transform: translateY(0);
-  }
-  to {
-    transform: translateY(-300px);
-  }
-}
-
-.logoContainer {
-  display: flex;
-  justify-content: center;
-  margin: 50px 0 20px 0;
-  position: relative;
-  z-index: 1;
-}
-
-.logoContainer img {
-  filter: drop-shadow(0 0 30px rgba(138, 79, 255, 0.8))
-          drop-shadow(0 0 60px rgba(79, 138, 255, 0.6))
-          drop-shadow(0 0 90px rgba(255, 79, 138, 0.4));
-  animation: logoGlow 3s ease-in-out infinite alternate;
-}
-
-@keyframes logoGlow {
-  0% {
-    filter: drop-shadow(0 0 30px rgba(138, 79, 255, 0.8))
-            drop-shadow(0 0 60px rgba(79, 138, 255, 0.6))
-            drop-shadow(0 0 90px rgba(255, 79, 138, 0.4));
-  }
-  100% {
-    filter: drop-shadow(0 0 40px rgba(138, 79, 255, 1))
-            drop-shadow(0 0 80px rgba(79, 138, 255, 0.8))
-            drop-shadow(0 0 120px rgba(255, 79, 138, 0.6));
-  }
-}
-
-.card {
-  background: transparent;
-}
-
-.img .label {
-  color: white;
-  margin-top: 10px;
-  font-size: 1.2rem;
-} 
