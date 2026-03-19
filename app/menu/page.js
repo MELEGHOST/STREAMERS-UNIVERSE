@@ -209,7 +209,7 @@ export default function MenuPage() {
   return (
     <div className={styles.container}>
       <div className={styles.logoContainer}>
-        <img src="/images/logo-new.svg" alt="Streamers Universe" style={{ width: '600px', maxWidth: '90%', height: 'auto' }} />
+        <img src="/images/logo-main.png" alt="Streamers Universe" style={{ width: '600px', maxWidth: '90%', height: 'auto' }} />
       </div>
       {isMobile ? (
         <div className={styles.mobileMenu}>

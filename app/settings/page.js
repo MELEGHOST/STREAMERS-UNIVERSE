@@ -10,11 +10,11 @@ import { useTranslation } from 'react-i18next';
 import LanguageSwitcher from '../components/LanguageSwitcher/LanguageSwitcher';
 
 const availableFonts = [
-  { name: 'Roboto', value: 'Roboto, sans-serif' },
-  { name: 'Open Sans', value: '"Open Sans", sans-serif' },
-  { name: 'Montserrat', value: 'Montserrat, sans-serif' },
-  { name: 'Lato', value: '"Lato", sans-serif' },
-  { name: 'Oswald', value: '"Oswald", sans-serif' },
+  { name: 'Roboto', value: 'var(--font-roboto), sans-serif' },
+  { name: 'Open Sans', value: 'var(--font-open-sans), sans-serif' },
+  { name: 'Montserrat', value: 'var(--font-montserrat), sans-serif' },
+  { name: 'Lato', value: 'var(--font-lato), sans-serif' },
+  { name: 'Oswald', value: 'var(--font-oswald), sans-serif' },
 ];
 
 function SettingsPageContent() {
